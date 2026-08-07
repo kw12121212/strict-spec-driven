@@ -18,6 +18,7 @@ run-maintenance: strict-spec-cli maintenance
 list-changes: strict-spec-cli list
 verify-change: strict-spec-cli verify <change-name>
 archive-change: strict-spec-cli archive <change-name>
+retire-lesson: strict-spec-cli lesson-obsolete <lesson-id> --reason <text>
 ```
 
 ## Prerequisites

@@ -2854,4 +2854,189 @@ context.assert(
   "the prohibition guard distinguishes a forbidden instruction from a prohibition of it",
 );
 
+
+context.section("[2d] CLI-only YAML mutation policy enforcement");
+// [2d] runs at suite scope; its own block below scopes the module and fixtures it introduces.
+
+{
+
+type CliOnlyYamlPolicyModule = {
+  scanTextForPolicyViolations: (file: string, text: string) => {
+    matches: { file: string; line: number; category: string; excerpt: string; replacement: string }[];
+    suppressions: { category: string; suppressedBy: string }[];
+  };
+  scanSourceForUnregisteredWriters: (rootDir: string, relativeDir: string) => {
+    matches: { file: string; line: number; category: string }[];
+    suppressions: { file: string; suppressedBy: string }[];
+  };
+  isMutationCapableSkill: (skillName: string, skillText: string) => boolean;
+  findProseMutationFlags: (text: string) => { command: string; flag: string }[];
+  loadPolicyRegistry: () => {
+    mutatingOwnerCommands: Set<string>;
+    registeredWriterPaths: Set<string>;
+    declaredFlagsByCommand: Map<string, Set<string>>;
+  };
+};
+
+const policy = (await loadDistModule("cli-only-yaml-policy.js")) as CliOnlyYamlPolicyModule;
+
+// Each category must be observed firing on a seeded violation. A policy check that has never been
+// seen to fail is not evidence of compliance, only of silence.
+const SEEDED_VIOLATIONS: { category: string; text: string }[] = [
+  { category: "direct-file-edit", text: "Run apply_patch on .strict-spec-driven/config.yaml to set the field." },
+  { category: "shell-or-heredoc-yaml-write", text: "Write it with cat <<EOF > .strict-spec-driven/specs/x.yaml" },
+  {
+    category: "hand-edit-fallback",
+    text: "If the command is unavailable, instead edit the .strict-spec-driven/specs/x.yaml by hand.",
+  },
+  { category: "raw-yaml-payload", text: "Create a temporary YAML payload file and pass it to the command." },
+];
+
+for (const { category, text } of SEEDED_VIOLATIONS) {
+  const result = policy.scanTextForPolicyViolations("seeded.md", text);
+  context.assert(
+    result.matches.some((match) => match.category === category),
+    `the policy scan reports a ${category} violation`,
+    `got ${result.matches.map((match) => match.category).join(", ") || "no match"}`,
+  );
+  context.assert(
+    result.matches.every((match) => match.replacement.length > 0 && match.line >= 1),
+    `each ${category} match names a replacement and a line`,
+  );
+}
+
+// Permitted surfaces must stay silent, and each silence must be attributable: a match that is
+// suppressed records why, so a false negative can be traced to its exemption.
+const PERMITTED_SURFACES: { label: string; text: string; expectSuppression: boolean }[] = [
+  {
+    label: "a prohibition of the construct",
+    text: "Never edit .strict-spec-driven/config.yaml directly with apply_patch on config.yaml; use config-edit.",
+    expectSuppression: true,
+  },
+  {
+    label: "a prohibition wrapped across lines",
+    text: "Generate every artifact with CLI invocations, and do not\ncreate JSON payload files.",
+    expectSuppression: true,
+  },
+  {
+    label: "a documented human-manual-edit note",
+    text: "A human may use apply_patch on config.yaml (human-manual-edit).",
+    expectSuppression: true,
+  },
+  {
+    label: "read-only inspection guidance",
+    text: "Inspect .strict-spec-driven/config.yaml with schema-show to confirm its shape.",
+    expectSuppression: false,
+  },
+  {
+    label: "an illustrative CLI command example",
+    text: "Run strict-spec-cli config-edit --set preferred_human_language --value English.",
+    expectSuppression: false,
+  },
+];
+
+for (const { label, text, expectSuppression } of PERMITTED_SURFACES) {
+  const result = policy.scanTextForPolicyViolations("permitted.md", text);
+  context.assert(result.matches.length === 0, `${label} produces no policy violation`);
+  if (expectSuppression) {
+    context.assert(
+      result.suppressions.length > 0 && result.suppressions.every((entry) => entry.suppressedBy.length > 0),
+      `${label} records why the match was suppressed`,
+    );
+  }
+}
+
+// A negation in an earlier paragraph must not silence a later instruction, or one "never" at the
+// top of a document would exempt everything below it.
+context.assert(
+  policy.scanTextForPolicyViolations(
+    "paragraphs.md",
+    "Do not improvise.\n\nCreate a temporary YAML payload file and pass it in.",
+  ).matches.some((match) => match.category === "raw-yaml-payload"),
+  "a prohibition in an earlier paragraph does not suppress a later instruction",
+);
+
+// Scope must come from the inventory, not from the guidance text, so removing a skill's protocol
+// section cannot reclassify it as exempt and pass vacuously.
+const mutationCapableSample = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
+context.assert(
+  policy.isMutationCapableSkill("strict-spec-propose", mutationCapableSample),
+  "a skill that invokes an inventory-registered mutation command is classified mutation-capable",
+);
+const strippedOfProtocol = mutationCapableSample.replace(
+  /## CLI-Only YAML Authoring Protocol[\s\S]*?(?=\n## )/,
+  "",
+);
+context.assert(
+  policy.isMutationCapableSkill("strict-spec-propose", strippedOfProtocol),
+  "deleting the protocol section leaves the skill mutation-capable rather than exempting it",
+);
+
+const registry = policy.loadPolicyRegistry();
+context.assert(
+  registry.mutatingOwnerCommands.size > 0 && registry.registeredWriterPaths.size > 0,
+  "the policy registry derives both mutation commands and registered writers from the inventory",
+);
+
+// The writer allowlist reads both places the inventory records a writer. Reading only
+// artifact_families would report every CLI-owned writer module as an unregistered bypass.
+context.assert(
+  registry.registeredWriterPaths.has("src/bundled-asset-mutation.ts")
+    && registry.registeredWriterPaths.has("src/apply.ts"),
+  "registered writers include both mutation_surfaces and artifact_families entries",
+);
+
+const sourceScan = policy.scanSourceForUnregisteredWriters(ROOT, "src");
+context.assert(
+  sourceScan.matches.length === 0,
+  "no src module writes repository-owned YAML without inventory registration",
+  sourceScan.matches.map((match) => `${match.file}:${match.line}`).join(", "),
+);
+context.assert(
+  sourceScan.suppressions.length > 0
+    && sourceScan.suppressions.every((entry) => entry.suppressedBy.includes("registered")),
+  "registered YAML writers are recognised and recorded as suppressed rather than silently skipped",
+);
+
+// Global help flags are not mutation arguments; treating them as undeclared would flag every
+// documented '--help --json' lookup the authoring protocol itself requires.
+const globalFlagProse = policy.findProseMutationFlags("strict-spec-cli generate --help --json");
+context.assert(
+  globalFlagProse.length === 0,
+  "global help flags are not reported as command mutation flags",
+);
+
+// A wrapped invocation's flags belong to that invocation, not to a command named on an earlier line.
+const wrapped = policy.findProseMutationFlags(
+  "run `strict-spec-cli init` first, then `strict-spec-cli spec-edit <spec-id>\n  --spec-path <path> --title <text>`",
+);
+context.assert(
+  wrapped.every((entry) => entry.command === "spec-edit"),
+  "flags on a continuation line attach to their own invocation",
+  wrapped.map((entry) => `${entry.command}${entry.flag}`).join(", "),
+);
+
+// Every flag the bundled skills name for a mutation command must exist in the command metadata,
+// which is what makes an undocumented mutation argument a build-time failure rather than a
+// surprise at invocation time.
+for (const skillName of readdirSync(path.join(ROOT, "skills"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)) {
+  const skillFile = path.join(ROOT, "skills", skillName, "SKILL.md");
+  if (!existsSync(skillFile)) continue;
+  const text = readFileSync(skillFile, "utf8");
+  if (!policy.isMutationCapableSkill(skillName, text)) continue;
+  for (const { command, flag } of policy.findProseMutationFlags(text)) {
+    if (!registry.mutatingOwnerCommands.has(command)) continue;
+    const declared = registry.declaredFlagsByCommand.get(command);
+    if (declared === undefined) continue;
+    context.assert(
+      declared.has(flag),
+      `${skillName} names only flags the '${command}' metadata declares (${flag})`,
+    );
+  }
+}
+
+}
+
 }

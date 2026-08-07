@@ -238,6 +238,17 @@ function buildFamily(
   };
 }
 
+/**
+ * The inventory exactly as checked in. The projection above deliberately drops `direct_write_paths`
+ * and `evidence`, because every field it does carry must be rendered by every help surface that
+ * describes a YAML-authoring command. A consumer that needs the raw registration data — the
+ * CLI-only YAML policy, which asks which modules may write YAML at all — reads it here instead of
+ * widening that contract.
+ */
+export function readYamlMutationInventoryDocument(): RawRecord {
+  return parseYamlDocument<RawRecord>(readInventoryContent(), { source: YAML_MUTATION_INVENTORY_PATH });
+}
+
 let cachedSurface: YamlMutationSurface | undefined;
 
 /**

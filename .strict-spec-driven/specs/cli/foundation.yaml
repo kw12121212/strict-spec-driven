@@ -111,6 +111,7 @@ mapping:
     - skills/strict-roadmap-reorder/SKILL.md
     - skills/strict-roadmap-resume/SKILL.md
     - skills/strict-spec-design-sync/SKILL.md
+    - src/cli-only-yaml-policy.ts
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -2894,3 +2895,39 @@ requirements:
         - GIVEN: a bundled mutation-capable skill
         - WHEN: its instructions for mutating a repository-owned YAML path are read
         - THEN: no instruction directs writing that path through direct text editing, shell redirection, a heredoc, a constructed payload file, or an ad hoc writer script
+  cli-validate-skills-rejects-direct-yaml-mutation-guidance:
+    strength: MUST
+    statement: The system MUST make validate-skills report deterministic path-specific diagnostics for a mutation-capable bundled skill package whose guidance directs direct YAML mutation, covering direct file editing or apply_patch of a repository-owned YAML artifact, shell or heredoc YAML construction, a raw YAML payload file supplied to a command, and fallback-to-hand-edit guidance for an unavailable command, while reporting no diagnostic for read-only YAML inspection guidance or illustrative CLI command examples.
+    scenarios:
+      validate-skills-flags-direct-edit-guidance:
+        - GIVEN: a mutation-capable bundled skill package instructs the agent to edit a repository-owned YAML artifact directly
+        - WHEN: validate-skills runs
+        - THEN: the command reports a deterministic diagnostic naming the skill path and the CLI command that must be used instead
+      validate-skills-flags-heredoc-payload-guidance:
+        - GIVEN: a mutation-capable bundled skill package instructs the agent to build YAML through a heredoc or a raw payload file passed to a command
+        - WHEN: validate-skills runs
+        - THEN: the command reports a deterministic path-specific diagnostic for the payload-construction guidance
+      validate-skills-flags-hand-edit-fallback:
+        - GIVEN: a mutation-capable bundled skill package tells the agent to edit the artifact by hand when a required command is unavailable
+        - WHEN: validate-skills runs
+        - THEN: the command reports a deterministic path-specific diagnostic for the fallback guidance
+      validate-skills-allows-read-only-inspection:
+        - GIVEN: a bundled skill package documents read-only YAML inspection and illustrative CLI command examples only
+        - WHEN: validate-skills runs
+        - THEN: the command reports no direct-YAML-mutation diagnostic for that package
+  cli-validate-skills-requires-mutation-command-mappings:
+    strength: MUST
+    statement: The system MUST make validate-skills report a deterministic path-specific diagnostic when a bundled skill package describes a repository-owned YAML mutation without declaring the owning CLI command in its commands block, or names a mutation flag in prose that the command metadata registry does not declare, and MUST determine which packages are mutation-capable from the mutation surface inventory and the command metadata registry rather than from the guidance text under inspection.
+    scenarios:
+      validate-skills-flags-missing-command-mapping:
+        - GIVEN: a bundled skill package describes a repository-owned YAML mutation but its commands block declares no owning CLI command for it
+        - WHEN: validate-skills runs
+        - THEN: the command reports a deterministic diagnostic naming the skill path and the missing command mapping
+      validate-skills-flags-undeclared-mutation-flag:
+        - GIVEN: a bundled skill package names a mutation flag that the owning command's metadata does not declare
+        - WHEN: validate-skills runs
+        - THEN: the command reports a deterministic diagnostic naming the skill path, the command, and the undeclared flag
+      validate-skills-scope-survives-guidance-deletion:
+        - GIVEN: a mutation-capable bundled skill package has its CLI-only authoring guidance removed entirely
+        - WHEN: validate-skills runs
+        - THEN: the package is still classified as mutation-capable and the command reports diagnostics for the missing guidance rather than treating the package as exempt

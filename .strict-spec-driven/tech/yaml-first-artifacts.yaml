@@ -24,6 +24,7 @@ mapping:
     - src/yaml-mutation-surface.ts
     - src/bundled-asset-mutation.ts
     - src/cli/cmd-bundled-assets.ts
+    - src/cli-only-yaml-policy.ts
   enforcement:
     - templates/strict-spec-driven/schemas/registry.yaml
     - test/suites/foundation-and-fixtures.ts
@@ -32,6 +33,9 @@ mapping:
     - test/suites/change-lifecycle.ts
     - test/suites/roadmap-and-migration.ts
     - test/suites/entrypoint-and-skills.ts
+    - src/skills/content.ts
+    - src/maintenance.ts
+    - inventory/yaml-mutation-surfaces.yaml
 rules:
   artifacts-are-strict-yaml:
     strength: MUST
@@ -90,12 +94,13 @@ rules:
   cli-owns-repository-yaml-mutations:
     strength: MUST
     statement: Every supported creation, update, named-entry removal, or whole-artifact deletion of repository-owned YAML MUST flow through an artifact-aware CLI operation that accepts named semantic arguments, resolves a confined artifact-family path, and owns document shape; AI-facing workflows MUST NOT supply raw YAML payloads, arbitrary output paths, or direct file edits.
-    rationale: A generic path or payload writer merely relocates unsafe hand-editing behind a command. Artifact identity and semantic inputs let deterministic code preserve structure, enforce valid destinations, and reconcile references consistently across every YAML family.
+    rationale: A generic path or payload writer merely relocates unsafe hand-editing behind a command. Artifact identity and semantic inputs let deterministic code preserve structure, enforce valid destinations, and reconcile references consistently across every YAML family. Stating the rule is not sufficient on its own, because guidance text drifts back toward direct editing whenever nothing fails; the rule is only real once a static check rejects the drift.
     enforcement:
       method: test
-      detail: Mutation command and skill regressions assert named-argument behavior, path confinement, and rejection of raw payload or direct-write guidance; inventory classifications preserve explicit exceptions.
+      detail: Mutation command and skill regressions assert named-argument behavior, path confinement, and rejection of raw payload or direct-write guidance; validate-skills reports deterministic path-specific diagnostics for direct-edit, heredoc or shell-writer, raw-payload, and hand-edit-fallback guidance in mutation-capable skill packages and for missing CLI command mappings or undeclared mutation flags; the cli-only-yaml-policy maintenance check applies the same policy to strict main specs, technical standards, MCP tool metadata, operator documentation, and repository source code; inventory classifications preserve explicit exceptions.
     exceptions:
       - External and dependency-owned YAML, legacy .spec-driven migration input, generated caches, rendered non-YAML output, and surfaces explicitly classified as read-only or human-only in inventory/yaml-mutation-surfaces.yaml are outside automated mutation ownership.
+      - Read-only YAML inspection, illustrative CLI command examples, intentionally invalid test fixtures, and documented human-manual-edit notes are permitted surfaces that the static policy checks must not flag.
   artifact-writes-validate-and-commit-atomically:
     strength: MUST
     statement: A YAML mutation MUST validate the complete candidate document, registered schema, declared relationships, confined path, and reference side effects before an atomic commit; any validation, reference, or filesystem failure MUST leave all pre-existing files unchanged and emit deterministic machine-readable diagnostics.

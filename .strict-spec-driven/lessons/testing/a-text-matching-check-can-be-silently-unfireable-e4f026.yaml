@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-text-matching-check-can-be-silently-unfireable-e4f026
+  title: A text-matching check can be silently unfireable, not just vacuously scoped
+category: testing
+status: active
+created_at: '2026-08-07T06:24:01.759Z'
+updated_at: '2026-08-07T06:24:01.759Z'
+context: 'This change promoted the forbidden-write regexes from test/suites/entrypoint-and-skills.ts into shipped validate-skills and maintenance checks. The patterns had been green in the suite for a full change cycle. A hand-probe of each category before wiring them up showed the apply_patch pattern matching nothing at all: it bounded the gap between the verb and the YAML path with [^.\\n], which excludes the dots inside .strict-spec-driven/config.yaml, so it could only ever match a path with no dots before the extension. The same class in NEGATION_BEFORE meant a prohibition whose negation sat before a path was read as an instruction. A hardcoded documentation list in the same change named README.zh-CN.md while the repository has README.zh.md, so the Chinese README would have been skipped in silence.'
+observation: 'Both defects produce the identical observable signal as full compliance: zero findings, green suite. The existing non-vacuity rule was satisfied — scope came from the inventory, independent of the checked content — and it still would not have caught either one, because the scope was right and the matcher was the thing that could not fire. The patterns had only ever been run against text the author wrote in the same session, which happened to avoid dotted paths.'
+takeaway: Prove each category of a text-matching check fires by running it against a realistic positive case before trusting a zero-finding result, and check every hand-enumerated file or path list against the filesystem rather than against memory. Independent scope derivation makes a check non-vacuous; it does not make the matcher work. Treat 'the check reports nothing' as a claim needing its own evidence.
+applies_when: Writing or promoting a regex, glob, or keyword check over prose or source text — especially one whose character classes exclude punctuation that appears in file paths, or one whose governed file set is a hardcoded list of filenames rather than a directory scan.
+occurrences:
+  - origin: enforce-cli-only-skill-policy
+    date: '2026-08-07'
+    evidence: src/cli-only-yaml-policy.ts SAME_SENTENCE replaced [^.\\n]; listRootDocuments replaced a hardcoded README list that named README.zh-CN.md while the repository has README.zh.md

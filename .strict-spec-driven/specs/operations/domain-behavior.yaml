@@ -16,8 +16,10 @@ mapping:
     - src/cli/command-metadata-entries.ts
     - templates/strict-spec-driven/scaffold/config.yaml
     - skills/strict-spec-maintenance/SKILL.md
+    - src/cli-only-yaml-policy.ts
   tests:
     - test/suites/operations.ts
+    - test/suites/entrypoint-and-skills.ts
 requirements:
   operations-list-contract:
     strength: MUST
@@ -119,3 +121,19 @@ requirements:
         - GIVEN: an active lesson was recorded from a recent change and its applies_when names files that still exist
         - WHEN: maintenance runs the lesson-staleness-check
         - THEN: the check produces no findings for that lesson
+  operations-cli-only-yaml-policy-check:
+    strength: MUST
+    statement: The system MUST support a cli-only-yaml-policy maintenance check that applies the CLI-only YAML mutation policy to strict main specs, technical standards, MCP tool metadata, operator documentation, and repository source code, reporting one finding per offending location that names the file, the matched policy category, and the CLI command that should be used instead, and MUST report no finding for a surface classified read-only or human-only in the mutation surface inventory, a rendered non-YAML generated document, an intentionally invalid test fixture, or a documented human-manual-edit note.
+    scenarios:
+      policy-check-flags-spec-and-standard-violations:
+        - GIVEN: a strict main spec or technical standard describes an AI-facing YAML write path that bypasses the CLI mutation boundary
+        - WHEN: the operator runs maintenance with the cli-only-yaml-policy check configured
+        - THEN: maintenance reports a finding naming the file, the policy category, and the replacement CLI command
+      policy-check-flags-metadata-doc-and-source-violations:
+        - GIVEN: MCP tool metadata, operator documentation, or repository source code reintroduces an unregistered AI-facing YAML write path
+        - WHEN: the operator runs maintenance with the cli-only-yaml-policy check configured
+        - THEN: maintenance reports one finding per offending location naming its file and policy category
+      policy-check-permits-classified-exceptions:
+        - GIVEN: the only matches are a surface classified read-only or human-only in the mutation surface inventory, a rendered non-YAML generated document, an intentionally invalid test fixture, or a documented human-manual-edit note
+        - WHEN: the operator runs maintenance with the cli-only-yaml-policy check configured
+        - THEN: maintenance reports no finding for those locations

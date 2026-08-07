@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-regression-coverage
+mapping:
+  implementation: []
+  enforcement:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/operations.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    static-content-checks-prove-a-negative-case:
+      strength: MUST
+      statement: A static check over content that the same change generates or inserts MUST derive the set of files or entries it checks from a source independent of that generated content, MUST be proven by running a negative case in which the content is removed and the check is observed to fail, and MUST be proven by a positive case in which each matcher category is observed firing on realistic input, with any hand-enumerated set of governed files replaced by a scan. A green suite over generated content is not coverage evidence until both cases have been run at least once.
+      rationale: Independent scope derivation makes a check non-vacuous; it does not make its matcher able to fire. A pattern whose character classes exclude punctuation its targets contain, and a hardcoded file list that omits a file the repository actually has, both report zero findings — the same signal as full compliance — while never having been able to fail. Only observing each category fire on realistic input distinguishes a check that passes from one that cannot run.
+      enforcement:
+        method: test
+        detail: test/suites/entrypoint-and-skills.ts drives every CLI-only YAML policy category through a seeded violation and asserts each fires, then strips a skill's protocol section and asserts the package stays in scope; test/suites/operations.ts seeds one violation per governed maintenance surface and asserts findings, then asserts permitted surfaces produce none.
+  REMOVED: {}

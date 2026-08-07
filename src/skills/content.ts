@@ -1,5 +1,11 @@
 import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument } from "../yaml.js";
 import {
+  findProseMutationFlags,
+  isMutationCapableSkill,
+  loadPolicyRegistry,
+  scanTextForPolicyViolations,
+} from "../cli-only-yaml-policy.js";
+import {
   COMMAND_PREFIX,
   CORE_STRICT_SKILL_EXPECTATIONS,
   CHECK_WORKFLOW_STATE_COMMAND,
@@ -292,6 +298,81 @@ function validateMigrationSkillContent(
   );
 }
 
+/**
+ * Rejects guidance that tells an agent to mutate repository-owned YAML outside the CLI. Only
+ * mutation-capable packages are checked, and membership comes from the mutation inventory rather
+ * than from the guidance text, so deleting a skill's protocol section fails this check instead of
+ * reclassifying the package as exempt.
+ */
+function validateCliOnlyYamlPolicy(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  if (!isMutationCapableSkill(skillName, content)) return;
+
+  for (const match of scanTextForPolicyViolations(skillPath, content).matches) {
+    diagnostics.push(
+      makeDiagnostic(
+        `skill.cli_only_yaml.${match.category.replace(/-/g, "_")}`,
+        `${skillPath}:${match.line}`,
+        `mutation-capable skill must not instruct a direct YAML mutation (${match.category})`,
+        match.replacement,
+        match.excerpt,
+      ),
+    );
+  }
+
+  const { mutatingOwnerCommands, declaredFlagsByCommand } = loadPolicyRegistry();
+  const declaredCommandNames = new Set(
+    Object.values(commands).map(commandNameOf).filter((name): name is string => name !== undefined),
+  );
+  // A skill names the same command and flag many times over. Each gap is one defect to fix, so it
+  // is reported once rather than once per mention.
+  const reported = new Set<string>();
+
+  for (const { command, flag } of findProseMutationFlags(content)) {
+    if (!mutatingOwnerCommands.has(command)) continue;
+
+    if (!declaredCommandNames.has(command)) {
+      if (reported.has(command)) continue;
+      reported.add(command);
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.cli_only_yaml.missing_command_mapping",
+          `${skillPath}#commands`,
+          `skill directs the '${command}' mutation but declares no command mapping for it`,
+          `a commands entry invoking '${COMMAND_PREFIX} ${command}'`,
+          `no mapping for '${command}'`,
+        ),
+      );
+      continue;
+    }
+
+    const declaredFlags = declaredFlagsByCommand.get(command);
+    if (declaredFlags === undefined || declaredFlags.has(flag)) continue;
+    if (reported.has(`${command} ${flag}`)) continue;
+    reported.add(`${command} ${flag}`);
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.cli_only_yaml.undeclared_mutation_flag",
+        `${skillPath}#commands.${command}`,
+        `skill names flag '${flag}' for '${command}', which the command metadata registry does not declare`,
+        `a flag declared in the '${command}' command metadata entry`,
+        flag,
+      ),
+    );
+  }
+}
+
+/** The subcommand a declared command mapping invokes, or undefined when it names none. */
+function commandNameOf(commandValue: string): string | undefined {
+  const match = commandValue.trim().match(new RegExp(`^${COMMAND_PREFIX}\\s+([a-z][a-z0-9-]*)`));
+  return match?.[1];
+}
+
 export function validateCommandSection(
   skillName: string,
   content: string,
@@ -425,4 +506,5 @@ export function validateCommandSection(
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
+  validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
 }

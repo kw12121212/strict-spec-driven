@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: enforce-cli-only-skill-policy
+approach:
+  - Introduce one shared policy module that both static surfaces consume, rather than duplicating pattern logic in validate-skills and maintenance. The module exposes a set of named policy categories (direct-file-edit, shell-or-heredoc-yaml-write, raw-yaml-payload, hand-edit-fallback, missing-command-mapping, undeclared-mutation-flag, unregistered-source-writer), each with its detection scope and its permitted-surface exemptions, and returns structured matches carrying file path, line, category, and the CLI command that should replace the offending instruction. src/skills/ content checks call it over SKILL.md text; src/maintenance.ts calls it over specs, standards, MCP metadata, documentation, and src/ sources. Command-mapping and flag checks resolve against the existing command metadata registry rather than a hand-maintained list, so a new mutation flag is covered the moment it is declared.
+  - 'Scope selection must not read the text the check itself governs. The prior change recorded a workflow-regression-coverage rule after a check classified skills by scanning content it had inserted, so a deleted section reclassified the skill as exempt and passed. Here, the set of mutation-capable skills and the set of policy-governed files are derived from independent evidence: inventory/yaml-mutation-surfaces.yaml classifications and the command metadata registry. Each new check gets a negative test asserting it fails on a seeded violation.'
+  - Permitted surfaces are matched positively, not by weakening the violation patterns. A match is suppressed only when its location is a read-only inspection command, a fenced CLI command example, a rendered non-YAML generated document, a fixture directory the test suite owns, an inventory-classified read-only or human-only surface, or a line carrying the documented human-manual-edit marker. Suppression reasons are retained in the structured result so a false negative is diagnosable.
+decisions:
+  shared-policy-module:
+    decision: Both validate-skills and the maintenance check consume one policy module with named categories, instead of each implementing its own pattern set.
+    rationale: Two independent pattern sets would drift, and the milestone requires the same policy across six surfaces; a single module makes a policy change land everywhere at once and gives both surfaces identical category names in their output.
+  independent-scope-selection:
+    decision: The governed-file and mutation-capable-skill sets are derived from inventory/yaml-mutation-surfaces.yaml and the command metadata registry, never from the guidance text being checked.
+    rationale: A check that selects its scope by scanning the content it governs passes vacuously when that content is deleted, which is the exact failure the workflow-regression-coverage non-vacuity rule was written for after it occurred in the preceding change.
+  positive-exemption-matching:
+    decision: False positives are prevented by matching permitted surfaces explicitly and recording the suppression reason, not by narrowing the violation patterns.
+    rationale: Narrowing patterns to dodge a false positive silently removes real coverage with no record of what was given up, while an explicit exemption list is reviewable and its reasons appear in the structured output.
+  metadata-derived-flag-check:
+    decision: The undeclared-mutation-flag check compares flags named in prose against the command metadata registry rather than a curated flag list.
+    rationale: A curated list becomes stale the first time a command gains a flag, which would let undocumented mutation flags pass exactly when the check matters most.
+  configured-maintenance-check:
+    decision: cli-only-yaml-policy is a configured maintenance check type dispatched from maintenance.checks, and this repository's .strict-spec-driven/config.yaml gains the entry.
+    rationale: Every existing check type is configured and maintenance returns no generated change when none are, so an always-on check would be the first exception to that contract; enabling it here is what makes the repository enforce the policy on itself rather than only shipping the capability.
+  inventory-driven-writer-allowlist:
+    decision: The unregistered-source-writer category resolves permitted src/ YAML writers from inventory/yaml-mutation-surfaces.yaml rather than from an import graph or a curated list.
+    rationale: 'The inventory already records every mutation path and is itself checked for staleness, so registration becomes the mechanical gate: a new writer module fails the check until it is inventoried, and the existing staleness check keeps the allowlist honest.'
+  split-failure-severity:
+    decision: A policy violation is a blocking non-zero diagnostic in validate-skills, and a non-blocking finding in maintenance.
+    rationale: validate-skills already fails on package diagnostics so blocking there adds no new contract, while maintenance's established behavior is to report findings and seed a change; making it exit non-zero would break the seeding and two-active-change rules that operations-maintenance-contract requires.
+alternatives:
+  - option: Enforce the policy only in validate-skills and leave specs, standards, MCP metadata, documentation, and src/ unchecked.
+    reason: The milestone done criterion explicitly requires maintenance to fail when any of those five surfaces reintroduces an unregistered AI-facing write path, so a skills-only check leaves the stated criterion unmet.
+  - option: Detect violations with a broad regex over any occurrence of apply_patch, heredoc, or YAML file writing, without an exemption model.
+    reason: It would flag read-only YAML reading, the CLI's own artifact writers, and every illustrative command example, making the check unusable and pressuring a future maintainer to delete it rather than fix it.
+risks:
+  - Overbroad patterns flag legitimate read-only inspection or generated examples, eroding trust in the check; mitigated by the explicit exemption model and by tests covering each permitted surface.
+  - The src/ source-writer scan cannot mechanically tell a registered mutation writer from a bypass, since both call the same filesystem primitives; this is recorded as an open question and may reduce that category to writers outside the registered mutation entry points.
+  - Adding the checks may reveal existing violations in current specs, standards, documentation, or sources, expanding the work beyond the check implementation; scope caps remediation at the minimum needed to make the repository pass and defers rewrites to update-cli-only-yaml-documentation.

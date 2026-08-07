@@ -563,6 +563,202 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         valueLabel: "<id>",
         description: "Set the unit-test testing gate; must name a task id in the Testing section.",
       },
+      {
+        name: "--target-spec",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Delta-spec artifact only: the main spec id this delta targets, resolved against the spec index to locate the delta file. Required for delta-spec and accepted at most once.",
+      },
+      {
+        name: "--spec-path",
+        arity: "value",
+        valueLabel: "<path>",
+        description:
+          "Delta-spec artifact only: the existing main spec path, when the target is not resolvable from the spec index. Accepted at most once.",
+      },
+      {
+        name: "--new-spec-path",
+        arity: "value",
+        valueLabel: "<repo-relative-path>",
+        description:
+          "Delta-spec artifact only: repository-relative path for a main spec this delta creates. Requires --title. Accepted at most once.",
+      },
+      {
+        name: "--target-standard",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Delta-tech artifact only: the technical standard id this delta targets. Required for delta-tech and accepted at most once.",
+      },
+      {
+        name: "--tech-path",
+        arity: "value",
+        valueLabel: "<path>",
+        description:
+          "Delta-tech artifact only: the existing standard path, when the target is not resolvable from the tech index. Accepted at most once.",
+      },
+      {
+        name: "--title",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-spec and delta-tech artifacts: title for a main spec or standard this delta creates. Delta-spec pairs it with --new-spec-path; delta-tech pairs it with --category. Accepted at most once.",
+      },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<cat>",
+        description:
+          "Delta-tech artifact only: category for a standard this delta creates, paired with --title. Accepted at most once.",
+      },
+      {
+        name: "--operation",
+        arity: "value",
+        valueLabel: "<ADDED|MODIFIED|REMOVED>",
+        description:
+          "Delta-spec and delta-tech artifacts: opens an operation group; the following requirement or rule flags belong to it.",
+        repeatable: true,
+        repeatSemantics: "Repeat once per operation group; groups are merged by operation.",
+      },
+      {
+        name: "--requirement",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Delta-spec artifact only: kebab-case requirement id, upserted by id within its operation group. Requires --strength and --statement for an ADDED or MODIFIED operation.",
+        repeatable: true,
+        repeatSemantics: "Repeat once per requirement; restating an id merges into that requirement.",
+      },
+      {
+        name: "--strength",
+        arity: "value",
+        valueLabel: "<MUST|SHOULD|MAY>",
+        description:
+          "Delta-spec and delta-tech artifacts: requirement or rule strength, paired positionally with the open --requirement or --rule.",
+        repeatable: true,
+        repeatSemantics: "One value per requirement or rule group.",
+      },
+      {
+        name: "--statement",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-spec and delta-tech artifacts: the requirement or rule statement, paired positionally with the open --requirement or --rule.",
+        repeatable: true,
+        repeatSemantics: "One value per requirement or rule group.",
+      },
+      {
+        name: "--scenario",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Delta-spec artifact only: opens a scenario group under the current requirement; the following --given, --when, and --then belong to it. A later compatible call appends new scenario ids and stays idempotent for equivalent scenarios.",
+        repeatable: true,
+        repeatSemantics: "Repeat once per scenario; a requirement may carry several.",
+      },
+      {
+        name: "--given",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-spec artifact only: the scenario's precondition, belonging to the open --scenario.",
+        repeatable: true,
+        repeatSemantics: "One value per scenario group.",
+      },
+      {
+        name: "--when",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-spec artifact only: the scenario's action, belonging to the open --scenario.",
+        repeatable: true,
+        repeatSemantics: "One value per scenario group.",
+      },
+      {
+        name: "--then",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-spec artifact only: the scenario's observable outcome, belonging to the open --scenario.",
+        repeatable: true,
+        repeatSemantics: "One value per scenario group.",
+      },
+      {
+        name: "--rule",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Delta-tech artifact only: kebab-case rule id, upserted by id within its operation group. An ADDED or MODIFIED rule requires --strength, --statement, --rationale, and --method; a REMOVED rule takes only --reason.",
+        repeatable: true,
+        repeatSemantics: "Repeat once per rule; restating an id merges into that rule.",
+      },
+      {
+        name: "--method",
+        arity: "value",
+        valueLabel: "<lint|ci|test|review|manual>",
+        description:
+          "Delta-tech artifact only: how the rule is enforced, paired positionally with the open --rule.",
+        repeatable: true,
+        repeatSemantics: "One value per rule group.",
+      },
+      {
+        name: "--detail",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-tech artifact only: what the enforcement method concretely checks, paired positionally with the open --rule.",
+        repeatable: true,
+        repeatSemantics: "One value per rule group.",
+      },
+      {
+        name: "--example-good",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-tech artifact only: an example that complies with the open --rule.",
+        repeatable: true,
+        repeatSemantics: "One value per rule group.",
+      },
+      {
+        name: "--example-bad",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-tech artifact only: an example that violates the open --rule.",
+        repeatable: true,
+        repeatSemantics: "One value per rule group.",
+      },
+      {
+        name: "--exception",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-tech artifact only: a case the open --rule deliberately does not govern.",
+        repeatable: true,
+        repeatSemantics: "Appends unique exceptions to the rule in the order supplied.",
+      },
+      {
+        name: "--implementation",
+        arity: "value",
+        valueLabel: "<path>",
+        description:
+          "Delta-spec and delta-tech artifacts: an implementation file this delta maps to. Removed with --remove-implementation.",
+        repeatable: true,
+        repeatSemantics: "Appends unique paths in the order supplied.",
+      },
+      {
+        name: "--test",
+        arity: "value",
+        valueLabel: "<path>",
+        description:
+          "Delta-spec artifact only: a test file this delta maps to. Removed with --remove-test.",
+        repeatable: true,
+        repeatSemantics: "Appends unique paths in the order supplied.",
+      },
+      {
+        name: "--enforcement",
+        arity: "value",
+        valueLabel: "<path>",
+        description:
+          "Delta-tech artifact only: a file or configuration that enforces the standard. Removed with --remove-enforcement.",
+        repeatable: true,
+        repeatSemantics: "Appends unique paths in the order supplied.",
+      },
     ],
     output: {
       format: "json",

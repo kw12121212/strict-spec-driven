@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: enforce-cli-only-skill-policy
+  status: proposed
+summary:
+  what:
+    - 'Extend validate-skills with deterministic path-specific diagnostics that fail a bundled skill package whose text instructs direct YAML mutation: direct file editing or apply_patch aimed at a repository-owned YAML artifact, shell writer or heredoc YAML construction, raw YAML payload files passed to a command, fallback-to-hand-edit guidance when a command is unavailable, a mutation workflow with no CLI command mapping in its commands block, and a mutation flag named in prose that the owning command''s metadata does not declare.'
+    - Add a cli-only-yaml-policy maintenance check that applies the same policy beyond skills, to strict main specs, technical standards, MCP tool metadata, operator documentation, and TypeScript sources under src/, reporting one finding per offending location naming the file, the matched policy category, and the CLI command that should be used instead.
+    - 'Classify permitted surfaces so the checks do not fire on them: read-only inspection commands and read-only YAML reading, illustrative CLI command examples, rendered non-YAML generated documents, intentionally invalid test fixtures, surfaces classified read-only or human-only in inventory/yaml-mutation-surfaces.yaml, and documented human-manual-edit notes.'
+    - Record the enforcement evidence on the yaml-first-artifacts standard by modifying the cli-owns-repository-yaml-mutations rule's enforcement detail to name the new validate-skills diagnostics and the maintenance policy check alongside the existing mutation-command and skill regressions.
+    - Modify the workflow-regression-coverage rule static-content-checks-prove-a-negative-case to require a positive-case firing proof for each matcher category and a scanned rather than hand-enumerated governed file set, alongside the negative case it already requires.
+  why:
+    - 'migrate-agent-skills-to-cli-only rewrote every mutation-capable SKILL.md to the shared authoring protocol, but that text is only prose: nothing fails when a future edit reintroduces an apply_patch instruction, a heredoc payload, or a ''if the command is unavailable, edit the file directly'' fallback. The milestone''s done criteria require validate-skills to report deterministic path-specific failures and maintenance to fail on a reintroduced unregistered AI-facing YAML write path, and neither check exists today.'
+    - The policy surface is wider than skills. Main specs, technical standards, MCP metadata, operator documentation, and src/ code can each describe or implement a YAML write path that bypasses the registered mutation boundary, and the milestone names all of them; a skills-only check would leave five of six surfaces unenforced.
+    - 'Both remaining planned changes in this milestone are dependency-blocked behind this one: complete-cli-only-yaml-regression needs the static checks to exist before it can prove them with negative fixtures, and update-cli-only-yaml-documentation needs a settled policy definition to document.'
+    - 'Implementing this change''s checks exposed that correct scope derivation does not make a matcher able to fire: the promoted apply_patch pattern excluded the dots inside .strict-spec-driven/config.yaml and matched nothing, and a hardcoded documentation list named a Chinese README the repository does not have. Both reported zero findings, the same signal as compliance. The existing rule would not have caught either, so the standard needs the positive case as well.'
+scope:
+  in:
+    - validate-skills content checks in src/skills/ that detect forbidden direct-YAML-mutation guidance, missing CLI command mappings for a described mutation, and prose mutation flags absent from command metadata, each emitting a deterministic path-specific diagnostic.
+    - A cli-only-yaml-policy maintenance check type in src/maintenance.ts covering .strict-spec-driven/specs/, .strict-spec-driven/tech/, MCP tool metadata, operator documentation, and src/ sources, with findings naming file, policy category, and the replacement CLI command.
+    - The permitted-surface classification shared by both checks, sourced from inventory/yaml-mutation-surfaces.yaml read-only and human-only classifications plus explicit allowances for read-only inspection, CLI examples, generated non-YAML documents, and intentionally invalid fixtures.
+    - A delta tech MODIFIED operation on cli-owns-repository-yaml-mutations updating its enforcement detail to name the new static checks.
+    - Focused unit and regression tests for each new diagnostic and finding, including at least one negative case proving the check is not vacuous, and any config.yaml maintenance.checks wiring the chosen design requires.
+    - A delta tech MODIFIED operation on static-content-checks-prove-a-negative-case adding the positive-case and scanned-scope requirements.
+  out:
+    - End-to-end multi-family regression across create, update, named removal, deletion, archive, and rollback paths, and the full negative-fixture matrix (owned by complete-cli-only-yaml-regression).
+    - English and Chinese operator documentation rewrites (owned by update-cli-only-yaml-documentation).
+    - Changes to the protocol content in src/yaml-authoring-protocol.ts, to CLI help text, or to MCP mutation metadata shape (already delivered by align-cli-help-and-mcp-mutations and add-ai-cli-yaml-authoring-guidance).
+    - Rewriting skill, spec, standard, documentation, or source text to satisfy the new checks beyond the minimum needed to make the repository pass; blocking human manual YAML editing; operating-system-level interception of tools.
+unchanged_behavior:
+  - Every existing validate-skills diagnostic, its code, and its message text continue to be reported for the packages that already trigger them, and validate-skills stays deterministic and idempotent against unchanged repository state. Existing maintenance check types generated-doc-check and lesson-staleness-check keep their current behavior, and maintenance keeps its existing seeding and two-active-change skipping rules. Read-only skills, read-only inspection guidance, human-only and read-only inventory classifications, and every CLI command surface behave exactly as they do today.
+roadmap:
+  milestone: ai-cli-only-yaml-enforcement
+  planned_change: enforce-cli-only-skill-policy

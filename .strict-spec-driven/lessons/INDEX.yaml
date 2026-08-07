@@ -19,6 +19,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/a-content-check-whose-subject-includes-the-text-1f5d78.yaml
+    a-text-matching-check-can-be-silently-unfireable-e4f026:
+      title: A text-matching check can be silently unfireable, not just vacuously scoped
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-text-matching-check-can-be-silently-unfireable-e4f026.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

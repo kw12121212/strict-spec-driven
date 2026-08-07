@@ -20,6 +20,7 @@ mapping:
     - test/suites/change-lifecycle.ts
     - test/suites/coverage-gate.ts
     - test/suites/entrypoint-and-skills.ts
+    - test/suites/operations.ts
 rules:
   cover-workflow-critical-behaviors:
     strength: MUST
@@ -49,15 +50,8 @@ rules:
       method: review
   static-content-checks-prove-a-negative-case:
     strength: MUST
-    statement: A static check over content that the same change generates or inserts MUST derive the set of files or entries it checks from a source independent of that generated content, and MUST be proven by running a negative case in which the content is removed and the check is observed to fail. A green suite over generated content is not coverage evidence until that negative case has been run at least once.
-    rationale: 'A check that decides its own scope by scanning the text it inserted is self-fulfilling: removing the content can drop the file out of the checked set and satisfy the exemption branch instead of failing the requirement branch, so the check reports success precisely when the thing it guards has been deleted. Independent scope selection removes the circularity, and the negative case is the only evidence that distinguishes a real guard from a vacuous one.'
+    statement: A static check over content that the same change generates or inserts MUST derive the set of files or entries it checks from a source independent of that generated content, MUST be proven by running a negative case in which the content is removed and the check is observed to fail, and MUST be proven by a positive case in which each matcher category is observed firing on realistic input, with any hand-enumerated set of governed files replaced by a scan. A green suite over generated content is not coverage evidence until both cases have been run at least once.
+    rationale: Independent scope derivation makes a check non-vacuous; it does not make its matcher able to fire. A pattern whose character classes exclude punctuation its targets contain, and a hardcoded file list that omits a file the repository actually has, both report zero findings — the same signal as full compliance — while never having been able to fail. Only observing each category fire on realistic input distinguishes a check that passes from one that cannot run.
     enforcement:
       method: test
-      detail: Independent sources include a registry, an inventory artifact, or the file body with the generated region excluded before scope is computed.
-    examples:
-      good:
-        - Deriving the checked skill set from inventory/yaml-mutation-surfaces.yaml and from each SKILL.md with the inserted protocol section stripped, then deleting one section and confirming the suite fails.
-      bad:
-        - Classifying a file as in-scope because it mentions a command that appears only inside the section the check inserted, so deleting the section silently reclassifies the file as exempt and the suite stays green.
-    exceptions:
-      - A check over content the change does not generate — pre-existing source, third-party files, or fixtures authored independently — carries no circularity and needs no negative-case proof beyond ordinary test design.
+      detail: test/suites/entrypoint-and-skills.ts drives every CLI-only YAML policy category through a seeded violation and asserts each fires, then strips a skill's protocol section and asserts the package stays in scope; test/suites/operations.ts seeds one violation per governed maintenance surface and asserts findings, then asserts permitted surfaces produce none.

@@ -1,0 +1,60 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: enforce-cli-only-skill-policy
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Nothing statically enforces the CLI-only YAML mutation policy. migrate-agent-skills-to-cli-only rewrote every mutation-capable SKILL.md to the shared authoring protocol, but that guidance is prose: a future edit can reintroduce apply_patch instructions, heredoc payload construction, or a hand-edit fallback with no check failing. The same gap exists for strict main specs, technical standards, MCP tool metadata, operator documentation, and src/ sources, which can each describe or implement an AI-facing YAML write path that bypasses the registered mutation boundary. This affects the AI agents that read those surfaces and the maintainers who cannot tell that drift has occurred.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: validate-skills reports deterministic path-specific failures for forbidden direct-YAML-edit guidance and for missing mutation command mappings, and repository maintenance fails when specs, technical standards, skills, MCP metadata, documentation, or source code reintroduce an unregistered AI-facing YAML write path, while permitting documented read-only and human-only exceptions. Both milestone done criteria are observable by seeding a violation in each governed surface and seeing the corresponding diagnostic or finding, and by confirming permitted surfaces produce none.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'The dependency migrate-agent-skills-to-cli-only completed, making this the roadmap-recommended next change, and it is itself the blocker for both remaining planned changes in the milestone: complete-cli-only-yaml-regression needs the static checks to exist before it can prove them with negative fixtures, and update-cli-only-yaml-documentation needs a settled policy definition to document.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The planned change asks for static enforcement across every AI-facing policy surface, not skills alone: validate-skills gains path-specific diagnostics for direct YAML mutation instructions, apply_patch or shell-writer guidance targeting YAML, raw YAML payload construction, fallback direct editing, missing command mappings, and undocumented mutation flags; repository maintenance applies the same policy to main specs, technical standards, MCP metadata, documentation, and source writers that bypass the registered mutation boundary. Enforcement must distinguish allowed read-only inspection, CLI command examples, generated non-YAML documents, intentionally invalid fixtures, and documented human-manual-edit notes so it does not produce false positives.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'The milestone puts two things explicitly out of scope: blocking humans from manually editing YAML outside the AI workflow, and operating-system filesystem sandboxing or interception of unrelated tools. The policy boundary targets AI mutation workflows only; read-only inspection stays allowed and human manual editing is not technically blocked. This change also leaves the end-to-end multi-family regression to complete-cli-only-yaml-regression, the English and Chinese operator documentation to update-cli-only-yaml-documentation, and the protocol content, CLI help text, and MCP metadata shape unchanged.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: maintenance-check-opt-in
+    question: Should the new cli-only-yaml-policy maintenance check be always-on, or opt-in through a maintenance.checks entry in .strict-spec-driven/config.yaml like generated-doc-check and lesson-staleness-check?
+    context: 'Impact: this affects implementation files (src/maintenance.ts check dispatch), the delta spec requirement wording for operations-domain-behavior, this repository''s own config.yaml, and the tests that exercise the check. Every existing maintenance check type is configured, and maintenance returns no generated change when no checks are configured, so an always-on check would be the first exception to that pattern. A sufficient answer states whether the policy check runs unconditionally and, if configured, whether this repository''s config.yaml gains the entry as part of this change. Recommendation: follow the existing pattern and make it a configured check type, adding the entry to this repository''s config.yaml so the repository actually enforces its own policy. Options: (a) configured check type plus a config.yaml entry here, (b) configured check type with no entry here, leaving this repository unenforced, (c) always-on check independent of maintenance.checks.'
+    answer: Configured check type plus an entry in this repository's own config.yaml. The cli-only-yaml-policy check follows the existing generated-doc-check and lesson-staleness-check pattern and dispatches from maintenance.checks, and .strict-spec-driven/config.yaml gains the entry as part of this change so the repository enforces its own policy. maintenance keeps returning no generated change when no checks are configured.
+    status: resolved
+    answered_by: human
+  - id: source-writer-detection-boundary
+    question: How should the unregistered-source-writer category distinguish a legitimate CLI mutation writer in src/ from a bypass, given both use the same filesystem primitives?
+    context: 'Impact: this affects the scope of the maintenance check over src/ sources, the implementation of the policy module''s detection rules, and the delta spec requirement for the source-code surface. The registered mutation boundary in src/yaml-mutation.ts and the artifact writers it fronts must not be flagged, but a new module writing YAML directly must be. A sufficient answer names the mechanical signal used: an allowlist of modules permitted to perform YAML writes, an import-graph rule that any YAML write must originate beneath the registered mutation entry point, or an inventory-driven classification. Recommendation: an inventory-driven allowlist of writer modules, since inventory/yaml-mutation-surfaces.yaml already records mutation paths and is itself checked for staleness. Options: (a) inventory-driven writer allowlist, (b) import-graph reachability from the registered mutation entry point, (c) narrow the category to non-src surfaces only and defer source enforcement.'
+    answer: An inventory-driven allowlist. inventory/yaml-mutation-surfaces.yaml already records mutation paths and is itself checked for staleness, so it is the source of truth for which src/ modules may write repository-owned YAML. A module performing a YAML write that the inventory does not register is reported as an unregistered-source-writer finding, which makes registration the mechanical gate the milestone asks for.
+    status: resolved
+    answered_by: human
+  - id: policy-failure-severity
+    question: Should a policy violation found by validate-skills be a blocking non-zero exit, and should a maintenance policy finding block or merely report?
+    context: 'Impact: this affects exit-code behavior in validate-skills, the delta spec requirements for both cli-foundation and operations-domain-behavior, and whether this change can be archived while any governed surface still violates the policy. The milestone done criteria say validate-skills reports deterministic path-specific failures and that maintenance fails on a reintroduced write path, which reads as blocking for both, but maintenance today reports findings and seeds a change rather than failing. A sufficient answer states the exit code for each command under a violation. Recommendation: validate-skills treats a policy violation as a blocking diagnostic consistent with its existing diagnostics, while maintenance reports findings through its existing non-blocking finding path so the seeding behavior is preserved. Options: (a) validate-skills blocks, maintenance reports, (b) both block, (c) both report only.'
+    answer: validate-skills blocks and maintenance reports. A policy violation in a bundled skill package is a blocking validate-skills diagnostic with a non-zero exit, consistent with its existing diagnostics. A policy violation in a spec, standard, MCP metadata, documentation, or source file is emitted through maintenance's existing finding path without changing its exit code, preserving the current report-and-seed contract and the two-active-change skipping rule.
+    status: resolved
+    answered_by: human

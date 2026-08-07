@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: enforce-cli-only-skill-policy
   milestone: ai-cli-only-yaml-enforcement
-status: planned
+status: complete
 summary: Statically enforce CLI-only YAML mutation guidance across AI-facing policy surfaces.
 details: Extend validate-skills and repository maintenance checks with deterministic path-specific diagnostics for direct YAML mutation instructions, apply_patch or shell-writer guidance targeting YAML, raw YAML payload construction, fallback direct editing, missing command mappings, undocumented mutation flags, and source writers that bypass the registered mutation boundary. Apply the policy across skills, main specs, technical standards, MCP metadata, and operator documentation. Distinguish allowed read-only inspection, CLI command examples, generated non-YAML documents, intentionally invalid fixtures, and documented human-manual-edit notes to avoid false positives.
 depends_on:

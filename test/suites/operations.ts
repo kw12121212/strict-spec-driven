@@ -867,4 +867,129 @@ try {
   rmSync(unconfiguredLessonDir, { recursive: true, force: true });
 }
 
+
+  context.section("[operations] cli-only-yaml-policy maintenance check");
+
+  const policyWorkspace = mkdtempSync(path.join(os.tmpdir(), "strict-policy-maint-"));
+  try {
+    const policyStateDir = path.join(policyWorkspace, ".strict-spec-driven");
+    mkdirSync(path.join(policyStateDir, "specs"), { recursive: true });
+    mkdirSync(path.join(policyStateDir, "tech"), { recursive: true });
+    mkdirSync(path.join(policyWorkspace, "docs"), { recursive: true });
+    writeFileSync(
+      path.join(policyStateDir, "config.yaml"),
+      [
+        "schema: strict-spec-driven/config/v1",
+        "schema_version: 1",
+        "artifact_type: workflow_config",
+        "maintenance:",
+        "  checks:",
+        "    - type: cli-only-yaml-policy",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    // One violation per governed surface, each phrased as an instruction rather than a prohibition.
+    writeFileSync(
+      path.join(policyStateDir, "specs", "seeded.yaml"),
+      "statement: Run apply_patch on .strict-spec-driven/specs/seeded.yaml to add the requirement.\n",
+      "utf8",
+    );
+    writeFileSync(
+      path.join(policyStateDir, "tech", "seeded.yaml"),
+      "statement: If the command is unavailable, instead edit the .strict-spec-driven/tech/seeded.yaml by hand.\n",
+      "utf8",
+    );
+    writeFileSync(
+      path.join(policyWorkspace, "docs", "seeded.md"),
+      "Create a temporary YAML payload file and pass it to the command.\n",
+      "utf8",
+    );
+
+    const seededRun = cli(["maintenance"], { cwd: policyWorkspace });
+    context.assert(seededRun.status === 0, "maintenance exits zero while reporting policy findings");
+    const seededJson = JSON.parse(seededRun.stdout) as { checksRun: number; findingsCount: number; generatedChange?: string | null };
+    context.assert(seededJson.checksRun === 1, "the configured cli-only-yaml-policy check runs");
+    context.assert(
+      seededJson.findingsCount >= 3,
+      "each seeded governed surface produces a policy finding",
+      `got ${seededJson.findingsCount}`,
+    );
+
+    const seededChange = seededJson.generatedChange;
+    context.assert(typeof seededChange === "string" && seededChange.length > 0, "policy findings seed a maintenance change");
+    const seededProposal = readFileSync(
+      path.join(policyStateDir, "changes", String(seededChange), "proposal.yaml"),
+      "utf8",
+    );
+    for (const surface of ["specs/seeded.yaml", "tech/seeded.yaml", "docs/seeded.md"]) {
+      context.assert(
+        seededProposal.includes(surface),
+        `the policy finding names the offending file ${surface}`,
+      );
+    }
+    context.assert(
+      seededProposal.includes("[direct-file-edit]")
+        && seededProposal.includes("[hand-edit-fallback]")
+        && seededProposal.includes("[raw-yaml-payload]"),
+      "each finding names the policy category it matched",
+    );
+    context.assert(
+      seededProposal.includes("strict CLI command") || seededProposal.includes("no-direct-edit-fallback"),
+      "each finding names what to do instead of the direct mutation",
+    );
+  } finally {
+    rmSync(policyWorkspace, { recursive: true, force: true });
+  }
+
+  const compliantWorkspace = mkdtempSync(path.join(os.tmpdir(), "strict-policy-clean-"));
+  try {
+    const compliantStateDir = path.join(compliantWorkspace, ".strict-spec-driven");
+    mkdirSync(path.join(compliantStateDir, "specs"), { recursive: true });
+    mkdirSync(path.join(compliantWorkspace, "docs"), { recursive: true });
+    writeFileSync(
+      path.join(compliantStateDir, "config.yaml"),
+      [
+        "schema: strict-spec-driven/config/v1",
+        "schema_version: 1",
+        "artifact_type: workflow_config",
+        "maintenance:",
+        "  checks:",
+        "    - type: cli-only-yaml-policy",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    // Permitted surfaces: a prohibition, a read-only lookup, and a documented human-only note.
+    writeFileSync(
+      path.join(compliantStateDir, "specs", "clean.yaml"),
+      "statement: Never edit .strict-spec-driven/specs/clean.yaml directly with apply_patch on clean.yaml; use spec-edit.\n",
+      "utf8",
+    );
+    writeFileSync(
+      path.join(compliantWorkspace, "docs", "clean.md"),
+      [
+        "Inspect .strict-spec-driven/config.yaml with schema-show to confirm its shape.",
+        "Run strict-spec-cli config-edit --set preferred_human_language --value English.",
+        "A human may use apply_patch on config.yaml (human-manual-edit).",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const cleanRun = cli(["maintenance"], { cwd: compliantWorkspace });
+    context.assert(cleanRun.status === 0, "maintenance exits zero on a compliant repository");
+    const cleanJson = JSON.parse(cleanRun.stdout) as { checksRun: number; findingsCount: number; generatedChange?: string | null };
+    context.assert(cleanJson.checksRun === 1, "the policy check still runs when it finds nothing");
+    context.assert(
+      cleanJson.findingsCount === 0,
+      "permitted surfaces produce no policy finding",
+      `got ${cleanJson.findingsCount}`,
+    );
+    context.assert(cleanJson.generatedChange === null, "a clean policy run seeds no maintenance change");
+  } finally {
+    rmSync(compliantWorkspace, { recursive: true, force: true });
+  }
+
 }

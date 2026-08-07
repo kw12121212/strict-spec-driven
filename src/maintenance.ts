@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
 import { buildSeededRequirementQuestions } from "./requirement-questions.js";
@@ -9,6 +9,12 @@ import { generateArchitectureDocument } from "./architecture.js";
 import { generateDesignDocument } from "./design-system.js";
 import { DocumentSourceError, type DocumentRenderResult } from "./document-render.js";
 import { listLessons, showLesson } from "./lessons.js";
+import {
+  exemptPathReason,
+  isGeneratedDocument,
+  scanSourceForUnregisteredWriters,
+  scanTextForPolicyViolations,
+} from "./cli-only-yaml-policy.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -212,6 +218,91 @@ function runLessonStalenessCheck(rootDir: string): MaintenanceFinding[] {
   return findings;
 }
 
+/**
+ * The prose surfaces the CLI-only YAML policy governs beyond bundled skills, which validate-skills
+ * already covers. Each entry names a directory and the file extensions whose text an agent reads
+ * as instruction.
+ */
+const POLICY_TEXT_SURFACES: { dir: string; extensions: string[] }[] = [
+  { dir: `${STRICT_WORKFLOW_DIR}/specs`, extensions: [".yaml"] },
+  { dir: `${STRICT_WORKFLOW_DIR}/tech`, extensions: [".yaml"] },
+  { dir: "src/mcp", extensions: [".ts"] },
+  { dir: "docs", extensions: [".md"] },
+];
+
+/**
+ * Repository-root Markdown, which an agent reads as operator instruction. The set is scanned
+ * rather than listed: a hardcoded list silently skips the file it does not name — a translated
+ * README, a newly added guide — and a governed surface nobody checks is worse than no check.
+ */
+function listRootDocuments(rootDir: string): string[] {
+  if (!existsSync(rootDir) || !statSync(rootDir).isDirectory()) return [];
+  return readdirSync(rootDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function listFilesWithExtensions(rootDir: string, relativeDir: string, extensions: string[]): string[] {
+  const absolute = path.join(rootDir, relativeDir);
+  if (!existsSync(absolute) || !statSync(absolute).isDirectory()) return [];
+
+  const files: string[] = [];
+  for (const entry of readdirSync(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const relativeEntry = path.posix.join(relativeDir, entry.name);
+    if (exemptPathReason(relativeEntry) !== undefined) continue;
+    if (entry.isDirectory()) {
+      files.push(...listFilesWithExtensions(rootDir, relativeEntry, extensions));
+      continue;
+    }
+    if (extensions.some((extension) => entry.name.endsWith(extension))) files.push(relativeEntry);
+  }
+  return files;
+}
+
+/**
+ * Applies the CLI-only YAML mutation policy to the surfaces outside bundled skills: strict main
+ * specs, technical standards, MCP tool metadata, operator documentation, and repository source
+ * code. The check reports rather than exits non-zero, because maintenance's contract is to collect
+ * findings and seed a change from them; validate-skills is where a policy violation blocks.
+ */
+function runCliOnlyYamlPolicyCheck(rootDir: string): MaintenanceFinding[] {
+  const findings: MaintenanceFinding[] = [];
+
+  const textFiles = [
+    ...POLICY_TEXT_SURFACES.flatMap((surface) => listFilesWithExtensions(rootDir, surface.dir, surface.extensions)),
+    ...listRootDocuments(rootDir),
+  ];
+
+  for (const relativeFile of textFiles) {
+    let text: string;
+    try {
+      text = readFileSync(path.join(rootDir, relativeFile), "utf8");
+    } catch {
+      continue;
+    }
+    // A rendered document is produced by its generator, so its text is not an authored instruction
+    // and correcting it there would be overwritten on the next render.
+    if (isGeneratedDocument(text)) continue;
+
+    for (const match of scanTextForPolicyViolations(relativeFile, text).matches) {
+      findings.push({
+        check: "cli-only-yaml-policy",
+        description: `${match.file}:${match.line} [${match.category}] describes a YAML mutation outside the CLI ("${match.excerpt}"); ${match.replacement}`,
+      });
+    }
+  }
+
+  for (const match of scanSourceForUnregisteredWriters(rootDir, "src").matches) {
+    findings.push({
+      check: "cli-only-yaml-policy",
+      description: `${match.file}:${match.line} [${match.category}] writes repository-owned YAML without inventory registration ("${match.excerpt}"); ${match.replacement}`,
+    });
+  }
+
+  return findings;
+}
+
 function buildProposalYaml(changeName: string, findings: MaintenanceFinding[]): object {
   const checkTypes = [...new Set(findings.map((f) => f.check))];
   return {
@@ -315,6 +406,10 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
     }
     if (check.type === "lesson-staleness-check") {
       findings.push(...runLessonStalenessCheck(rootDir));
+      checksRun++;
+    }
+    if (check.type === "cli-only-yaml-policy") {
+      findings.push(...runCliOnlyYamlPolicyCheck(rootDir));
       checksRun++;
     }
   }

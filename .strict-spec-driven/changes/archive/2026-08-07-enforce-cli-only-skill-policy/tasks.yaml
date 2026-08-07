@@ -1,0 +1,75 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: enforce-cli-only-skill-policy
+sections:
+  Implementation:
+    add-policy-module:
+      text: Add the shared CLI-only YAML policy module exposing the named policy categories, their detection scope, structured matches (file, line, category, replacement CLI command), and the permitted-surface exemption model with retained suppression reasons.
+      status: complete
+    wire-validate-skills-diagnostics:
+      text: Wire the policy module into the validate-skills content checks in src/skills/ so a mutation-capable skill package emits deterministic path-specific diagnostics for direct-file-edit, shell-or-heredoc-yaml-write, raw-yaml-payload, and hand-edit-fallback guidance.
+      status: complete
+    add-command-mapping-diagnostics:
+      text: Add validate-skills diagnostics for a described mutation workflow that declares no CLI command mapping in its commands block, and for a mutation flag named in prose that the command metadata registry does not declare.
+      status: complete
+    derive-scope-independently:
+      text: Derive the mutation-capable skill set and the governed-file set from inventory/yaml-mutation-surfaces.yaml classifications and the command metadata registry, never from the guidance text under check, so deleting governed content cannot make a package exempt.
+      status: complete
+    add-maintenance-policy-check:
+      text: Add the cli-only-yaml-policy maintenance check in src/maintenance.ts covering .strict-spec-driven/specs/, .strict-spec-driven/tech/, MCP tool metadata, operator documentation, and src/ sources, emitting one finding per offending location naming file, policy category, and the replacement CLI command.
+      status: complete
+    implement-permitted-surfaces:
+      text: Implement the permitted-surface exemptions for read-only inspection commands, fenced CLI command examples, rendered non-YAML generated documents, test-owned invalid fixtures, inventory read-only and human-only classifications, and documented human-manual-edit markers.
+      status: complete
+    remediate-existing-violations:
+      text: Run both checks against the repository and remediate the violations they surface, limited to the minimum edit that makes each governed surface pass; record anything larger as a follow-up rather than rewriting it here.
+      status: complete
+    update-command-metadata-and-docs:
+      text: Update the validate-skills and maintenance command metadata, help text, and any config.yaml maintenance.checks wiring the chosen check design requires, then rebuild compiled output.
+      status: complete
+      command: bun run build
+  Testing:
+    test-skill-policy-diagnostics:
+      text: Add tests asserting each new validate-skills diagnostic fires with its deterministic code and path for a seeded direct-edit, heredoc, raw-payload, and hand-edit-fallback instruction, and that unchanged compliant packages report no new diagnostic.
+      status: complete
+      command: bun test/run.ts
+    test-maintenance-policy-findings:
+      text: Add tests asserting the cli-only-yaml-policy maintenance check reports findings for a violation seeded in each governed surface (spec, standard, MCP metadata, documentation, src source) and names the replacement CLI command in each finding.
+      status: complete
+      command: bun test/run.ts
+    test-permitted-surfaces-not-flagged:
+      text: Add tests proving read-only inspection guidance, CLI command examples, generated non-YAML documents, intentionally invalid fixtures, and inventory-classified read-only or human-only surfaces produce no diagnostic or finding, and that the suppression reason is retained in the structured result.
+      status: complete
+      command: bun test/run.ts
+    test-non-vacuity:
+      text: 'Add the non-vacuity negative case required by the workflow-regression-coverage standard: deleting the governed guidance from a mutation-capable skill must fail the check rather than reclassify the package as exempt.'
+      status: complete
+      command: bun test/run.ts
+    run-validation-commands:
+      text: 'Run the strict validation commands over the repository: validate-skills, the YAML inventory check, and maintenance, confirming each reports the expected state.'
+      status: complete
+      command: strict-spec-cli validate-skills && bun run check:yaml-inventory
+    run-project-regression:
+      text: Run the complete project regression with the coverage gate as the configured review evidence.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready:
+      text: Run the strict ready check for this change and resolve any deterministic blocker it reports.
+      status: complete
+      command: strict-spec-cli ready enforce-cli-only-skill-policy
+    run-verify:
+      text: Run the strict verify check, confirming artifact structure, task completion, no open questions, and valid main-spec mapping.
+      status: complete
+      command: strict-spec-cli verify enforce-cli-only-skill-policy
+    check-delta-mapping:
+      text: Confirm the delta spec implementation and test mappings name the files this change actually touched, and that the delta tech enforcement mapping points at the new check implementations.
+      status: complete
+    check-archive-readiness:
+      text: 'Confirm archive readiness: the delta specs merge cleanly into cli-foundation and operations-domain-behavior, and the delta tech MODIFIED rule merges into yaml-first-artifacts without dropping its existing exceptions.'
+      status: complete
+testing_gates:
+  validation_task: run-validation-commands
+  unit_test_task: run-project-regression

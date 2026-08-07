@@ -89,3 +89,4 @@ maintenance:
   checks:
     - type: generated-doc-check
     - type: lesson-staleness-check
+    - type: cli-only-yaml-policy
