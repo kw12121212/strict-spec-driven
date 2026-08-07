@@ -33,6 +33,8 @@ strict-spec-cli schema-show design-system
 strict-spec-cli sample-show design-system
 ```
 
+The artifact's declared `schema_file` resolves beneath the shared schema cache root `~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`); installed skills never assume a source-repository `templates` directory.
+
 ---
 
 ## 3. Create the Artifact
@@ -49,7 +51,25 @@ This writes a schema-valid skeleton with empty token and component collections, 
 
 ## 4. Author `.strict-spec-driven/design-system.yaml`
 
-Fill in the skeleton to record design tokens, component mappings, and design guidance:
+The design system artifact is CLI-owned YAML: fill in the skeleton through `design-edit` named arguments rather than by writing YAML text. Consult `strict-spec-cli design-edit --help --json` for the full argument contract:
+
+```sh
+strict-spec-cli design-edit --token-group colors --token primary --token-value "#1A73E8"
+
+strict-spec-cli design-edit --component primary-button \
+  --component-title "Primary Button" \
+  --component-description "Primary action button across the user interface." \
+  --component-token "backgroundColor=colors.primary" \
+  --implementation src/components/button.tsx \
+  --snapshot test/snapshots/button.png
+
+strict-spec-cli design-edit \
+  --overview "Clean, modern visual identity favoring accessible contrast." \
+  --do "Use declared color tokens for all visual elements." \
+  --dont "Do not introduce ad-hoc hex colors in component styles."
+```
+
+The artifact the CLI produces looks like this (read-only reference):
 
 ```yaml
 schema: strict-spec-driven/design-system/v1

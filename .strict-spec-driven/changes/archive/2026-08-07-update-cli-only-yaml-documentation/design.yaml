@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: update-cli-only-yaml-documentation
+approach:
+  - 'Treat every repository-root Markdown document as a governed policy surface and rewrite each documentation family in both its English and Chinese variants to state that the strict CLI owns YAML shape and filesystem mutation. Present the AI authoring protocol as the seven-step sequence the yaml-authoring-protocol command emits: read the owning command''s --help --json, resolve the schema with schema-list and schema-show, inspect the registered example with sample-list and sample-show, translate confirmed facts into documented named arguments, execute the owning command, inspect the structured result, and run the domain validator. Document path resolution for installed environments through the shared schema cache root and example_ref tree, describe operation constraints, lazy artifact creation, and legacy scaffold replacement, and state the no-fallback boundary: when a required command is unavailable, stop and report rather than edit YAML directly. Route any change to generated documents through their owning generators instead of hand edits.'
+decisions:
+  protocol-source-of-truth:
+    decision: Documentation cites the yaml-authoring-protocol command as the canonical statement of the AI authoring protocol and summarizes its steps with command examples, rather than maintaining an independent prose fork of the protocol.
+    rationale: The CLI already emits the protocol as structured output and the cli-only-yaml-policy maintenance check governs prose surfaces; anchoring docs to the command keeps English and Chinese texts from drifting against enforced behavior and gives agents one resolvable source when docs and CLI disagree.
+  generated-docs-via-generators:
+    decision: ARCHITECTURE.md and DESIGN.md content changes, if any are needed, are made through architecture-edit plus architecture-generate and design-edit plus design-generate; hand edits target only hand-written documents such as the quickstarts, guides, README, and contributor files.
+    rationale: Hand-editing generated output would be overwritten on the next render and would itself violate the CLI-ownership model the documentation is being updated to describe.
+  no-spec-impact:
+    decision: 'This change carries no delta-spec and no delta-tech artifact: it rewrites Markdown documentation content only and leaves the specs/ directory empty.'
+    rationale: 'Main specs govern observable CLI and workflow behavior, and no requirement changes: documentation prose is not spec-governed behavior, no technical-standard rule is added, altered, or retired, and the cli-only-yaml-policy maintenance check that governs these prose surfaces already exists unchanged.'
+alternatives:
+  - option: Add a new dedicated AI-PROTOCOL.md document and link every existing doc to it instead of updating each document family.
+    reason: The milestone requires that no supported workflow anywhere in the documentation instructs direct YAML editing, so stale guidance inside existing documents must be rewritten regardless; a new file alone would leave contradictory instructions in place.
+  - option: Translate the protocol into fully independent prose per document without citing the yaml-authoring-protocol command.
+    reason: Independent prose forks drift from the CLI-emitted protocol across two languages and many files, recreating the documentation-drift problem the milestone exists to close.
+risks:
+  - English and Chinese variants can drift in meaning during rewrite; each family is updated as a pair within one task so review compares them together.
+  - Documentation examples that quote raw YAML for illustration could be misread by the cli-only-yaml-policy maintenance scan as mutation guidance; examples are phrased as CLI invocations or clearly read-only inspection output.

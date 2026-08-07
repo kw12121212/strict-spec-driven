@@ -84,6 +84,14 @@ details: >-
 
 使用 `.strict-spec-driven/roadmap/planned-changes/` 下的独立计划变更制品作为添加或编辑路线图工作项的默认方式。
 
+路线图制品的 YAML 结构和文件系统位置由 CLI 代码负责。AI 工作流通过 `roadmap-generate` 的命名参数表达每一次里程碑和计划变更的修改——绝不通过原始 YAML 文本。用 `strict-spec-cli roadmap-generate --help --json` 查看完整参数契约，用 `schema-show roadmap-milestone`、`schema-show planned-change` 及对应的 `sample-show` 键查看制品形状。在已安装环境中，路线图制品声明的 `schema_file` 在共享 schema 缓存根目录 `~/.strict-spec-schemas/`（或 `STRICT_SPEC_SCHEMA_CACHE_DIR`）下解析。通过 CLI 创建和更新计划变更：
+
+```sh
+strict-spec-cli roadmap-generate planned-change --milestone 0001-user-auth --id add-session-model --summary "添加会话数据模型和存储。" --details "..."
+```
+
+该命令将制品写到规范文件名 `<milestone-id>-<planned-change-id>.yaml`（当 planned-change id 已以 milestone id 开头时不重复前缀）。切勿手工挑选计划变更文件名；历史遗留的错误命名用 `roadmap-sync --fix-names` 修复。
+
 示例计划变更文件：
 
 ```yaml
@@ -134,10 +142,10 @@ team:
 如果你想把旧的内联里程碑条目转换为独立 planned-change 文件，请运行：
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+strict-spec-cli roadmap-sync --materialize-planned-changes
 ```
 
-这个转换会在 `.strict-spec-driven/roadmap/planned-changes/` 下写入 planned-change 文件，从里程碑文件中移除已转换的内联条目，然后再基于物化后的布局重新协调路线图状态。如果你是在已安装的 skill 包里运行，请使用 `skills/strict-roadmap-sync/SKILL.md` 中记录的准确命令形式。
+这个转换会在 `.strict-spec-driven/roadmap/planned-changes/` 下写入 planned-change 文件，从里程碑文件中移除已转换的内联条目，然后再基于物化后的布局重新协调路线图状态。
 
 ## 冲突抵抗的团队工作流
 
@@ -145,14 +153,14 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 
 1. 保持里程碑文件聚焦于里程碑级别的规划上下文。
 2. 将日常路线图工作项放在独立计划变更文件中。
-3. 让每个贡献者编辑自己拥有的计划变更文件，而不是追加到同一个里程碑映射里。
+3. 让每个贡献者拥有自己的计划变更文件，而不是追加到同一个里程碑映射里；更新通过 `roadmap-generate planned-change` 进行（人类也可手工维护自己的文件）。 <!-- human-manual-edit -->
 4. 保持 `INDEX.yaml` 作为共享里程碑列表，而不是每个工作项的协调界面。
 
 推荐习惯：
 
 - 每个计划变更一个文件。
 - 将团队元数据视为协调参考提示，而非独占声明。
-- 合并后重新运行 `/strict-roadmap-sync` 或 `node scripts/strict-spec-driven.js roadmap-sync`。
+- 合并后重新运行 `/strict-roadmap-sync` 或 `strict-spec-cli roadmap-sync`。
 - 归档路线图支持的严格变更后，重新运行 `roadmap-sync`，使计划变更和里程碑状态与工作流状态保持一致。
 - 外部跟踪器引用仅作为可选的辅助上下文。GitHub Issues、Jira、Linear 及类似工具不是严格路线图的必需数据来源。
 
@@ -193,7 +201,7 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 
 ### `/strict-roadmap-review`
 
-审查单个未完成里程碑的目标、范围、完成标准、依赖、风险和计划变更 `details`，直接修复里程碑与计划变更 YAML，然后重新运行 `roadmap-sync`。
+审查单个未完成里程碑的目标、范围、完成标准、依赖、风险和计划变更 `details`，通过 `roadmap-generate milestone` 和 `roadmap-generate planned-change` 的命名参数应用修复，然后重新运行 `roadmap-sync`。
 
 ```text
 /strict-roadmap-review 0001-user-auth
@@ -223,7 +231,7 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 CLI 形式：
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-sync
+strict-spec-cli roadmap-sync
 ```
 
 ## 如何添加计划变更
@@ -270,13 +278,13 @@ depends_on: []
 如果你想查看适合人类阅读的里程碑状态全景和分组计划变更明细：
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-overview
+strict-spec-cli roadmap-overview
 ```
 
 如果你需要机器可读的校验输出：
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-status
+strict-spec-cli roadmap-status
 ```
 
 `roadmap-overview` 会先输出里程碑总览表，再按里程碑分组输出计划变更明细。

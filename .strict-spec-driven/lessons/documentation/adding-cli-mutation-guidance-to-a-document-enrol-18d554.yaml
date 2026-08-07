@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: adding-cli-mutation-guidance-to-a-document-enrol-18d554
+  title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
+category: documentation
+status: active
+created_at: '2026-08-07T08:08:56.710Z'
+updated_at: '2026-08-07T08:08:56.710Z'
+context: Documenting the CLI-only YAML policy across every English and Chinese operator and contributor Markdown file, then running the project regression.
+observation: The cli-only-yaml-policy scanner reported zero violations before and after the edits, but the regression failed with uncovered-mutation-path for DEBUG_QUICKSTART.zh-CN.md, DEBUG_SESSIONS.md, and DEBUG_SESSIONS.zh-CN.md. Writing strict-spec-cli mutation command names into those files made them match the inventory checker's GUIDANCE_MUTATION pattern, so each newly qualified as a mutation surface needing registration in inventory/yaml-mutation-surfaces.yaml.
+takeaway: 'Two independent checkers govern the same Markdown file for different reasons: the policy scanner asks whether the text instructs a forbidden direct edit, while the inventory checker asks whether the file is registered as a mutation surface at all. A clean policy scan says nothing about inventory coverage, and adding a mutation command name to a previously inert document is itself a surface change, not just prose.'
+applies_when: Adding, rewriting, or translating documentation that names a strict CLI mutation command or a mutating slash command in a file not already listed in the mutation inventory.
+occurrences:
+  - origin: update-cli-only-yaml-documentation
+    date: '2026-08-07'
+    evidence: bun scripts/coverage-gate.ts --threshold 78 failed 'checked-in YAML mutation inventory covers the repository' with uncovered-mutation-path diagnostics; fixed with strict-spec-cli inventory-edit --append mutation_surfaces.operator-documentation-guidance.path_patterns

@@ -30,11 +30,29 @@ strict-spec-cli schema-show architecture
 strict-spec-cli sample-show architecture
 ```
 
+制品声明的 `schema_file` 在共享 schema 缓存根目录 `~/.strict-spec-schemas/`（或 `STRICT_SPEC_SCHEMA_CACHE_DIR`）下解析；已安装的 Skills 绝不假设存在源码仓库的 `templates` 目录。
+
 ---
 
 ## 3. 撰写 `.strict-spec-driven/architecture.yaml`
 
-创建或编辑 `.strict-spec-driven/architecture.yaml`，填入组件（components）、数据流（data_flows）和架构决策（decisions）：
+架构制品是由 CLI 负责的 YAML：通过 `architecture-edit` 的命名参数编写组件（components）、数据流（data_flows）和架构决策（decisions），而不是书写 YAML 文本。用 `strict-spec-cli architecture-edit --help --json` 查看完整参数契约：
+
+```sh
+strict-spec-cli architecture-edit \
+  --component cli --component-title "CLI" \
+  --component-responsibility "解析命令行参数并路由到对应的子处理器。" \
+  --boundary "明确不直接包含领域渲染与文件写入逻辑。" \
+  --implementation src/cli/cmd-design.ts --implementation src/cli/entrypoint.ts
+
+strict-spec-cli architecture-edit \
+  --decision single_source_of_truth --decision-title "单一真理源" \
+  --decision-statement "ARCHITECTURE.md 完全由 YAML 自动生成，严禁手动编辑。" \
+  --decision-rationale "手动编辑容易导致文档与代码脱节，通过单一真理源自动渲染可保持强一致性。" \
+  --decision-status accepted
+```
+
+`--depends-on` 条目必须指向另一个已声明的组件。CLI 产出的制品如下所示（只读参考）：
 
 ```yaml
 version: 1

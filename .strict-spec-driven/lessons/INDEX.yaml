@@ -3,6 +3,12 @@ schema_version: 2
 artifact_type: lessons_index
 schema_file: templates/strict-spec-driven/schemas/lessons-index.yaml
 categories:
+  documentation:
+    adding-cli-mutation-guidance-to-a-document-enrol-18d554:
+      title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/documentation/adding-cli-mutation-guidance-to-a-document-enrol-18d554.yaml
   testing:
     a-self-populating-cache-cannot-be-made-absent-by-49b4d2:
       title: A self-populating cache cannot be made absent by pointing at an empty directory

@@ -57,7 +57,14 @@ Use the milestone file for durable roadmap context. Do not use it as the default
 
 ## Step 3: Add a Planned Change File
 
-Create a standalone planned-change file under `.strict-spec-driven/roadmap/planned-changes/`:
+Create a standalone planned-change artifact through the CLI — it owns the file's YAML shape and canonical filename under `.strict-spec-driven/roadmap/planned-changes/`. Read `strict-spec-cli roadmap-generate --help --json` for the full argument contract, and `strict-spec-cli yaml-authoring-protocol` for the general authoring protocol:
+
+```sh
+strict-spec-cli roadmap-generate planned-change --milestone 0001-user-auth --id add-session-model \
+  --summary "Add session data model and storage." --details "..."
+```
+
+The resulting file looks like this:
 
 ```yaml
 schema: strict-spec-driven/planned-change/v1
@@ -95,16 +102,16 @@ Keep milestone `planned_changes` empty in normal roadmap work. Non-empty inline 
 Inspect the roadmap at any time:
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-overview
+strict-spec-cli roadmap-overview
 ```
 
 Use `roadmap-overview` for a human-readable milestone table with grouped planned-change detail, or `roadmap-status` for the JSON validation payload:
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-status
+strict-spec-cli roadmap-status
 ```
 
-After editing milestone or planned-change files, sync the roadmap:
+After changing milestone or planned-change artifacts through `roadmap-generate`, sync the roadmap:
 
 ```text
 /strict-roadmap-sync
@@ -165,10 +172,8 @@ repeat until the milestone is complete
 If you still have inline milestone `planned_changes`, ordinary `roadmap-status` and `roadmap-sync` will stop with an error and tell you to materialize them. Convert them with:
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+strict-spec-cli roadmap-sync --materialize-planned-changes
 ```
-
-If you are running through an installed skill package, use the exact command form documented in `skills/strict-roadmap-sync/SKILL.md`.
 
 ## Commands Reference
 

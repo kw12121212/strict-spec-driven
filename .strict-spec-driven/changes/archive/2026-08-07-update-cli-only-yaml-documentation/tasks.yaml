@@ -1,0 +1,59 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: update-cli-only-yaml-documentation
+sections:
+  Implementation:
+    update-readme-docs:
+      text: Update README.md and README.zh.md to state the CLI-only YAML mutation policy, summarize the seven-step yaml-authoring-protocol with command examples, document schema-list/schema-show and sample-list/sample-show discovery, and describe the boundary between AI CLI-only writes, allowed read-only inspection, and human manual-edit autonomy.
+      status: complete
+    update-quickstart-migration-docs:
+      text: Update QUICKSTART.md and QUICKSTART.zh.md so setup and migration guidance describes CLI-owned YAML mutation, the migrate command path for legacy .spec-driven/ projects, legacy scaffold replacement notes, and lazy artifact creation behavior where a first generate call creates the change container and artifact atomically.
+      status: complete
+    update-roadmap-docs:
+      text: Update ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, ROADMAP_QUICKSTART.md, and ROADMAP_QUICKSTART.zh.md so roadmap authoring guidance uses only roadmap-generate and related CLI commands, names schema and example discovery for roadmap artifacts, and removes any direct YAML editing instruction.
+      status: complete
+    update-harness-docs:
+      text: Update HARNESS.md and HARNESS.zh.md so harness declaration guidance routes every mutation through harness-edit, harness-infer, harness-doctor, and harness-scripts, and documents read-only inspection commands separately from mutation commands.
+      status: complete
+    update-debug-session-docs:
+      text: Update DEBUG_QUICKSTART.md, DEBUG_QUICKSTART.zh-CN.md, DEBUG_SESSIONS.md, DEBUG_SESSIONS.zh-CN.md, DEV_SESSIONS.md, and DEV_SESSIONS.zh.md so session artifact guidance uses harness-session CLI operations for create, edit, delete, validate, and archive instead of any direct YAML editing.
+      status: complete
+    update-architecture-design-docs:
+      text: Update ARCHITECTURE_QUICKSTART.md, ARCHITECTURE_QUICKSTART.zh.md, DESIGN_QUICKSTART.md, and DESIGN_QUICKSTART.zh.md so architecture and design-system guidance routes mutations through architecture-edit, architecture-generate, design-edit, design-init, and design-generate; if generated ARCHITECTURE.md content must change, make the change in the architecture YAML source and re-render rather than hand-editing.
+      status: complete
+    update-sop-guidance:
+      text: Update the SOP guidance sections in the operator documents that describe standard operating procedures so they use sop-create, sop-edit, sop-validate, sop-list, sop-show, and sop-category commands for every SOP mutation and inspection.
+      status: complete
+    update-contributor-guidance:
+      text: Update RTK.md and AGENTS.md contributor guidance to state that CLI code owns YAML shape and filesystem mutation for repository-owned artifacts, to name the yaml-authoring-protocol command as the canonical AI protocol, and to document the no-fallback rule of stopping and reporting when a required command is unavailable.
+      status: complete
+    document-cache-path-resolution:
+      text: In each updated document family, document schema_file resolution beneath the shared schema cache root ~/.strict-spec-schemas/ or the configured cache root and example_ref resolution beneath the cached examples tree, and state that installed skills never assume a source-repository templates directory.
+      status: complete
+  Testing:
+    run-maintenance-policy-check:
+      text: Run the configured maintenance checks and confirm the cli-only-yaml-policy check reports no findings against the updated documentation surfaces, including every repository-root Markdown file.
+      status: complete
+      command: strict-spec-cli maintenance
+    run-project-regression:
+      text: Build the project and run the complete project regression suite with the coverage gate to confirm documentation updates introduce no regression and required review evidence passes.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    verify-doc-protocol-consistency:
+      text: Cross-check each updated English and Chinese document pair against the structured output of the yaml-authoring-protocol command to confirm the documented steps, commands, cache paths, and no-fallback boundary match the CLI-emitted protocol.
+      status: complete
+      command: strict-spec-cli yaml-authoring-protocol
+  Verification:
+    run-ready-check:
+      text: Run the ready check for this change and resolve any deterministic blockers it reports.
+      status: complete
+      command: strict-spec-cli ready update-cli-only-yaml-documentation
+    run-verify-check:
+      text: Run verify for this change and confirm artifact structure, task completion, and question state are clean, including the justified absence of delta-spec and delta-tech artifacts for this documentation-only change.
+      status: complete
+      command: strict-spec-cli verify update-cli-only-yaml-documentation
+testing_gates:
+  validation_task: run-maintenance-policy-check
+  unit_test_task: run-project-regression

@@ -115,15 +115,23 @@ Choose a kebab-case name for the change, then scaffold its planning artifacts:
 node dist/strict-spec-cli.js propose my-first-change
 ```
 
-This creates `.strict-spec-driven/changes/my-first-change/` with:
+This creates the change container `.strict-spec-driven/changes/my-first-change/` without writing any planning artifact. Artifact creation is lazy: each planning file is written by the first `generate` call that authors it, from named semantic arguments — no placeholder file is ever created, and a rejected first write leaves nothing behind. Author each artifact through the CLI:
+
+```sh
+node dist/strict-spec-cli.js generate my-first-change proposal --what "..." --why "..."
+node dist/strict-spec-cli.js generate my-first-change design --approach "..."
+node dist/strict-spec-cli.js generate my-first-change tasks --section Implementation --task first-task --text "..."
+node dist/strict-spec-cli.js generate my-first-change questions --resolve requirement-problem --answer "..." --answered-by human
+```
+
+The artifacts this authors:
 - `proposal.yaml` — what and why
 - `design.yaml` — approach and key decisions
 - `tasks.yaml` — implementation and testing tasks
-- `questions.yaml` — open questions to be surfaced and resolved by
-  `/strict-spec-auto` or `/strict-spec-apply` before implementation
-- `specs/` — delta spec files for observable behavior changes
+- `questions.yaml` — seeded requirement questions plus open questions, surfaced and resolved by `/strict-spec-auto` or `/strict-spec-apply` before implementation
+- `specs/` — delta spec files, only when the change has observable spec impact
 
-Edit these files to describe the change before moving to the apply step.
+CLI code owns YAML shape and filesystem mutation for these artifacts: AI workflows describe every change through `generate`'s named arguments and never write the YAML text themselves. Before authoring an unfamiliar artifact, run `strict-spec-cli yaml-authoring-protocol` for the full CLI-only authoring protocol, `<command> --help --json` for the owning command's contract, and `schema-show` / `sample-show` for the artifact's schema and a minimal valid example. An artifact's declared `schema_file` resolves beneath the shared schema cache root `~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`), and schema `example_ref` paths resolve beneath the cached examples tree — installed skills never assume a source-repository `templates` directory.
 
 ### 2. Implement the tasks
 
@@ -200,7 +208,7 @@ The skill pauses only when open questions require user input or when an unrecove
 
 If your project has local services, production observability, or structured investigations, declare them in one harness:
 
-1. Run `/strict-spec-harness-init` to scaffold or refine `.strict-spec-driven/harness.yaml` from project context, or edit the file manually.
+1. Run `/strict-spec-harness-init` to scaffold or refine `.strict-spec-driven/harness.yaml` from project context. The declaration is authored through `harness-infer` and `harness-edit` named arguments; a human may still maintain the file by hand outside the AI workflow. <!-- human-manual-edit -->
 2. Run the dry plan and generate scripts:
    ```sh
    node dist/strict-spec-cli.js harness-plan --environment development
@@ -227,3 +235,5 @@ If your project uses the legacy `.spec-driven/` Markdown workflow, migrate it to
 ```
 
 The migration converts supported legacy specs, changes, and roadmap artifacts to `.strict-spec-driven/` YAML format. Unsupported or ambiguous shapes are reported as manual follow-up items. The source `.spec-driven/` directory is not modified.
+
+Every artifact the migration produces is CLI-owned from that point on: later creations, updates, named-entry removals, and deletions go through each artifact's owning strict CLI command, exactly as for a freshly initialized project. Legacy scaffolds that once shipped placeholder planning files are replaced by lazy authoring — a migrated or new change gains each planning artifact only when a `generate` call first writes it.

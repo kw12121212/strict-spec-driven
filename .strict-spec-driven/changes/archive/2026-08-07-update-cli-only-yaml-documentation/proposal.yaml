@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: update-cli-only-yaml-documentation
+  status: proposed
+summary:
+  what:
+    - Update English and Chinese operator and contributor documentation so every supported AI workflow documents the CLI-only YAML mutation policy, the exact CLI authoring protocol, schema and example discovery, installed-environment path resolution, and the boundary between AI CLI-only writes, read-only inspection, and human autonomy.
+  why:
+    - The ai-cli-only-yaml-enforcement milestone requires that documentation contains no supported workflow instructing AI to edit YAML text directly and that every AI-facing mutation entry point names the exact CLI command sequence, schema location, example location, and no-fallback behavior. The CLI, MCP surfaces, and bundled skills already enforce CLI-only mutation; the operator and contributor documentation is the remaining surface.
+scope:
+  in:
+    - Update README.md and README.zh.md with the CLI-only YAML policy, the yaml-authoring-protocol steps with command examples, and the AI/read-only/human boundary; update QUICKSTART.md and QUICKSTART.zh.md including migration guidance, legacy scaffold replacement notes, and lazy artifact creation behavior; update ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, ROADMAP_QUICKSTART.md, and ROADMAP_QUICKSTART.zh.md; update HARNESS.md and HARNESS.zh.md; update DEBUG_QUICKSTART.md, DEBUG_QUICKSTART.zh-CN.md, DEBUG_SESSIONS.md, DEBUG_SESSIONS.zh-CN.md, DEV_SESSIONS.md, and DEV_SESSIONS.zh.md; update ARCHITECTURE_QUICKSTART.md, ARCHITECTURE_QUICKSTART.zh.md, DESIGN_QUICKSTART.md, and DESIGN_QUICKSTART.zh.md, routing any generated-document content through architecture-edit, architecture-generate, design-edit, and design-generate; update SOP guidance in the documents that describe sop-create, sop-edit, and sop-validate workflows; update contributor guidance in RTK.md and AGENTS.md; document schema_file resolution beneath the shared schema cache root ~/.strict-spec-schemas/ or the configured cache root and example_ref resolution beneath the cached examples tree.
+  out:
+    - Blocking humans from manually editing YAML outside the AI workflow; changing CLI command behavior, schemas, bundled skills, or MCP metadata; operating-system sandboxing or interception of unrelated tools; renaming or restructuring existing documentation files or their language-suffix conventions.
+unchanged_behavior:
+  - CLI commands, their arguments, and their structured outputs; bundled schema, sample, and template assets; skill packaging and validate-skills behavior; the cli-only-yaml-policy maintenance check logic; read-only YAML inspection remains allowed and human manual editing remains technically possible.
+roadmap:
+  milestone: ai-cli-only-yaml-enforcement
+  planned_change: update-cli-only-yaml-documentation

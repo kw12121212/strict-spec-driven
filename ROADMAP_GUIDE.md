@@ -84,7 +84,7 @@ Keep `planned_changes: {}` on milestone files. Non-empty inline entries are trea
 
 Use standalone planned-change artifacts under `.strict-spec-driven/roadmap/planned-changes/` as the default way to add or edit roadmap work.
 
-Create and update them through the CLI:
+CLI code owns the YAML shape and filesystem placement of roadmap artifacts. AI workflows express every milestone and planned-change mutation through `roadmap-generate` named arguments — never through raw YAML text. Consult `strict-spec-cli roadmap-generate --help --json` for the full argument contract, and inspect the artifact shapes with `schema-show roadmap-milestone`, `schema-show planned-change`, and the matching `sample-show` keys. The `schema_file` each roadmap artifact declares resolves beneath the shared schema cache root `~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`) in installed environments. Create and update planned changes through the CLI:
 
 ```sh
 strict-spec-cli roadmap-generate planned-change --milestone 0001-user-auth --id add-session-model --summary "Add session data model and storage." --details "..."
@@ -143,10 +143,10 @@ Non-empty milestone `planned_changes` mappings are treated as legacy roadmap dat
 To convert legacy inline milestone entries into standalone planned-change files, run:
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+strict-spec-cli roadmap-sync --materialize-planned-changes
 ```
 
-That conversion writes planned-change files under `.strict-spec-driven/roadmap/planned-changes/`, removes the converted entries from the milestone file, and then reruns roadmap reconciliation on the materialized layout. If you are running through an installed skill package, use the exact command form documented in `skills/strict-roadmap-sync/SKILL.md`.
+That conversion writes planned-change files under `.strict-spec-driven/roadmap/planned-changes/`, removes the converted entries from the milestone file, and then reruns roadmap reconciliation on the materialized layout.
 
 ## Conflict-Resistant Team Workflow
 
@@ -154,14 +154,14 @@ The roadmap is designed to reduce merge conflicts through artifact granularity:
 
 1. Keep milestone files focused on milestone-wide planning context.
 2. Put day-to-day roadmap work items in standalone planned-change files.
-3. Let each contributor edit the planned-change file they own instead of appending to the same milestone map.
+3. Let each contributor own their planned-change file instead of appending to the same milestone map, updating it through `roadmap-generate planned-change` (a human may also maintain their own file by hand). <!-- human-manual-edit -->
 4. Keep `INDEX.yaml` as a shared milestone list rather than a coordination surface for every work item.
 
 Recommended habits:
 
 - Prefer one planned change per file.
 - Treat team metadata as advisory coordination hints, not exclusive claims.
-- After merges, rerun `/strict-roadmap-sync` or `node scripts/strict-spec-driven.js roadmap-sync`.
+- After merges, rerun `/strict-roadmap-sync` or `strict-spec-cli roadmap-sync`.
 - After archiving a roadmap-backed strict change, rerun `roadmap-sync` so planned-change and milestone status are reconciled from workflow state.
 - Use external tracker references only as optional supporting context. GitHub Issues, Jira, Linear, and similar tools are not required sources of truth for the strict roadmap.
 
@@ -228,7 +228,7 @@ another implementation workflow continues.
 
 ### `/strict-roadmap-review`
 
-Reviews one incomplete milestone's goal, scope, done criteria, dependencies, risks, and planned-change `details`, directly applies fixes to the milestone and planned-change YAML, then reruns `roadmap-sync`.
+Reviews one incomplete milestone's goal, scope, done criteria, dependencies, risks, and planned-change `details`, applies fixes through `roadmap-generate milestone` and `roadmap-generate planned-change` named arguments, then reruns `roadmap-sync`.
 
 ```text
 /strict-roadmap-review 0001-user-auth
@@ -258,7 +258,7 @@ Run this after merges and after archiving roadmap-backed work:
 CLI form:
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-sync
+strict-spec-cli roadmap-sync
 ```
 
 ## How to Add a Planned Change
@@ -304,13 +304,13 @@ Do not hand-edit roadmap completion state after implementation. Let the strict w
 For a human-readable panorama of milestone status plus grouped planned-change detail:
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-overview
+strict-spec-cli roadmap-overview
 ```
 
 For machine-readable validation output:
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-status
+strict-spec-cli roadmap-status
 ```
 
 `roadmap-overview` prints a milestone summary table followed by per-milestone planned-change detail.

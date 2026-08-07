@@ -2,296 +2,246 @@
 
 [English](DEBUG_QUICKSTART.md) | 中文
 
-一份精简的入门指南，用于在 strict-spec-driven 项目中搭建本地服务并执行结构化调试调查。
+这是一份精简的入门指南，介绍如何在 strict-spec-cli 项目中搭建本地服务并运行
+结构化的调试调查。开发会话与调试会话已统一到 harness 工作流：环境与组件用一份
+声明描述，每次调查对应一个会话制品。
+
+会话与声明的 YAML 由 CLI 负责：AI 工作流通过 `harness-edit` 和
+`harness-session` 的命名参数编写每一个字段，绝不书写 YAML 文本。下文的 YAML
+片段展示的是 CLI 产出的结果，仅作只读参考。运行
+`strict-spec-cli yaml-authoring-protocol` 查看通用编写协议，用
+`<command> --help --json` 查看各所属命令的参数契约，用
+`schema-show harness` / `schema-show harness-session` 及对应的 `sample-show`
+键查看各制品的契约。声明的 `schema_file` 路径在共享 schema 缓存根目录
+`~/.strict-spec-schemas/`（或 `STRICT_SPEC_SCHEMA_CACHE_DIR`）下解析。
 
 ---
 
 ## 1. 初始化项目
 
 ```sh
-strict-spec-driven init
+strict-spec-cli init
 ```
 
-此命令会创建 `.strict-spec-driven/` 目录及开发会话脚手架。如果目录已存在，重复运行是安全的——它不会覆盖已有的声明文件。
+这会创建 `.strict-spec-driven/`。重复运行是安全的——不会覆盖已有声明。
 
 ---
 
-## 2. 声明开发会话
+## 2. 声明你的 Harness
 
-编辑 `.strict-spec-driven/dev-session.yaml`，或者让技能自动准备：
+让 Skill 从仓库上下文准备声明：
 
 ```
-/strict-spec-dev-session-init
+/strict-spec-harness-init
 ```
 
-该技能会读取你的仓库上下文，自动填充启动命令、端口、就绪检测和浏览器目标。
+或直接通过 CLI 起草并完善：
 
-你至少需要一个服务，包含启动命令和就绪探针：
+```sh
+strict-spec-cli harness-infer --write
+strict-spec-cli harness-edit --component-environment development --component web \
+  --component-type frontend --working-directory . --port 3000
+```
+
+人类仍可在 AI 工作流之外手工维护 `.strict-spec-driven/harness.yaml`。 <!-- human-manual-edit -->
+
+你至少需要一个带启动操作和就绪检查的组件。CLI 产出的声明如下所示：
 
 ```yaml
-session:
-  services:
-    web:
-      command: npm run dev
-      working_directory: "."
-      readiness:
-        type: http
-        url: "http://127.0.0.1:3000/health"
-        timeout_seconds: 60
-        interval_seconds: 2
+components:
+  web:
+    type: frontend
+    working_directory: "."
+    readiness:
+      type: http
+      url: "http://127.0.0.1:3000/health"
+      timeout_seconds: 60
+      interval_seconds: 2
 ```
 
 继续之前先验证声明：
 
 ```sh
-strict-spec-driven dev-session-plan
+strict-spec-cli harness-doctor
+strict-spec-cli harness-plan --environment development
 ```
 
 ---
 
-## 3. 启动服务
+## 3. 启动组件
 
 ```sh
-strict-spec-driven dev-session-start
+strict-spec-cli harness-start --environment development
 ```
 
-此命令按声明顺序启动服务、等待就绪，并将 PID 记录到
-`.strict-spec-driven/.runtime/dev-session/` 下。
-
-随时检查状态：
+这会按依赖顺序启动声明的组件，等待就绪，并记录运行时状态。随时检查状态和日志：
 
 ```sh
-strict-spec-driven dev-session-status
-strict-spec-driven dev-session-logs web
+strict-spec-cli harness-status
+strict-spec-cli harness-logs web
 ```
 
 完成后停止：
 
 ```sh
-strict-spec-driven dev-session-stop
-```
-
-为方便起见，可以直接使用生命周期 CLI 命令：
-
-```
-node dist/strict-spec-cli.js dev-session-start
-node dist/strict-spec-cli.js dev-session-stop
+strict-spec-cli harness-stop
 ```
 
 ---
 
-## 4. 创建调试会话
+## 4. 创建 Harness 会话
 
-当出现问题时，启动一次结构化调查：
+出现问题时，启动结构化调查：
 
 ```sh
-strict-spec-driven debug-session-create my-bug
+strict-spec-cli harness-session create my-bug
 ```
 
-此命令会创建 `.strict-spec-driven/debug-sessions/my-bug/session.yaml` 和
-`evidence/` 目录。
-
-也可以使用引导式技能：
+这会创建 `.strict-spec-driven/harness-sessions/my-bug/`，包含会话制品和证据目录。
+也可以使用引导式 Skill，它会带你走完整个调查生命周期：
 
 ```
-/strict-spec-debug-session
+/strict-spec-harness-session
 ```
-
-该技能会引导你走完整个调查生命周期。
 
 ---
 
-## 5. 填写调查内容
+## 5. 记录调查过程
 
-打开生成的 `session.yaml`，完成以下部分：
+会话的每个字段都通过 `harness-session edit` 的命名参数写入。
 
 ### 描述问题
 
-```yaml
-issue:
-  summary: 结账页面按钮点击无反应。
-  observed_behavior: 没有发出任何网络请求。
-  expected_behavior: 应发送 POST /checkout 请求。
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --issue-summary "结账页面点击按钮无反应。" \
+  --observed-behavior "没有发出网络请求。" \
+  --expected-behavior "应发出 POST /checkout 请求。"
 ```
 
-### 分类目标层级
+### 记录重现步骤
 
-| 层级 | 适用场景 |
-|---|---|
-| `web_api` | API 请求、响应、状态码 |
-| `frontend` | DOM 状态、控制台输出、渲染 |
-| `electron` | Electron 窗口、webview、壳层行为 |
-| `cdp_access` | CDP 端点、目标发现、连接失败 |
-
-### 编写复现步骤
-
-```yaml
-reproduction:
-  preconditions:
-    - 应用已运行且用户已登录。
-  steps:
-    - id: click-button
-      target: checkout-page
-      action: 点击结账按钮。
-      expected: 出现网络请求或验证错误提示。
-  expected_failure: 没有网络请求，也没有可见的错误提示。
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --precondition "应用正在运行且用户已登录。" \
+  --step click-button --step-target web \
+  --step-action "点击结账按钮。" \
+  --step-expected "出现网络请求或校验错误。"
 ```
 
 ### 捕获证据
 
-将文件保存到 `evidence/` 目录下并引用：
+将文件保存到会话的证据目录，然后注册它们：
 
-```yaml
-evidence:
-  entries:
-    - id: before-click
-      type: screenshot
-      path: evidence/before-click.png
-      layer: frontend
-      target: checkout-page
-      description: 点击结账前的页面状态。
-      redacted: true
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --evidence before-click --evidence-kind screenshot \
+  --evidence-path evidence/before-click.png \
+  --evidence-description "点击结账前的页面状态。"
 ```
 
 ### 记录假设与发现
 
-```yaml
-hypotheses:
-  - id: handler-missing
-    statement: 点击事件处理器未绑定。
-    layer: frontend
-    status: open
-    evidence:
-      - before-click
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --hypothesis handler-missing \
+  --hypothesis-statement "点击处理器未被挂载。" \
+  --hypothesis-status open --hypothesis-evidence before-click
 
-findings:
-  - id: handler-detached
-    summary: React 重渲染移除了事件监听器。
-    layer: frontend
-    target: checkout-page
-    status: confirmed
-    evidence:
-      - before-click
+strict-spec-cli harness-session edit my-bug \
+  --finding handler-detached \
+  --finding-summary "React 重新渲染移除了事件监听器。" \
+  --finding-target web --finding-status confirmed \
+  --finding-evidence before-click
 ```
 
-### 关联开发会话生命周期
-
-如果调试会话需要本地服务：
-
-```yaml
-dev_session:
-  declaration: .strict-spec-driven/dev-session.yaml
-  session_id: local-web-app
-  services:
-    - web
-  lifecycle:
-    plan:
-      command: strict-spec-driven dev-session-plan
-      status: passed
-      evidence: [dev-session-plan]
-    start:
-      command: strict-spec-driven dev-session-start
-      status: passed
-      evidence: [dev-session-start]
-    stop:
-      command: strict-spec-driven dev-session-stop
-      status: not_run
-      evidence: []
-    cleanup_status: pending
-  unavailable_conditions: []
-```
-
-调试会话仅记录生命周期证据——它不会复制服务配置或密钥值。
+会话通过 `scripts/harness-*` 包装脚本记录生命周期证据——不会重复服务配置，
+也不会存储敏感值。
 
 ---
 
 ## 6. 人工检查点
 
-当需要凭据、2FA、OAuth 授权或支付确认时：
+当需要凭证、2FA、OAuth 授权或支付确认时：
 
-```yaml
-human_checkpoints:
-  - id: sign-in
-    reason: 结账功能需要身份认证。
-    requested_action: 在已准备好的浏览器窗口中直接登录。
-    sensitive: true
-    status: pending
-    resume_condition: 登录后结账表单可见。
-    evidence_before: [before-click]
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --checkpoint sign-in \
+  --checkpoint-reason "结账需要身份认证。" \
+  --checkpoint-action "在准备好的浏览器窗口中直接登录。" \
+  --checkpoint-sensitive true --checkpoint-status pending \
+  --checkpoint-resume "登录后可见结账表单。"
 
-manual_actions:
-  - id: human-login
-    checkpoint: sign-in
-    actor: human
-    summary: 人工直接输入凭据；凭据值不会被记录。
-    secrets_recorded: false
-    status: completed
+strict-spec-cli harness-session edit my-bug \
+  --manual-action human-login --manual-actor human \
+  --manual-summary "人工直接输入凭证；不记录任何值。" \
+  --manual-status completed
 ```
 
-**绝对不要**要求人类在聊天中透露密码、令牌或密钥。只记录语义动作和完成后的可观测状态。
+**绝不**要求人在聊天中透露密码、令牌或机密。只记录语义化的操作和完成后的
+可观测状态。证据条目和手动操作保持 `contains_secrets: false` 和
+`secrets_recorded: false`。
 
 ---
 
 ## 7. 验证并关闭
 
-记录重放命令，以便其他操作者能从零开始复现：
-
-```yaml
-replay:
-  commands:
-    - id: test-checkout
-      command: "npm test -- checkout"
-      working_directory: "."
-      layer: frontend
-      expected_result: 复现或验证结账行为。
-
-verification:
-  status: passed
-  steps:
-    - id: repeat-click
-      action: 修复后再次点击结账按钮。
-      expected: 出现网络请求或验证错误提示。
-      status: passed
-  evidence: [after-fix-screenshot]
-```
-
-验证完成的产物：
+记录重放命令，让另一位操作者可以从零重现，然后设置验证状态：
 
 ```sh
-strict-spec-driven debug-session-validate my-bug
+strict-spec-cli harness-session edit my-bug \
+  --replay-command "npm test -- checkout" \
+  --verification-step repeat-click \
+  --step-action "修复后再次点击结账按钮。" \
+  --step-expected "出现网络请求或校验错误。" \
+  --verification-status passed --verification-evidence after-fix-screenshot
+```
+
+验证完成的制品，然后归档状态为 `resolved` 或 `blocked` 的会话：
+
+```sh
+strict-spec-cli harness-session validate my-bug
+strict-spec-cli harness-session archive my-bug
 ```
 
 ---
 
-## 8. 典型工作流概览
+## 8. 典型工作流总结
 
 ```
-init ──► dev-session-plan ──► dev-session-start
-                                    │
-                              debug-session-create
-                                    │
-                         分类层级 / 复现问题
-                                    │
-                          捕获证据 / 提出假设
-                                    │
-                          人工检查点（如需要）
-                                    │
-                            验证 / 校验产物
-                                    │
-                              dev-session-stop
+init ──► harness-plan ──► harness-start
+                               │
+                     harness-session create
+                               │
+                       重现 / 捕获证据
+                               │
+                        假设与发现
+                               │
+                    人工检查点（如需要）
+                               │
+              harness-session validate / archive
+                               │
+                         harness-stop
 ```
 
 ---
 
-## 命令速查
+## 命令参考
 
 | 命令 | 用途 |
 |---|---|
-| `strict-spec-driven init` | 创建 `.strict-spec-driven/` 脚手架 |
-| `dev-session-plan` | 验证声明文件，干运行计划 |
-| `dev-session-start` | 按声明启动服务并等待就绪 |
-| `dev-session-status` | 报告托管服务的生命周期状态 |
-| `dev-session-logs <id>` | 打印服务日志输出 |
-| `dev-session-stop` | 停止托管服务，清理运行时状态 |
-| `debug-session-create <id>` | 创建调试会话产物和证据目录 |
-| `debug-session-validate <id>` | 按 schema 校验调试会话 YAML |
+| `strict-spec-cli init` | 创建 `.strict-spec-driven/` 脚手架 |
+| `harness-infer [--write]` | 从仓库元数据起草声明 |
+| `harness-edit` | 通过命名参数更新声明 |
+| `harness-doctor` | 诊断声明、包装脚本、环境和安全问题 |
+| `harness-plan` | 验证声明并进行空转规划 |
+| `harness-start` | 带就绪检查启动声明的组件 |
+| `harness-status` | 报告受管组件的生命周期状态 |
+| `harness-logs <id>` | 打印捕获的组件日志输出 |
+| `harness-stop` | 停止受管组件并清理运行时状态 |
+| `harness-session create <id>` | 创建会话制品和证据目录 |
+| `harness-session edit <id>` | 通过命名参数记录会话字段 |
+| `harness-session validate <id>` | 按 schema 验证会话 YAML |
+| `harness-session archive <id>` | 归档已解决或被阻塞的会话 |
+
+完整参考见 [HARNESS.zh.md](HARNESS.zh.md)。

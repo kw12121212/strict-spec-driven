@@ -33,6 +33,8 @@ strict-spec-cli schema-show design-system
 strict-spec-cli sample-show design-system
 ```
 
+制品声明的 `schema_file` 在共享 schema 缓存根目录 `~/.strict-spec-schemas/`（或 `STRICT_SPEC_SCHEMA_CACHE_DIR`）下解析；已安装的 Skills 绝不假设存在源码仓库的 `templates` 目录。
+
 ---
 
 ## 3. 创建设计系统制品
@@ -49,7 +51,25 @@ strict-spec-cli design-init
 
 ## 4. 编写 `.strict-spec-driven/design-system.yaml`
 
-在骨架基础上填入 Design Tokens、组件映射和设计指南：
+设计系统制品是由 CLI 负责的 YAML：通过 `design-edit` 的命名参数在骨架基础上填入 Design Tokens、组件映射和设计指南，而不是书写 YAML 文本。用 `strict-spec-cli design-edit --help --json` 查看完整参数契约：
+
+```sh
+strict-spec-cli design-edit --token-group colors --token primary --token-value "#1A73E8"
+
+strict-spec-cli design-edit --component primary-button \
+  --component-title "Primary Button" \
+  --component-description "整个用户界面的主要操作按钮。" \
+  --component-token "backgroundColor=colors.primary" \
+  --implementation src/components/button.tsx \
+  --snapshot test/snapshots/button.png
+
+strict-spec-cli design-edit \
+  --overview "干净、现代的视觉识别，优先保证可访问的对比度。" \
+  --do "所有视觉元素都使用声明的颜色 Token。" \
+  --dont "不要在组件样式中引入临时十六进制颜色。"
+```
+
+CLI 产出的制品如下所示（只读参考）：
 
 ```yaml
 schema: strict-spec-driven/design-system/v1

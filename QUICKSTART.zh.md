@@ -114,15 +114,23 @@ node /path/to/strict-spec-driven/dist/strict-spec-cli.js init
 node dist/strict-spec-cli.js propose my-first-change
 ```
 
-这将在 `.strict-spec-driven/changes/my-first-change/` 创建：
+这只创建变更容器 `.strict-spec-driven/changes/my-first-change/`，不写任何规划制品。制品创建是惰性的：每个规划文件由第一次编写它的 `generate` 调用通过命名语义参数写出——绝不创建占位文件，被拒绝的首次写入不会留下任何东西。通过 CLI 编写各个制品：
+
+```sh
+node dist/strict-spec-cli.js generate my-first-change proposal --what "..." --why "..."
+node dist/strict-spec-cli.js generate my-first-change design --approach "..."
+node dist/strict-spec-cli.js generate my-first-change tasks --section Implementation --task first-task --text "..."
+node dist/strict-spec-cli.js generate my-first-change questions --resolve requirement-problem --answer "..." --answered-by human
+```
+
+由此编写出的制品：
 - `proposal.yaml` — 是什么以及为什么
 - `design.yaml` — 方案和关键决策
 - `tasks.yaml` — 实现和测试任务
-- `questions.yaml` — 由 `/strict-spec-auto` 或 `/strict-spec-apply`
-  在实现前显式提出并解决的开放性问题
-- `specs/` — 可观测行为变化的增量规范文件
+- `questions.yaml` — 预置的需求问题及开放性问题，由 `/strict-spec-auto` 或 `/strict-spec-apply` 在实现前显式提出并解决
+- `specs/` — 增量规范文件，仅当变更有可观测的规范影响时才创建
 
-在进入执行步骤之前，编辑这些文件以描述变更内容。
+这些制品的 YAML 结构与文件系统写入由 CLI 代码负责：AI 工作流通过 `generate` 的命名参数描述每一次变更，绝不自行书写 YAML 文本。编写不熟悉的制品前，先运行 `strict-spec-cli yaml-authoring-protocol` 查看完整的 CLI 独占编写协议，用 `<command> --help --json` 查看所属命令的契约，用 `schema-show` / `sample-show` 查看制品的 schema 和最小有效示例。制品声明的 `schema_file` 在共享 schema 缓存根目录 `~/.strict-spec-schemas/`（或 `STRICT_SPEC_SCHEMA_CACHE_DIR`）下解析，schema 的 `example_ref` 路径在缓存的 examples 树下解析——已安装的 Skills 绝不假设存在源码仓库的 `templates` 目录。
 
 ### 2. 实现任务
 
@@ -200,7 +208,7 @@ Ship Skill 读取已归档的变更摘要，构建提交信息，并将 `git pus
 
 如果你的项目有本地服务、生产环境可观测性或结构化调查，可以在一个 harness 中声明它们：
 
-1. 运行 `/strict-spec-harness-init` 从项目上下文中脚手架化（scaffold）或完善 `.strict-spec-driven/harness.yaml`，或者手动编辑该文件。
+1. 运行 `/strict-spec-harness-init` 从项目上下文中脚手架化（scaffold）或完善 `.strict-spec-driven/harness.yaml`。该声明通过 `harness-infer` 和 `harness-edit` 的命名参数编写；人类仍可在 AI 工作流之外手工维护该文件。 <!-- human-manual-edit -->
 2. 运行空转规划（dry plan）并生成脚本：
    ```sh
    node dist/strict-spec-cli.js harness-plan --environment development
@@ -227,3 +235,5 @@ node dist/strict-spec-cli.js harness-session create checkout-investigation
 ```
 
 迁移将支持的旧版规范、变更和路线图制品转换为 `.strict-spec-driven/` YAML 格式。不支持或模糊的格式会作为手动跟进事项报告。源 `.spec-driven/` 目录不会被修改。
+
+迁移产出的每个制品从那一刻起都由 CLI 负责：之后的创建、更新、命名条目删除和整体删除都通过各制品的所属严格 CLI 命令进行，与全新初始化的项目完全一致。曾经附带占位规划文件的旧版脚手架已被惰性编写取代——迁移或新建的变更只有在 `generate` 调用第一次写入某个规划制品时才会获得它。

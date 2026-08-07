@@ -36590,6 +36590,9 @@ mutation_surfaces:
       - ROADMAP_QUICKSTART.md
       - ROADMAP_QUICKSTART.zh.md
       - RTK.md
+      - DEBUG_QUICKSTART.zh-CN.md
+      - DEBUG_SESSIONS.md
+      - DEBUG_SESSIONS.zh-CN.md
     mechanism: documentation-guidance
     classification: remaining-direct-writer
     operations:

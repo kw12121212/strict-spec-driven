@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: update-cli-only-yaml-documentation
+open: []
+resolved:
+  - id: doc-surface-inventory
+    question: Which documentation files count as the SOP, migration, and contributor guidance surfaces this change must update, given there is no dedicated SOP or migration document?
+    context: 'The planned change lists README, roadmap, harness, debug-session, SOP, architecture, design, migration, and contributor guidance in English and Chinese, but the repository keeps all operator documentation as root-level Markdown files with mixed .zh and .zh-CN suffixes and has no standalone SOP or MIGRATION document. This affects implementation task scope: an unnamed surface would silently escape the rewrite while the milestone requires that no supported workflow anywhere instructs direct YAML editing. Recommendation: treat SOP guidance as the sop-command sections inside the existing operator documents, migration guidance as the migrate sections of README and QUICKSTART, and contributor guidance as RTK.md and AGENTS.md, keeping existing filenames and language-suffix conventions unchanged.'
+    answer: SOP guidance lives in the sop-command sections of existing operator documents; migration guidance lives in the migrate sections of README.md, QUICKSTART.md, and their Chinese variants; contributor guidance is RTK.md and AGENTS.md. The maintenance cli-only-yaml-policy check scans every repository-root Markdown file, so the full scanned set is the governed surface and file naming stays as is.
+    status: resolved
+    kind: technical
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: Operator and contributor documentation still describes or permits AI workflows that edit repository-owned YAML text directly, and it does not document the exact CLI authoring protocol. An agent following the docs today can hand-write YAML payloads or fall back to direct file edits, producing malformed artifacts and drifting from the CLI-owned mutation model the milestone has already enforced in skills, CLI help, and MCP surfaces.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: After the change, no supported workflow in English or Chinese documentation instructs AI to edit YAML text directly; every AI-facing mutation entry point names the exact CLI command sequence, validation step, schema location under the shared cache root, example location, and the stop-and-report behavior when a required command is unavailable; and the cli-only-yaml-policy maintenance check plus the complete regression and coverage gate pass.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The dependency changes align-cli-help-and-mcp-mutations and migrate-agent-skills-to-cli-only are complete, so documentation is now the last surface of the ai-cli-only-yaml-enforcement milestone still describing pre-CLI-only workflows; the milestone's done criteria explicitly require the documentation update and block milestone completion until it lands.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: Humans are not blocked from manually editing YAML outside the AI workflow; no operating-system sandboxing or interception of unrelated tools is introduced; read-only YAML inspection remains allowed; and CLI command behavior, bundled schemas and samples, skill packaging, and MCP metadata stay unchanged, as the milestone scope-out and notes state.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The intended reading is a documentation-content change: rewrite the existing English and Chinese operator and contributor documents so they consistently state that CLI code owns YAML shape and filesystem mutation and document the exact AI protocol with command examples. It does not mean adding new enforcement code, renaming documents, or changing CLI behavior.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

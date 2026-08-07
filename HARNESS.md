@@ -22,22 +22,25 @@ runtime state, `harness-logs` always reads the captured runtime log file, and `h
 ## Commands
 
 ```bash
-strict-spec-driven harness-infer
-strict-spec-driven harness-infer --write
-strict-spec-driven harness-doctor
-strict-spec-driven harness-plan --environment development
-strict-spec-driven harness-start --environment development --component web
-strict-spec-driven harness-status
-strict-spec-driven harness-logs web
-strict-spec-driven harness-logs web --tail 50
-strict-spec-driven harness-logs web --all
-strict-spec-driven harness-stop
-strict-spec-driven harness-scripts generate
-strict-spec-driven harness-scripts verify
-strict-spec-driven harness-session create checkout-investigation
-strict-spec-driven harness-session validate checkout-investigation
-strict-spec-driven harness-session archive checkout-investigation
+strict-spec-cli harness-infer
+strict-spec-cli harness-infer --write
+strict-spec-cli harness-edit --component-environment development --component web --component-type frontend --port 3000
+strict-spec-cli harness-doctor
+strict-spec-cli harness-plan --environment development
+strict-spec-cli harness-start --environment development --component web
+strict-spec-cli harness-status
+strict-spec-cli harness-logs web
+strict-spec-cli harness-logs web --tail 50
+strict-spec-cli harness-logs web --all
+strict-spec-cli harness-stop
+strict-spec-cli harness-scripts generate
+strict-spec-cli harness-scripts verify
+strict-spec-cli harness-session create checkout-investigation
+strict-spec-cli harness-session validate checkout-investigation
+strict-spec-cli harness-session archive checkout-investigation
 ```
+
+The declaration and session artifacts are CLI-owned YAML: AI workflows create and change them through `harness-infer --write`, `harness-edit`, and `harness-session` named arguments rather than by writing YAML text, while a human may still maintain the declaration by hand. <!-- human-manual-edit --> Consult `strict-spec-cli harness-edit --help --json` and `strict-spec-cli harness-session --help --json` for the exact argument contracts, and inspect the artifact shapes with `schema-show harness`, `schema-show harness-session`, and the matching `sample-show` keys. `harness-infer` (without `--write`), `harness-plan`, `harness-doctor`, `harness-status`, and `harness-logs` are read-only inspection. The `schema_file` each artifact declares resolves beneath the shared schema cache root `~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`), and schema `example_ref` paths resolve beneath the cached examples tree.
 
 `harness-scripts generate` writes project-local wrappers:
 

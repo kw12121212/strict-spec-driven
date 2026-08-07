@@ -57,7 +57,14 @@ notes: []
 
 ## 第 3 步：添加计划变更文件
 
-在 `.strict-spec-driven/roadmap/planned-changes/` 下创建独立的计划变更文件：
+通过 CLI 创建独立的计划变更制品——它负责文件的 YAML 结构和 `.strict-spec-driven/roadmap/planned-changes/` 下的规范文件名。用 `strict-spec-cli roadmap-generate --help --json` 查看完整参数契约，用 `strict-spec-cli yaml-authoring-protocol` 查看通用编写协议：
+
+```sh
+strict-spec-cli roadmap-generate planned-change --milestone 0001-user-auth --id add-session-model \
+  --summary "添加会话数据模型和存储。" --details "..."
+```
+
+生成的文件如下所示：
 
 ```yaml
 schema: strict-spec-driven/planned-change/v1
@@ -94,16 +101,16 @@ team:
 随时可以检查路线图状态：
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-overview
+strict-spec-cli roadmap-overview
 ```
 
 使用 `roadmap-overview` 查看人类可读的里程碑表格和按里程碑分组的计划变更明细，或使用 `roadmap-status` 获取 JSON 校验载荷：
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-status
+strict-spec-cli roadmap-status
 ```
 
-编辑里程碑或计划变更文件后，同步路线图：
+通过 `roadmap-generate` 修改里程碑或计划变更制品后，同步路线图：
 
 ```text
 /strict-roadmap-sync
@@ -164,10 +171,8 @@ node scripts/strict-spec-driven.js roadmap-status
 如果你当前的里程碑文件里仍然使用内联 `planned_changes`，普通的 `roadmap-status` 和 `roadmap-sync` 会报错并提示你先完成实体化。请使用以下命令转换：
 
 ```sh
-node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+strict-spec-cli roadmap-sync --materialize-planned-changes
 ```
-
-如果你是在已安装的 skill 包里运行，请使用 `skills/strict-roadmap-sync/SKILL.md` 中记录的准确命令形式。
 
 ## 命令参考
 

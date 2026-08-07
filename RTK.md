@@ -38,6 +38,36 @@ Skills may remain Markdown `SKILL.md` files because they are part of the Agent
 Skills packaging format. Skill behavior should be updated only when required to
 describe YAML artifact contracts accurately.
 
+## CLI-Only YAML Authoring
+
+CLI code owns YAML shape and filesystem mutation for every repository-owned
+strict artifact. An AI workflow expresses each creation, update, named-entry
+removal, and whole-artifact deletion through the owning strict CLI command with
+named semantic arguments — raw YAML payloads, heredocs, temporary payload
+files, arbitrary output paths, and direct file edits are not part of any
+supported AI workflow. Read-only YAML inspection is always allowed, and human
+manual editing is not technically blocked; the policy governs AI mutation
+workflows.
+
+The canonical statement of the protocol is the `strict-spec-cli
+yaml-authoring-protocol` command. Follow its ordered steps: read the owning
+command's `--help --json`, resolve the schema with `schema-list`/`schema-show`,
+inspect the registered example with `sample-list`/`sample-show`, translate
+confirmed facts into documented named arguments, execute the owning command,
+inspect the structured result, and run the artifact's validation command.
+Discover each artifact family's mutation surface with `yaml-surface-list` and
+`yaml-surface-show <kind>`.
+
+When a required command, argument, or artifact kind is unavailable, stop and
+report the missing capability — the operation, the artifact kind and target,
+the missing command or argument, and the discovery commands already consulted.
+An unavailable command is a reason to stop, not a reason to improvise.
+
+Declared `schema_file` paths resolve beneath the shared schema cache root
+`~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`), and schema
+`example_ref` paths resolve beneath the cached examples tree. Installed skills
+never assume a source-repository `templates` or `examples` directory.
+
 ## Development Conventions
 
 - Prefer the reference project's TypeScript, ESM, and Node.js conventions unless

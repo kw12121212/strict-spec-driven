@@ -30,11 +30,31 @@ strict-spec-cli schema-show architecture
 strict-spec-cli sample-show architecture
 ```
 
+The artifact's declared `schema_file` resolves beneath the shared schema cache root `~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`); installed skills never assume a source-repository `templates` directory.
+
 ---
 
 ## 3. Author `.strict-spec-driven/architecture.yaml`
 
-Create or edit `.strict-spec-driven/architecture.yaml` with components, data flows, and architectural decisions:
+The architecture artifact is CLI-owned YAML: author components, data flows, and decisions through `architecture-edit` named arguments rather than by writing YAML text. Consult `strict-spec-cli architecture-edit --help --json` for the full argument contract:
+
+```sh
+strict-spec-cli architecture-edit \
+  --component cli --component-title "CLI" \
+  --component-responsibility "Parse user command-line arguments and route to sub-handlers." \
+  --boundary "Deliberately does not implement domain rendering logic." \
+  --implementation src/cli/cmd-design.ts --implementation src/cli/entrypoint.ts
+
+strict-spec-cli architecture-edit \
+  --decision single_source_of_truth --decision-title "Single source of truth" \
+  --decision-statement "ARCHITECTURE.md is strictly generated from YAML sources and must never be hand-edited." \
+  --decision-rationale "Hand-edits drift over time; generating ensures consistency with code and specs." \
+  --decision-status accepted
+```
+
+`--depends-on` entries must name another already-declared component.
+
+The artifact the CLI produces looks like this (read-only reference):
 
 ```yaml
 version: 1

@@ -18,22 +18,25 @@
 ## 命令 (Commands)
 
 ```bash
-strict-spec-driven harness-infer
-strict-spec-driven harness-infer --write
-strict-spec-driven harness-doctor
-strict-spec-driven harness-plan --environment development
-strict-spec-driven harness-start --environment development --component web
-strict-spec-driven harness-status
-strict-spec-driven harness-logs web
-strict-spec-driven harness-logs web --tail 50
-strict-spec-driven harness-logs web --all
-strict-spec-driven harness-stop
-strict-spec-driven harness-scripts generate
-strict-spec-driven harness-scripts verify
-strict-spec-driven harness-session create checkout-investigation
-strict-spec-driven harness-session validate checkout-investigation
-strict-spec-driven harness-session archive checkout-investigation
+strict-spec-cli harness-infer
+strict-spec-cli harness-infer --write
+strict-spec-cli harness-edit --component-environment development --component web --component-type frontend --port 3000
+strict-spec-cli harness-doctor
+strict-spec-cli harness-plan --environment development
+strict-spec-cli harness-start --environment development --component web
+strict-spec-cli harness-status
+strict-spec-cli harness-logs web
+strict-spec-cli harness-logs web --tail 50
+strict-spec-cli harness-logs web --all
+strict-spec-cli harness-stop
+strict-spec-cli harness-scripts generate
+strict-spec-cli harness-scripts verify
+strict-spec-cli harness-session create checkout-investigation
+strict-spec-cli harness-session validate checkout-investigation
+strict-spec-cli harness-session archive checkout-investigation
 ```
+
+声明文件和会话制品都是由 CLI 负责的 YAML：AI 工作流通过 `harness-infer --write`、`harness-edit` 和 `harness-session` 的命名参数创建与修改它们，而不是书写 YAML 文本；人类仍可在 AI 工作流之外手工维护声明文件。 <!-- human-manual-edit --> 用 `strict-spec-cli harness-edit --help --json` 和 `strict-spec-cli harness-session --help --json` 查看准确的参数契约，用 `schema-show harness`、`schema-show harness-session` 及对应的 `sample-show` 键查看制品形状。`harness-infer`（不带 `--write`）、`harness-plan`、`harness-doctor`、`harness-status` 和 `harness-logs` 属于只读检查。各制品声明的 `schema_file` 在共享 schema 缓存根目录 `~/.strict-spec-schemas/`（或 `STRICT_SPEC_SCHEMA_CACHE_DIR`）下解析，schema 的 `example_ref` 路径在缓存的 examples 树下解析。
 
 `harness-scripts generate` 将写入项目本地的包装脚本（wrappers）：
 

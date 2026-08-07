@@ -249,6 +249,31 @@ Mutating tools require explicit confirmation. Every mutating tool enforces a ser
 
 Template resources are enumerable: an MCP client can list resources to discover the concrete `strict://` URIs for existing changes, specs, roadmap milestones, planned changes, and tech standards instead of having to know each identifier in advance.
 
+## CLI-Only YAML Authoring
+
+CLI code owns YAML shape and filesystem mutation for every repository-owned strict artifact. A supported AI workflow expresses each creation, update, named-entry removal, and whole-artifact deletion through the owning strict CLI command with named semantic arguments; it never supplies raw YAML payloads, heredocs, temporary payload files, arbitrary output paths, or direct file edits. Read-only YAML inspection is always allowed, and humans keep full manual autonomy — the policy governs AI mutation workflows, not people.
+
+The canonical statement of the protocol is emitted by the CLI itself:
+
+```sh
+strict-spec-cli yaml-authoring-protocol
+strict-spec-cli yaml-authoring-protocol <artifact-kind>
+```
+
+Its seven ordered steps:
+
+1. **Read the owning command's machine-readable help** — `<owning-command> --help --json`. Help is the contract; a remembered flag is not.
+2. **Resolve the target artifact's schema** — `schema-list`, then `schema-show <schema-key>`.
+3. **Inspect the registered minimal example** — `sample-list`, then `sample-show <example-key>`. The example is read-only reference, never copied into place as a starting file.
+4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence.
+5. **Execute the owning command with those arguments.**
+6. **Inspect the structured result and changed paths** — a result reporting incompleteness is a successful write with more work to do, not a failure to retry.
+7. **Run the artifact's validation command** — which catches cross-file consequences a single mutation's own result cannot report.
+
+The protocol ends with one boundary: when a required command, argument, or artifact kind is unavailable, **stop and report the missing capability** — the operation that could not be completed, the artifact kind and target, the missing command or argument, and the discovery commands already consulted. There is no fallback; an unavailable command is a reason to stop, not a reason to improvise.
+
+Discover the full mutation surface per artifact family with `yaml-surface-list` and `yaml-surface-show <kind>`, which report each family's supported operations, owning commands, refused operations, and cross-file effects. Artifact writes are lazy and atomic: the first successful `generate` call creates the change container and artifact together, no placeholder files are ever written, and a rejected write leaves pre-existing state untouched.
+
 ## Schema and Example Assets
 
 Bundled strict YAML schema files live under `templates/strict-spec-driven/schemas/`. Minimal valid examples live under `examples/strict-spec-driven/` as repository reference assets. These are separate from `.strict-spec-driven/` workflow state.
@@ -266,7 +291,23 @@ strict-spec-cli template-show scaffold/config.yaml
 
 ### Shared Schema Cache
 
-On startup, every `strict-spec-driven` CLI command (except `--help`/`-h`) and the MCP server export the bundled schema files and strict YAML sample files to a shared on-disk cache at `~/.strict-spec-schemas/`, so agents can resolve an artifact's `schema_file` path and schema `example_ref` paths against one well-known root without per-project `templates` or `examples` directories. The cache holds the schema files under `templates/strict-spec-driven/schemas/`, the sample files under `examples/strict-spec-driven/`, and a `manifest.yaml` recording the exported version; it is refreshed automatically when bundled schemas or samples change or a cached file is missing or modified, and it is always safe to delete — the next run recreates it. Set the `STRICT_SPEC_SCHEMA_CACHE_DIR` environment variable to relocate the cache root. If the cache cannot be written, the command continues with bundled assets and prints a warning naming the resolved cache path.
+On startup, every `strict-spec-driven` CLI command (except `--help`/`-h`) and the MCP server export the bundled schema files and strict YAML sample files to a shared on-disk cache at `~/.strict-spec-schemas/`, so agents can resolve an artifact's `schema_file` path and schema `example_ref` paths against one well-known root without per-project `templates` or `examples` directories. The cache holds the schema files under `templates/strict-spec-driven/schemas/`, the sample files under `examples/strict-spec-driven/`, and a `manifest.yaml` recording the exported version; it is refreshed automatically when bundled schemas or samples change or a cached file is missing or modified, and it is always safe to delete — the next run recreates it. Set the `STRICT_SPEC_SCHEMA_CACHE_DIR` environment variable to relocate the cache root. If the cache cannot be written, the command continues with bundled assets and prints a warning naming the resolved cache path. An artifact's declared `schema_file` path resolves beneath this cache root, and a schema's `example_ref` paths resolve beneath the cached examples tree; installed skills never assume a source-repository `templates` or `examples` directory.
+
+## Standard Operating Procedures
+
+Schema-validated standard operating procedures live under `.strict-spec-driven/sops/` and are CLI-owned YAML. Author and maintain them through named arguments — `sop-create` for a new procedure (`--title`, `--category`, `--purpose`, `--trigger`, steps, roles, escalations, exceptions), `sop-edit` for field and named-entry updates and removals, and `sop-validate` to validate one or all procedures against the SOP schema. Inspect read-only with `sop-list`, `sop-show`, `sop-category-list`, and `sop-category-show`; discover the artifact contract with `schema-show sop` and `schema-show sop-category`.
+
+```sh
+strict-spec-cli sop-create --title "Release rollback" --category release \
+  --purpose "..." --trigger "..." --scope-in "..." --success "..." \
+  --prerequisite "..." --exception-condition "..." --exception-handling "..." \
+  --step-id assess --step-actor operator --step-action "..." --step-expected "..."
+strict-spec-cli sop-edit <sop-id> --step-id verify --step-actor operator \
+  --step-action "..." --step-expected "..."
+strict-spec-cli sop-validate
+```
+
+Each category enforces its own required sections — `sop-category-show <id>` names them before you author.
 
 ## Harness
 

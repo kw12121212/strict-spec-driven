@@ -3,7 +3,19 @@
 English | [中文](DEBUG_QUICKSTART.zh-CN.md)
 
 A condensed getting-started guide for setting up local services and running
-structured debug investigations in a strict-spec-cli project.
+structured debug investigations in a strict-spec-cli project. Dev sessions and
+debug sessions are unified under the harness workflow: one declaration for
+environments and components, one session artifact per investigation.
+
+Session and declaration YAML is CLI-owned: AI workflows author every field
+through `harness-edit` and `harness-session` named arguments, never by writing
+YAML text. The YAML snippets below show what the CLI produces, as read-only
+reference. Run `strict-spec-cli yaml-authoring-protocol` for the general
+authoring protocol, read `<command> --help --json` for each owning command's
+argument contract, and `schema-show harness` / `schema-show harness-session`
+plus the matching `sample-show` keys for each artifact's contract. Declared
+`schema_file` paths resolve beneath the shared schema cache root
+`~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`).
 
 ---
 
@@ -13,199 +25,145 @@ structured debug investigations in a strict-spec-cli project.
 strict-spec-cli init
 ```
 
-This creates `.strict-spec-driven/` with the dev-session scaffold. If the
-directory already exists, re-running is safe — it does not overwrite existing
-declarations.
+This creates `.strict-spec-driven/`. Re-running is safe — it does not
+overwrite existing declarations.
 
 ---
 
-## 2. Declare Your Dev Session
+## 2. Declare Your Harness
 
-Edit `.strict-spec-driven/dev-session.yaml` or let the skill prepare it:
+Let the skill prepare the declaration from repository context:
 
 ```
-/strict-spec-dev-session-init
+/strict-spec-harness-init
 ```
 
-The skill reads your repo context and fills in commands, ports, readiness
-checks, and browser targets automatically.
+Or draft and refine it directly through the CLI:
 
-You need at least one service with a start command and a readiness probe:
+```sh
+strict-spec-cli harness-infer --write
+strict-spec-cli harness-edit --component-environment development --component web \
+  --component-type frontend --working-directory . --port 3000
+```
+
+A human may still maintain `.strict-spec-driven/harness.yaml` by hand outside
+the AI workflow. <!-- human-manual-edit -->
+
+You need at least one component with a start operation and a readiness check.
+The declaration the CLI produces looks like:
 
 ```yaml
-session:
-  services:
-    web:
-      command: npm run dev
-      working_directory: "."
-      readiness:
-        type: http
-        url: "http://127.0.0.1:3000/health"
-        timeout_seconds: 60
-        interval_seconds: 2
+components:
+  web:
+    type: frontend
+    working_directory: "."
+    readiness:
+      type: http
+      url: "http://127.0.0.1:3000/health"
+      timeout_seconds: 60
+      interval_seconds: 2
 ```
 
 Validate the declaration before proceeding:
 
 ```sh
-strict-spec-cli dev-session-plan
+strict-spec-cli harness-doctor
+strict-spec-cli harness-plan --environment development
 ```
 
 ---
 
-## 3. Start Services
+## 3. Start Components
 
 ```sh
-strict-spec-cli dev-session-start
+strict-spec-cli harness-start --environment development
 ```
 
-This starts declared services in order, waits for readiness, and records PIDs
-under `.strict-spec-driven/.runtime/dev-session/`.
-
-Check status at any time:
+This starts declared components in dependency order, waits for readiness, and
+records runtime state. Check status and logs at any time:
 
 ```sh
-strict-spec-cli dev-session-status
-strict-spec-cli dev-session-logs web
+strict-spec-cli harness-status
+strict-spec-cli harness-logs web
 ```
 
 Stop when done:
 
 ```sh
-strict-spec-cli dev-session-stop
-```
-
-For convenience, use the lifecycle CLI commands directly:
-```
-node dist/strict-spec-cli.js dev-session-start
-node dist/strict-spec-cli.js dev-session-stop
+strict-spec-cli harness-stop
 ```
 
 ---
 
-## 4. Create a Debug Session
+## 4. Create a Harness Session
 
 When something breaks, start a structured investigation:
 
 ```sh
-strict-spec-cli debug-session-create my-bug
+strict-spec-cli harness-session create my-bug
 ```
 
-This creates `.strict-spec-driven/debug-sessions/my-bug/session.yaml` and an
-`evidence/` directory.
-
-Or use the guided skill:
+This creates `.strict-spec-driven/harness-sessions/my-bug/` with the session
+artifact and an evidence directory. Or use the guided skill, which walks
+through the full investigation lifecycle:
 
 ```
-/strict-spec-debug-session
+/strict-spec-harness-session
 ```
-
-The skill walks you through the full investigation lifecycle.
 
 ---
 
-## 5. Fill In the Investigation
+## 5. Record the Investigation
 
-Open the generated `session.yaml` and complete these sections:
+Every session field is written through `harness-session edit` named arguments.
 
 ### Describe the issue
 
-```yaml
-issue:
-  summary: Button click does nothing on checkout page.
-  observed_behavior: No network request is sent.
-  expected_behavior: A POST /checkout request is sent.
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --issue-summary "Button click does nothing on checkout page." \
+  --observed-behavior "No network request is sent." \
+  --expected-behavior "A POST /checkout request is sent."
 ```
 
-### Classify the target layer
+### Record reproduction steps
 
-| Layer | When to use |
-|---|---|
-| `web_api` | API requests, responses, status codes |
-| `frontend` | DOM state, console output, rendering |
-| `electron` | Electron windows, webviews, shell behavior |
-| `cdp_access` | CDP endpoint, target discovery, attach failures |
-
-### Write reproduction steps
-
-```yaml
-reproduction:
-  preconditions:
-    - App is running and user is signed in.
-  steps:
-    - id: click-button
-      target: checkout-page
-      action: Click the checkout button.
-      expected: Network request or validation error appears.
-  expected_failure: No network request, no visible error.
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --precondition "App is running and user is signed in." \
+  --step click-button --step-target web \
+  --step-action "Click the checkout button." \
+  --step-expected "Network request or validation error appears."
 ```
 
 ### Capture evidence
 
-Save files under `evidence/` and reference them:
+Save files under the session's evidence directory, then register them:
 
-```yaml
-evidence:
-  entries:
-    - id: before-click
-      type: screenshot
-      path: evidence/before-click.png
-      layer: frontend
-      target: checkout-page
-      description: Page state before clicking checkout.
-      redacted: true
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --evidence before-click --evidence-kind screenshot \
+  --evidence-path evidence/before-click.png \
+  --evidence-description "Page state before clicking checkout."
 ```
 
 ### Record hypotheses and findings
 
-```yaml
-hypotheses:
-  - id: handler-missing
-    statement: The click handler is not attached.
-    layer: frontend
-    status: open
-    evidence:
-      - before-click
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --hypothesis handler-missing \
+  --hypothesis-statement "The click handler is not attached." \
+  --hypothesis-status open --hypothesis-evidence before-click
 
-findings:
-  - id: handler-detached
-    summary: React re-render removed the event listener.
-    layer: frontend
-    target: checkout-page
-    status: confirmed
-    evidence:
-      - before-click
+strict-spec-cli harness-session edit my-bug \
+  --finding handler-detached \
+  --finding-summary "React re-render removed the event listener." \
+  --finding-target web --finding-status confirmed \
+  --finding-evidence before-click
 ```
 
-### Link to dev session lifecycle
-
-If the debug session needs local services:
-
-```yaml
-dev_session:
-  declaration: .strict-spec-driven/dev-session.yaml
-  session_id: local-web-app
-  services:
-    - web
-  lifecycle:
-    plan:
-      command: strict-spec-cli dev-session-plan
-      status: passed
-      evidence: [dev-session-plan]
-    start:
-      command: strict-spec-cli dev-session-start
-      status: passed
-      evidence: [dev-session-start]
-    stop:
-      command: strict-spec-cli dev-session-stop
-      status: not_run
-      evidence: []
-    cleanup_status: pending
-  unavailable_conditions: []
-```
-
-Debug-session records lifecycle evidence — it does not duplicate service
-configuration or secret values.
+Sessions record lifecycle evidence from the `scripts/harness-*` wrappers —
+they do not duplicate service configuration or secret values.
 
 ---
 
@@ -213,57 +171,47 @@ configuration or secret values.
 
 When credentials, 2FA, OAuth consent, or payment confirmation are required:
 
-```yaml
-human_checkpoints:
-  - id: sign-in
-    reason: Checkout requires authentication.
-    requested_action: Sign in directly in the prepared browser window.
-    sensitive: true
-    status: pending
-    resume_condition: Checkout form is visible after sign-in.
-    evidence_before: [before-click]
+```sh
+strict-spec-cli harness-session edit my-bug \
+  --checkpoint sign-in \
+  --checkpoint-reason "Checkout requires authentication." \
+  --checkpoint-action "Sign in directly in the prepared browser window." \
+  --checkpoint-sensitive true --checkpoint-status pending \
+  --checkpoint-resume "Checkout form is visible after sign-in."
 
-manual_actions:
-  - id: human-login
-    checkpoint: sign-in
-    actor: human
-    summary: Human enters credentials directly; values are not recorded.
-    secrets_recorded: false
-    status: completed
+strict-spec-cli harness-session edit my-bug \
+  --manual-action human-login --manual-actor human \
+  --manual-summary "Human enters credentials directly; values are not recorded." \
+  --manual-status completed
 ```
 
 **Never** ask the human to reveal passwords, tokens, or secrets in chat.
 Record only the semantic action and observable state after completion.
+Evidence entries and manual actions keep `contains_secrets: false` and
+`secrets_recorded: false`.
 
 ---
 
 ## 7. Verify and Close
 
-Record replay commands so another operator can reproduce from scratch:
-
-```yaml
-replay:
-  commands:
-    - id: test-checkout
-      command: "npm test -- checkout"
-      working_directory: "."
-      layer: frontend
-      expected_result: Reproduces or verifies the checkout behavior.
-
-verification:
-  status: passed
-  steps:
-    - id: repeat-click
-      action: Click the checkout button again after the fix.
-      expected: Network request or validation error appears.
-      status: passed
-  evidence: [after-fix-screenshot]
-```
-
-Validate the completed artifact:
+Record replay commands so another operator can reproduce from scratch, then
+set the verification state:
 
 ```sh
-strict-spec-cli debug-session-validate my-bug
+strict-spec-cli harness-session edit my-bug \
+  --replay-command "npm test -- checkout" \
+  --verification-step repeat-click \
+  --step-action "Click the checkout button again after the fix." \
+  --step-expected "Network request or validation error appears." \
+  --verification-status passed --verification-evidence after-fix-screenshot
+```
+
+Validate the completed artifact, then archive a `resolved` or `blocked`
+session:
+
+```sh
+strict-spec-cli harness-session validate my-bug
+strict-spec-cli harness-session archive my-bug
 ```
 
 ---
@@ -271,19 +219,19 @@ strict-spec-cli debug-session-validate my-bug
 ## 8. Typical Workflow Summary
 
 ```
-init ──► dev-session-plan ──► dev-session-start
-                                    │
-                              debug-session-create
-                                    │
-                         classify layer / reproduce
-                                    │
-                          capture evidence / hypotheses
-                                    │
-                          human checkpoint (if needed)
-                                    │
-                            verify / validate
-                                    │
-                              dev-session-stop
+init ──► harness-plan ──► harness-start
+                               │
+                     harness-session create
+                               │
+                    reproduce / capture evidence
+                               │
+                     hypotheses and findings
+                               │
+                    human checkpoint (if needed)
+                               │
+              harness-session validate / archive
+                               │
+                         harness-stop
 ```
 
 ---
@@ -293,10 +241,17 @@ init ──► dev-session-plan ──► dev-session-start
 | Command | Purpose |
 |---|---|
 | `strict-spec-cli init` | Create `.strict-spec-driven/` scaffold |
-| `dev-session-plan` | Validate declaration, dry-run plan |
-| `dev-session-start` | Start declared services with readiness checks |
-| `dev-session-status` | Report managed service lifecycle state |
-| `dev-session-logs <id>` | Print service log output |
-| `dev-session-stop` | Stop managed services, clean up runtime state |
-| `debug-session-create <id>` | Create debug session artifact and evidence dir |
-| `debug-session-validate <id>` | Validate debug session YAML against schema |
+| `harness-infer [--write]` | Draft the declaration from repository metadata |
+| `harness-edit` | Update the declaration through named arguments |
+| `harness-doctor` | Diagnose declaration, wrapper, environment, and safety issues |
+| `harness-plan` | Validate declaration, dry-run plan |
+| `harness-start` | Start declared components with readiness checks |
+| `harness-status` | Report managed component lifecycle state |
+| `harness-logs <id>` | Print captured component log output |
+| `harness-stop` | Stop managed components, clean up runtime state |
+| `harness-session create <id>` | Create session artifact and evidence dir |
+| `harness-session edit <id>` | Record session fields through named arguments |
+| `harness-session validate <id>` | Validate session YAML against schema |
+| `harness-session archive <id>` | Archive a resolved or blocked session |
+
+See [HARNESS.md](HARNESS.md) for the full reference.

@@ -207,6 +207,31 @@ MCP 服务器将 CLI 和 Agent Skills 保留为权威的工作流实现。它将
 
 变更工具需要宿主可见的确认边界。`propose_change`、`generate_change_artifact`、`mark_next_task_complete`、`roadmap_sync` 和 `archive_change` 等工具会写入严格工作流状态。`harness_start` 和 `harness_stop` 是生命周期操作，`archive_change` 属于发布级别，因为它会合并规范并协调路线图状态。
 
+## CLI 独占的 YAML 编写
+
+仓库拥有的所有严格制品，其 YAML 结构与文件系统写入均由 CLI 代码负责。受支持的 AI 工作流通过各制品的所属严格 CLI 命令和命名语义参数表达每一次创建、更新、命名条目删除和整个制品的删除；绝不提供原始 YAML 载荷、heredoc、临时载荷文件、任意输出路径或直接文件编辑。只读的 YAML 查看始终允许；人类保留完全的手工自主权——该策略约束的是 AI 变更工作流，不是人。
+
+协议的权威表述由 CLI 自身输出：
+
+```sh
+strict-spec-cli yaml-authoring-protocol
+strict-spec-cli yaml-authoring-protocol <artifact-kind>
+```
+
+其七个有序步骤：
+
+1. **读取所属命令的机器可读帮助** —— `<owning-command> --help --json`。帮助即契约；凭记忆的标志不是。
+2. **解析目标制品的 schema** —— `schema-list`，然后 `schema-show <schema-key>`。
+3. **查看注册的最小示例** —— `sample-list`，然后 `sample-show <example-key>`。示例是只读参考，绝不复制到目标位置当作起始文件。
+4. **将确认的事实转换为文档化的命名参数** —— 每个值都必须能追溯到请求、schema 或仓库证据。
+5. **用这些参数执行所属命令。**
+6. **检查结构化结果与变更路径** —— 报告不完整的结果是一次成功但仍有后续工作的写入，不是需要重试的失败。
+7. **运行该制品的验证命令** —— 捕获单次写入自身结果无法报告的跨文件影响。
+
+协议以一条边界收尾：当所需的命令、参数或制品类型不可用时，**停止并报告缺失的能力**——无法完成的操作、目标制品类型与对象、缺失的命令或参数、已查阅过的发现命令。没有任何回退路径；命令不可用是停止的理由，不是即兴变通的理由。
+
+用 `yaml-surface-list` 和 `yaml-surface-show <kind>` 可按制品族发现完整的变更接口：每个族支持的操作、所属命令、被拒绝的操作和跨文件影响。制品写入是惰性且原子的：第一次成功的 `generate` 调用同时创建变更容器和制品，绝不写占位文件，被拒绝的写入不会触碰任何既有状态。
+
 ## 模式和示例资源
 
 捆绑的严格 YAML 模式文件位于 `templates/strict-spec-driven/schemas/`。最小有效示例作为仓库参考资源位于 `examples/strict-spec-driven/`。这些与 `.strict-spec-driven/` 工作流状态分离。
@@ -216,15 +241,31 @@ MCP 服务器将 CLI 和 Agent Skills 保留为权威的工作流实现。它将
 CLI 也会内置捆绑的 schema 和脚手架资源，因此已安装的 Skills 不需要每个目录都带一个 `templates` 符号链接。Agent 可以通过以下命令查看内置契约：
 
 ```sh
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js sample-show change-proposal
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/config.yaml
+strict-spec-cli schema-list
+strict-spec-cli schema-show change-proposal
+strict-spec-cli sample-show change-proposal
+strict-spec-cli template-show scaffold/config.yaml
 ```
 
 ### 共享模式缓存
 
-每个 `strict-spec-driven` CLI 命令（`--help`/`-h` 除外）和 MCP 服务器在启动时会将捆绑的 schema 文件和严格 YAML sample 文件导出到共享的磁盘缓存 `~/.strict-spec-schemas/`，使 Agent 无需每个项目都带 `templates` 或 `examples` 目录即可将制品的 `schema_file` 路径和 schema 的 `example_ref` 路径解析到一个固定的根目录。缓存包含 `templates/strict-spec-driven/schemas/` 下的 schema 文件、`examples/strict-spec-driven/` 下的 sample 文件，以及记录导出版本的 `manifest.yaml`；当捆绑 schema 或 sample 变化，或缓存文件缺失、被修改时会自动刷新，随时可以安全删除——下次运行会重建。设置 `STRICT_SPEC_SCHEMA_CACHE_DIR` 环境变量可重定向缓存根目录。若缓存不可写，命令会继续使用捆绑资源并打印包含解析后缓存路径的警告。
+每个 `strict-spec-driven` CLI 命令（`--help`/`-h` 除外）和 MCP 服务器在启动时会将捆绑的 schema 文件和严格 YAML sample 文件导出到共享的磁盘缓存 `~/.strict-spec-schemas/`，使 Agent 无需每个项目都带 `templates` 或 `examples` 目录即可将制品的 `schema_file` 路径和 schema 的 `example_ref` 路径解析到一个固定的根目录。缓存包含 `templates/strict-spec-driven/schemas/` 下的 schema 文件、`examples/strict-spec-driven/` 下的 sample 文件，以及记录导出版本的 `manifest.yaml`；当捆绑 schema 或 sample 变化，或缓存文件缺失、被修改时会自动刷新，随时可以安全删除——下次运行会重建。设置 `STRICT_SPEC_SCHEMA_CACHE_DIR` 环境变量可重定向缓存根目录。若缓存不可写，命令会继续使用捆绑资源并打印包含解析后缓存路径的警告。制品声明的 `schema_file` 路径在该缓存根目录下解析，schema 的 `example_ref` 路径在缓存的 examples 树下解析；已安装的 Skills 绝不假设存在源码仓库的 `templates` 或 `examples` 目录。
+
+## 标准作业程序（SOP）
+
+经 schema 验证的标准作业程序位于 `.strict-spec-driven/sops/` 下，是由 CLI 负责的 YAML。通过命名参数编写和维护：新建程序用 `sop-create`（`--title`、`--category`、`--purpose`、`--trigger`、步骤、角色、升级、异常），字段与命名条目的更新和删除用 `sop-edit`，用 `sop-validate` 按 SOP schema 验证单个或全部程序。只读查看用 `sop-list`、`sop-show`、`sop-category-list`、`sop-category-show`；用 `schema-show sop` 和 `schema-show sop-category` 查看制品契约。
+
+```sh
+strict-spec-cli sop-create --title "发布回滚" --category release \
+  --purpose "..." --trigger "..." --scope-in "..." --success "..." \
+  --prerequisite "..." --exception-condition "..." --exception-handling "..." \
+  --step-id assess --step-actor operator --step-action "..." --step-expected "..."
+strict-spec-cli sop-edit <sop-id> --step-id verify --step-actor operator \
+  --step-action "..." --step-expected "..."
+strict-spec-cli sop-validate
+```
+
+每个类别都强制要求自己的必需章节——编写前用 `sop-category-show <id>` 查看。
 
 ## Harness
 
