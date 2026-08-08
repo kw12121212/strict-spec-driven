@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: yaml-first-artifacts
+operations:
+  ADDED:
+    retired-schema-fields-leave-a-tombstone:
+      strength: MUST
+      statement: Retiring a field from a strict artifact schema MUST remove it from the schema's required list and replace its sub-schema with a description-only permissive allowance, rather than deleting the property, unless the change explicitly decides that artifacts still carrying the field must fail validation.
+      rationale: 'Every strict artifact schema sets additionalProperties: false, so deleting a property does not relax the contract — it converts a known field into an unknown key and turns a previously valid artifact into a hard validation error. Because init and migrate ship these schemas to external projects, that failure lands on artifacts this repository never sees, and stripping the field from this repository''s own artifacts in the same change hides it from every local check. A description-only tombstone keeps unknown-key rejection intact for every other key while letting the retired one pass and disappear through normal CLI writes; widening additionalProperties would relax the whole artifact instead.'
+      enforcement:
+        method: review
+        detail: Reviewers check that a change removing a field from an artifact schema either leaves a description-only tombstone property with the field dropped from required, or records an explicit decision that artifacts carrying the field must now fail, and that regression covers an artifact still carrying the retired field.
+      examples:
+        good:
+          - Removing the mapping contract from main-spec by dropping it from required and replacing its object sub-schema with a description naming it deprecated and ignored, plus a test asserting a residual mapping field validates and is stripped on the next CLI write.
+        bad:
+          - Deleting the mapping property from main-spec entirely, so every external project's specs authored before the upgrade fail schema validation as an unknown key.
+  MODIFIED: {}
+  REMOVED:
+    structured-fields-over-prose:
+      reason: The rule prefers structured mapping fields over prose spec-to-code links and cites verify-spec-mappings and verify-tech-mappings as its enforcement. Both the field it recommends and the commands that enforce it are being removed, leaving the rule unenforceable and pointing at a capability that no longer exists.

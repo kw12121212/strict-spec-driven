@@ -227,7 +227,6 @@ function buildBaseSpec(input: MainSpecAuthorInput): RawRecord {
     artifact_type: "main_spec",
     schema_file: "templates/strict-spec-driven/schemas/main-spec.yaml",
     spec: { id: input.id, title: input.title },
-    mapping: { implementation: [], tests: [] },
     requirements: {},
   };
 }
@@ -240,16 +239,14 @@ function applySpecInput(candidate: RawRecord, input: MainSpecAuthorInput, creati
   if (input.title !== undefined) header.title = input.title;
   candidate.spec = header;
 
-  const mapping = asRecord(candidate.mapping);
-  mapping.implementation = removeValues(
-    appendUnique(strings(mapping.implementation), input.implementation.map((value) => normalizeMappingPath(value, "--implementation"))),
-    input.removeImplementations.map((value) => normalizeMappingPath(value, "--remove-implementation")),
-  );
-  mapping.tests = removeValues(
-    appendUnique(strings(mapping.tests), input.tests.map((value) => normalizeMappingPath(value, "--test"))),
-    input.removeTests.map((value) => normalizeMappingPath(value, "--remove-test")),
-  );
-  candidate.mapping = mapping;
+  // File mappings were removed from the strict YAML artifact model. The path flags still
+  // parse and normalize so existing callers keep working, but nothing is recorded, and any
+  // write strips a residual mapping field left by an artifact authored before the removal.
+  for (const value of input.implementation) normalizeMappingPath(value, "--implementation");
+  for (const value of input.tests) normalizeMappingPath(value, "--test");
+  for (const value of input.removeImplementations) normalizeMappingPath(value, "--remove-implementation");
+  for (const value of input.removeTests) normalizeMappingPath(value, "--remove-test");
+  delete candidate.mapping;
 
   const requirements = asRecord(candidate.requirements);
   if (input.requirement !== undefined) {
@@ -335,7 +332,6 @@ function buildBaseTech(input: MainTechAuthorInput): RawRecord {
     artifact_type: "main_tech",
     schema_file: "templates/strict-spec-driven/schemas/main-tech.yaml",
     standard: { id: input.id, title: input.title, category: input.category },
-    mapping: { implementation: [], enforcement: [] },
     rules: {},
   };
 }
@@ -352,16 +348,13 @@ function applyTechInput(candidate: RawRecord, input: MainTechAuthorInput, creati
   }
   candidate.standard = header;
 
-  const mapping = asRecord(candidate.mapping);
-  mapping.implementation = removeValues(
-    appendUnique(strings(mapping.implementation), input.implementation.map((value) => normalizeMappingPath(value, "--implementation"))),
-    input.removeImplementations.map((value) => normalizeMappingPath(value, "--remove-implementation")),
-  );
-  mapping.enforcement = removeValues(
-    appendUnique(strings(mapping.enforcement), input.enforcement.map((value) => normalizeMappingPath(value, "--enforcement"))),
-    input.removeEnforcement.map((value) => normalizeMappingPath(value, "--remove-enforcement")),
-  );
-  candidate.mapping = mapping;
+  // See applySpecInput: the path flags are accepted and normalized but no longer recorded,
+  // and any write strips a residual mapping field.
+  for (const value of input.implementation) normalizeMappingPath(value, "--implementation");
+  for (const value of input.enforcement) normalizeMappingPath(value, "--enforcement");
+  for (const value of input.removeImplementations) normalizeMappingPath(value, "--remove-implementation");
+  for (const value of input.removeEnforcement) normalizeMappingPath(value, "--remove-enforcement");
+  delete candidate.mapping;
 
   const rules = asRecord(candidate.rules);
   if (input.rule !== undefined) {

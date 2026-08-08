@@ -5,29 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: design-domain-behavior
   title: Design System Document Domain Behavior
-mapping:
-  implementation:
-    - src/cli/cmd-design.ts
-    - src/cli/command-metadata-entries.ts
-    - src/cli/registry.ts
-    - templates/strict-spec-driven/schemas/registry.yaml
-    - skills/strict-spec-design/SKILL.md
-    - src/design-system.ts
-    - src/document-render.ts
-    - templates/strict-spec-driven/schemas/design-system.yaml
-    - examples/strict-spec-driven/design-system.yaml
-    - templates/strict-spec-driven/scaffold/design-system.yaml
-    - src/embedded-templates.ts
-    - skills/strict-spec-design-sync/SKILL.md
-    - src/design-system-author.ts
-    - src/strict-spec-cli.ts
-    - inventory/yaml-mutation-surfaces.yaml
-    - src/mcp/inventory.ts
-    - src/mcp/tools.ts
-  tests:
-    - test/suites/design-system-document.ts
-    - test/suites/design-system-authoring.ts
-    - test/run.ts
 requirements:
   design-system-document-rendering:
     strength: MUST

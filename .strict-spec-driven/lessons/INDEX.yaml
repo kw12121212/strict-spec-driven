@@ -101,3 +101,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/the-skill-you-are-running-is-the-installed-copy-a3b342.yaml
+    deleting-a-property-from-a-closed-schema-turns-t-499934:
+      title: Deleting a property from a closed schema turns tolerance into rejection
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/deleting-a-property-from-a-closed-schema-turns-t-499934.yaml

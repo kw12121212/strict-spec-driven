@@ -6,15 +6,19 @@ artifact_name: main-spec
 description: Strict YAML main spec artifact.
 example_ref: ../../../examples/strict-spec-driven/main-spec.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   definitions:
     step:
       type: object
       properties:
-        GIVEN: { type: string }
-        WHEN: { type: string }
-        THEN: { type: string }
-        AND: { type: string }
+        GIVEN:
+          type: string
+        WHEN:
+          type: string
+        THEN:
+          type: string
+        AND:
+          type: string
       additionalProperties: false
       minProperties: 1
       maxProperties: 1
@@ -26,7 +30,6 @@ json_schema:
     - artifact_type
     - schema_file
     - spec
-    - mapping
     - requirements
   properties:
     schema:
@@ -52,20 +55,7 @@ json_schema:
         title:
           type: string
     mapping:
-      type: object
-      additionalProperties: false
-      required:
-        - implementation
-        - tests
-      properties:
-        implementation:
-          type: array
-          items:
-            type: string
-        tests:
-          type: array
-          items:
-            type: string
+      description: Deprecated and ignored. Implementation and test file mappings were removed from the strict YAML artifact model; a residual mapping field is accepted with any shape so artifacts authored before the removal keep validating, and is never read.
     requirements:
       type: object
       additionalProperties:
@@ -89,5 +79,5 @@ json_schema:
             additionalProperties:
               type: array
               items:
-                "$ref": "#/definitions/step"
+                $ref: '#/definitions/step'
               minItems: 1

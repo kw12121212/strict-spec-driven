@@ -1,0 +1,51 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+operations:
+  ADDED: {}
+  MODIFIED:
+    yaml-main-spec-file-model:
+      strength: MUST
+      statement: The system MUST define strict YAML main spec files as YAML documents with structured schema identity, stable spec identity, human-readable title, and requirement collections.
+      scenarios:
+        main-spec-top-level-fields-are-structured:
+          - GIVEN: a strict YAML main spec file is reviewed
+          - WHEN: its top-level data is inspected
+          - THEN: the schema identity is available as a structured field
+          - AND: the stable spec identifier is available as a structured field
+          - AND: the human-readable title is available as a structured field
+          - AND: requirements are available as a structured collection
+    yaml-main-spec-minimal-example:
+      strength: MUST
+      statement: The system MUST provide a minimal valid YAML main spec example that includes schema identity, stable spec identity, title, one requirement, one scenario, and ordered scenario steps.
+      scenarios:
+        main-spec-example-is-complete-enough-to-validate:
+          - GIVEN: the strict YAML main spec contract is reviewed
+          - WHEN: its minimal valid example is inspected
+          - THEN: every required top-level main spec field is present
+          - AND: every required requirement field is present
+          - AND: every required scenario field is present
+        main-spec-example-demonstrates-enum-values:
+          - GIVEN: the strict YAML main spec example is inspected
+          - WHEN: requirement strength and scenario step kinds are reviewed
+          - THEN: the example demonstrates a valid MUST, SHOULD, or MAY requirement strength
+          - AND: the example demonstrates valid GIVEN, WHEN, THEN, and optional AND step kinds
+    yaml-migrated-core-spec-preservation:
+      strength: MUST
+      statement: The system MUST preserve strict workflow identity and ordering when legacy Markdown main specs and delta specs are converted into strict YAML artifacts.
+      scenarios:
+        migrated-main-specs-preserve-stable-identifiers:
+          - GIVEN: migration tooling converts a legacy Markdown main spec
+          - WHEN: the generated strict YAML spec artifact is inspected
+          - THEN: the migrated artifact preserves the stable spec, requirement, and scenario identifiers represented by the legacy workflow state
+          - AND: scenario ordering remains recoverable from the strict YAML artifact data
+        migrated-delta-specs-preserve-operation-intent:
+          - GIVEN: migration tooling converts a legacy Markdown delta spec
+          - WHEN: the generated strict YAML delta artifact is inspected
+          - THEN: added, modified, and removed requirement operations remain represented through the strict YAML delta structure
+          - AND: any preserved requirement identifiers remain reviewable through structured YAML fields
+  REMOVED:
+    yaml-spec-file-mapping-model:
+      reason: The strict YAML artifact model no longer declares implementation and test mappings as file-level fields, so a requirement defining their structure and path normalization has nothing left to govern.

@@ -1,0 +1,100 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-archive-merges-delta-specs-into-main-specs:
+      strength: MUST
+      statement: The system MUST merge delta specs from the archived change into their corresponding main strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and REMOVED operations.
+      scenarios:
+        archive-applies-added-and-modified-operations:
+          - GIVEN: a strict change includes delta specs with ADDED and MODIFIED entries targeting existing strict main specs
+          - WHEN: '`strict-spec-driven archive <name>` is executed'
+          - THEN: ADDED requirements are appended to the target specs and MODIFIED requirements replace the targeted requirements by stable requirement identifier
+        archive-applies-removed-operations:
+          - GIVEN: a strict change includes delta specs with REMOVED entries targeting existing requirements
+          - WHEN: '`strict-spec-driven archive <name>` is executed'
+          - THEN: targeted requirements are removed from the target main specs
+    cli-propose-generation-uses-named-arguments:
+      strength: MUST
+      statement: The system MUST provide proposal population commands that accept supported artifact content only through named CLI arguments, including repeated grouped question, scenario, and requirement arguments in a single invocation for artifacts that contain keyed collections.
+      scenarios:
+        named-argument-generation-does-not-use-payload-files:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: an agent populates supported generated artifacts
+          - THEN: the generated CLI commands use named arguments directly
+          - AND: no JSON payload file is required
+    cli-mcp-read-tool-inventory:
+      strength: MUST
+      statement: The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change guidance, verification, roadmap status and recommendation, tech status, harness plan, harness status, and bounded harness logs.
+      scenarios:
+        mcp-read-tools-are-discoverable:
+          - GIVEN: the MCP server registers its tool inventory
+          - WHEN: read-only tool definitions are inspected
+          - THEN: the expected workflow, change, roadmap, tech, and harness diagnostic tools are present
+          - AND: every read-only tool reports safety class read
+    cli-question-gate-readiness-validation:
+      strength: MUST
+      statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, or delta-spec artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, or missing delta specs when no explicit no-delta-spec design decision is present, while leaving semantic product judgment outside CLI validation.
+      scenarios:
+        readiness-rejects-missing-checklist-evidence:
+          - GIVEN: a strict change has valid YAML planning artifacts but missing deterministic change-intake evidence such as empty scope lists, no unchanged behavior, no design decisions, or no delta spec and no explicit no-delta-spec design decision
+          - WHEN: strict-spec-driven ready <change-name> runs
+          - THEN: the command exits non-zero and emits proposal_readiness diagnostics that point to the missing artifact field
+        readiness-allows-explicit-empty-spec-decision:
+          - GIVEN: a strict change has no open questions and records included scope, out-of-scope scope, unchanged behavior, at least one design decision whose stable id explicitly declares no delta spec is needed, and no delta spec files
+          - WHEN: strict-spec-driven ready <change-name> runs
+          - THEN: the command exits zero without a missing-delta-spec proposal_readiness diagnostic
+    cli-tech-sync-supports-active-change-mode:
+      strength: MUST
+      statement: The system MUST require strict-tech-sync guidance to scope active-change evidence to attributable artifacts, capture confirmed active-change findings as delta-tech, and route confirmed standalone main-standard mutations through an artifact-aware CLI operation rather than direct live-standard editing.
+      scenarios:
+        active-change-sync-uses-bounded-evidence:
+          - GIVEN: An active strict change is selected for current-change tech sync
+          - WHEN: The AI determines the scan scope
+          - THEN: The scope is derived from that change's planning artifacts, delta artifacts, task evidence, attributable repository changes, and applicable standards
+        active-change-sync-routes-through-delta-tech:
+          - GIVEN: A bounded scan finds a reusable convention gap and the operator confirms its rule content
+          - WHEN: The synchronization applies the finding
+          - THEN: The finding is generated or updated as delta-tech under the selected active change and no live main standard is directly edited
+        standalone-sync-uses-cli-owned-main-standard-mutation:
+          - GIVEN: Strict-tech-sync runs as standalone repository maintenance and the operator confirms a main-standard edit
+          - WHEN: The synchronization applies the confirmed mutation
+          - THEN: The skill invokes the artifact-aware main-standard CLI operation with named semantic arguments
+          - AND: The skill does not edit the live YAML document directly
+    cli-main-spec-and-tech-authoring:
+      strength: MUST
+      statement: The system MUST provide artifact-aware spec-edit and tech-edit CLI commands that create and incrementally mutate live main specs and technical standards from named semantic inputs, preserve unnamed content, add and remove keyed requirement or rule content, enforce stable identity and confined canonical paths, isolate and safeguard whole-artifact deletion, reconcile the corresponding spec or tech index in the same validated atomic operation, and report deterministic mutation and recovery metadata while preserving delta archive compatibility.
+      scenarios:
+        structured-create-and-update-reconciles-index:
+          - GIVEN: A caller supplies a stable spec or standard id and named semantic fields to spec-edit or tech-edit
+          - WHEN: The authoring command creates or updates the live main artifact
+          - THEN: Only the named content changes and the corresponding canonical index entry is created or reconciled atomically
+        named-removal-preserves-siblings:
+          - GIVEN: An existing main spec or standard contains multiple requirements or rules, scenarios, examples, exceptions, and unrelated fields
+          - WHEN: The caller names one supported keyed entry for removal
+          - THEN: Only that named entry is removed and all unnamed sibling content and index entries remain unchanged
+        unsafe-delete-or-identity-change-is-rejected:
+          - GIVEN: A delete request is mixed with edits, targets an artifact with active delta references, or conflicts with the artifact stable identity or canonical path
+          - WHEN: The live-document authoring command validates the request
+          - THEN: The command exits non-zero with deterministic conflict and recovery metadata and leaves the artifact and index unchanged
+        valid-delete-removes-artifact-and-index:
+          - GIVEN: A caller issues an isolated delete for a canonically resolved main spec or standard with no blocking references
+          - WHEN: The authoring command commits the deletion
+          - THEN: The main artifact and only its corresponding index entry are removed together without changing sibling artifacts
+        archive-merge-remains-compatible:
+          - GIVEN: A strict change contains a valid delta spec or delta tech targeting a live artifact managed by the new authoring commands
+          - WHEN: The existing archive workflow merges and reconciles the delta
+          - THEN: The merged main artifact and regenerated index remain valid and observable through the same live authoring and status surfaces
+  REMOVED:
+    cli-verify-spec-mappings-subcommand:
+      reason: The verify-spec-mappings subcommand audits a mapping field that no artifact will carry once this milestone completes, and no workflow step reads a mapping to decide anything.
+    cli-verify-spec-mappings-audits-mapping-coverage:
+      reason: Mapping coverage cannot be audited once the mapping field is removed from the main-spec schema, and the coverage metric never drove a workflow decision.
+    cli-verify-spec-mappings-audits-unmapped-evidence:
+      reason: Unmapped-evidence auditing depends on spec mapping entries that are being removed; without mappings there is no reference set to audit against.
+    cli-verify-spec-mappings-emits-deterministic-json-output:
+      reason: The JSON output contract describes the mapping audit result envelope, which has no meaning once the audit itself is removed.

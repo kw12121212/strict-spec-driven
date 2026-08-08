@@ -5,128 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: cli-foundation
   title: CLI Foundation
-mapping:
-  implementation:
-    - package.json
-    - install.sh
-    - tsconfig.json
-    - src/cli/argv.ts
-    - src/cli/changes.ts
-    - src/cli/cmd-change.ts
-    - src/cli/cmd-generation.ts
-    - src/cli/cmd-mcp-install.ts
-    - src/cli/output.ts
-    - src/cli/cmd-scaffold.ts
-    - src/cli/cmd-templates.ts
-    - src/cli/cmd-workflow.ts
-    - src/cli/entrypoint.ts
-    - src/cli/fs.ts
-    - src/cli/registry.ts
-    - src/cli/spec-mapping.ts
-    - src/cli/usage.ts
-    - src/mcp/entrypoint.ts
-    - src/mcp/inventory.ts
-    - src/mcp/prompts.ts
-    - src/mcp/resources.ts
-    - src/mcp/server.ts
-    - src/mcp/tools.ts
-    - src/diagnostics.ts
-    - src/strict-spec-cli.ts
-    - src/archive.ts
-    - src/propose-generation.ts
-    - src/scaffold.ts
-    - src/embedded-templates.ts
-    - src/shared-schema-cache.ts
-    - src/validation.ts
-    - src/workflow-state.ts
-    - src/yaml.ts
-    - src/yaml-mutation.ts
-    - src/apply.ts
-    - src/verify.ts
-    - src/skills.ts
-    - src/skills/model.ts
-    - src/skills/frontmatter.ts
-    - src/skills/content.ts
-    - src/skills/fs-checks.ts
-    - src/skills/diagnostics.ts
-    - templates/strict-spec-driven/scaffold/config.yaml
-    - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
-    - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
-    - src/cli/cmd-roadmap.ts
-    - skills/strict-roadmap-archive/SKILL.md
-    - skills/strict-roadmap-plan/SKILL.md
-    - skills/strict-roadmap-review/SKILL.md
-    - skills/strict-spec-brainstorm/SKILL.md
-    - skills/strict-spec-bugfix/SKILL.md
-    - skills/strict-spec-propose/SKILL.md
-    - skills/strict-spec-propose-from-roadmap/SKILL.md
-    - skills/strict-spec-auto/SKILL.md
-    - skills/strict-roadmap-recommend/SKILL.md
-    - README.md
-    - install.ps1
-    - scripts/build-native-cli.ts
-    - skills/strict-roadmap-reopen/SKILL.md
-    - skills/strict-roadmap-sync/SKILL.md
-    - skills/strict-spec-apply/SKILL.md
-    - skills/strict-spec-archive/SKILL.md
-    - skills/strict-spec-harness-init/SKILL.md
-    - skills/strict-spec-harness-session/SKILL.md
-    - skills/strict-spec-init/SKILL.md
-    - skills/strict-spec-maintenance/SKILL.md
-    - skills/strict-spec-migrate/SKILL.md
-    - skills/strict-spec-modify/SKILL.md
-    - skills/strict-spec-resync-code-mapping/SKILL.md
-    - skills/strict-spec-review/SKILL.md
-    - skills/strict-spec-ship/SKILL.md
-    - skills/strict-spec-spec-edit/SKILL.md
-    - skills/strict-spec-sync-specs/SKILL.md
-    - skills/strict-spec-verify/SKILL.md
-    - skills/strict-tech-edit/SKILL.md
-    - skills/strict-tech-sync/SKILL.md
-    - README.zh.md
-    - scripts/gen-templates-bundle.ts
-    - ROADMAP_GUIDE.md
-    - ROADMAP_GUIDE.zh.md
-    - src/cli/command-metadata.ts
-    - src/cli/command-metadata-entries.ts
-    - src/roadmap/author.ts
-    - src/yaml-mutation-surface.ts
-    - src/cli/cmd-yaml-surface.ts
-    - src/spec-tech-author.ts
-    - src/cli/cmd-spec-tech.ts
-    - inventory/yaml-mutation-surfaces.yaml
-    - src/requirement-questions.ts
-    - src/maintenance.ts
-    - src/bundled-asset-mutation.ts
-    - src/cli/cmd-bundled-assets.ts
-    - scripts/check-yaml-mutation-inventory.ts
-    - src/workflow-config-author.ts
-    - src/yaml-authoring-protocol.ts
-    - src/cli/cmd-yaml-authoring-protocol.ts
-    - skills/strict-spec-architecture/SKILL.md
-    - skills/strict-spec-design/SKILL.md
-    - skills/strict-spec-sop/SKILL.md
-    - skills/strict-roadmap-move/SKILL.md
-    - skills/strict-roadmap-pause/SKILL.md
-    - skills/strict-roadmap-reorder/SKILL.md
-    - skills/strict-roadmap-resume/SKILL.md
-    - skills/strict-spec-design-sync/SKILL.md
-    - src/cli-only-yaml-policy.ts
-  tests:
-    - test/run.ts
-    - test/support/harness.ts
-    - test/suites/entrypoint-and-skills.ts
-    - test/suites/mcp-server.ts
-    - test/suites/mcp-install.ts
-    - test/suites/foundation-and-fixtures.ts
-    - test/suites/change-lifecycle.ts
-    - test/fixtures/projects/todo-app/src/index.ts
-    - test/fixtures/projects/todo-app/src/todos.ts
-    - test/fixtures/projects/todo-app/test/todos.test.ts
-    - test/suites/roadmap-and-migration.ts
-    - test/suites/spec-tech-authoring.ts
-    - test/suites/yaml-operation-matrix.ts
-    - test/suites/yaml-authoring-protocol.ts
 requirements:
   cli-build-and-test-commands:
     strength: MUST
@@ -499,62 +377,6 @@ requirements:
         - WHEN: repository automated checks are executed
         - THEN: the roadmap workflow checks fail
         - AND: diagnostics identify the failing skill or roadmap surface deterministically
-  cli-verify-spec-mappings-subcommand:
-    strength: MUST
-    statement: The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping audits against .strict-spec-driven/specs/.
-    scenarios:
-      verify-spec-mappings-runs-from-repository-state:
-        - GIVEN: '`.strict-spec-driven/specs/` contains one or more main spec YAML files'
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: the command runs mapping audits against available spec mapping fields
-        - AND: command output is emitted as parseable JSON
-      verify-spec-mappings-reports-missing-specs-directory:
-        - GIVEN: '`.strict-spec-driven/specs/` does not exist'
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: the command exits non-zero
-        - AND: a diagnostic explains that spec mapping inputs are unavailable
-  cli-verify-spec-mappings-audits-mapping-coverage:
-    strength: MUST
-    statement: The system MUST audit mapping coverage across main spec mapping fields and report diagnostics when mapping coverage is incomplete.
-    scenarios:
-      mapped-implementation-and-tests-produce-no-coverage-diagnostics:
-        - GIVEN: each main spec has a mapping field with non-empty implementation and test path collections
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: mapping-coverage diagnostics are not emitted
-      missing-mapping-coverage-produces-diagnostics:
-        - GIVEN: a main spec omits the mapping field or has an empty implementation or test mapping collection
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: a diagnostic is emitted identifying the spec path and missing coverage
-  cli-verify-spec-mappings-audits-unmapped-evidence:
-    strength: MUST
-    statement: The system MUST audit unmapped repository evidence by reporting implementation or test files that are not referenced by any spec mapping entry.
-    scenarios:
-      fully-mapped-repository-evidence-produces-no-unmapped-diagnostics:
-        - GIVEN: relevant implementation and test files are each referenced by at least one spec mapping entry
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: unmapped-evidence diagnostics are not emitted
-      unmapped-evidence-produces-diagnostics:
-        - GIVEN: at least one relevant implementation or test file is not referenced by any spec mapping entry
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: a diagnostic is emitted identifying each unmapped file path
-  cli-verify-spec-mappings-emits-deterministic-json-output:
-    strength: MUST
-    statement: The system MUST emit deterministic JSON output for mapping audit results, including validity, diagnostics, and mapping summary counts.
-    scenarios:
-      output-is-parseable-json:
-        - GIVEN: '`strict-spec-driven verify-spec-mappings` completes'
-        - WHEN: command stdout is parsed as JSON
-        - THEN: the JSON includes `valid` as a boolean
-        - AND: the JSON includes `diagnostics` as an array
-        - AND: the JSON includes summary counts for mapped and unmapped evidence
-      exit-status-reflects-diagnostic-validity:
-        - GIVEN: mapping diagnostics are present
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: the command exits non-zero
-      successful-audit-exits-zero:
-        - GIVEN: no mapping diagnostics are present
-        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
-        - THEN: the command exits with exit code zero
   cli-archive-reads-active-change-artifacts:
     strength: MUST
     statement: The system MUST provide an `archive` subcommand that reads planning artifacts and delta specs from a named active strict change directory under `.strict-spec-driven/changes/<name>/`.
@@ -584,7 +406,7 @@ requirements:
         - AND: the archive move is not performed
   cli-archive-merges-delta-specs-into-main-specs:
     strength: MUST
-    statement: The system MUST merge delta specs from the archived change into their corresponding main strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and REMOVED operations, and MUST union each delta spec's implementation and test mapping into the target main spec's mapping without dropping, reordering, or duplicating untouched paths, while an absent or empty delta mapping leaves the existing main spec mapping unchanged.
+    statement: The system MUST merge delta specs from the archived change into their corresponding main strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and REMOVED operations.
     scenarios:
       archive-applies-added-and-modified-operations:
         - GIVEN: a strict change includes delta specs with ADDED and MODIFIED entries targeting existing strict main specs
@@ -594,10 +416,6 @@ requirements:
         - GIVEN: a strict change includes delta specs with REMOVED entries targeting existing requirements
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: targeted requirements are removed from the target main specs
-      archive-unions-delta-mapping-into-existing-main-spec:
-        - GIVEN: a delta spec targeting an existing main spec declares an implementation or test path not already in that main spec's mapping
-        - WHEN: '`strict-spec-driven archive <name>` is executed'
-        - THEN: the archived main spec mapping contains both the pre-existing and the newly declared paths, deduped and order-stable, and a delta spec with an absent or empty mapping leaves the existing mapping unchanged
   cli-archive-applies-missing-target-merge-rules:
     strength: MUST
     statement: The system MUST apply deterministic missing-target merge rules during archive processing.
@@ -998,7 +816,7 @@ requirements:
         - AND: unrelated planning artifacts in the same change are left unchanged
   cli-propose-generation-uses-named-arguments:
     strength: MUST
-    statement: The system MUST provide proposal population commands that accept supported artifact content only through named CLI arguments, including repeated grouped question, mapping, scenario, and requirement arguments in a single invocation for artifacts that contain keyed collections.
+    statement: The system MUST provide proposal population commands that accept supported artifact content only through named CLI arguments, including repeated grouped question, scenario, and requirement arguments in a single invocation for artifacts that contain keyed collections.
     scenarios:
       named-argument-generation-does-not-use-payload-files:
         - GIVEN: a strict change scaffold exists
@@ -1561,12 +1379,12 @@ requirements:
         - THEN: '`@modelcontextprotocol/server` is declared with version range `^2.0.0-alpha.2`'
   cli-mcp-read-tool-inventory:
     strength: MUST
-    statement: The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change guidance, verification, roadmap status and recommendation, mapping audits, tech status, harness plan, harness status, and bounded harness logs.
+    statement: The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change guidance, verification, roadmap status and recommendation, tech status, harness plan, harness status, and bounded harness logs.
     scenarios:
       mcp-read-tools-are-discoverable:
         - GIVEN: the MCP server registers its tool inventory
         - WHEN: read-only tool definitions are inspected
-        - THEN: the expected workflow, change, roadmap, mapping, tech, and harness diagnostic tools are present
+        - THEN: the expected workflow, change, roadmap, tech, and harness diagnostic tools are present
         - AND: every read-only tool reports safety class read
   cli-mcp-read-tool-delegation:
     strength: MUST
@@ -2137,12 +1955,12 @@ requirements:
         - THEN: the workflow stops until required open questions are resolved while preserving stable technical identifiers
   cli-question-gate-readiness-validation:
     strength: MUST
-    statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, delta-spec, or mapping artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, missing delta specs when no explicit no-delta-spec design decision is present, or delta specs without implementation or test mappings, while leaving semantic product judgment outside CLI validation.
+    statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, or delta-spec artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, or missing delta specs when no explicit no-delta-spec design decision is present, while leaving semantic product judgment outside CLI validation.
     scenarios:
       readiness-rejects-missing-checklist-evidence:
-        - GIVEN: a strict change has valid YAML planning artifacts but missing deterministic change-intake evidence such as empty scope lists, no unchanged behavior, no design decisions, no delta spec and no explicit no-delta-spec design decision, or empty delta mappings
+        - GIVEN: a strict change has valid YAML planning artifacts but missing deterministic change-intake evidence such as empty scope lists, no unchanged behavior, no design decisions, or no delta spec and no explicit no-delta-spec design decision
         - WHEN: strict-spec-driven ready <change-name> runs
-        - THEN: the command exits non-zero and emits proposal_readiness diagnostics that point to the missing artifact field or delta-spec mapping
+        - THEN: the command exits non-zero and emits proposal_readiness diagnostics that point to the missing artifact field
       readiness-allows-explicit-empty-spec-decision:
         - GIVEN: a strict change has no open questions and records included scope, out-of-scope scope, unchanged behavior, at least one design decision whose stable id explicitly declares no delta spec is needed, and no delta spec files
         - WHEN: strict-spec-driven ready <change-name> runs
@@ -2193,21 +2011,21 @@ requirements:
         - AND: only the npm-global strict-spec-driven command resolves on PATH
   cli-tech-sync-supports-active-change-mode:
     strength: MUST
-    statement: The system MUST require strict-tech-sync guidance to scope active-change evidence to attributable artifacts and mappings, capture confirmed active-change findings as delta-tech, and route confirmed standalone main-standard mutations through an artifact-aware CLI operation rather than direct live-standard editing.
+    statement: The system MUST require strict-tech-sync guidance to scope active-change evidence to attributable artifacts, capture confirmed active-change findings as delta-tech, and route confirmed standalone main-standard mutations through an artifact-aware CLI operation rather than direct live-standard editing.
     scenarios:
       active-change-sync-uses-bounded-evidence:
         - GIVEN: An active strict change is selected for current-change tech sync
         - WHEN: The AI determines the scan scope
-        - THEN: The scope is derived from that change's planning artifacts, delta artifacts, structured mappings, task evidence, attributable repository changes, and applicable standards
+        - THEN: The scope is derived from that change's planning artifacts, delta artifacts, task evidence, attributable repository changes, and applicable standards
       active-change-sync-routes-through-delta-tech:
-        - GIVEN: A bounded scan finds a reusable convention gap and the operator confirms its rule content and mappings
+        - GIVEN: A bounded scan finds a reusable convention gap and the operator confirms its rule content
         - WHEN: The synchronization applies the finding
         - THEN: The finding is generated or updated as delta-tech under the selected active change and no live main standard is directly edited
       standalone-sync-uses-cli-owned-main-standard-mutation:
         - GIVEN: Strict-tech-sync runs as standalone repository maintenance and the operator confirms a main-standard edit
         - WHEN: The synchronization applies the confirmed mutation
         - THEN: The skill invokes the artifact-aware main-standard CLI operation with named semantic arguments
-        - THEN: The skill does not edit the live YAML document directly
+        - AND: The skill does not edit the live YAML document directly
   cli-archive-runs-current-change-tech-sync:
     strength: MUST
     statement: The system MUST require every supported AI-guided strict change archive surface, including strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt, to complete a final current-change-scoped tech sync before invoking the raw archive command; continue immediately when existing standards and delta-tech cover the change; pause unresolved reusable convention findings for confirmed delta-tech capture or explicit non-reusable classification; forbid post-archive deferral of a convention confirmed as reusable; and rerun strict verification, delta-tech review, and invalidated complete regression evidence after archive-time delta-tech edits.
@@ -2596,15 +2414,15 @@ requirements:
         - THEN: The bundled schema and example keys are still reported, no cache-derived path is presented as resolved, and the mutation outcome is unaffected
   cli-main-spec-and-tech-authoring:
     strength: MUST
-    statement: The system MUST provide artifact-aware spec-edit and tech-edit CLI commands that create and incrementally mutate live main specs and technical standards from named semantic inputs, preserve unnamed content, add and remove structured mappings and keyed requirement or rule content, enforce stable identity and confined canonical paths, isolate and safeguard whole-artifact deletion, reconcile the corresponding spec or tech index in the same validated atomic operation, and report deterministic mutation and recovery metadata while preserving delta archive compatibility.
+    statement: The system MUST provide artifact-aware spec-edit and tech-edit CLI commands that create and incrementally mutate live main specs and technical standards from named semantic inputs, preserve unnamed content, add and remove keyed requirement or rule content, enforce stable identity and confined canonical paths, isolate and safeguard whole-artifact deletion, reconcile the corresponding spec or tech index in the same validated atomic operation, and report deterministic mutation and recovery metadata while preserving delta archive compatibility.
     scenarios:
       structured-create-and-update-reconciles-index:
         - GIVEN: A caller supplies a stable spec or standard id and named semantic fields to spec-edit or tech-edit
         - WHEN: The authoring command creates or updates the live main artifact
         - THEN: Only the named content changes and the corresponding canonical index entry is created or reconciled atomically
       named-removal-preserves-siblings:
-        - GIVEN: An existing main spec or standard contains multiple mappings, requirements or rules, scenarios, examples, exceptions, and unrelated fields
-        - WHEN: The caller names one supported mapping or keyed entry for removal
+        - GIVEN: An existing main spec or standard contains multiple requirements or rules, scenarios, examples, exceptions, and unrelated fields
+        - WHEN: The caller names one supported keyed entry for removal
         - THEN: Only that named entry is removed and all unnamed sibling content and index entries remain unchanged
       unsafe-delete-or-identity-change-is-rejected:
         - GIVEN: A delete request is mixed with edits, targets an artifact with active delta references, or conflicts with the artifact stable identity or canonical path

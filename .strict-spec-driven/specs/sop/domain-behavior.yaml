@@ -5,17 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: sop-domain-behavior
   title: SOP Domain Behavior
-mapping:
-  implementation:
-    - src/sops.ts
-    - src/sop-categories.ts
-    - src/cli/cmd-sops.ts
-    - src/cli/registry.ts
-    - src/cli/command-metadata-entries.ts
-    - src/yaml-mutation.ts
-    - inventory/yaml-mutation-surfaces.yaml
-  tests:
-    - test/suites/sops.ts
 requirements:
   sop-create-contract:
     strength: MUST

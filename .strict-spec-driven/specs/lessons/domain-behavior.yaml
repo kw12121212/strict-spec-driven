@@ -5,34 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: lessons-domain-behavior
   title: Lessons Domain Behavior
-mapping:
-  implementation:
-    - src/lessons.ts
-    - src/cli/cmd-lessons.ts
-    - src/cli/registry.ts
-    - src/cli/command-metadata-entries.ts
-    - skills/strict-spec-review/SKILL.md
-    - skills/strict-spec-brainstorm/SKILL.md
-    - skills/strict-tech-edit/SKILL.md
-    - src/cli/command-metadata.ts
-    - src/strict-spec-cli.ts
-    - src/scaffold.ts
-    - templates/strict-spec-driven/scaffold/lessons/INDEX.yaml
-    - skills/strict-spec-archive/SKILL.md
-    - skills/strict-spec-auto/SKILL.md
-    - skills/strict-spec-bugfix/SKILL.md
-    - skills/strict-spec-harness-session/SKILL.md
-    - skills/strict-spec-propose/SKILL.md
-    - skills/strict-spec-apply/SKILL.md
-    - skills/strict-tech-sync/SKILL.md
-    - templates/strict-spec-driven/schemas/lessons-index.yaml
-    - templates/strict-spec-driven/schemas/registry.yaml
-    - examples/strict-spec-driven/lessons-index.yaml
-    - inventory/yaml-mutation-surfaces.yaml
-    - src/embedded-templates.ts
-    - src/yaml-mutation.ts
-  tests:
-    - test/suites/lessons.ts
 requirements:
   lesson-create-contract:
     strength: MUST

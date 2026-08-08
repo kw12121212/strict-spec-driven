@@ -5,26 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: architecture-domain-behavior
   title: Architecture Document Domain Behavior
-mapping:
-  implementation:
-    - src/architecture.ts
-    - src/document-render.ts
-    - src/cli/cmd-architecture.ts
-    - src/cli/command-metadata-entries.ts
-    - src/cli/registry.ts
-    - src/scaffold.ts
-    - templates/strict-spec-driven/schemas/architecture.yaml
-    - templates/strict-spec-driven/scaffold/architecture.yaml
-    - skills/strict-spec-architecture/SKILL.md
-    - src/architecture-author.ts
-    - src/strict-spec-cli.ts
-    - inventory/yaml-mutation-surfaces.yaml
-    - src/mcp/inventory.ts
-    - src/mcp/tools.ts
-  tests:
-    - test/suites/architecture-document.ts
-    - test/suites/architecture-authoring.ts
-    - test/run.ts
 requirements:
   architecture-document-rendering:
     strength: MUST

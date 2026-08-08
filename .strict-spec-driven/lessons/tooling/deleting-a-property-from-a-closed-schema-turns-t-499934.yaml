@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: deleting-a-property-from-a-closed-schema-turns-t-499934
+  title: Deleting a property from a closed schema turns tolerance into rejection
+category: tooling
+status: active
+created_at: '2026-08-08T01:54:57.502Z'
+updated_at: '2026-08-08T01:54:57.502Z'
+context: Removing the spec and technical-standard file mapping field from the main-spec, delta-spec, main-tech, and delta-tech schemas, with a recorded decision that a residual mapping field in an externally authored artifact must be accepted and ignored rather than rejected on upgrade.
+observation: 'Every strict artifact schema sets additionalProperties: false and is evaluated by Ajv, so deleting the mapping property would have made a residual mapping field an unknown key and a hard validation error — the exact opposite of the accept-and-ignore decision, and undetectable in this repository because its own artifacts were being stripped in the same change.'
+takeaway: Before deleting a property from a schema that closes additionalProperties, decide what must happen to artifacts that still carry it. Removing the definition is a strengthening, not a relaxation. Leaving a bare permissive tombstone keeps unknown-key rejection intact for every other key while letting the retired one pass; widening additionalProperties to true would relax the whole artifact instead.
+applies_when: 'Removing a field from a JSON-Schema-backed artifact contract that sets additionalProperties: false, when artifacts authored against the previous version must keep validating.'
+occurrences:
+  - origin: remove-mapping-from-specs-and-schemas
+    date: '2026-08-08'
+    evidence: 'src/validation.ts routes all four artifact schemas through Ajv, and each json_schema block declares additionalProperties: false; the removal shipped as a description-only mapping property plus deletion from required, and a new regression asserts a main spec and a technical standard carrying a residual mapping field are accepted and stripped on the next CLI write.'

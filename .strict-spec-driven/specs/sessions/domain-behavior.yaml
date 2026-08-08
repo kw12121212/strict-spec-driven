@@ -5,29 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: sessions-domain-behavior
   title: Sessions Domain Behavior
-mapping:
-  implementation:
-    - src/cli/cmd-harness.ts
-    - src/harness.ts
-    - src/strict-spec-cli.ts
-    - src/cli/registry.ts
-    - skills/strict-spec-harness-init/SKILL.md
-    - skills/strict-spec-harness-session/SKILL.md
-    - templates/strict-spec-driven/scaffold/harness.yaml
-    - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
-    - templates/strict-spec-driven/schemas/harness-session.yaml
-    - examples/strict-spec-driven/harness-session.yaml
-    - src/harness-author.ts
-    - src/cli/command-metadata-entries.ts
-    - inventory/yaml-mutation-surfaces.yaml
-    - src/mcp/inventory.ts
-    - src/mcp/tools.ts
-  tests:
-    - test/suites/entrypoint-and-skills.ts
-    - test/suites/harness-contracts.ts
-    - test/suites/harness-session.ts
-    - test/suites/harness-session-authoring.ts
-    - test/run.ts
 requirements:
   session-replacement-contract:
     strength: MUST

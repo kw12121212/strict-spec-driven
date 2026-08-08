@@ -38,13 +38,6 @@ type DesignArtifact = {
   decisions?: Record<string, unknown>;
 };
 
-type DeltaSpecArtifact = {
-  mapping?: {
-    implementation?: unknown[];
-    tests?: unknown[];
-  };
-};
-
 export type WorkflowSuggestion = {
   command: string;
   reason: string;
@@ -253,28 +246,6 @@ function checkDeterministicQuestionGateEvidence(rootDir: string, changeName: str
       "at least one design decision",
       "empty or missing decisions",
     ));
-  }
-
-  for (const deltaSpecPath of listDeltaSpecFiles(rootDir, changeName)) {
-    const absolutePath = path.join(rootDir, deltaSpecPath);
-    let artifact: DeltaSpecArtifact;
-    try {
-      artifact = parseYamlDocument<DeltaSpecArtifact>(readFileSync(absolutePath, "utf8"), { source: deltaSpecPath });
-    } catch {
-      continue;
-    }
-    const implementationCount = Array.isArray(artifact.mapping?.implementation) ? artifact.mapping.implementation.length : 0;
-    const testCount = Array.isArray(artifact.mapping?.tests) ? artifact.mapping.tests.length : 0;
-    if (implementationCount === 0 && testCount === 0) {
-      diagnostics.push({
-        source: "proposal_readiness",
-        artifactPath: deltaSpecPath,
-        fieldPath: "$.mapping",
-        message: "delta spec must map implementation or test evidence before implementation handoff",
-        expected: "at least one mapping.implementation or mapping.tests entry",
-        actual: "empty delta spec mapping",
-      });
-    }
   }
 
   return diagnostics;

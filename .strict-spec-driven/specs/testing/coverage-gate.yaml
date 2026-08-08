@@ -5,13 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: testing-coverage-gate
   title: Testing Coverage Gate
-mapping:
-  implementation:
-    - scripts/coverage-gate.ts
-    - package.json
-    - tsconfig.json
-  tests:
-    - test/suites/coverage-gate.ts
 requirements:
   coverage-measurement-command:
     strength: MUST

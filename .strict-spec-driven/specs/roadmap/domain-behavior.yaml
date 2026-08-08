@@ -5,46 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: roadmap-domain-behavior
   title: Roadmap Domain Behavior
-mapping:
-  implementation:
-    - src/cli/cmd-roadmap.ts
-    - src/converters/roadmap.ts
-    - src/roadmap.ts
-    - src/roadmap/author.ts
-    - src/roadmap/model.ts
-    - src/roadmap/shared.ts
-    - src/roadmap/validate.ts
-    - src/roadmap/load.ts
-    - src/roadmap/status.ts
-    - src/roadmap/sync.ts
-    - src/roadmap/archive.ts
-    - src/roadmap/reopen.ts
-    - src/roadmap/pause.ts
-    - src/cli/registry.ts
-    - src/strict-spec-cli.ts
-    - src/skills/model.ts
-    - skills/strict-roadmap-archive/SKILL.md
-    - src/yaml.ts
-    - skills/strict-roadmap-plan/SKILL.md
-    - skills/strict-roadmap-review/SKILL.md
-    - src/cli/cmd-generation.ts
-    - src/roadmap/order.ts
-    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
-    - templates/strict-spec-driven/schemas/roadmap-index.yaml
-    - skills/marketplace.json
-    - skills/strict-roadmap-reorder/SKILL.md
-    - src/embedded-templates.ts
-    - skills/strict-roadmap-pause/SKILL.md
-    - skills/strict-roadmap-resume/SKILL.md
-    - src/roadmap/move.ts
-    - skills/strict-roadmap-move/SKILL.md
-    - src/yaml-mutation.ts
-    - src/cli/command-metadata-entries.ts
-    - inventory/yaml-mutation-surfaces.yaml
-  tests:
-    - test/suites/roadmap-and-migration.ts
-    - test/suites/entrypoint-and-skills.ts
-    - test/suites/foundation-and-fixtures.ts
 requirements:
   roadmap-status-contract:
     strength: MUST

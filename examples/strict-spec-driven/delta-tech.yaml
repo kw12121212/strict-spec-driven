@@ -3,9 +3,6 @@ schema_version: 1
 artifact_type: delta_tech
 schema_file: ../../templates/strict-spec-driven/schemas/delta-tech.yaml
 target_standard: example-standard
-mapping:
-  implementation: []
-  enforcement: []
 operations:
   ADDED: {}
   MODIFIED: {}

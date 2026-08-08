@@ -6,30 +6,19 @@ standard:
   id: ui-foundations
   title: UI Foundations
   category: ui
-mapping:
-  implementation:
-    - src/components
-    - src/pages
-  enforcement:
-    - eslint.config.js
-    - playwright.config.ts
 rules:
   use-design-system-components:
     strength: MUST
-    statement: >-
-      Interactive UI elements MUST use the shared design-system components rather
-      than raw HTML interactive elements.
-    rationale: >-
-      Design-system components centralize accessibility, theming, and interaction
-      behavior; raw elements silently drift from those guarantees.
+    statement: Interactive UI elements MUST use the shared design-system components rather than raw HTML interactive elements.
+    rationale: Design-system components centralize accessibility, theming, and interaction behavior; raw elements silently drift from those guarantees.
     enforcement:
       method: lint
       detail: An eslint no-restricted-syntax rule bans raw interactive HTML elements.
     examples:
       good:
-        - "<Button onPress={save}>Save</Button>"
+        - <Button onPress={save}>Save</Button>
       bad:
-        - "<button onclick=\"save()\">Save</button>"
+        - <button onclick="save()">Save</button>
   meet-wcag-aa:
     strength: MUST
     statement: Every screen MUST pass automated WCAG 2.1 AA accessibility checks.
@@ -40,9 +29,7 @@ rules:
   visual-regression-for-ui-changes:
     strength: SHOULD
     statement: UI changes SHOULD include updated visual-regression snapshots.
-    rationale: >-
-      Behavior tests do not catch unintended visual drift; snapshots make visual
-      changes explicit and reviewable rather than silent.
+    rationale: Behavior tests do not catch unintended visual drift; snapshots make visual changes explicit and reviewable rather than silent.
     enforcement:
       method: ci
       detail: A visual-regression snapshot job runs in CI on UI changes.

@@ -6,9 +6,6 @@ target_standard: example-standard
 standard:
   title: Example Standard
   category: coding
-mapping:
-  implementation: []
-  enforcement: []
 operations:
   ADDED:
     added-rule:

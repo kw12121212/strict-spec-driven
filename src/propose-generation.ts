@@ -116,8 +116,8 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
     questions: ["$.open", "$.resolved"],
     tasks: ["$.sections", "$.testing_gates"],
-    "delta-spec": ["$.target_spec", "$.mapping", "$.operations"],
-    "delta-tech": ["$.target_standard", "$.standard", "$.mapping", "$.operations"],
+    "delta-spec": ["$.target_spec", "$.operations"],
+    "delta-tech": ["$.target_standard", "$.standard", "$.operations"],
   };
 
   for (const prefix of directPrefixes[artifact]) {
@@ -505,7 +505,6 @@ function resolveDeltaSpecRelativePath(rootDir: string, targetSpec: string, input
 
 function buildDeltaSpecArtifact(rootDir: string, input: GenerationInputRecord): { artifact: unknown; relativePath: string } {
   const targetSpec = asString(input.target_spec, "$.target_spec");
-  const mapping = asRecord(input.mapping, "$.mapping");
   const operations = asRecord(input.operations ?? {}, "$.operations");
   const relativePath = resolveDeltaSpecRelativePath(rootDir, targetSpec, input);
   const specBlock = asOptionalRecord(input.spec, "$.spec");
@@ -525,10 +524,6 @@ function buildDeltaSpecArtifact(rootDir: string, input: GenerationInputRecord): 
     };
   }
 
-  artifact.mapping = {
-    implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
-    tests: asStringArray(mapping.tests ?? [], "$.mapping.tests"),
-  };
   artifact.operations = {
     ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
     MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
@@ -589,7 +584,6 @@ function resolveDeltaTechRelativePath(rootDir: string, targetStandard: string, i
 
 function buildDeltaTechArtifact(rootDir: string, input: GenerationInputRecord): { artifact: unknown; relativePath: string } {
   const targetStandard = asString(input.target_standard, "$.target_standard");
-  const mapping = asRecord(input.mapping, "$.mapping");
   const operations = asRecord(input.operations ?? {}, "$.operations");
   const relativePath = resolveDeltaTechRelativePath(rootDir, targetStandard, input);
   const standardBlock = asOptionalRecord(input.standard, "$.standard");
@@ -609,10 +603,6 @@ function buildDeltaTechArtifact(rootDir: string, input: GenerationInputRecord): 
     };
   }
 
-  artifact.mapping = {
-    implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
-    enforcement: asStringArray(mapping.enforcement ?? [], "$.mapping.enforcement"),
-  };
   artifact.operations = {
     ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
     MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
@@ -718,14 +708,12 @@ function writeGeneratedArtifactIntoContainer(
 
   if (!replaced && (artifact === "delta-spec" || artifact === "delta-tech")) {
     const candidate = asRecord(target.artifact, "$generated");
-    const mapping = asRecord(candidate.mapping ?? {}, "$generated.mapping");
     const operations = asRecord(candidate.operations ?? {}, "$generated.operations");
-    const mappingEntries = Object.values(mapping).flatMap((value) => Array.isArray(value) ? value : []);
     const operationEntries = Object.values(operations).flatMap((value) => isRecord(value) ? Object.keys(value) : []);
     const definesTarget = artifact === "delta-spec" ? candidate.spec !== undefined : candidate.standard !== undefined;
-    if (!definesTarget && mappingEntries.length === 0 && operationEntries.length === 0) {
+    if (!definesTarget && operationEntries.length === 0) {
       throw new Error(
-        `new ${artifact} artifacts require a mapping addition, an operation, or new-target metadata; named removals cannot create an empty artifact`,
+        `new ${artifact} artifacts require an operation or new-target metadata; named removals cannot create an empty artifact`,
       );
     }
   }

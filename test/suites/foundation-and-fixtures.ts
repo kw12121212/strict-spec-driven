@@ -2450,7 +2450,7 @@ try {
     "a rejected same-invocation scenario conflict leaves the delta artifact unchanged",
   );
   const parsedDirectDelta = yamlModule.parseYamlDocument<{
-    mapping: { implementation: string[] };
+    mapping?: unknown;
     operations: {
       ADDED: Record<string, { scenarios?: Record<string, unknown> }>;
       MODIFIED: Record<string, unknown>;
@@ -2458,8 +2458,8 @@ try {
     };
   }>(readFileSync(directDeltaPath, "utf8"));
   context.assert(
-    parsedDirectDelta.mapping.implementation.length === 2,
-    "generate de-duplicates repeated delta mapping paths",
+    parsedDirectDelta.mapping === undefined,
+    "generate writes no mapping field even when path flags are supplied",
   );
   context.assert(
     Object.keys(parsedDirectDelta.operations.ADDED).length === 1

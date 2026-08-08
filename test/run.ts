@@ -21,7 +21,7 @@ import { runOperationsSuite } from "./suites/operations.js";
 import { runRoadmapAndMigrationSuite } from "./suites/roadmap-and-migration.js";
 import { runLessonsSuite } from "./suites/lessons.js";
 import { runSopsSuite } from "./suites/sops.js";
-import { runSpecTechAuthoringSuite } from "./suites/spec-tech-authoring.js";
+import { runMappingRemovalSuite, runSpecTechAuthoringSuite } from "./suites/spec-tech-authoring.js";
 import { runYamlAuthoringProtocolSuite } from "./suites/yaml-authoring-protocol.js";
 import { runYamlOperationMatrixSuite } from "./suites/yaml-operation-matrix.js";
 
@@ -47,6 +47,7 @@ async function main(): Promise<void> {
   await runDesignSystemDocumentSuite(context);
   await runDesignSystemAuthoringSuite(context);
   await runSpecTechAuthoringSuite(context);
+  await runMappingRemovalSuite(context);
   await runYamlOperationMatrixSuite(context);
   await runYamlAuthoringProtocolSuite(context);
   await runMcpServerSuite(context);

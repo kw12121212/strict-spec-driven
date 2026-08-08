@@ -36,15 +36,19 @@ merge_rules:
     block is present, archive fails with the existing missing-target error rather than creating
     a spec. Verify must enforce these constraints as deterministic validation failures.
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   definitions:
     step:
       type: object
       properties:
-        GIVEN: { type: string }
-        WHEN: { type: string }
-        THEN: { type: string }
-        AND: { type: string }
+        GIVEN:
+          type: string
+        WHEN:
+          type: string
+        THEN:
+          type: string
+        AND:
+          type: string
       additionalProperties: false
       minProperties: 1
       maxProperties: 1
@@ -69,7 +73,7 @@ json_schema:
           additionalProperties:
             type: array
             items:
-              "$ref": "#/definitions/step"
+              $ref: '#/definitions/step'
             minItems: 1
   type: object
   additionalProperties: false
@@ -79,7 +83,6 @@ json_schema:
     - artifact_type
     - schema_file
     - target_spec
-    - mapping
     - operations
   properties:
     schema:
@@ -97,10 +100,7 @@ json_schema:
       type: string
     spec:
       type: object
-      description: >-
-        Optional new-spec block. Present only when this delta creates a brand-new main spec
-        whose id (target_spec) does not yet exist. Archive materializes the main spec at path
-        from target_spec, title, the delta mapping, and the ADDED requirements.
+      description: Optional new-spec block. Present only when this delta creates a brand-new main spec whose id (target_spec) does not yet exist. Archive materializes the main spec at path from target_spec, title, the delta mapping, and the ADDED requirements.
       additionalProperties: false
       required:
         - title
@@ -111,20 +111,7 @@ json_schema:
         path:
           type: string
     mapping:
-      type: object
-      additionalProperties: false
-      required:
-        - implementation
-        - tests
-      properties:
-        implementation:
-          type: array
-          items:
-            type: string
-        tests:
-          type: array
-          items:
-            type: string
+      description: Deprecated and ignored. Implementation and test file mappings were removed from the strict YAML artifact model; a residual mapping field is accepted with any shape so artifacts authored before the removal keep validating, and is never read.
     operations:
       type: object
       additionalProperties: false
@@ -136,11 +123,11 @@ json_schema:
         ADDED:
           type: object
           additionalProperties:
-            "$ref": "#/definitions/requirement_value"
+            $ref: '#/definitions/requirement_value'
         MODIFIED:
           type: object
           additionalProperties:
-            "$ref": "#/definitions/requirement_value"
+            $ref: '#/definitions/requirement_value'
         REMOVED:
           type: object
           additionalProperties:

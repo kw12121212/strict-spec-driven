@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -11,13 +11,13 @@ import {
 
 type MainSpec = {
   spec: { id: string; title: string };
-  mapping: { implementation: string[]; tests: string[] };
+  mapping?: unknown;
   requirements: Record<string, { statement: string; scenarios: Record<string, unknown[]> }>;
 };
 
 type MainTech = {
   standard: { id: string; title: string; category: string };
-  mapping: { implementation: string[]; enforcement: string[] };
+  mapping?: unknown;
   rules: Record<string, { statement: string; examples?: { good?: string[] }; exceptions?: string[] }>;
 };
 
@@ -121,7 +121,7 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
     const createdIndex = yaml.parseYamlFile<{ specs: Array<{ id: string; path: string }> }>(specIndexPath);
     context.assert(
       createSpec.status === 0
-        && createdSpec.mapping.implementation.length === 1
+        && createdSpec.mapping === undefined
         && createdIndex.specs.some((entry) => entry.id === "live-spec" && entry.path.endsWith("live-spec.yaml")),
       "spec-edit creates meaningful spec state and reconciles its index",
       createSpec.stderr.trim(),
@@ -133,10 +133,10 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
     ], { cwd: root }).status === 0, "spec-edit upserts one requirement and keyed scenario");
     context.assert(cli([
       "spec-edit", "live-spec", "--remove-scenario", "live-behavior:observe-live", "--remove-implementation", "src/live.ts",
-    ], { cwd: root }).status === 0, "spec-edit removes exact mapping and scenario entries");
+    ], { cwd: root }).status === 0, "spec-edit accepts path flags as no-ops and removes exact scenario entries");
     const updatedSpec = yaml.parseYamlFile<MainSpec>(specPath);
     context.assert(
-      updatedSpec.mapping.implementation.length === 0
+      updatedSpec.mapping === undefined
         && updatedSpec.requirements["live-behavior"]?.scenarios["second-scenario"] !== undefined,
       "spec named removal preserves sibling requirement content",
     );
@@ -157,7 +157,7 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
       absoluteMapping.status !== 0
         && readFileSync(specPath, "utf8") === specBeforeMismatch
         && readFileSync(specIndexPath, "utf8") === indexBeforeMismatch,
-      "spec mapping confinement rejects Windows-style absolute paths without changing either artifact",
+      "spec path-flag confinement still rejects Windows-style absolute paths without changing either artifact",
     );
 
     const techPath = path.join(root, ".strict-spec-driven", "tech", "coding-rules.yaml");
@@ -180,10 +180,10 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
     context.assert(cli([
       "tech-edit", "coding-rules", "--rule", "avoid-any", "--detail", "Review changed TypeScript.",
       "--remove-exception", "Generated declarations may use any.", "--remove-enforcement", "test/live.test.ts",
-    ], { cwd: root }).status === 0, "tech-edit updates one rule and removes exact list and mapping entries");
+    ], { cwd: root }).status === 0, "tech-edit updates one rule and removes exact list entries");
     const updatedTech = yaml.parseYamlFile<MainTech>(techPath);
     context.assert(
-      updatedTech.mapping.enforcement.length === 0
+      updatedTech.mapping === undefined
         && updatedTech.rules["avoid-any"]?.exceptions === undefined
         && updatedTech.rules["avoid-any"]?.examples?.good?.length === 1,
       "tech named removal preserves sibling rule content",
@@ -272,5 +272,162 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
     );
   } finally {
     copied.cleanup();
+  }
+}
+
+export async function runMappingRemovalSuite(context: TestContext): Promise<void> {
+  context.section("[mapping-removal] file mappings are gone from the artifact model");
+  const yaml = await loadDistModule<YamlModule>("yaml.js");
+
+  // The four artifact schemas that used to carry a mapping contract must no longer require it
+  // or describe its shape; a bare permissive allowance is all that may remain.
+  const root = mkdtempSync(path.join(os.tmpdir(), "strict-spec-mapping-removal-"));
+  try {
+    cli(["init"], { cwd: root });
+
+    for (const asset of ["main-spec", "delta-spec", "main-tech", "delta-tech"]) {
+      const shown = cli(["schema-show", asset], { cwd: root });
+      const parsed = yaml.parseYamlDocument<{
+        json_schema: { required: string[]; properties: Record<string, Record<string, unknown>> };
+      }>(shown.stdout, { source: `${asset}.yaml` });
+      context.assert(
+        shown.status === 0 && !parsed.json_schema.required.includes("mapping"),
+        `${asset} schema no longer requires a mapping field`,
+        JSON.stringify(parsed.json_schema.required),
+      );
+      const mappingProperty = parsed.json_schema.properties.mapping ?? {};
+      context.assert(
+        mappingProperty.type === undefined
+          && mappingProperty.properties === undefined
+          && mappingProperty.required === undefined,
+        `${asset} schema declares no mapping structure`,
+        JSON.stringify(mappingProperty),
+      );
+    }
+
+    // init scaffolding and the bundled examples must not reintroduce the field.
+    const scaffoldedSpec = path.join(root, ".strict-spec-driven", "specs");
+    const scaffoldFiles = existsSync(scaffoldedSpec)
+      ? readdirSync(scaffoldedSpec).filter((name) => name.endsWith(".yaml"))
+      : [];
+    context.assert(
+      scaffoldFiles.every((name) => !readFileSync(path.join(scaffoldedSpec, name), "utf8").includes("\nmapping:")),
+      "init scaffold output contains no mapping field",
+      scaffoldFiles.join(","),
+    );
+    for (const sample of ["main-spec", "main-tech", "delta-spec", "delta-tech"]) {
+      const shown = cli(["sample-show", sample], { cwd: root });
+      context.assert(
+        shown.status === 0 && !shown.stdout.includes("\nmapping:") && !shown.stdout.startsWith("mapping:"),
+        `the ${sample} reference example carries no mapping field`,
+        shown.stdout.slice(0, 200),
+      );
+    }
+
+    // An artifact authored before the removal keeps validating, and the next CLI write strips it.
+    const legacySpecPath = path.join(root, ".strict-spec-driven", "specs", "legacy-mapped.yaml");
+    writeFileSync(legacySpecPath, [
+      "schema: strict-spec-driven/main-spec/v1",
+      "schema_version: 1",
+      "artifact_type: main_spec",
+      "schema_file: templates/strict-spec-driven/schemas/main-spec.yaml",
+      "spec:",
+      "  id: legacy-mapped",
+      "  title: Legacy Mapped Spec",
+      "mapping:",
+      "  implementation:",
+      "    - src/legacy.ts",
+      "  tests:",
+      "    - test/legacy.test.ts",
+      "requirements:",
+      "  legacy-behavior:",
+      "    strength: MUST",
+      "    statement: The legacy behavior MUST stay observable.",
+      "    scenarios:",
+      "      legacy-scenario:",
+      "        - GIVEN: a legacy artifact",
+      "        - WHEN: it is validated",
+      "        - THEN: it remains valid",
+      "",
+    ].join("\n"), "utf8");
+    const acceptResidual = cli(["spec-edit", "legacy-mapped", "--title", "Legacy Mapped Spec"], { cwd: root });
+    context.assert(
+      acceptResidual.status === 0,
+      "a main spec carrying a residual mapping field is accepted rather than rejected",
+      acceptResidual.stdout.trim() || acceptResidual.stderr.trim(),
+    );
+    const strippedSpec = yaml.parseYamlFile<MainSpec>(legacySpecPath);
+    context.assert(
+      strippedSpec.mapping === undefined && strippedSpec.requirements["legacy-behavior"] !== undefined,
+      "a CLI write strips the residual mapping field and preserves the rest of the artifact",
+      JSON.stringify(Object.keys(strippedSpec)),
+    );
+
+    const legacyTechPath = path.join(root, ".strict-spec-driven", "tech", "legacy-standard.yaml");
+    mkdirSync(path.dirname(legacyTechPath), { recursive: true });
+    writeFileSync(legacyTechPath, [
+      "schema: strict-spec-driven/main-tech/v1",
+      "schema_version: 1",
+      "artifact_type: main_tech",
+      "schema_file: templates/strict-spec-driven/schemas/main-tech.yaml",
+      "standard:",
+      "  id: legacy-standard",
+      "  title: Legacy Standard",
+      "  category: coding",
+      "mapping:",
+      "  implementation:",
+      "    - src/legacy.ts",
+      "  enforcement:",
+      "    - eslint.config.js",
+      "rules:",
+      "  legacy-rule:",
+      "    strength: MUST",
+      "    statement: Legacy code MUST stay typed.",
+      "    rationale: Typed boundaries prevent drift.",
+      "    enforcement:",
+      "      method: review",
+      "",
+    ].join("\n"), "utf8");
+    const acceptResidualTech = cli([
+      "tech-edit", "legacy-standard", "--title", "Legacy Standard", "--category", "coding",
+    ], { cwd: root });
+    context.assert(
+      acceptResidualTech.status === 0,
+      "a technical standard carrying a residual mapping field is accepted rather than rejected",
+      acceptResidualTech.stdout.trim() || acceptResidualTech.stderr.trim(),
+    );
+    const strippedTech = yaml.parseYamlFile<MainTech>(legacyTechPath);
+    context.assert(
+      strippedTech.mapping === undefined && strippedTech.rules["legacy-rule"] !== undefined,
+      "a tech-edit write strips the residual mapping field and preserves the rules",
+      JSON.stringify(Object.keys(strippedTech)),
+    );
+
+    // ready must no longer demand delta-spec mappings that the model no longer has.
+    const change = "mapping-free-change";
+    cli(["propose", change], { cwd: root });
+    cli([
+      "generate", change, "delta-spec", "--target-spec", "legacy-mapped",
+      "--operation", "ADDED", "--requirement", "new-behavior", "--strength", "MUST",
+      "--statement", "The new behavior MUST be observable.", "--scenario", "observe-new",
+      "--given", "a change", "--when", "it is applied", "--then", "the behavior is observable",
+    ], { cwd: root });
+    const deltaPath = path.join(root, ".strict-spec-driven", "changes", change, "specs", "legacy-mapped.yaml");
+    const generatedDelta = yaml.parseYamlFile<{ mapping?: unknown }>(deltaPath);
+    context.assert(
+      generatedDelta.mapping === undefined,
+      "generate writes a delta spec with no mapping field",
+      JSON.stringify(Object.keys(generatedDelta)),
+    );
+    const readyResult = JSON.parse(cli(["ready", change], { cwd: root }).stdout.trim()) as {
+      diagnostics: Array<{ source: string; fieldPath: string }>;
+    };
+    context.assert(
+      !readyResult.diagnostics.some((entry) => entry.source === "proposal_readiness" && entry.fieldPath === "$.mapping"),
+      "ready emits no delta-spec mapping readiness diagnostic",
+      JSON.stringify(readyResult.diagnostics.map((entry) => entry.fieldPath)),
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 }

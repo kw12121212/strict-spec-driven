@@ -1,0 +1,90 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-mapping-from-specs-and-schemas
+sections:
+  Implementation:
+    remove-spec-mapping-audit-requirements:
+      text: Author the cli-foundation delta spec removing the four cli-verify-spec-mappings-* requirements (subcommand, audits-mapping-coverage, audits-unmapped-evidence, emits-deterministic-json-output) with REMOVED operations.
+      status: complete
+      command: strict-spec-cli generate remove-mapping-from-specs-and-schemas delta-spec --target-spec cli-foundation --operation REMOVED --requirement cli-verify-spec-mappings-subcommand
+    rewrite-cli-foundation-mapping-clauses:
+      text: Add MODIFIED operations to the cli-foundation delta spec for cli-archive-merges-delta-specs-into-main-specs, cli-propose-generation-uses-named-arguments, cli-mcp-read-tool-inventory, cli-question-gate-readiness-validation, cli-tech-sync-supports-active-change-mode, and cli-main-spec-and-tech-authoring, restating each statement and its scenarios without the mapping clause and preserving every non-mapping obligation verbatim.
+      status: complete
+      command: strict-spec-cli generate remove-mapping-from-specs-and-schemas delta-spec --target-spec cli-foundation --operation MODIFIED --requirement cli-archive-merges-delta-specs-into-main-specs --strength MUST --statement '...'
+    remove-contracts-mapping-model:
+      text: 'Author the contracts-yaml-artifacts delta spec: REMOVED for yaml-spec-file-mapping-model, and MODIFIED for yaml-main-spec-file-model, yaml-main-spec-minimal-example, and yaml-migrated-core-spec-preservation so the strict YAML artifact model no longer declares file-level implementation and test mappings.'
+      status: complete
+      command: strict-spec-cli generate remove-mapping-from-specs-and-schemas delta-spec --target-spec contracts-yaml-artifacts --operation REMOVED --requirement yaml-spec-file-mapping-model
+    remove-mapping-upkeep-rules:
+      text: Author delta tech removing relocated-mappings-declare-their-cleanup from workflow-scope-discipline and structured-fields-over-prose from yaml-first-artifacts, both of which exist only to govern mapping fields.
+      status: complete
+      command: strict-spec-cli generate remove-mapping-from-specs-and-schemas delta-tech --target-standard workflow-scope-discipline --operation REMOVED --rule relocated-mappings-declare-their-cleanup --reason '...'
+    drop-mapping-from-bundled-schemas:
+      text: Remove the mapping property from templates/strict-spec-driven/schemas/main-spec.yaml, delta-spec.yaml, main-tech.yaml, and delta-tech.yaml through schema-edit, keeping validation tolerant of a residual mapping field rather than rejecting it.
+      status: complete
+      command: strict-spec-cli schema-edit --help --json
+    drop-mapping-from-reference-examples:
+      text: Remove the mapping field from the reference examples under examples/strict-spec-driven/ that carry one (main-spec, main-tech, main-tech-ui, delta-spec and its variants, delta-tech and its variants) through sample-edit, so the registered examples match the reduced schemas.
+      status: complete
+      command: strict-spec-cli sample-edit --help --json
+    regenerate-embedded-template-bundle:
+      text: Rebuild the embedded template bundle from the templates tree so src/embedded-templates.ts ships the mapping-free schemas and scaffold assets, and confirm init and migrate emit no mapping field.
+      status: complete
+      command: bun run build
+    keep-generate-and-ready-consistent:
+      text: 'Adjust the generate and ready surfaces so they no longer require or emit spec mapping: delta-spec --implementation/--test must not write a mapping property into a schema that no longer declares one, and ready must not raise a proposal_readiness diagnostic for delta specs lacking implementation or test mappings.'
+      status: complete
+    strip-mapping-from-live-specs:
+      text: Strip the recorded top-level mapping field from every live main spec under .strict-spec-driven/specs/ that carries one (architecture, cli, contracts, design, harness, lessons, migrate, operations, roadmap, sessions, sop, testing) by issuing one identity-preserving spec-edit write per spec, which the strip-on-write normalizer commits without the mapping field.
+      status: complete
+      command: strict-spec-cli spec-edit <spec-id> --title <current-title>
+    strip-mapping-from-live-standards:
+      text: Strip the recorded top-level mapping field from cli-command-metadata, typescript-esm-baseline, workflow-regression-coverage, workflow-scope-discipline, and yaml-first-artifacts by issuing one identity-preserving tech-edit write per standard.
+      status: complete
+      command: strict-spec-cli tech-edit <standard-id> --title <current-title>
+  Testing:
+    schema-validation-regression:
+      text: Add regression asserting the main-spec, delta-spec, main-tech, and delta-tech schemas no longer declare a mapping property and that an artifact without mapping validates.
+      status: complete
+      command: bun test/run.ts
+    residual-mapping-tolerance-regression:
+      text: Add regression asserting a main spec, delta spec, main tech, and delta tech artifact that still carries a residual mapping field validates rather than failing, and that a CLI write which rewrites the artifact strips it.
+      status: complete
+      command: bun test/run.ts
+    scaffold-output-regression:
+      text: Add regression asserting init scaffold output, generated examples, and migrate output contain no mapping field for spec and tech artifacts.
+      status: complete
+      command: bun test/run.ts
+    run-validation-command:
+      text: Run strict validation over the change artifacts and the live spec, standard, schema, and example state this change mutates, confirming every artifact is schema-valid after the mapping removal.
+      status: complete
+      command: strict-spec-cli verify remove-mapping-from-specs-and-schemas
+    run-lint:
+      text: Run the project lint/typecheck command to confirm the normalizer and readiness changes compile cleanly with no unused or dangling mapping code.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression with the coverage gate as declared review evidence.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready:
+      text: Run the strict ready proposal-handoff check for this change.
+      status: complete
+      command: strict-spec-cli ready remove-mapping-from-specs-and-schemas
+    run-verify:
+      text: Run strict verify to confirm task completion, resolved questions, and artifact structure before archive.
+      status: complete
+      command: strict-spec-cli verify remove-mapping-from-specs-and-schemas
+    confirm-no-dangling-mapping-references:
+      text: Confirm no surviving requirement, rule, schema, example, or generated document depends on a removed mapping requirement or rule, and that unrelated uses of the word mapping (architecture component mapping, skill command mappings, migration role mappings, design-system, lesson, roadmap, registry) are untouched.
+      status: complete
+    confirm-archive-merge-readiness:
+      text: 'Confirm the delta specs and delta tech apply cleanly on archive: REMOVED identifiers resolve to existing requirements and rules, MODIFIED restatements preserve every non-mapping obligation, and no neighboring requirement is dropped.'
+      status: complete
+      command: strict-spec-cli verify remove-mapping-from-specs-and-schemas
+testing_gates:
+  validation_task: run-validation-command
+  unit_test_task: run-project-regression

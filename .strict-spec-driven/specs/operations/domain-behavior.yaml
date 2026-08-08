@@ -5,21 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: operations-domain-behavior
   title: Operations Domain Behavior
-mapping:
-  implementation:
-    - src/cli/cmd-operations.ts
-    - src/cli/cmd-migration.ts
-    - src/maintenance.ts
-    - skills/strict-spec-ship/SKILL.md
-    - src/architecture.ts
-    - src/design-system.ts
-    - src/cli/command-metadata-entries.ts
-    - templates/strict-spec-driven/scaffold/config.yaml
-    - skills/strict-spec-maintenance/SKILL.md
-    - src/cli-only-yaml-policy.ts
-  tests:
-    - test/suites/operations.ts
-    - test/suites/entrypoint-and-skills.ts
 requirements:
   operations-list-contract:
     strength: MUST

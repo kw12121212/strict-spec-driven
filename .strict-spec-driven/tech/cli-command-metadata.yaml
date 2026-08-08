@@ -6,25 +6,6 @@ standard:
   id: cli-command-metadata
   title: CLI Command Metadata
   category: architecture
-mapping:
-  implementation:
-    - src/cli/command-metadata.ts
-    - src/cli/usage.ts
-    - src/mcp/inventory.ts
-    - src/cli/command-metadata-entries.ts
-    - src/cli/argv.ts
-    - src/cli/entrypoint.ts
-    - src/cli/cmd-generation.ts
-    - src/yaml-mutation-surface.ts
-    - src/yaml-authoring-protocol.ts
-    - src/cli/cmd-yaml-authoring-protocol.ts
-    - skills/strict-spec-propose/SKILL.md
-    - skills/strict-spec-spec-edit/SKILL.md
-    - skills/strict-roadmap-plan/SKILL.md
-  enforcement:
-    - test/suites/entrypoint-and-skills.ts
-    - test/suites/change-lifecycle.ts
-    - test/suites/yaml-authoring-protocol.ts
 rules:
   single-source-command-descriptions:
     strength: MUST

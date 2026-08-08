@@ -5,103 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: contracts-yaml-artifacts
   title: Strict YAML Artifact Schemas
-mapping:
-  implementation:
-    - package.json
-    - src/converters/roadmap.ts
-    - src/task-list.ts
-    - src/migrate.ts
-    - src/scaffold.ts
-    - templates/strict-spec-driven/schemas/schema-registry.yaml
-    - templates/strict-spec-driven/schemas/registry.yaml
-    - templates/strict-spec-driven/schemas/roadmap-index.yaml
-    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
-    - templates/strict-spec-driven/schemas/harness.yaml
-    - templates/strict-spec-driven/schemas/harness-session.yaml
-    - templates/strict-spec-driven/scaffold/harness.yaml
-    - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
-    - examples/strict-spec-driven/schema-registry.yaml
-    - examples/strict-spec-driven/roadmap-index.yaml
-    - examples/strict-spec-driven/roadmap-milestone.yaml
-    - examples/strict-spec-driven/roadmap-milestone.planning.yaml
-    - examples/strict-spec-driven/harness.yaml
-    - examples/strict-spec-driven/harness-session.yaml
-    - templates/strict-spec-driven/schemas/main-tech.yaml
-    - templates/strict-spec-driven/schemas/delta-tech.yaml
-    - templates/strict-spec-driven/schemas/tech-index.yaml
-    - templates/strict-spec-driven/scaffold/tech/INDEX.yaml
-    - examples/strict-spec-driven/main-tech.yaml
-    - examples/strict-spec-driven/main-tech-ui.yaml
-    - examples/strict-spec-driven/delta-tech.yaml
-    - examples/strict-spec-driven/delta-tech.operations.yaml
-    - examples/strict-spec-driven/tech-index.yaml
-    - src/cli/tech-mapping.ts
-    - src/shared-schema-cache.ts
-    - src/validation.ts
-    - src/yaml.ts
-    - src/skills/frontmatter.ts
-    - src/skills.ts
-    - src/skills/fs-checks.ts
-    - install.sh
-    - scripts/strict-spec-driven.js
-    - skills/marketplace.json
-    - skills/strict-spec-archive/SKILL.md
-    - skills/strict-spec-apply/SKILL.md
-    - skills/strict-spec-auto/SKILL.md
-    - skills/strict-spec-brainstorm/SKILL.md
-    - skills/strict-spec-harness-init/SKILL.md
-    - skills/strict-spec-harness-session/SKILL.md
-    - skills/strict-spec-init/SKILL.md
-    - skills/strict-spec-migrate/SKILL.md
-    - skills/strict-spec-maintenance/SKILL.md
-    - skills/strict-spec-modify/SKILL.md
-    - skills/strict-spec-propose/SKILL.md
-    - skills/strict-spec-propose-from-roadmap/SKILL.md
-    - skills/strict-spec-resync-code-mapping/SKILL.md
-    - skills/strict-spec-review/SKILL.md
-    - skills/strict-spec-ship/SKILL.md
-    - skills/strict-spec-spec-edit/SKILL.md
-    - skills/strict-spec-sync-specs/SKILL.md
-    - skills/strict-spec-verify/SKILL.md
-    - skills/strict-tech-edit/SKILL.md
-    - skills/strict-tech-sync/SKILL.md
-    - skills/strict-roadmap-review/SKILL.md
-    - skills/strict-roadmap-plan/SKILL.md
-    - skills/strict-roadmap-recommend/SKILL.md
-    - skills/strict-roadmap-sync/SKILL.md
-    - README.md
-    - QUICKSTART.md
-    - HARNESS.md
-    - DEBUG_SESSIONS.md
-    - ROADMAP_GUIDE.md
-    - RTK.md
-    - src/skills/model.ts
-    - src/embedded-templates.ts
-    - scripts/gen-templates-bundle.ts
-    - examples/strict-spec-driven/change-proposal.yaml
-    - skills/strict-spec-bugfix/SKILL.md
-    - src/roadmap/model.ts
-    - src/roadmap/validate.ts
-    - src/roadmap/sync.ts
-    - src/mcp/prompts.ts
-    - src/mcp/inventory.ts
-    - templates/strict-spec-driven/schemas/lesson.yaml
-    - examples/strict-spec-driven/lesson.yaml
-    - templates/strict-spec-driven/schemas/question-list.yaml
-    - examples/strict-spec-driven/question-list.yaml
-    - examples/strict-spec-driven/question-list.open.yaml
-    - src/cli/cmd-generation.ts
-    - src/propose-generation.ts
-  tests:
-    - test/run.ts
-    - test/suites/entrypoint-and-skills.ts
-    - test/suites/foundation-and-fixtures.ts
-    - test/suites/harness-contracts.ts
-    - test/suites/harness-session.ts
-    - test/suites/roadmap-and-migration.ts
-    - test/suites/mcp-server.ts
-    - test/suites/lessons.ts
-    - test/suites/change-lifecycle.ts
 requirements:
   yaml-artifact-schema-coverage:
     strength: MUST
@@ -129,7 +32,7 @@ requirements:
         - THEN: main specs, delta specs, change proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap milestones, and planned change entries each have at least one minimal valid YAML example
   yaml-main-spec-file-model:
     strength: MUST
-    statement: The system MUST define strict YAML main spec files as YAML documents with structured schema identity, stable spec identity, human-readable title, file-level mappings, and requirement collections.
+    statement: The system MUST define strict YAML main spec files as YAML documents with structured schema identity, stable spec identity, human-readable title, and requirement collections.
     scenarios:
       main-spec-top-level-fields-are-structured:
         - GIVEN: a strict YAML main spec file is reviewed
@@ -137,7 +40,6 @@ requirements:
         - THEN: the schema identity is available as a structured field
         - AND: the stable spec identifier is available as a structured field
         - AND: the human-readable title is available as a structured field
-        - AND: implementation and test mappings are available as structured file-level fields
         - AND: requirements are available as a structured collection
   yaml-main-spec-requirement-model:
     strength: MUST
@@ -182,23 +84,9 @@ requirements:
         - GIVEN: a strict YAML requirement repeats a scenario identifier within that requirement
         - WHEN: validation is run against the spec and delta model
         - THEN: the duplicate scenario identifier can be reported as a deterministic validation failure
-  yaml-spec-file-mapping-model:
-    strength: MUST
-    statement: The system MUST represent implementation and test mappings for strict YAML spec files as structured file-level fields containing normalized repo-relative file path collections.
-    scenarios:
-      mappings-stay-outside-requirement-prose:
-        - GIVEN: a strict YAML spec file is reviewed
-        - WHEN: implementation and test mappings are inspected
-        - THEN: the mappings are available in structured file-level fields
-        - AND: the mappings are not embedded in requirement or scenario prose
-      mapping-paths-are-repo-relative:
-        - GIVEN: a strict YAML spec mapping is validated
-        - WHEN: each implementation or test path is checked
-        - THEN: normalized repo-relative paths are accepted
-        - AND: absolute paths or parent-directory traversal paths can be reported as deterministic validation failures
   yaml-main-spec-minimal-example:
     strength: MUST
-    statement: The system MUST provide a minimal valid YAML main spec example that includes schema identity, stable spec identity, title, mapping fields, one requirement, one scenario, and ordered scenario steps.
+    statement: The system MUST provide a minimal valid YAML main spec example that includes schema identity, stable spec identity, title, one requirement, one scenario, and ordered scenario steps.
     scenarios:
       main-spec-example-is-complete-enough-to-validate:
         - GIVEN: the strict YAML main spec contract is reviewed
@@ -206,12 +94,11 @@ requirements:
         - THEN: every required top-level main spec field is present
         - AND: every required requirement field is present
         - AND: every required scenario field is present
-      main-spec-example-demonstrates-enum-and-mapping-values:
+      main-spec-example-demonstrates-enum-values:
         - GIVEN: the strict YAML main spec example is inspected
-        - WHEN: requirement strength, scenario step kinds, and mapping fields are reviewed
+        - WHEN: requirement strength and scenario step kinds are reviewed
         - THEN: the example demonstrates a valid MUST, SHOULD, or MAY requirement strength
         - AND: the example demonstrates valid GIVEN, WHEN, THEN, and optional AND step kinds
-        - AND: the example demonstrates implementation and test mapping fields as repo-relative path collections
   yaml-delta-operation-model:
     strength: MUST
     statement: The system MUST represent strict YAML delta specs with structured schema identity, target spec identity, explicit ADDED, MODIFIED, and REMOVED operation keyed-map collections where the map key is the requirement identifier, and an optional structured new-spec block carrying a title and a repo-relative target path used only when the delta creates a brand-new main spec.
@@ -824,13 +711,12 @@ requirements:
         - AND: the follow-up item explains what could not be converted deterministically
   yaml-migrated-core-spec-preservation:
     strength: MUST
-    statement: The system MUST preserve strict workflow identity, ordering, and mapping data when legacy Markdown main specs and delta specs are converted into strict YAML artifacts.
+    statement: The system MUST preserve strict workflow identity and ordering when legacy Markdown main specs and delta specs are converted into strict YAML artifacts.
     scenarios:
-      migrated-main-specs-preserve-stable-identifiers-and-mappings:
+      migrated-main-specs-preserve-stable-identifiers:
         - GIVEN: migration tooling converts a legacy Markdown main spec
         - WHEN: the generated strict YAML spec artifact is inspected
         - THEN: the migrated artifact preserves the stable spec, requirement, and scenario identifiers represented by the legacy workflow state
-        - AND: implementation and test mappings remain represented as structured file-level data rather than requirement prose
         - AND: scenario ordering remains recoverable from the strict YAML artifact data
       migrated-delta-specs-preserve-operation-intent:
         - GIVEN: migration tooling converts a legacy Markdown delta spec

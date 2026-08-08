@@ -5,21 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: migrate-domain-behavior
   title: Migrate Domain Behavior
-mapping:
-  implementation:
-    - src/cli/cmd-migration.ts
-    - src/migrate.ts
-    - src/migrate/preflight.ts
-    - src/migrate/reporting.ts
-    - src/migrate/shared.ts
-    - src/migrate/parsers/shared.ts
-    - src/migrate/parsers/specs.ts
-    - src/migrate/parsers/change-artifacts.ts
-    - src/migrate/converters/changes.ts
-    - src/migrate/converters/roadmap.ts
-    - src/migrate/converters/specs.ts
-  tests:
-    - test/suites/roadmap-and-migration.ts
 requirements:
   migrate-source-and-preflight-contract:
     strength: MUST

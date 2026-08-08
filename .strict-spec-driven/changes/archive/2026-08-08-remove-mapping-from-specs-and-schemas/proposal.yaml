@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-mapping-from-specs-and-schemas
+  status: proposed
+summary:
+  what:
+    - 'Remove the spec and technical-standard file mapping capability from the governing artifact layer: delete the main-spec requirements that define mapping fields, the mapping merge behavior, and the verify-spec-mappings audit contract; delete the two technical-standard rules that exist only to manage mapping rot; remove the mapping property from the main-spec, delta-spec, main-tech, and delta-tech schemas in templates, the embedded template bundle, and the reference examples; and strip the recorded mapping field from every live main spec and technical standard in this repository.'
+  why:
+    - 'The mapping field is write-only bookkeeping. Propose, apply, and archive write it and two audit commands check it, but no CLI command or skill step ever reads a mapping to decide which code to open, which requirements a changed file threatens, or which tests to rerun. Its upkeep is real: archive''s additive merge guarantees stale entries survive every rename, a dedicated repair skill exists solely to fix the resulting drift, and a technical standard rule was written to manage that rot. A requirement-level rebuild was evaluated and rejected as not worth its cost, so the capability is removed outright with nothing substituted. Removing the governing layer first leaves the command and skill deletions that follow with no orphaned contract.'
+scope:
+  in:
+    - Removal of the four cli-verify-spec-mappings-* requirements from the cli-foundation spec, and modification of cli-archive-merges-delta-specs-into-main-specs, cli-propose-generation-uses-named-arguments, cli-mcp-read-tool-inventory, cli-question-gate-readiness-validation, cli-tech-sync-supports-active-change-mode, and cli-main-spec-and-tech-authoring to drop their mapping clauses.
+    - Removal of yaml-spec-file-mapping-model from the contracts-yaml-artifacts spec, and modification of yaml-main-spec-file-model, yaml-main-spec-minimal-example, and yaml-migrated-core-spec-preservation to drop file-level mapping from the artifact model.
+    - Removal of the workflow-scope-discipline rule relocated-mappings-declare-their-cleanup and the yaml-first-artifacts rule structured-fields-over-prose, both of which exist only because mapping fields exist.
+    - Removal of the mapping property from templates/strict-spec-driven/schemas/main-spec.yaml, delta-spec.yaml, main-tech.yaml, and delta-tech.yaml, from the embedded template bundle, and from the reference examples under examples/strict-spec-driven/, applying the accept-and-ignore tolerance decision so an external artifact that still carries a residual mapping field validates rather than failing.
+    - Removal of the recorded top-level mapping field from every live main spec under .strict-spec-driven/specs/ and every technical standard under .strict-spec-driven/tech/ that carries one, through spec-edit and tech-edit.
+    - Regression covering schema validation without the mapping property, legacy tolerance of a residual mapping field, and scaffold and example output containing no mapping field.
+    - Addition of the yaml-first-artifacts rule retired-schema-fields-leave-a-tombstone, confirmed as a reusable convention during the final current-change tech sync, capturing how a field is retired from a schema that closes additionalProperties.
+  out:
+    - Deletion of the verify-spec-mappings and verify-tech-mappings commands, src/cli/spec-mapping.ts, src/cli/tech-mapping.ts, their registry, help, command-metadata, and MCP inventory entries, and the archive mapping union implementation. Those belong to the delete-mapping-commands-and-code planned change.
+    - Deletion of the strict-spec-resync-code-mapping skill, removal of mapping upkeep instructions from remaining skills, and the skill-contract requirements that name that skill. Those belong to the purge-mapping-from-skills-and-prove-removal planned change.
+    - Removal of the spec mapping implementation and test count columns from architecture rendering, which is sequenced with the code deletion.
+    - Any replacement traceability mechanism. This change removes a capability and substitutes nothing.
+    - Schema and artifact fields that use the word mapping for unrelated purposes, including architecture component mapping, design-system, lesson, roadmap, registry, migration role mapping, and skill command mapping structures.
+unchanged_behavior:
+  - The architecture artifact component mapping and its drift reporting stay intact because ARCHITECTURE.md renders them.
+  - verify-spec-mappings and verify-tech-mappings remain executable in this change; only their governing requirements and rules are removed here.
+  - Skill command mappings, migration role mappings, and every other unrelated use of the word mapping keep their current behavior.
+  - Existing requirement identifiers, ordering, and scenario content outside the mapping clauses are preserved; no neighboring requirement is dropped.
+roadmap:
+  milestone: remove-artifact-file-mappings
+  planned_change: remove-mapping-from-specs-and-schemas

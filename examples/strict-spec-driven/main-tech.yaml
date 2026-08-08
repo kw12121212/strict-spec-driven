@@ -6,16 +6,11 @@ standard:
   id: example-standard
   title: Example Technical Standard
   category: coding
-mapping:
-  implementation: []
-  enforcement: []
 rules:
   example-rule:
     strength: MUST
     statement: All source modules MUST be authored as ESM TypeScript.
-    rationale: >-
-      A single module system keeps build output, imports, and tooling
-      consistent across the codebase and avoids dual-package hazards.
+    rationale: A single module system keeps build output, imports, and tooling consistent across the codebase and avoids dual-package hazards.
     enforcement:
       method: ci
       detail: tsc with module NodeNext fails the build on non-ESM modules.

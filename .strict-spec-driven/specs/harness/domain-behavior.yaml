@@ -5,37 +5,6 @@ schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: harness-domain-behavior
   title: Harness Domain Behavior
-mapping:
-  implementation:
-    - src/cli/cmd-harness.ts
-    - src/harness.ts
-    - skills/strict-spec-harness-init/SKILL.md
-    - skills/strict-spec-harness-session/SKILL.md
-    - scripts/harness-infer
-    - scripts/harness-doctor
-    - scripts/harness-plan
-    - scripts/harness-start
-    - scripts/harness-stop
-    - scripts/harness-status
-    - scripts/harness-logs
-    - scripts/harness-session
-    - examples/strict-spec-driven/harness.yaml
-    - examples/strict-spec-driven/harness-session.yaml
-    - src/harness-author.ts
-    - src/cli/command-metadata-entries.ts
-    - src/cli/registry.ts
-    - src/strict-spec-cli.ts
-    - inventory/yaml-mutation-surfaces.yaml
-    - src/mcp/inventory.ts
-    - src/mcp/tools.ts
-  tests:
-    - test/suites/harness-contracts.ts
-    - test/suites/harness-plan.ts
-    - test/suites/harness-infer-doctor.ts
-    - test/suites/harness-lifecycle.ts
-    - test/suites/harness-session.ts
-    - test/suites/harness-authoring.ts
-    - test/run.ts
 requirements:
   harness-declaration-contract:
     strength: MUST

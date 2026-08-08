@@ -6,9 +6,6 @@ target_spec: example-new-spec
 spec:
   title: Example New Spec
   path: .strict-spec-driven/specs/example/new-spec.yaml
-mapping:
-  implementation: []
-  tests: []
 operations:
   ADDED:
     example-new-requirement:

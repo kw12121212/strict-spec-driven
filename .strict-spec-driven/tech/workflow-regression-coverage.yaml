@@ -6,23 +6,6 @@ standard:
   id: workflow-regression-coverage
   title: Workflow Regression Coverage
   category: testing
-mapping:
-  implementation:
-    - src/validation.ts
-    - src/migrate.ts
-    - src/archive.ts
-    - .strict-spec-driven/config.yaml
-    - scripts/coverage-gate.ts
-    - test/support/harness.ts
-  enforcement:
-    - test/suites/foundation-and-fixtures.ts
-    - test/suites/roadmap-and-migration.ts
-    - test/suites/change-lifecycle.ts
-    - test/suites/coverage-gate.ts
-    - test/suites/entrypoint-and-skills.ts
-    - test/suites/operations.ts
-    - test/suites/yaml-operation-matrix.ts
-    - inventory/yaml-mutation-surfaces.yaml
 rules:
   cover-workflow-critical-behaviors:
     strength: MUST

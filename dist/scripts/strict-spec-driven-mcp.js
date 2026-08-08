@@ -31403,15 +31403,19 @@ merge_rules:
     block is present, archive fails with the existing missing-target error rather than creating
     a spec. Verify must enforce these constraints as deterministic validation failures.
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   definitions:
     step:
       type: object
       properties:
-        GIVEN: { type: string }
-        WHEN: { type: string }
-        THEN: { type: string }
-        AND: { type: string }
+        GIVEN:
+          type: string
+        WHEN:
+          type: string
+        THEN:
+          type: string
+        AND:
+          type: string
       additionalProperties: false
       minProperties: 1
       maxProperties: 1
@@ -31436,7 +31440,7 @@ json_schema:
           additionalProperties:
             type: array
             items:
-              "$ref": "#/definitions/step"
+              $ref: '#/definitions/step'
             minItems: 1
   type: object
   additionalProperties: false
@@ -31446,7 +31450,6 @@ json_schema:
     - artifact_type
     - schema_file
     - target_spec
-    - mapping
     - operations
   properties:
     schema:
@@ -31464,10 +31467,7 @@ json_schema:
       type: string
     spec:
       type: object
-      description: >-
-        Optional new-spec block. Present only when this delta creates a brand-new main spec
-        whose id (target_spec) does not yet exist. Archive materializes the main spec at path
-        from target_spec, title, the delta mapping, and the ADDED requirements.
+      description: Optional new-spec block. Present only when this delta creates a brand-new main spec whose id (target_spec) does not yet exist. Archive materializes the main spec at path from target_spec, title, the delta mapping, and the ADDED requirements.
       additionalProperties: false
       required:
         - title
@@ -31478,20 +31478,7 @@ json_schema:
         path:
           type: string
     mapping:
-      type: object
-      additionalProperties: false
-      required:
-        - implementation
-        - tests
-      properties:
-        implementation:
-          type: array
-          items:
-            type: string
-        tests:
-          type: array
-          items:
-            type: string
+      description: Deprecated and ignored. Implementation and test file mappings were removed from the strict YAML artifact model; a residual mapping field is accepted with any shape so artifacts authored before the removal keep validating, and is never read.
     operations:
       type: object
       additionalProperties: false
@@ -31503,11 +31490,11 @@ json_schema:
         ADDED:
           type: object
           additionalProperties:
-            "$ref": "#/definitions/requirement_value"
+            $ref: '#/definitions/requirement_value'
         MODIFIED:
           type: object
           additionalProperties:
-            "$ref": "#/definitions/requirement_value"
+            $ref: '#/definitions/requirement_value'
         REMOVED:
           type: object
           additionalProperties:
@@ -31524,13 +31511,7 @@ schema_version: 1
 schema_id: strict-spec-driven/delta-tech/v1
 artifact_type: delta_tech
 artifact_name: delta-tech
-description: >-
-  Strict YAML delta tech standard artifact. A delta tech artifact lives under a
-  change at changes/<name>/tech/ and expresses how that change evolves a
-  technical standard: adding, modifying, or removing rules of an existing
-  standard, or creating a whole new standard. Archive merges every delta tech
-  artifact into .strict-spec-driven/tech/ so standard changes flow through the
-  same proposal, review, and archive audit path as observable-behavior specs.
+description: 'Strict YAML delta tech standard artifact. A delta tech artifact lives under a change at changes/<name>/tech/ and expresses how that change evolves a technical standard: adding, modifying, or removing rules of an existing standard, or creating a whole new standard. Archive merges every delta tech artifact into .strict-spec-driven/tech/ so standard changes flow through the same proposal, review, and archive audit path as observable-behavior specs.'
 example_ref: ../../../examples/strict-spec-driven/delta-tech.yaml
 coverage_examples:
   - ../../../examples/strict-spec-driven/delta-tech.operations.yaml
@@ -31565,7 +31546,7 @@ merge_rules:
     therefore never removes paths the change did not touch. Use /strict-tech-edit
     for standalone removal of mapping paths.
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   definitions:
     enforcement:
       type: object
@@ -31615,9 +31596,9 @@ json_schema:
         rationale:
           type: string
         enforcement:
-          "$ref": "#/definitions/enforcement"
+          $ref: '#/definitions/enforcement'
         examples:
-          "$ref": "#/definitions/examples"
+          $ref: '#/definitions/examples'
         exceptions:
           type: array
           items:
@@ -31630,7 +31611,6 @@ json_schema:
     - artifact_type
     - schema_file
     - target_standard
-    - mapping
     - operations
   properties:
     schema:
@@ -31669,20 +31649,7 @@ json_schema:
             - documentation
             - ui
     mapping:
-      type: object
-      additionalProperties: false
-      required:
-        - implementation
-        - enforcement
-      properties:
-        implementation:
-          type: array
-          items:
-            type: string
-        enforcement:
-          type: array
-          items:
-            type: string
+      description: Deprecated and ignored. Implementation and enforcement file mappings were removed from the strict YAML artifact model; a residual mapping field is accepted with any shape so artifacts authored before the removal keep validating, and is never read.
     operations:
       type: object
       additionalProperties: false
@@ -31694,11 +31661,11 @@ json_schema:
         ADDED:
           type: object
           additionalProperties:
-            "$ref": "#/definitions/rule_value"
+            $ref: '#/definitions/rule_value'
         MODIFIED:
           type: object
           additionalProperties:
-            "$ref": "#/definitions/rule_value"
+            $ref: '#/definitions/rule_value'
         REMOVED:
           type: object
           additionalProperties:
@@ -32757,15 +32724,19 @@ artifact_name: main-spec
 description: Strict YAML main spec artifact.
 example_ref: ../../../examples/strict-spec-driven/main-spec.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   definitions:
     step:
       type: object
       properties:
-        GIVEN: { type: string }
-        WHEN: { type: string }
-        THEN: { type: string }
-        AND: { type: string }
+        GIVEN:
+          type: string
+        WHEN:
+          type: string
+        THEN:
+          type: string
+        AND:
+          type: string
       additionalProperties: false
       minProperties: 1
       maxProperties: 1
@@ -32777,7 +32748,6 @@ json_schema:
     - artifact_type
     - schema_file
     - spec
-    - mapping
     - requirements
   properties:
     schema:
@@ -32803,20 +32773,7 @@ json_schema:
         title:
           type: string
     mapping:
-      type: object
-      additionalProperties: false
-      required:
-        - implementation
-        - tests
-      properties:
-        implementation:
-          type: array
-          items:
-            type: string
-        tests:
-          type: array
-          items:
-            type: string
+      description: Deprecated and ignored. Implementation and test file mappings were removed from the strict YAML artifact model; a residual mapping field is accepted with any shape so artifacts authored before the removal keep validating, and is never read.
     requirements:
       type: object
       additionalProperties:
@@ -32840,7 +32797,7 @@ json_schema:
             additionalProperties:
               type: array
               items:
-                "$ref": "#/definitions/step"
+                $ref: '#/definitions/step'
               minItems: 1
 `,
   "strict-spec-driven/schemas/main-tech.yaml": `schema: strict-spec-driven/schema/v1
@@ -32848,19 +32805,12 @@ schema_version: 1
 schema_id: strict-spec-driven/main-tech/v1
 artifact_type: main_tech
 artifact_name: main-tech
-description: >-
-  Strict YAML technical standard artifact. A tech standard captures the
-  implementation-facing engineering rules that main specs deliberately exclude:
-  technology choices, coding conventions, architecture rules, internal structure
-  constraints, and security, performance, or API design baselines. Each rule
-  carries a strength, a statement, a rationale, and an enforcement contract so
-  later change proposal, implementation, and review workflows can treat it as a
-  binding constraint rather than informal advice.
+description: 'Strict YAML technical standard artifact. A tech standard captures the implementation-facing engineering rules that main specs deliberately exclude: technology choices, coding conventions, architecture rules, internal structure constraints, and security, performance, or API design baselines. Each rule carries a strength, a statement, a rationale, and an enforcement contract so later change proposal, implementation, and review workflows can treat it as a binding constraint rather than informal advice.'
 example_ref: ../../../examples/strict-spec-driven/main-tech.yaml
 coverage_examples:
   - ../../../examples/strict-spec-driven/main-tech-ui.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   definitions:
     enforcement:
       type: object
@@ -32898,7 +32848,6 @@ json_schema:
     - artifact_type
     - schema_file
     - standard
-    - mapping
     - rules
   properties:
     schema:
@@ -32938,20 +32887,7 @@ json_schema:
             - documentation
             - ui
     mapping:
-      type: object
-      additionalProperties: false
-      required:
-        - implementation
-        - enforcement
-      properties:
-        implementation:
-          type: array
-          items:
-            type: string
-        enforcement:
-          type: array
-          items:
-            type: string
+      description: Deprecated and ignored. Implementation and enforcement file mappings were removed from the strict YAML artifact model; a residual mapping field is accepted with any shape so artifacts authored before the removal keep validating, and is never read.
     rules:
       type: object
       additionalProperties:
@@ -32974,9 +32910,9 @@ json_schema:
           rationale:
             type: string
           enforcement:
-            "$ref": "#/definitions/enforcement"
+            $ref: '#/definitions/enforcement'
           examples:
-            "$ref": "#/definitions/examples"
+            $ref: '#/definitions/examples'
           exceptions:
             type: array
             items:
@@ -34936,9 +34872,6 @@ target_spec: example-new-spec
 spec:
   title: Example New Spec
   path: .strict-spec-driven/specs/example/new-spec.yaml
-mapping:
-  implementation: []
-  tests: []
 operations:
   ADDED:
     example-new-requirement:
@@ -34957,9 +34890,6 @@ schema_version: 1
 artifact_type: delta_spec
 schema_file: ../../templates/strict-spec-driven/schemas/delta-spec.yaml
 target_spec: example-spec
-mapping:
-  implementation: []
-  tests: []
 operations:
   ADDED:
     added-requirement:
@@ -34984,9 +34914,6 @@ schema_version: 1
 artifact_type: delta_spec
 schema_file: ../../templates/strict-spec-driven/schemas/delta-spec.yaml
 target_spec: example-spec
-mapping:
-  implementation: []
-  tests: []
 operations:
   ADDED: {}
   MODIFIED: {}
@@ -35000,9 +34927,6 @@ target_standard: example-standard
 standard:
   title: Example Standard
   category: coding
-mapping:
-  implementation: []
-  enforcement: []
 operations:
   ADDED:
     added-rule:
@@ -35029,9 +34953,6 @@ schema_version: 1
 artifact_type: delta_tech
 schema_file: ../../templates/strict-spec-driven/schemas/delta-tech.yaml
 target_standard: example-standard
-mapping:
-  implementation: []
-  enforcement: []
 operations:
   ADDED: {}
   MODIFIED: {}
@@ -35326,9 +35247,6 @@ schema_file: ../../templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: example-spec
   title: Example Spec
-mapping:
-  implementation: []
-  tests: []
 requirements:
   example-requirement:
     strength: MUST
@@ -35348,30 +35266,19 @@ standard:
   id: ui-foundations
   title: UI Foundations
   category: ui
-mapping:
-  implementation:
-    - src/components
-    - src/pages
-  enforcement:
-    - eslint.config.js
-    - playwright.config.ts
 rules:
   use-design-system-components:
     strength: MUST
-    statement: >-
-      Interactive UI elements MUST use the shared design-system components rather
-      than raw HTML interactive elements.
-    rationale: >-
-      Design-system components centralize accessibility, theming, and interaction
-      behavior; raw elements silently drift from those guarantees.
+    statement: Interactive UI elements MUST use the shared design-system components rather than raw HTML interactive elements.
+    rationale: Design-system components centralize accessibility, theming, and interaction behavior; raw elements silently drift from those guarantees.
     enforcement:
       method: lint
       detail: An eslint no-restricted-syntax rule bans raw interactive HTML elements.
     examples:
       good:
-        - "<Button onPress={save}>Save</Button>"
+        - <Button onPress={save}>Save</Button>
       bad:
-        - "<button onclick=\\"save()\\">Save</button>"
+        - <button onclick="save()">Save</button>
   meet-wcag-aa:
     strength: MUST
     statement: Every screen MUST pass automated WCAG 2.1 AA accessibility checks.
@@ -35382,9 +35289,7 @@ rules:
   visual-regression-for-ui-changes:
     strength: SHOULD
     statement: UI changes SHOULD include updated visual-regression snapshots.
-    rationale: >-
-      Behavior tests do not catch unintended visual drift; snapshots make visual
-      changes explicit and reviewable rather than silent.
+    rationale: Behavior tests do not catch unintended visual drift; snapshots make visual changes explicit and reviewable rather than silent.
     enforcement:
       method: ci
       detail: A visual-regression snapshot job runs in CI on UI changes.
@@ -35399,16 +35304,11 @@ standard:
   id: example-standard
   title: Example Technical Standard
   category: coding
-mapping:
-  implementation: []
-  enforcement: []
 rules:
   example-rule:
     strength: MUST
     statement: All source modules MUST be authored as ESM TypeScript.
-    rationale: >-
-      A single module system keeps build output, imports, and tooling
-      consistent across the codebase and avoids dual-package hazards.
+    rationale: A single module system keeps build output, imports, and tooling consistent across the codebase and avoids dual-package hazards.
     enforcement:
       method: ci
       detail: tsc with module NodeNext fails the build on non-ESM modules.
