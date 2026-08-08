@@ -1,7 +1,6 @@
 import {
   extractMarkdownFrontmatter,
   extractMarkdownHeading,
-  getLegacySpecMapping,
   makeUniqueId,
   normalizeWhitespace,
   parseRequirementStrength,
@@ -10,7 +9,6 @@ import {
   type StrictScenarioStep,
   type StrictScenarios,
   type StrictRequirements,
-  type StrictSpecMapping,
 } from "./shared.js";
 
 const MAIN_SPEC_SCHEMA_FILE = "templates/strict-spec-driven/schemas/main-spec.yaml";
@@ -25,7 +23,6 @@ export type StrictMainSpecArtifact = {
     id: string;
     title: string;
   };
-  mapping: StrictSpecMapping;
   requirements: StrictRequirements;
 };
 
@@ -37,7 +34,6 @@ export type StrictDeltaSpecArtifact = {
   artifact_type: "delta_spec";
   schema_file: string;
   target_spec: string;
-  mapping: StrictSpecMapping;
   operations: {
     ADDED: Record<string, RequirementValue>;
     MODIFIED: Record<string, RequirementValue>;
@@ -57,8 +53,7 @@ export function parseLegacyMainSpec(
   sourcePath: string,
   content: string,
 ): StrictMainSpecArtifact {
-  const { frontmatter, body } = extractMarkdownFrontmatter(content);
-  const mapping = getLegacySpecMapping(frontmatter);
+  const { body } = extractMarkdownFrontmatter(content);
   const title = extractMarkdownHeading(body);
   if (!title) {
     throw new Error(`main spec '${sourcePath}' is missing a top-level '# <title>' heading`);
@@ -176,7 +171,6 @@ export function parseLegacyMainSpec(
       id: buildSpecIdFromRelativePath(relativeSpecPath),
       title,
     },
-    mapping,
     requirements,
   };
 }
@@ -185,8 +179,7 @@ export function parseLegacyDeltaSpec(
   sourcePath: string,
   content: string,
 ): StrictDeltaSpecArtifact {
-  const { frontmatter, body } = extractMarkdownFrontmatter(content);
-  const mapping = getLegacySpecMapping(frontmatter);
+  const { body } = extractMarkdownFrontmatter(content);
   const relativePathMatch = sourcePath.match(/^\.spec-driven\/changes\/(?:archive\/[^/]+\/|[^/]+\/)specs\/(.+)\.md$/);
   if (!relativePathMatch) {
     throw new Error(`delta spec '${sourcePath}' is not under a recognized change specs directory`);
@@ -354,7 +347,6 @@ export function parseLegacyDeltaSpec(
     artifact_type: "delta_spec",
     schema_file: DELTA_SPEC_SCHEMA_FILE,
     target_spec: buildSpecIdFromRelativePath(relativePathMatch[1]),
-    mapping,
     operations,
   };
 }

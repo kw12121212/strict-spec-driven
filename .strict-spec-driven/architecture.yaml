@@ -8,10 +8,7 @@ architecture:
 components:
   cli-surface:
     title: CLI Command Surface
-    responsibility: >-
-      Parses invocations, resolves help requests, dispatches every registered subcommand, and serves
-      the single command-metadata registry that root help, subcommand help, JSON help, and the MCP
-      capability inventory all read their descriptions from.
+    responsibility: Parses invocations, resolves help requests, dispatches every registered subcommand, and serves the single command-metadata registry that root help, subcommand help, JSON help, and the MCP capability inventory all read their descriptions from.
     boundaries:
       - Owns no workflow behavior; every command delegates to a domain module.
       - Does not define command descriptions inline; they live in the metadata registry.
@@ -30,9 +27,7 @@ components:
         - src/cli/fs.ts
   schema-validation:
     title: Schema Registry and Validation
-    responsibility: >-
-      Parses strict YAML, resolves the bundled schema registry, compiles JSON Schema validators, and
-      returns structured diagnostics that every other component reports failures through.
+    responsibility: Parses strict YAML, resolves the bundled schema registry, compiles JSON Schema validators, and returns structured diagnostics that every other component reports failures through.
     boundaries:
       - Decides whether an artifact is well formed, never whether its content is the right product decision.
       - Reads schemas from the embedded template bundle so an installed CLI needs no repository checkout.
@@ -47,10 +42,7 @@ components:
         - templates/strict-spec-driven/schemas/registry.yaml
   artifact-generation:
     title: Scaffolding and Artifact Generation
-    responsibility: >-
-      Creates the workflow directory scaffold and change scaffolds from bundled templates, and
-      writes or merges planning artifacts from named CLI arguments so no strict YAML is hand-authored
-      by an agent.
+    responsibility: Creates the workflow directory scaffold and change scaffolds from bundled templates, and writes or merges planning artifacts from named CLI arguments so no strict YAML is hand-authored by an agent.
     boundaries:
       - Merges fields it was given and never invents requirement, task, or question content.
       - Owns file mechanics only; what a change should contain is a skill-prompt decision.
@@ -65,10 +57,7 @@ components:
         - src/cli/cmd-generation.ts
   change-lifecycle:
     title: Change Lifecycle
-    responsibility: >-
-      Advances a change from proposed to archived: reports readiness and next state, marks the next
-      pending task complete, verifies artifact structure and task completion, and merges delta specs
-      and delta tech into the main artifacts on archive.
+    responsibility: 'Advances a change from proposed to archived: reports readiness and next state, marks the next pending task complete, verifies artifact structure and task completion, and merges delta specs and delta tech into the main artifacts on archive.'
     boundaries:
       - Reports blockers deterministically; it never resolves an open question or decides scope.
       - Archive is the only path that mutates main specs and technical standards.
@@ -84,26 +73,9 @@ components:
         - src/archive.ts
         - src/cli/cmd-change.ts
         - src/cli/changes.ts
-  mapping-audit:
-    title: Mapping and Standards Audit
-    responsibility: >-
-      Audits that spec implementation and test mappings and technical-standard implementation and
-      enforcement mappings resolve to real repository files, and reports the registered standards
-      with their rules and strengths.
-    boundaries:
-      - Reports drift; it never rewrites a mapping to make an audit pass.
-    depends_on:
-      - schema-validation
-    mapping:
-      implementation:
-        - src/cli/spec-mapping.ts
-        - src/cli/tech-mapping.ts
   document-render:
     title: Generated Document Rendering
-    responsibility: >-
-      Provides the machinery both generated-document families share: schema-validated artifact
-      loading, block assembly, generated-banner rendering, deterministic serialization, block-by-block
-      check-mode comparison that attributes drift to a source artifact, and the output-path override.
+    responsibility: 'Provides the machinery both generated-document families share: schema-validated artifact loading, block assembly, generated-banner rendering, deterministic serialization, block-by-block check-mode comparison that attributes drift to a source artifact, and the output-path override.'
     boundaries:
       - Owns no artifact of its own; each document family supplies its own blocks and source artifacts.
       - Renders whatever blocks it is given and never decides what a document contains.
@@ -114,17 +86,13 @@ components:
         - src/document-render.ts
   architecture-document:
     title: Architecture Document Rendering
-    responsibility: >-
-      Renders ARCHITECTURE.md deterministically from the architecture artifact plus the workflow
-      config, the spec index, and the technical standards, detects drift against the rendered output
-      without writing, and reports architecture artifact validity and implementation-mapping drift.
+    responsibility: Renders ARCHITECTURE.md deterministically from the architecture artifact plus the workflow config, the spec index, and the technical standards, detects drift against the rendered output without writing, and reports architecture artifact validity and implementation-mapping drift.
     boundaries:
       - Owns no source of truth of its own beyond the architecture artifact; specification and standards content is projected, never duplicated.
       - Deliberately not wired into verify, ready, or archive; staleness is an on-demand check.
     depends_on:
       - document-render
       - schema-validation
-      - mapping-audit
     mapping:
       implementation:
         - src/architecture.ts
@@ -133,10 +101,7 @@ components:
         - templates/strict-spec-driven/scaffold/architecture.yaml
   design-system-document:
     title: Design System Document Rendering
-    responsibility: >-
-      Renders DESIGN.md in the design.md interchange format from the optional design-system artifact
-      as YAML front-matter tokens followed by the canonical sections, and reports design-system
-      artifact validity, token and component counts, and implementation and snapshot mapping drift.
+    responsibility: Renders DESIGN.md in the design.md interchange format from the optional design-system artifact as YAML front-matter tokens followed by the canonical sections, and reports design-system artifact validity, token and component counts, and implementation and snapshot mapping drift.
     boundaries:
       - Holds visual identity only; observable UI behavior belongs to main specs and UI engineering rules belong to ui-category technical standards.
       - Treats the design-system artifact as optional and absent for projects with no user interface; init deliberately does not scaffold it.
@@ -150,10 +115,7 @@ components:
         - templates/strict-spec-driven/schemas/design-system.yaml
   roadmap:
     title: Roadmap Domain
-    responsibility: >-
-      Owns milestones and standalone planned changes: their ordering, status derivation, pause and
-      resume state, moves between milestones, recommendation of the next change, reconciliation
-      against active and archived changes, and milestone archive and reopen.
+    responsibility: 'Owns milestones and standalone planned changes: their ordering, status derivation, pause and resume state, moves between milestones, recommendation of the next change, reconciliation against active and archived changes, and milestone archive and reopen.'
     boundaries:
       - Never creates, modifies, or deletes any artifact under .strict-spec-driven/changes/; it reports stale linkage as a warning naming the repairing command.
     depends_on:
@@ -177,10 +139,7 @@ components:
         - src/converters/roadmap.ts
   sop:
     title: Standard Operating Procedures
-    responsibility: >-
-      Creates, lists, shows, edits, and validates categorized operator-facing procedures, where the
-      bundled category definition drives the interview questions and the deterministic constraints
-      enforced over each SOP.
+    responsibility: Creates, lists, shows, edits, and validates categorized operator-facing procedures, where the bundled category definition drives the interview questions and the deterministic constraints enforced over each SOP.
     boundaries:
       - Categories are bundled data, so adding or tuning a category requires no code change.
     depends_on:
@@ -192,10 +151,7 @@ components:
         - src/cli/cmd-sops.ts
   harness:
     title: Harness
-    responsibility: >-
-      Infers and validates the project harness declaration, plans and starts and stops declared
-      long-running components, reports their status and logs, and records harness investigation
-      sessions with their evidence.
+    responsibility: Infers and validates the project harness declaration, plans and starts and stops declared long-running components, reports their status and logs, and records harness investigation sessions with their evidence.
     boundaries:
       - Starts only components the harness declaration names; it never guesses undeclared startup steps.
     depends_on:
@@ -206,10 +162,7 @@ components:
         - src/cli/cmd-harness.ts
   migration:
     title: Legacy Migration and Maintenance
-    responsibility: >-
-      Converts a legacy Markdown .spec-driven/ directory into strict YAML under
-      .strict-spec-driven/ with a structured migration report, and runs configured maintenance
-      checks over the strict workflow state.
+    responsibility: Converts a legacy Markdown .spec-driven/ directory into strict YAML under .strict-spec-driven/ with a structured migration report, and runs configured maintenance checks over the strict workflow state.
     boundaries:
       - Treats the legacy directory strictly as read-only input and never modifies it.
     depends_on:
@@ -231,10 +184,7 @@ components:
         - src/cli/cmd-migration.ts
   mcp-server:
     title: MCP Server
-    responsibility: >-
-      Exposes a curated subset of workflow commands as MCP tools, prompts, and resources, taking
-      every tool description from the shared command-metadata registry so one command surface is
-      described in one place.
+    responsibility: Exposes a curated subset of workflow commands as MCP tools, prompts, and resources, taking every tool description from the shared command-metadata registry so one command surface is described in one place.
     boundaries:
       - Exposes a curated subset, not every registered CLI command.
       - Writes no descriptions of its own; it reads them from the metadata registry.
@@ -251,10 +201,7 @@ components:
         - src/cli/cmd-mcp-install.ts
   skill-packaging:
     title: Skill Packaging
-    responsibility: >-
-      Validates that every bundled strict skill is packaged correctly: required frontmatter, the
-      workflow-state precheck every non-init skill must perform, the scripts symlink, and agreement
-      between the skill directories and the marketplace metadata.
+    responsibility: 'Validates that every bundled strict skill is packaged correctly: required frontmatter, the workflow-state precheck every non-init skill must perform, the scripts symlink, and agreement between the skill directories and the marketplace metadata.'
     boundaries:
       - Validates packaging structure, never the quality of a skill's instructions.
     depends_on:
@@ -268,6 +215,16 @@ components:
         - src/skills/fs-checks.ts
         - src/skills/diagnostics.ts
         - skills/marketplace.json
+  standards-status:
+    title: Technical Standards Status
+    responsibility: Reads every registered technical standard and reports the standards, their rules, and their MUST/SHOULD/MAY strengths for tech-status.
+    boundaries:
+      - 'Read-only: it reports standards content and never edits a standard.'
+    depends_on:
+      - schema-validation
+    mapping:
+      implementation:
+        - src/cli/tech-status.ts
 data_flows:
   change-lifecycle-flow:
     title: Change Lifecycle
@@ -286,18 +243,10 @@ data_flows:
       - roadmap
   generated-document-render:
     title: Generated Document Rendering
-    trigger: >-
-      An operator runs architecture-generate or design-generate, or either with --check to detect
-      staleness.
+    trigger: An operator runs architecture-generate or design-generate, or either with --check to detect staleness.
     steps:
       - The document family's source artifact is read and validated against its registered schema, failing with the artifact path and its authoring entry point when absent.
-      - >-
-        The family builds its own blocks. Architecture renders components, data flows, and decisions
-        from the architecture artifact, then projects the overview from the workflow config context,
-        the specification surface from the spec index and the main specs it references, and the
-        technical standards from the technical standards directory. Design renders YAML front-matter
-        tokens and the canonical design.md sections from the design-system artifact, omitting
-        sections whose token group is absent.
+      - The family builds its own blocks. Architecture renders components, data flows, and decisions from the architecture artifact, then projects the overview from the workflow config context, the specification surface from the spec index and the main specs it references, and the technical standards from the technical standards directory. Design renders YAML front-matter tokens and the canonical design.md sections from the design-system artifact, omitting sections whose token group is absent.
       - The rendered blocks are joined into one document carrying a generated banner that names every source artifact.
       - Write mode writes the document; check mode compares block by block against the file on disk, writes nothing, and exits non-zero naming the source artifacts that went stale.
     components:
@@ -319,73 +268,43 @@ data_flows:
 decisions:
   yaml-first-artifacts:
     title: Every workflow artifact is strict YAML
-    statement: >-
-      All spec-driven workflow artifacts are authored as strict YAML validated against a registered
-      schema, rather than as Markdown prose. Skill files stay Markdown only because the Agent Skills
-      packaging format requires it.
-    rationale: >-
-      Machine-validatable workflow state is the product constraint. Markdown prose cannot be
-      validated, parsed, or enforced structurally, so a prose workflow degrades into convention that
-      nothing checks.
+    statement: All spec-driven workflow artifacts are authored as strict YAML validated against a registered schema, rather than as Markdown prose. Skill files stay Markdown only because the Agent Skills packaging format requires it.
+    rationale: Machine-validatable workflow state is the product constraint. Markdown prose cannot be validated, parsed, or enforced structurally, so a prose workflow degrades into convention that nothing checks.
     status: accepted
     alternatives:
       - Keep the legacy Markdown artifacts and add a linter over them, rejected because a linter over prose cannot enforce structure that prose does not have.
   scripts-own-mechanics:
     title: Scripts own mechanics, skills own judgment
-    statement: >-
-      Filesystem mechanics, parsing, validation, and deterministic format enforcement live in the
-      CLI; product judgment lives in skill prompts.
-    rationale: >-
-      Separating deterministic mechanics from probabilistic judgment keeps the workflow reproducible
-      and testable, and keeps agents from hand-rolling YAML that then fails validation.
+    statement: Filesystem mechanics, parsing, validation, and deterministic format enforcement live in the CLI; product judgment lives in skill prompts.
+    rationale: Separating deterministic mechanics from probabilistic judgment keeps the workflow reproducible and testable, and keeps agents from hand-rolling YAML that then fails validation.
     status: accepted
     alternatives:
       - Let skills write artifacts directly, rejected because hand-authored YAML drifts from the schema and cannot be merged idempotently.
   embedded-bundled-assets:
     title: Schemas, scaffolds, and examples are embedded in the compiled CLI
-    statement: >-
-      Bundled schema, scaffold, and example assets are generated into a single embedded module at
-      build time and read from there, with a shared on-disk cache exported for external inspection.
-    rationale: >-
-      An installed CLI must validate and scaffold in projects that have no checkout of this
-      repository, so bundled assets cannot be resolved by walking a relative templates directory at
-      runtime.
+    statement: Bundled schema, scaffold, and example assets are generated into a single embedded module at build time and read from there, with a shared on-disk cache exported for external inspection.
+    rationale: An installed CLI must validate and scaffold in projects that have no checkout of this repository, so bundled assets cannot be resolved by walking a relative templates directory at runtime.
     status: accepted
     alternatives:
       - Ship the templates directory alongside the CLI and resolve it relatively, rejected because packaging and install paths vary across install methods and compiled binaries.
   single-active-workflow-directory:
     title: One active workflow directory
-    statement: >-
-      .strict-spec-driven/ is the single active workflow state directory. A .spec-driven/ directory
-      is meaningful only as read-only migration input from an external legacy project.
-    rationale: >-
-      Two live workflow directories would make every command ambiguous about which state it reads
-      and writes, and would let the legacy format persist indefinitely instead of migrating once.
+    statement: .strict-spec-driven/ is the single active workflow state directory. A .spec-driven/ directory is meaningful only as read-only migration input from an external legacy project.
+    rationale: Two live workflow directories would make every command ambiguous about which state it reads and writes, and would let the legacy format persist indefinitely instead of migrating once.
     status: accepted
     alternatives:
       - Support both directories concurrently, rejected because it doubles the state surface and invites divergence.
   bounded-active-changes:
     title: At most two active changes
-    statement: >-
-      The scaffold refuses to create a new change while two other active changes already exist; one
-      must be archived or cancelled first.
-    rationale: >-
-      Active changes carry delta artifacts that merge into main specs and technical standards on
-      archive. Unbounded concurrent changes multiply merge conflicts in exactly the artifacts the
-      workflow exists to keep authoritative.
+    statement: The scaffold refuses to create a new change while two other active changes already exist; one must be archived or cancelled first.
+    rationale: Active changes carry delta artifacts that merge into main specs and technical standards on archive. Unbounded concurrent changes multiply merge conflicts in exactly the artifacts the workflow exists to keep authoritative.
     status: accepted
     alternatives:
       - Allow unlimited concurrent changes, rejected because delta merge conflicts land in main specs where they are most expensive.
   generated-documents-are-rendered:
     title: Human-readable design documentation is rendered, never hand-written
-    statement: >-
-      DESIGN.md is generated from the architecture artifact plus existing strict artifacts, carries a
-      generated banner, and is never hand-edited. Its freshness is checked on demand rather than
-      gated in the change lifecycle.
-    rationale: >-
-      A hand-maintained architecture document drifts from the code it describes and cannot be
-      validated. Rendering it reduces maintenance to editing validated YAML, and keeping the check
-      on demand avoids penalizing downstream projects that have no architecture artifact yet.
+    statement: DESIGN.md is generated from the architecture artifact plus existing strict artifacts, carries a generated banner, and is never hand-edited. Its freshness is checked on demand rather than gated in the change lifecycle.
+    rationale: A hand-maintained architecture document drifts from the code it describes and cannot be validated. Rendering it reduces maintenance to editing validated YAML, and keeping the check on demand avoids penalizing downstream projects that have no architecture artifact yet.
     status: accepted
     alternatives:
       - Hand-write DESIGN.md and validate only the spec and standard ids it references, rejected because the narrative sections that matter most would still drift unchecked.

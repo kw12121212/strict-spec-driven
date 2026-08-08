@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: delete-mapping-commands-and-code
+  status: proposed
+summary:
+  what:
+    - Delete the verify-spec-mappings and verify-tech-mappings commands and every remaining code path that reads or writes a spec or technical-standard file mapping, so the field that was removed from the schemas has no surviving reader, writer, merger, or auditor in the codebase.
+  why:
+    - The mapping field is already gone from the schemas, examples, live specs, and live standards, but roughly 750 lines of audit implementation, an additive archive merge, generation defaults, migration emission, and two ARCHITECTURE.md columns still operate on it. Leaving that code in place keeps two commands that audit a field nothing declares, an archive merge that resurrects deleted data, and generators that write structure no schema accepts.
+scope:
+  in:
+    - Delete src/cli/spec-mapping.ts and src/cli/tech-mapping.ts, relocating getTechStatus so the surviving tech-status command keeps working.
+    - Remove verify-spec-mappings and verify-tech-mappings from the command registry, the strict-spec-cli dispatch table, cmd-operations entrypoints, CLI usage and help, command metadata entries, and the MCP tool and inventory definitions, so invoking either name produces the standard unknown-command diagnostic rather than a silent no-op.
+    - Remove the additive mapping union from applyDeltaToMainSpec and applyDeltaToMainTech in src/archive.ts, including the delta mapping snapshot copied into archived artifacts.
+    - Remove mapping arguments, parsing, and empty-collection defaults from delta-spec and delta-tech artifact generation in src/cli/cmd-generation.ts and their documented flags in src/cli/command-metadata-entries.ts.
+    - Stop the legacy migration parsers in src/migrate/parsers/specs.ts and src/migrate/parsers/shared.ts from reading legacy Markdown mapping frontmatter and emitting mapping fields into strict artifacts.
+    - Stop src/architecture.ts from reading main-spec mapping for implementation and test counts, drop the Implementation files and Test files columns from the generated spec table, and regenerate ARCHITECTURE.md so the generated-doc check still passes.
+    - Delete the tests covering the removed commands and mapping code paths, and update the tests that assert command counts, MCP tool inventory contents, archive merge behavior, generation output shape, migration output shape, and architecture rendering.
+    - Carry a delta spec against cli-foundation that retires the migration scenario requiring blank legacy mapping fields to be normalized into empty structured path collections.
+    - Strip the removed mapping flags from this repository's SKILL.md command invocations and from the skill packaging expectations in src/skills/model.ts, because the undeclared-mutation-flag policy check fails otherwise; the broader skill purge stays with the next planned change.
+    - Update .strict-spec-driven/architecture.yaml and inventory/yaml-mutation-surfaces.yaml so neither still points at the deleted modules or names the deleted commands as validation commands.
+  out:
+    - The architecture artifact component mapping and its drift reporting, which is rendered into ARCHITECTURE.md and therefore has a real consumer.
+    - The strict-spec-resync-code-mapping skill and mapping guidance in the remaining SKILL.md files, together with the repository-wide surviving-reference sweep and the coverage-threshold decision, which are owned by the purge-mapping-from-skills-and-prove-removal planned change.
+    - Any replacement traceability mechanism. This change removes a capability and substitutes nothing.
+    - Schema and artifact fields that use the word mapping for unrelated purposes, including design-system component mappings, skill command mappings, lesson, roadmap, and registry structures, and the YAML mapping phrasing used in parser diagnostics.
+unchanged_behavior:
+  - tech-status continues to report technical-standard summaries with identical output after getTechStatus is relocated out of the deleted file.
+  - Archive still merges delta spec requirements and delta tech rules into their targets, and still snapshots the archived change; only the mapping union is removed.
+  - Legacy .spec-driven/ migration still converts specs, changes, and roadmap state; only mapping emission stops.
+  - The architecture component implementation mapping, architecture-status drift reporting, and the architecture-edit mapping arguments keep their current behavior.
+  - Every other strict CLI command and MCP tool keeps its current name and output shape; the only arguments removed anywhere are the mapping path flags on generate delta-spec, generate delta-tech, spec-edit, and tech-edit.
+roadmap:
+  milestone: remove-artifact-file-mappings
+  planned_change: delete-mapping-commands-and-code

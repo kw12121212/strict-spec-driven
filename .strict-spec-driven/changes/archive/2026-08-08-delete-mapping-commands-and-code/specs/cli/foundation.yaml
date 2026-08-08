@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-migrate-supports-repository-self-hosting:
+      strength: MUST
+      statement: The system MUST allow a repository's actual bootstrap `.spec-driven/` workflow state to be migrated into `.strict-spec-driven/` output that is usable as the repository's active strict workflow state without rewriting the preserved bootstrap source artifacts.
+      scenarios:
+        self-host-cutover-migrates-repository-workflow-state:
+          - GIVEN: a repository contains bootstrap specs, roadmap artifacts, and archived or active changes under `.spec-driven/`
+          - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
+          - THEN: the command writes corresponding strict YAML workflow state under `.strict-spec-driven/`
+          - AND: the migrated output preserves the identities and relationships needed by strict workflow commands
+          - AND: the source `.spec-driven/` artifacts remain unchanged
+        self-host-cutover-ignores-legacy-mapping-frontmatter:
+          - GIVEN: a legacy spec or archived delta carries `mapping.implementation` or `mapping.tests` in its Markdown frontmatter, whether populated or blank
+          - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
+          - THEN: the migrated strict artifact carries no mapping field
+          - AND: the change is not deferred and no warning is raised only because the legacy mapping frontmatter was present or blank
+        roadmap-status-accepts-migrated-roadmap-index-paths:
+          - GIVEN: '`strict-spec-driven migrate` has produced strict roadmap state for the repository cutover'
+          - WHEN: '`strict-spec-driven roadmap-status` reads the migrated strict roadmap'
+          - THEN: migrated milestone paths resolve without reference diagnostics
+          - AND: roadmap status validation succeeds against the migrated roadmap index
+  REMOVED: {}

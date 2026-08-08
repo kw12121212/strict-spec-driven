@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: delete-mapping-commands-and-code
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Recorded in the milestone problem evidence: mapping is written by propose, apply, and archive and audited by verify-spec-mappings and verify-tech-mappings, but no CLI command or skill step ever reads a mapping to decide what to do. The dependency change already deleted the field from the schemas, live specs, and live standards, so the roughly 750 lines of audit implementation, the additive archive union, the generation defaults, the migration emission, and the two ARCHITECTURE.md columns now operate on a field nothing declares. It goes wrong for the maintainers of this repository and for external projects whose upgraded artifacts would still be audited and merged against a removed field.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Drawn from the milestone done criteria that this planned change owns: verify-spec-mappings and verify-tech-mappings are absent from CLI help, the command registry, command metadata, and the MCP tool inventory, and their implementation files are deleted, so invoking either name produces the standard unknown-command diagnostic; archiving a change performs no mapping merge; artifact generation and legacy migration produce artifacts with no mapping field; and ARCHITECTURE.md regenerates without the spec mapping count columns and matches its generated-doc check.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The dependency planned change remove-mapping-from-specs-and-schemas is complete, which is what makes this eligible now. roadmap-recommend reports it as the single eligible candidate out of twenty, and the remaining sibling purge-mapping-from-skills-and-prove-removal is blocked on it, so this is the only work that unblocks the milestone.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'Recorded in the milestone out-of-scope list and its scope evidence: the architecture artifact component mapping and its drift reporting stay untouched because they are rendered into ARCHITECTURE.md and have a real reader; no replacement traceability mechanism is introduced, since the milestone removes a capability and deliberately substitutes nothing; and fields that use the word mapping for unrelated purposes — design-system component mappings, skill command mappings, lesson, roadmap, and registry structures, and the YAML mapping phrasing in parser diagnostics — are not affected. The tech-status command must also keep its exact current output even though its implementation shares a file with the deleted audit. The skill purge, the repository-wide reference sweep, and the coverage-threshold decision belong to the next planned change, not this one.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The planned-change details fix the reading: delete the code, do not deprecate it. The milestone removal-versus-deprecation intake decision recommends deleting the two audit commands outright and letting the unknown-command diagnostic name the removal, because a no-op shim that always reports success is a worse failure mode than a clear error. The scope is the command and code surface only; the skill and documentation purge and the final repository sweep are the next planned change.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: mapping-flag-removal-sequencing
+    question: Should the delta-spec and delta-tech mapping flags (--implementation, --test, --enforcement, --remove-implementation, --remove-test, --remove-enforcement) and the matching no-op flags on spec-edit and tech-edit be deleted in this change, or accepted and ignored until the skill purge lands?
+    context: 'The planned change scope says to delete mapping arguments from artifact generation, and the delta argument parser rejects any unrecognized flag rather than ignoring it. Every installed SKILL.md that still documents these flags — including strict-roadmap-recommend, strict-spec-propose, strict-spec-apply, strict-spec-spec-edit, and strict-tech-edit — is stripped only by the next planned change, purge-mapping-from-skills-and-prove-removal. Impact: this decides whether the strict workflow is temporarily broken between the two planned changes, and it changes the scope of the implementation tasks remove-generation-mapping-args and remove-spec-tech-author-mapping-flags plus the generation regression in add-generation-migration-shape-regressions. It affects proposal scope, implementation files, and tests, but not the delta spec or any technical standard. Recommended answer: delete the flags now and land both planned changes before the workflow is exercised again, because keeping accept-and-ignore flags recreates the deprecated-shim failure mode the milestone rejected in its removal-versus-deprecation decision. The alternative, if an unbroken workflow between the two changes matters more, is to leave the flags parsing and discarding their values in this change and delete them in the skill purge, at the cost of one extra removal step.'
+    answer: Delete the flags in this change. Remove --implementation, --test, --enforcement, --remove-implementation, --remove-test, and --remove-enforcement from delta-spec and delta-tech generation, and remove the matching no-op path flags from spec-edit and tech-edit, keeping the strip of any residual mapping field on write. Invoking a removed flag fails with an unsupported-argument error, matching the milestone's rejection of deprecation shims. The strict workflow is knowingly broken for skill invocations that still pass these flags until purge-mapping-from-skills-and-prove-removal lands and the installed skill copies are refreshed; that is accepted rather than mitigated with an ignored-flag shim.
+    status: resolved
+    kind: technical
+    answered_by: human

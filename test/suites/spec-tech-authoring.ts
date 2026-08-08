@@ -112,8 +112,7 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
     const specPath = path.join(root, ".strict-spec-driven", "specs", "live-spec.yaml");
     const specIndexPath = path.join(root, ".strict-spec-driven", "specs", "INDEX.yaml");
     const createSpec = cli([
-      "spec-edit", "live-spec", "--title", "Live Spec", "--implementation", "src/live.ts",
-      "--implementation", "src/live.ts", "--test", "test/live.test.ts", "--requirement", "live-behavior",
+      "spec-edit", "live-spec", "--title", "Live Spec", "--requirement", "live-behavior",
       "--strength", "MUST", "--statement", "The live behavior MUST be observable.", "--scenario", "observe-live",
       "--given", "A live artifact", "--when", "The command authors it", "--then", "The behavior is recorded",
     ], { cwd: root });
@@ -132,8 +131,8 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
       "--scenario", "second-scenario", "--given", "Existing content", "--when", "One scenario is added", "--then", "Sibling content remains",
     ], { cwd: root }).status === 0, "spec-edit upserts one requirement and keyed scenario");
     context.assert(cli([
-      "spec-edit", "live-spec", "--remove-scenario", "live-behavior:observe-live", "--remove-implementation", "src/live.ts",
-    ], { cwd: root }).status === 0, "spec-edit accepts path flags as no-ops and removes exact scenario entries");
+      "spec-edit", "live-spec", "--remove-scenario", "live-behavior:observe-live",
+    ], { cwd: root }).status === 0, "spec-edit removes exact scenario entries");
     const updatedSpec = yaml.parseYamlFile<MainSpec>(specPath);
     context.assert(
       updatedSpec.mapping === undefined
@@ -152,19 +151,21 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
         && readFileSync(specIndexPath, "utf8") === indexBeforeMismatch,
       "spec identity/path rejection reports recovery metadata and preserves both files",
     );
-    const absoluteMapping = cli(["spec-edit", "live-spec", "--implementation", "C:\\outside.ts"], { cwd: root });
-    context.assert(
-      absoluteMapping.status !== 0
-        && readFileSync(specPath, "utf8") === specBeforeMismatch
-        && readFileSync(specIndexPath, "utf8") === indexBeforeMismatch,
-      "spec path-flag confinement still rejects Windows-style absolute paths without changing either artifact",
-    );
+    for (const removedFlag of ["--implementation", "--test", "--remove-implementation", "--remove-test"]) {
+      const removedMappingFlag = cli(["spec-edit", "live-spec", removedFlag, "src/live.ts"], { cwd: root });
+      context.assert(
+        removedMappingFlag.status !== 0
+          && readFileSync(specPath, "utf8") === specBeforeMismatch
+          && readFileSync(specIndexPath, "utf8") === indexBeforeMismatch,
+        `spec-edit rejects the removed mapping flag ${removedFlag} without changing either artifact`,
+        removedMappingFlag.stderr.trim(),
+      );
+    }
 
     const techPath = path.join(root, ".strict-spec-driven", "tech", "coding-rules.yaml");
     const techIndexPath = path.join(root, ".strict-spec-driven", "tech", "INDEX.yaml");
     const createTech = cli([
-      "tech-edit", "coding-rules", "--title", "Coding Rules", "--category", "coding",
-      "--implementation", "src/live.ts", "--enforcement", "test/live.test.ts", "--rule", "avoid-any",
+      "tech-edit", "coding-rules", "--title", "Coding Rules", "--category", "coding", "--rule", "avoid-any",
       "--strength", "SHOULD", "--statement", "Code SHOULD avoid any.", "--rationale", "Typed boundaries prevent drift.",
       "--method", "review", "--example-good", "Use unknown and narrow it.", "--exception", "Generated declarations may use any.",
     ], { cwd: root });
@@ -179,8 +180,16 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
     );
     context.assert(cli([
       "tech-edit", "coding-rules", "--rule", "avoid-any", "--detail", "Review changed TypeScript.",
-      "--remove-exception", "Generated declarations may use any.", "--remove-enforcement", "test/live.test.ts",
+      "--remove-exception", "Generated declarations may use any.",
     ], { cwd: root }).status === 0, "tech-edit updates one rule and removes exact list entries");
+    for (const removedFlag of ["--implementation", "--enforcement", "--remove-implementation", "--remove-enforcement"]) {
+      const removedTechMappingFlag = cli(["tech-edit", "coding-rules", removedFlag, "src/live.ts"], { cwd: root });
+      context.assert(
+        removedTechMappingFlag.status !== 0,
+        `tech-edit rejects the removed mapping flag ${removedFlag}`,
+        removedTechMappingFlag.stderr.trim(),
+      );
+    }
     const updatedTech = yaml.parseYamlFile<MainTech>(techPath);
     context.assert(
       updatedTech.mapping === undefined
@@ -259,8 +268,8 @@ export async function runSpecTechAuthoringSuite(context: TestContext): Promise<v
   try {
     cli(["init"], { cwd: copied.workspaceRoot });
     const result = cli([
-      "spec-edit", "todo-cli-authoring", "--title", "Todo CLI Authoring", "--implementation", "src/todos.ts",
-      "--test", "test/todos.test.ts", "--requirement", "todo-authoring", "--strength", "MUST",
+      "spec-edit", "todo-cli-authoring", "--title", "Todo CLI Authoring",
+      "--requirement", "todo-authoring", "--strength", "MUST",
       "--statement", "The copied project MUST accept live spec authoring.", "--scenario", "author-in-copy",
       "--given", "A copied project", "--when", "spec-edit runs", "--then", "The spec and index are created",
     ], { cwd: copied.workspaceRoot });

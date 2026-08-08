@@ -1,0 +1,87 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: delete-mapping-commands-and-code
+sections:
+  Implementation:
+    relocate-tech-status:
+      text: Move getTechStatus and the TechStatusResult, TechStandardSummary, and TechRuleSummary types out of src/cli/tech-mapping.ts into a dedicated module, and repoint the import in src/cli/cmd-operations.ts so tech-status keeps its current output.
+      status: complete
+    delete-mapping-audit-modules:
+      text: Delete src/cli/spec-mapping.ts and src/cli/tech-mapping.ts once tech-status no longer depends on them.
+      status: complete
+    remove-command-registration:
+      text: Remove verify-spec-mappings and verify-tech-mappings from the src/cli/registry.ts command list, the src/strict-spec-cli.ts dispatch table, and the runVerifySpecMappings and runVerifyTechMappings entrypoints and imports in src/cli/cmd-operations.ts.
+      status: complete
+    remove-command-metadata:
+      text: Delete the verify-spec-mappings and verify-tech-mappings entries from src/cli/command-metadata-entries.ts, including their usage strings, summaries, mcpDescriptions, and output descriptions.
+      status: complete
+    remove-mcp-surface:
+      text: Remove the verify_spec_mappings and verify_tech_mappings records from src/mcp/inventory.ts and their command bindings from src/mcp/tools.ts, and drop the verify-spec-mappings reference from the archive guidance text in src/mcp/prompts.ts.
+      status: complete
+    remove-archive-mapping-merge:
+      text: Remove the additive mapping union from applyDeltaToMainSpec and applyDeltaToMainTech in src/archive.ts, along with the delta mapping snapshots copied into the archived spec and tech artifacts and the now-unused mapping types.
+      status: complete
+    remove-generation-mapping-args:
+      text: Remove the mapping flags, their parsing in parseDeltaCommandInput, the mapping merge in buildDeltaInputFromArgs, and the empty mapping defaults in existingDeltaInput and emptyDeltaInput from src/cli/cmd-generation.ts for both delta-spec and delta-tech, and delete the corresponding flag documentation from src/cli/command-metadata-entries.ts.
+      status: complete
+    stop-migration-mapping-emission:
+      text: Remove getLegacySpecMapping and normalizeMappingPathList from src/migrate/parsers/shared.ts and the mapping fields they populate in src/migrate/parsers/specs.ts, so migration converts legacy Markdown without reading or emitting mapping frontmatter.
+      status: complete
+    remove-architecture-mapping-columns:
+      text: Stop src/architecture.ts from reading main-spec mapping for implementation and test counts, and remove the Implementation files and Test files columns from the rendered spec table while leaving component mapping rendering and mappingDrift untouched.
+      status: complete
+    regenerate-architecture-document:
+      text: Rebuild and regenerate ARCHITECTURE.md so the committed document matches the new renderer output and the generated-doc maintenance check passes.
+      status: complete
+      command: bun run build && strict-spec-cli architecture-generate
+    remove-spec-tech-author-mapping-flags:
+      text: Remove the no-op mapping path flags and normalizeMappingPath handling from src/spec-tech-author.ts and their documented entries in src/cli/command-metadata-entries.ts, keeping the strip of any residual mapping field on write.
+      status: complete
+  Testing:
+    delete-mapping-audit-tests:
+      text: Delete the test cases covering verify-spec-mappings and verify-tech-mappings across test/suites/operations.ts and test/suites/spec-tech-authoring.ts, and remove any fixtures that exist only to exercise mapping audit diagnostics.
+      status: complete
+    update-command-surface-tests:
+      text: Update test/suites/foundation-and-fixtures.ts, test/suites/mcp-server.ts, and test/suites/yaml-operation-matrix.ts for the reduced command registry, command metadata set, and MCP tool inventory, keeping the inventory cross-check assertions intact.
+      status: complete
+    add-unknown-command-regression:
+      text: Add a regression asserting that strict-spec-cli verify-spec-mappings and strict-spec-cli verify-tech-mappings each exit non-zero with the standard unknown-command diagnostic, proving the commands were deleted rather than turned into silent no-ops.
+      status: complete
+    add-archive-no-mapping-merge-regression:
+      text: Add a regression in test/suites/change-lifecycle.ts asserting that archiving a change whose delta artifacts carry a residual mapping field produces main spec, main tech, and archived artifacts with no mapping field.
+      status: complete
+    add-generation-migration-shape-regressions:
+      text: Add regressions asserting that generate delta-spec and delta-tech write artifacts with no mapping key and reject the removed mapping flags, and that migrating a legacy Markdown spec whose frontmatter carries mapping produces a strict artifact with no mapping field.
+      status: complete
+    add-architecture-render-regression:
+      text: Add a regression in test/suites/architecture-document.ts asserting the rendered spec table carries no Implementation files or Test files columns while component implementation mapping rendering and mappingDrift reporting are unchanged.
+      status: complete
+    run-unit-suite:
+      text: Run the project unit and regression suite against compiled output and confirm it passes.
+      status: complete
+      command: bun run build && bun test/run.ts
+    run-validation-suite:
+      text: Run the complete project regression with the coverage gate and record the measured src coverage against the declared threshold of 78.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready:
+      text: Confirm the change is ready with no open questions and no deterministic blockers.
+      status: complete
+      command: strict-spec-cli ready delete-mapping-commands-and-code
+    run-verify:
+      text: Verify the change artifacts, task completion, and delta-spec target validity before archive.
+      status: complete
+      command: strict-spec-cli verify delete-mapping-commands-and-code
+    run-maintenance-checks:
+      text: Confirm ARCHITECTURE.md is not stale, which is the condition the generated-doc maintenance check enforces.
+      status: complete
+      command: strict-spec-cli architecture-generate --check
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec against cli-foundation merges cleanly into the main spec on archive and that the archived change carries no mapping field, since this change alters archive merge behavior itself.
+      status: complete
+testing_gates:
+  validation_task: run-validation-suite
+  unit_test_task: run-unit-suite

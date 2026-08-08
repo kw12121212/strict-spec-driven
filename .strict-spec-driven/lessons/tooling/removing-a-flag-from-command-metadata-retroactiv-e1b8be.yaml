@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: removing-a-flag-from-command-metadata-retroactiv-e1b8be
+  title: Removing a flag from command metadata retroactively invalidates every skill that names it
+category: tooling
+status: active
+created_at: '2026-08-08T03:46:17.955Z'
+updated_at: '2026-08-08T03:46:17.955Z'
+context: This change deleted the mapping path flags from generate delta-spec, generate delta-tech, spec-edit, and tech-edit. The planned change scoped the SKILL.md purge to a separate follow-up, so no skill edits were planned here.
+observation: validate-skills and the project regression failed with skill.cli_only_yaml.undeclared_mutation_flag for eleven skill files, because the policy check asserts every flag a skill names is declared in the command metadata registry. Deleting the flag declaration turned every skill that documented it into a policy violation, so the change could not pass its own archive gate until the flag names were stripped from this repository's SKILL.md files in the same change.
+takeaway: 'Deleting a flag from the command metadata registry is not a self-contained CLI edit: it is a breaking change to every skill package that names that flag. Plan the flag removal and the skill-text edit as one unit, or the regression gate forces them together anyway.'
+applies_when: Removing or renaming a flag in src/cli/command-metadata-entries.ts, or planning a multi-change sequence that deletes CLI arguments in one change and updates skill prompts in a later one.
+occurrences:
+  - origin: delete-mapping-commands-and-code
+    date: '2026-08-08'
+    evidence: bun test/run.ts reported 30 failures naming skill.cli_only_yaml.undeclared_mutation_flag across strict-roadmap-recommend, strict-spec-auto, strict-spec-brainstorm, strict-spec-propose, strict-spec-propose-from-roadmap, and strict-spec-resync-code-mapping until the flag names were removed from those SKILL.md files.

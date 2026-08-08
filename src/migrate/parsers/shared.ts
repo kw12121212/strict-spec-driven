@@ -4,11 +4,6 @@ export type RequirementStrength = "MUST" | "SHOULD" | "MAY";
 
 export type ScenarioStepKind = "GIVEN" | "WHEN" | "THEN" | "AND";
 
-export type StrictSpecMapping = {
-  implementation: string[];
-  tests: string[];
-};
-
 export type StrictScenarioStep = Partial<Record<ScenarioStepKind, string>> & Record<string, string>;
 
 export type StrictScenarios = Record<string, StrictScenarioStep[]>;
@@ -61,16 +56,6 @@ export function makeUniqueId(baseId: string, usedIds: Set<string>): string {
   return candidate;
 }
 
-function normalizeMappingPathList(value: unknown, description: string): string[] {
-  if (value === undefined || value === null) {
-    return [];
-  }
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
-    throw new Error(`${description} must be a YAML sequence of strings`);
-  }
-  return value.map((entry) => normalizeWhitespace(entry));
-}
-
 export function extractMarkdownFrontmatter(content: string): {
   frontmatter: Record<string, unknown> | null;
   body: string;
@@ -93,29 +78,6 @@ export function extractMarkdownFrontmatter(content: string): {
   return {
     frontmatter,
     body: normalized.slice(endIndex + "\n---\n".length),
-  };
-}
-
-export function getLegacySpecMapping(frontmatter: Record<string, unknown> | null): StrictSpecMapping {
-  if (!frontmatter) {
-    return {
-      implementation: [],
-      tests: [],
-    };
-  }
-
-  const rawMapping = frontmatter.mapping;
-  if (rawMapping === undefined) {
-    return {
-      implementation: [],
-      tests: [],
-    };
-  }
-
-  const mapping = asObject(rawMapping, "legacy markdown frontmatter field 'mapping'");
-  return {
-    implementation: normalizeMappingPathList(mapping.implementation, "legacy mapping.implementation"),
-    tests: normalizeMappingPathList(mapping.tests, "legacy mapping.tests"),
   };
 }
 

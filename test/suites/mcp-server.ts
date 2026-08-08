@@ -203,7 +203,6 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(toolNames.includes("check_workflow_state"), "MCP read tools include workflow state check");
   context.assert(toolNames.includes("ready_change"), "MCP read tools include change readiness");
   context.assert(toolNames.includes("roadmap_recommend"), "MCP read tools include roadmap recommendation");
-  context.assert(toolNames.includes("verify_spec_mappings"), "MCP read tools include spec mapping audit");
   context.assert(toolNames.includes("harness_logs"), "MCP read tools include bounded harness logs");
   const mutatingToolNames = toolsModule.MUTATING_TOOL_DEFINITIONS.map((tool) => tool.name);
   context.assert(mutatingToolNames.includes("init_workflow"), "MCP mutating tools include workflow init");
@@ -272,8 +271,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   );
   const archivePrompt = promptsModule.renderStrictPrompt("strict_archive_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
   context.assert(
-    archivePrompt.includes("verify-spec-mappings")
-      && archivePrompt.includes("mandatory current-change tech-sync checkpoint")
+    archivePrompt.includes("mandatory current-change tech-sync checkpoint")
       && archivePrompt.includes("without absorbing unrelated repository drift")
       && archivePrompt.includes("operator-confirmed current-change delta-tech capture")
       && archivePrompt.includes("never defer a confirmed reusable convention until after archive")

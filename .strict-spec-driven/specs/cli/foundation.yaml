@@ -721,11 +721,11 @@ requirements:
         - THEN: the command writes corresponding strict YAML workflow state under `.strict-spec-driven/`
         - AND: the migrated output preserves the identities and relationships needed by strict workflow commands
         - AND: the source `.spec-driven/` artifacts remain unchanged
-      self-host-cutover-normalizes-blank-legacy-mappings:
-        - GIVEN: a legacy archived delta leaves `mapping.implementation` or `mapping.tests` blank in Markdown frontmatter
+      self-host-cutover-ignores-legacy-mapping-frontmatter:
+        - GIVEN: a legacy spec or archived delta carries `mapping.implementation` or `mapping.tests` in its Markdown frontmatter, whether populated or blank
         - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
-        - THEN: the migrated strict delta keeps those mapping fields as empty structured path collections
-        - AND: the change is not deferred only because the legacy mapping fields were blank
+        - THEN: the migrated strict artifact carries no mapping field
+        - AND: the change is not deferred and no warning is raised only because the legacy mapping frontmatter was present or blank
       roadmap-status-accepts-migrated-roadmap-index-paths:
         - GIVEN: '`strict-spec-driven migrate` has produced strict roadmap state for the repository cutover'
         - WHEN: '`strict-spec-driven roadmap-status` reads the migrated strict roadmap'

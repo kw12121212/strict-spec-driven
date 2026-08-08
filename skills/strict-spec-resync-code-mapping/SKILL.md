@@ -18,7 +18,7 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
-spec-edit: strict-spec-cli spec-edit <spec-id> [--implementation <path>] [--test <path>] [--remove-implementation <path>] [--remove-test <path>]
+spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
 verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 

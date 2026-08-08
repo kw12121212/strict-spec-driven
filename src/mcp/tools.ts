@@ -120,8 +120,6 @@ export const READ_ONLY_TOOL_DEFINITIONS: McpToolDefinition[] = [
     if (typeof args.artifactKind === "string") cliArgs.push(args.artifactKind);
     return cliArgs;
   }, optionalArtifactKindSchema),
-  command(inventoryFor("verify_spec_mappings"), () => ["verify-spec-mappings"]),
-  command(inventoryFor("verify_tech_mappings"), () => ["verify-tech-mappings"]),
   command(inventoryFor("tech_status"), () => ["tech-status"]),
   command(inventoryFor("harness_plan"), (args) => {
     const cliArgs = ["harness-plan"];

@@ -1904,12 +1904,6 @@ try {
     "cli-foundation",
     "--spec-path",
     "cli/foundation.yaml",
-    "--implementation",
-    "src/propose-generation.ts",
-    "--implementation",
-    "src/cli/cmd-generation.ts",
-    "--test",
-    "test/suites/foundation-and-fixtures.ts",
     "--operation",
     "ADDED",
     "--requirement",
@@ -2231,14 +2225,6 @@ try {
     "cli-foundation",
     "--spec-path",
     "cli/foundation.yaml",
-    "--implementation",
-    "src/propose-generation.ts",
-    "--implementation",
-    "src/propose-generation.ts",
-    "--implementation",
-    "src/cli/cmd-generation.ts",
-    "--test",
-    "test/suites/foundation-and-fixtures.ts",
     "--operation",
     "ADDED",
     "--requirement",
@@ -2459,8 +2445,22 @@ try {
   }>(readFileSync(directDeltaPath, "utf8"));
   context.assert(
     parsedDirectDelta.mapping === undefined,
-    "generate writes no mapping field even when path flags are supplied",
+    "generate writes no mapping field",
   );
+  for (const removedFlag of ["--implementation", "--test", "--remove-implementation", "--remove-test"]) {
+    const removedDeltaSpecFlag = cli([
+      "generate", directChangeName, "delta-spec",
+      "--target-spec", "cli-foundation",
+      "--spec-path", "cli/foundation.yaml",
+      removedFlag, "src/propose-generation.ts",
+    ], { cwd: generateTempDir });
+    context.assert(
+      removedDeltaSpecFlag.status !== 0
+        && readFileSync(directDeltaPath, "utf8") === scenarioAmendedBytes,
+      `generate delta-spec rejects the removed mapping flag ${removedFlag} and leaves the artifact unchanged`,
+      `stderr: ${removedDeltaSpecFlag.stderr.trim()}`,
+    );
+  }
   context.assert(
     Object.keys(parsedDirectDelta.operations.ADDED).length === 1
       && Object.keys(parsedDirectDelta.operations.MODIFIED).length === 1
@@ -2501,7 +2501,7 @@ try {
     "generate", scaffoldRoundTripChange, "delta-spec",
     "--target-spec", "cli-foundation",
     "--spec-path", "cli/empty-removal.yaml",
-    "--remove-implementation", "src/not-recorded.ts",
+    "--remove-requirement", "not-recorded",
   ], { cwd: generateTempDir });
   context.assert(
     emptyDeltaFromRemoval.status !== 0
@@ -2615,8 +2615,6 @@ try {
     "Error Handling",
     "--category",
     "coding",
-    "--implementation",
-    "src/errors.ts",
     "--operation",
     "ADDED",
     "--rule",
@@ -2668,7 +2666,7 @@ try {
   const parsedDeltaTech = yamlModule.parseYamlDocument<{
     target_standard: string;
     standard?: { title: string; category: string };
-    mapping: { implementation: string[]; enforcement: string[] };
+    mapping?: unknown;
     operations: {
       ADDED: Record<string, { enforcement: { method: string }; examples?: { good?: string[] }; exceptions?: string[] }>;
       MODIFIED: Record<string, { enforcement: { method: string; detail?: string } }>;
@@ -2676,6 +2674,7 @@ try {
     };
   }>(readFileSync(path.join(directChangeDir, "tech", "error-handling.yaml"), "utf8"));
   context.assert(parsedDeltaTech.standard?.category === "coding", "generate delta-tech writes the new-standard block");
+  context.assert(parsedDeltaTech.mapping === undefined, "generate delta-tech writes no mapping field");
   context.assert(
     parsedDeltaTech.operations.ADDED["wrap-errors"]?.enforcement.method === "review"
       && parsedDeltaTech.operations.ADDED["wrap-errors"]?.examples?.good?.length === 1

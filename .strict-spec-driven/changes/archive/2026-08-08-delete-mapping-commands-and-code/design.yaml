@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: delete-mapping-commands-and-code
+approach:
+  - 'Remove the mapping capability by following its data flow from the outside in: first the two audit commands and their public surfaces, then the writers that still produce mapping data during archive, generation, and migration, then the last reader in architecture rendering. Each removal deletes the code rather than neutering it, so a caller that still names a removed command or flag fails loudly instead of silently succeeding. The one surviving main-spec requirement that mandates mapping emission during migration is retired through a delta spec in the same change, so the spec and the code stop disagreeing at the same moment.'
+decisions:
+  delete-outright-no-deprecation-shims:
+    decision: Delete verify-spec-mappings and verify-tech-mappings outright, with no deprecated no-op retained, so invoking either name produces the standard unknown-command diagnostic.
+    rationale: A shim that always reports success is a worse failure mode for an external caller than a clear unknown-command error, and retaining shims preserves exactly the maintenance burden this milestone exists to remove. This follows the milestone removal-versus-deprecation intake decision.
+  relocate-tech-status-before-deleting-tech-mapping:
+    decision: Move getTechStatus and its TechStatusResult, TechStandardSummary, and TechRuleSummary types out of src/cli/tech-mapping.ts into their own module before deleting that file, and repoint the tech-status import in src/cli/cmd-operations.ts.
+    rationale: tech-status is a surviving command that this milestone does not touch, but its implementation happens to share a file with the mapping audit. Relocating it first keeps the deletion a pure removal of mapping behavior instead of an accidental removal of standard reporting.
+  drop-architecture-mapping-columns-without-substitute:
+    decision: Remove the Implementation files and Test files columns from the ARCHITECTURE.md spec table rather than replacing them with another statistic, and regenerate the document inside this change.
+    rationale: The milestone scope evidence records the user's choice to drop the columns rather than substitute a different count, and regenerating here keeps the generated-doc maintenance check passing instead of handing a known failure to the next planned change.
+  retire-migration-mapping-scenario-via-delta-spec:
+    decision: Carry a delta spec that modifies the cli-foundation requirement cli-migrate-supports-repository-self-hosting so it no longer requires blank legacy mapping fields to be normalized into empty structured path collections, preserving its other scenarios.
+    rationale: That scenario is the last main-spec requirement still mandating mapping emission, so removing the parser behavior without retiring it would leave this repository's own specs describing behavior its code no longer has.
+  keep-architecture-component-mapping:
+    decision: Leave the architecture artifact component implementation mapping, its drift reporting, and the architecture-edit mapping arguments completely untouched.
+    rationale: The component mapping is rendered into ARCHITECTURE.md and therefore has a real reader, which is the exact property the spec and standard file mappings lack and the reason they are being removed.
+  strip-mapping-flags-from-repository-skills:
+    decision: Remove the mapping flag names from this repository's SKILL.md command invocations and from src/skills/model.ts expectations in this change, while leaving the resync skill deletion and the remaining mapping prose to the next planned change.
+    rationale: The cli-only-yaml policy check fails a skill that names a flag the command metadata registry does not declare, so deleting the flags without this edit leaves the project regression red and the change unable to satisfy its own archive gate. Confining the edit to flag names keeps the skill purge itself in the planned change that owns it.
+alternatives:
+  - option: Retain verify-spec-mappings and verify-tech-mappings as deprecated commands that print a removal notice and exit zero.
+    reason: An external script that treats exit zero as a passing audit would silently lose its check, and the shims would need maintenance in every future CLI refactor.
+  - option: Delete src/cli/tech-mapping.ts wholesale and reimplement tech-status from scratch.
+    reason: tech-status behavior is out of milestone scope, and reimplementing it risks an unreviewed output change in a command this change promises to leave unchanged.
+  - option: Leave the migration parsers emitting mapping fields so legacy Markdown frontmatter round-trips losslessly.
+    reason: The strict schemas no longer declare mapping, so continuing to emit it would make migrate the one command that writes a field its own output schema rejects.
+risks:
+  - Removing the --implementation, --test, and --enforcement flags from delta-spec and delta-tech generation breaks every installed SKILL.md that still passes them, because the delta argument parser rejects unrecognized flags rather than ignoring them, and the skill purge lands in the next planned change.
+  - Deleting roughly 750 lines of well-covered implementation moves measured src coverage against the declared threshold of 78 in an unpredictable direction, and the coverage gate is the review evidence command.
+  - The two audit modules are referenced from the command registry, dispatch table, command metadata, MCP inventory, MCP tool list, and several test suites, so a partial removal can leave a registry entry or inventory record pointing at a deleted implementation and fail the inventory cross-check rather than a readable test.

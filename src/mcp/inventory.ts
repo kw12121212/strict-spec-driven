@@ -146,20 +146,6 @@ export const MCP_READ_ONLY_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     mutates: false,
   },
   {
-    name: "verify_spec_mappings",
-    description: mcpToolDescription("verify-spec-mappings"),
-    safety: "read",
-    cliCommand: "verify-spec-mappings",
-    mutates: false,
-  },
-  {
-    name: "verify_tech_mappings",
-    description: mcpToolDescription("verify-tech-mappings"),
-    safety: "read",
-    cliCommand: "verify-tech-mappings",
-    mutates: false,
-  },
-  {
     name: "tech_status",
     description: mcpToolDescription("tech-status"),
     safety: "read",

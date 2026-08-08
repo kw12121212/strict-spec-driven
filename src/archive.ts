@@ -42,10 +42,6 @@ type DeltaSpecArtifact = {
     title: string;
     path: string;
   };
-  mapping?: {
-    implementation?: string[];
-    tests?: string[];
-  };
   operations?: {
     ADDED?: Record<string, RequirementValue>;
     MODIFIED?: Record<string, RequirementValue>;
@@ -70,11 +66,6 @@ type TechRuleValue = {
   [key: string]: unknown;
 };
 
-type TechMapping = {
-  implementation: string[];
-  enforcement: string[];
-};
-
 type MainTechArtifact = {
   schema: string;
   schema_version: number;
@@ -85,7 +76,6 @@ type MainTechArtifact = {
     title: string;
     category: string;
   };
-  mapping: TechMapping;
   rules: Record<string, TechRuleValue>;
   [key: string]: unknown;
 };
@@ -96,7 +86,6 @@ type DeltaTechArtifact = {
     title: string;
     category: string;
   };
-  mapping?: TechMapping;
   operations?: {
     ADDED?: Record<string, TechRuleValue>;
     MODIFIED?: Record<string, TechRuleValue>;
@@ -249,10 +238,6 @@ function buildNewMainSpec(deltaSpec: DeltaSpecArtifact): MainSpecArtifact {
       id: deltaSpec.target_spec,
       title: deltaSpec.spec.title,
     },
-    mapping: {
-      implementation: [...(deltaSpec.mapping?.implementation ?? [])],
-      tests: [...(deltaSpec.mapping?.tests ?? [])],
-    },
     requirements: {},
   };
 }
@@ -332,17 +317,6 @@ function applyDeltaToMainSpec(
   }
 
   assertUniqueRequirementIds(mainSpec.requirements, specPath);
-
-  // Union the delta's implementation/test mapping into the main spec mapping,
-  // mirroring the tech delta-merge. An absent delta mapping is skipped so it
-  // never wipes the existing mapping, and empty delta arrays append nothing.
-  if (deltaSpec.mapping) {
-    const existingMapping = (mainSpec.mapping as { implementation?: string[]; tests?: string[] } | undefined) ?? {};
-    mainSpec.mapping = {
-      implementation: unionStringArrays(existingMapping.implementation, deltaSpec.mapping.implementation),
-      tests: unionStringArrays(existingMapping.tests, deltaSpec.mapping.tests),
-    };
-  }
 }
 
 function buildArchiveDestination(rootDir: string, changeName: string): string {
@@ -453,19 +427,6 @@ function collectMainTechPathsById(rootDir: string): Map<string, string> {
   return byId;
 }
 
-function unionStringArrays(existing: string[] | undefined, additions: string[] | undefined): string[] {
-  const result: string[] = [];
-  const seen = new Set<string>();
-  for (const value of [...(existing ?? []), ...(additions ?? [])]) {
-    if (typeof value !== "string" || seen.has(value)) {
-      continue;
-    }
-    seen.add(value);
-    result.push(value);
-  }
-  return result;
-}
-
 function applyTechOperations(
   rules: Record<string, TechRuleValue>,
   deltaTech: DeltaTechArtifact,
@@ -516,18 +477,6 @@ function applyDeltaToMainTech(
     throw new Error(`main tech '${techPath}' is missing rules`);
   }
 
-  if (deltaTech.mapping) {
-    // Mapping merge is additive: the delta unions its governed/enforcing paths
-    // into the standard's existing mapping rather than replacing it, so an empty
-    // or partial delta mapping never wipes paths the change did not touch. Use
-    // /strict-tech-edit for standalone path removal.
-    const existingMapping = mainTech.mapping ?? { implementation: [], enforcement: [] };
-    mainTech.mapping = {
-      implementation: unionStringArrays(existingMapping.implementation, deltaTech.mapping.implementation),
-      enforcement: unionStringArrays(existingMapping.enforcement, deltaTech.mapping.enforcement),
-    };
-  }
-
   if (deltaTech.standard) {
     mainTech.standard = {
       ...mainTech.standard,
@@ -555,10 +504,6 @@ function buildNewMainTech(deltaTech: DeltaTechArtifact): MainTechArtifact {
       id: deltaTech.target_standard,
       title: deltaTech.standard.title,
       category: deltaTech.standard.category,
-    },
-    mapping: {
-      implementation: [...(deltaTech.mapping?.implementation ?? [])],
-      enforcement: [...(deltaTech.mapping?.enforcement ?? [])],
     },
     rules: {},
   };

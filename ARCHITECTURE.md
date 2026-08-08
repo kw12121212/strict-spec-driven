@@ -103,21 +103,6 @@ Advances a change from proposed to archived: reports readiness and next state, m
 - `src/cli/cmd-change.ts`
 - `src/cli/changes.ts`
 
-### Mapping and Standards Audit (`mapping-audit`)
-
-Audits that spec implementation and test mappings and technical-standard implementation and enforcement mappings resolve to real repository files, and reports the registered standards with their rules and strengths.
-
-**Boundaries**
-
-- Reports drift; it never rewrites a mapping to make an audit pass.
-
-**Depends on:** `schema-validation`
-
-**Implementation**
-
-- `src/cli/spec-mapping.ts`
-- `src/cli/tech-mapping.ts`
-
 ### Generated Document Rendering (`document-render`)
 
 Provides the machinery both generated-document families share: schema-validated artifact loading, block assembly, generated-banner rendering, deterministic serialization, block-by-block check-mode comparison that attributes drift to a source artifact, and the output-path override.
@@ -142,7 +127,7 @@ Renders ARCHITECTURE.md deterministically from the architecture artifact plus th
 - Owns no source of truth of its own beyond the architecture artifact; specification and standards content is projected, never duplicated.
 - Deliberately not wired into verify, ready, or archive; staleness is an on-demand check.
 
-**Depends on:** `document-render`, `schema-validation`, `mapping-audit`
+**Depends on:** `document-render`, `schema-validation`
 
 **Implementation**
 
@@ -293,6 +278,20 @@ Validates that every bundled strict skill is packaged correctly: required frontm
 - `src/skills/diagnostics.ts`
 - `skills/marketplace.json`
 
+### Technical Standards Status (`standards-status`)
+
+Reads every registered technical standard and reports the standards, their rules, and their MUST/SHOULD/MAY strengths for tech-status.
+
+**Boundaries**
+
+- Read-only: it reports standards content and never edits a standard.
+
+**Depends on:** `schema-validation`
+
+**Implementation**
+
+- `src/cli/tech-status.ts`
+
 ## Data Flows
 
 ### Change Lifecycle (`change-lifecycle-flow`)
@@ -409,20 +408,20 @@ DESIGN.md is generated from the architecture artifact plus existing strict artif
 
 Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it references.
 
-| Spec | ID | Requirements | Implementation files | Test files |
-| --- | --- | --- | --- | --- |
-| [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 | 14 | 3 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 210 | 105 | 14 |
-| [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 120 | 85 | 9 |
-| [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 | 17 | 3 |
-| [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 | 21 | 7 |
-| [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 | 24 | 1 |
-| [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 | 11 | 1 |
-| [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 8 | 10 | 2 |
-| [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 21 | 34 | 3 |
-| [Sessions Domain Behavior](.strict-spec-driven/specs/sessions/domain-behavior.yaml) | `sessions-domain-behavior` | 5 | 15 | 5 |
-| [SOP Domain Behavior](.strict-spec-driven/specs/sop/domain-behavior.yaml) | `sop-domain-behavior` | 6 | 7 | 1 |
-| [Testing Coverage Gate](.strict-spec-driven/specs/testing/coverage-gate.yaml) | `testing-coverage-gate` | 4 | 3 | 1 |
+| Spec | ID | Requirements |
+| --- | --- | --- |
+| [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 206 |
+| [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 119 |
+| [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
+| [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 |
+| [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
+| [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
+| [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 8 |
+| [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 21 |
+| [Sessions Domain Behavior](.strict-spec-driven/specs/sessions/domain-behavior.yaml) | `sessions-domain-behavior` | 5 |
+| [SOP Domain Behavior](.strict-spec-driven/specs/sop/domain-behavior.yaml) | `sop-domain-behavior` | 6 |
+| [Testing Coverage Gate](.strict-spec-driven/specs/testing/coverage-gate.yaml) | `testing-coverage-gate` | 4 |
 
 ## Technical Standards
 
@@ -449,18 +448,20 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `enforce-minimum-coverage` — The complete project regression command recorded in review_evidence.project_regression MUST enforce the minimum src/** line coverage declared in the workflow config coverage contract, exiting non-zero below the declared threshold; the threshold MUST start at the measured baseline and only be raised deliberately, never silently lowered or removed.
 - **MUST** `test-helpers-isolate-developer-home` — Test helpers that spawn CLI subprocesses or exercise startup paths with home-directory side effects MUST redirect HOME, USERPROFILE, and recognized cache-root environment overrides to per-run temporary directories by default, with explicit per-call environment overrides still taking precedence, so the test suite never writes the developer's real home directory on any platform.
 - **MUST** `static-content-checks-prove-a-negative-case` — A static check over content that the same change generates or inserts MUST derive the set of files or entries it checks from a source independent of that generated content, MUST be proven by running a negative case in which the content is removed and the check is observed to fail, and MUST be proven by a positive case in which each matcher category is observed firing on realistic input, with any hand-enumerated set of governed files replaced by a scan. A green suite over generated content is not coverage evidence until both cases have been run at least once.
+- **MUST** `policy-enforcement-proven-through-shipped-entry-point` — A repository policy that blocks a class of authored guidance MUST be proven by a committed negative fixture driven through the shipped command an operator or agent actually runs, with the observed failure naming the offending file path, line, and policy category; a module-level scan of inline text is supporting evidence only and MUST NOT be the sole proof.
+- **MUST** `mutation-coverage-spans-every-agent-facing-surface` — The mutation-surface coverage registry MUST declare a cell for every artifact family on every agent-facing entry surface, including both the CLI and the MCP tool surface, and each not-applicable cell MUST record why that family has no entry point on that surface.
+- **MUST** `declared-surface-lists-are-checked-against-implementation` — When a coverage check derives its scope from a hand-maintained list inside a repository artifact — an inventory of surfaces, a family-to-tool mapping, a registry of owners — that list MUST itself be cross-checked against the implementation it describes, in both directions: an entry naming something the code does not provide, and a thing the code provides that no entry names, MUST both fail.
+- **MUST** `subprocess-spawning-code-under-test-receives-the-isolated-runner` — When the code under test spawns a subprocess on the suite's behalf rather than through a test helper, the suite MUST supply the isolated runner through that module's own injection point, and MUST NOT rely on the module's default runner, which inherits the developer's environment.
 
 ### [Workflow Scope Discipline](.strict-spec-driven/tech/workflow-scope-discipline.yaml) (`workflow-scope-discipline`) — architecture
 
 - **MUST** `contract-first-scope-changes` — When a change alters a workflow contract — a registered schema, a main or delta spec, or a technical standard — the corresponding strict artifact MUST be updated first; implementation code MUST NOT silently widen workflow scope ahead of the contract it depends on.
 - **MUST** `roadmap-commands-do-not-write-change-artifacts` — Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/; when a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
-- **MUST** `relocated-mappings-declare-their-cleanup` — A change that renames or deletes a file referenced by a strict spec mapping or a technical-standard mapping MUST record the stale mapping entries that archive's additive merge will leave behind, together with the standalone command that removes them, before the change archives.
 
 ### [YAML-First Artifact Authoring](.strict-spec-driven/tech/yaml-first-artifacts.yaml) (`yaml-first-artifacts`) — architecture
 
 - **MUST** `artifacts-are-strict-yaml` — All spec-driven workflow artifacts MUST be authored as strict YAML that validates against a registered schema, not as Markdown prose or ad hoc text.
 - **MUST** `scripts-own-mechanics` — Scripts MUST own filesystem mechanics, parsing, validation, and deterministic format enforcement; AI judgment belongs in skill prompts, not in scripts.
-- **SHOULD** `structured-fields-over-prose` — Spec-to-code links SHOULD live in structured mapping fields rather than being described in free-text prose.
 - **MUST** `generated-documents-are-not-hand-edited` — A human-readable document rendered from strict YAML MUST be produced only by its generator and carry a banner naming its YAML sources; neither the rendered document nor its repository-owned YAML sources may be hand-edited, so source changes MUST use the applicable artifact-aware CLI operation before re-rendering.
 - **MUST** `artifact-writes-are-non-destructive` — An artifact-authoring operation MUST affect only fields or named entries supplied in that invocation: scalar and keyed-item restatement overwrites only the named value, repeated list values append without duplicates, named removal deletes only the identified entry, and whole-artifact deletion is an isolated delete-only operation. Every unnamed field, item, list value, and sibling artifact MUST remain unchanged.
 - **MUST** `yaml-mutation-surfaces-stay-inventoried` — Every repository-owned YAML or YML artifact family and every repository code, CLI, MCP, skill, or documentation mutation surface MUST remain represented in inventory/yaml-mutation-surfaces.yaml with its ownership, supported operations, reference side effects, current CLI ownership or direct-write paths, and repository evidence; the dedicated inventory check MUST fail when coverage is missing, invalid, or stale.
@@ -469,3 +470,4 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `artifact-creation-persists-meaningful-state-only` — A YAML creation operation MUST persist only real caller-supplied or workflow-required state; blank documents, placeholder values, and empty artifact containers MUST NOT be written, and a rejected or failed first write MUST leave the target absent.
 - **MUST** `runtime-repository-evidence-is-embedded` — Repository-owned evidence a CLI command must read while running inside another project MUST be embedded in the bundled asset set and read embedded-first, with a working-tree read only as a fallback; a command MUST NOT depend on a repository path that exists only in this repository's checkout.
 - **MUST** `bundled-asset-writes-regenerate-derived-output` — A mutation of a repository-bundled asset that is embedded, registered, or referenced elsewhere MUST regenerate and revalidate its derived output inside the same transaction as the source write; regeneration MUST NOT be deferred to a separate command, build step, or post-write hook.
+- **MUST** `retired-schema-fields-leave-a-tombstone` — Retiring a field from a strict artifact schema MUST remove it from the schema's required list and replace its sub-schema with a description-only permissive allowance, rather than deleting the property, unless the change explicitly decides that artifacts still carrying the field must fail validation.

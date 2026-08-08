@@ -106,3 +106,13 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/deleting-a-property-from-a-closed-schema-turns-t-499934.yaml
+    removing-a-flag-from-command-metadata-retroactiv-e1b8be:
+      title: Removing a flag from command metadata retroactively invalidates every skill that names it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/removing-a-flag-from-command-metadata-retroactiv-e1b8be.yaml
+    a-deleted-but-unstaged-file-still-exists-to-any-0f7e75:
+      title: A deleted-but-unstaged file still exists to any check that discovers files through git ls-files
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-deleted-but-unstaged-file-still-exists-to-any-0f7e75.yaml

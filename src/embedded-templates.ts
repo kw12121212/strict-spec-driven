@@ -5814,6 +5814,15 @@ mutation_surfaces:
     evidence:
       - test/fixtures/policy-skills/README.md
       - test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit/SKILL.md
+families:
+  spec-state:
+    validation_command: verify <change-name>
+    reference_side_effects:
+      '0': Spec index entries must stay synchronized with the main spec files they name.
+  tech-state:
+    validation_command: tech-status
+    reference_side_effects:
+      '0': Tech index entries must stay synchronized with the standard files they name.
 `,
 };
 

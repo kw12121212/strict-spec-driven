@@ -285,7 +285,7 @@ run `init` from this skill.
     - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."`
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
-    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
+    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
       One requirement can include multiple scenario groups by repeating
       `--scenario`. A later compatible call for the same operation, requirement
       id, strength, and statement appends new scenario ids and remains idempotent
@@ -293,7 +293,7 @@ run `init` from this skill.
     - when this change must alter a technical standard (add, modify, or retire a
       rule, or introduce a new standard), generate strict YAML delta tech
       artifacts under `.strict-spec-driven/changes/<change-name>/tech/`:
-      `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] [--implementation "src/file.ts"] [--enforcement "config"] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
+      `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
       (use `--title`/`--category` to create a new standard; `REMOVED` rules take
       only `--reason`). Leave `tech/` absent when the change only complies with
       existing standards.

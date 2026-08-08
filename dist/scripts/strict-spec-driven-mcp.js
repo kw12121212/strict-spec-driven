@@ -36557,6 +36557,15 @@ mutation_surfaces:
     evidence:
       - test/fixtures/policy-skills/README.md
       - test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit/SKILL.md
+families:
+  spec-state:
+    validation_command: verify <change-name>
+    reference_side_effects:
+      '0': Spec index entries must stay synchronized with the main spec files they name.
+  tech-state:
+    validation_command: tech-status
+    reference_side_effects:
+      '0': Tech index entries must stay synchronized with the standard files they name.
 `
 };
 function getEmbeddedTemplateKeys() {
@@ -39938,8 +39947,8 @@ var COMMAND_METADATA_ENTRIES = {
       "  strict-spec-cli generate <change-name> design --delete",
       "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
       "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
-      "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
-      "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
+      "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
+      "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
     ].join(`
 `) + `
 `,
@@ -40054,36 +40063,12 @@ var COMMAND_METADATA_ENTRIES = {
         repeatSemantics: "Each value removes one scenario; removing an absent id is a no-op."
       },
       {
-        name: "--remove-test",
-        arity: "value",
-        valueLabel: "<path>",
-        description: "Delta-spec artifact only: drops this exact path from the test mapping.",
-        repeatable: true,
-        repeatSemantics: "Each value removes one mapping entry."
-      },
-      {
         name: "--remove-rule",
         arity: "value",
         valueLabel: "<id>",
         description: "Delta-tech artifact only: drops the rule with this id from every operation group.",
         repeatable: true,
         repeatSemantics: "Each value removes one rule; removing an absent id is a no-op."
-      },
-      {
-        name: "--remove-implementation",
-        arity: "value",
-        valueLabel: "<path>",
-        description: "Delta-spec and delta-tech artifacts: drops this exact path from the implementation mapping.",
-        repeatable: true,
-        repeatSemantics: "Each value removes one mapping entry."
-      },
-      {
-        name: "--remove-enforcement",
-        arity: "value",
-        valueLabel: "<path>",
-        description: "Delta-tech artifact only: drops this exact path from the enforcement mapping.",
-        repeatable: true,
-        repeatSemantics: "Each value removes one mapping entry."
       },
       {
         name: "--what",
@@ -40477,30 +40462,6 @@ var COMMAND_METADATA_ENTRIES = {
         description: "Delta-tech artifact only: a case the open --rule deliberately does not govern.",
         repeatable: true,
         repeatSemantics: "Appends unique exceptions to the rule in the order supplied."
-      },
-      {
-        name: "--implementation",
-        arity: "value",
-        valueLabel: "<path>",
-        description: "Delta-spec and delta-tech artifacts: an implementation file this delta maps to. Removed with --remove-implementation.",
-        repeatable: true,
-        repeatSemantics: "Appends unique paths in the order supplied."
-      },
-      {
-        name: "--test",
-        arity: "value",
-        valueLabel: "<path>",
-        description: "Delta-spec artifact only: a test file this delta maps to. Removed with --remove-test.",
-        repeatable: true,
-        repeatSemantics: "Appends unique paths in the order supplied."
-      },
-      {
-        name: "--enforcement",
-        arity: "value",
-        valueLabel: "<path>",
-        description: "Delta-tech artifact only: a file or configuration that enforces the standard. Removed with --remove-enforcement.",
-        repeatable: true,
-        repeatSemantics: "Appends unique paths in the order supplied."
       }
     ],
     output: {
@@ -40592,38 +40553,6 @@ var COMMAND_METADATA_ENTRIES = {
     exitCodes: SUCCESS_EXIT_CODES,
     notes: ["Read-only: unlike apply, this never mutates tasks.yaml."]
   },
-  "verify-spec-mappings": {
-    name: "verify-spec-mappings",
-    group: "operations",
-    summary: "Audit that strict spec implementation and test mappings resolve to real files.",
-    mcpDescription: "Audit strict spec implementation and test mappings.",
-    usage: `Usage: strict-spec-cli verify-spec-mappings
-`,
-    arguments: [],
-    flags: [],
-    output: {
-      format: "json",
-      keys: ["valid", "diagnostics"],
-      description: "A JSON audit result listing unresolved mapping entries."
-    },
-    exitCodes: VALIDITY_EXIT_CODES
-  },
-  "verify-tech-mappings": {
-    name: "verify-tech-mappings",
-    group: "operations",
-    summary: "Audit that technical-standard implementation and enforcement mappings resolve to real files.",
-    mcpDescription: "Audit strict technical-standard mappings.",
-    usage: `Usage: strict-spec-cli verify-tech-mappings
-`,
-    arguments: [],
-    flags: [],
-    output: {
-      format: "json",
-      keys: ["valid", "diagnostics"],
-      description: "A JSON audit result listing unresolved mapping entries."
-    },
-    exitCodes: VALIDITY_EXIT_CODES
-  },
   "tech-status": {
     name: "tech-status",
     group: "operations",
@@ -40651,8 +40580,6 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [
       { name: "--spec-path", arity: "value", valueLabel: "<repo-relative-path>", description: "Confined path below .strict-spec-driven/specs/; optional for creation and accepted on existing artifacts only when it matches the path resolved from the stable id." },
       { name: "--title", arity: "value", valueLabel: "<text>", description: "Set the main-spec title; required with a complete requirement when creating a spec." },
-      { name: "--implementation", arity: "value", valueLabel: "<path>", description: "Append one repo-relative implementation mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
-      { name: "--test", arity: "value", valueLabel: "<path>", description: "Append one repo-relative test mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
       { name: "--requirement", arity: "value", valueLabel: "<id>", description: "Select one keyed requirement to create or update; a new requirement also needs strength, statement, and a scenario." },
       { name: "--strength", arity: "value", valueLabel: "<MUST|SHOULD|MAY>", description: "Set the selected requirement strength." },
       { name: "--statement", arity: "value", valueLabel: "<text>", description: "Set the selected requirement statement." },
@@ -40663,8 +40590,6 @@ var COMMAND_METADATA_ENTRIES = {
       { name: "--and", arity: "value", valueLabel: "<text>", description: "Append an AND step to the selected scenario.", repeatable: true, repeatSemantics: "Repeated values preserve supplied order." },
       { name: "--remove-requirement", arity: "value", valueLabel: "<id>", description: "Remove only this keyed requirement; an absent id is a no-op.", repeatable: true },
       { name: "--remove-scenario", arity: "value", valueLabel: "<requirement-id>:<scenario-id>", description: "Remove only this keyed scenario from its requirement; an absent id is a no-op.", repeatable: true },
-      { name: "--remove-implementation", arity: "value", valueLabel: "<path>", description: "Remove this exact implementation mapping and preserve all others.", repeatable: true },
-      { name: "--remove-test", arity: "value", valueLabel: "<path>", description: "Remove this exact test mapping and preserve all others.", repeatable: true },
       { name: "--delete", arity: "boolean", description: "Delete the resolved main spec and its index entry in one isolated transaction; refused with editing flags, path mismatches, or active delta references." }
     ],
     output: {
@@ -40674,7 +40599,7 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
-      "Scalar and keyed restatement affects only the named content; mappings append uniquely and removals are exact.",
+      "Scalar and keyed restatement affects only the named content; removals are exact.",
       "Creation defaults to .strict-spec-driven/specs/<spec-id>.yaml and persists only after a title and complete requirement validate.",
       "Use schema-show main-spec and sample-show main-spec to inspect the artifact contract."
     ]
@@ -40691,8 +40616,6 @@ var COMMAND_METADATA_ENTRIES = {
       { name: "--tech-path", arity: "value", valueLabel: "<repo-relative-path>", description: "Confined path below .strict-spec-driven/tech/; optional for creation and accepted on existing artifacts only when it matches the path resolved from the stable id." },
       { name: "--title", arity: "value", valueLabel: "<text>", description: "Set the standard title; required with category and a complete rule when creating a standard." },
       { name: "--category", arity: "value", valueLabel: "<category>", description: "Set the registered technical-standard category." },
-      { name: "--implementation", arity: "value", valueLabel: "<path>", description: "Append one repo-relative implementation mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
-      { name: "--enforcement", arity: "value", valueLabel: "<path>", description: "Append one repo-relative enforcement mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
       { name: "--rule", arity: "value", valueLabel: "<id>", description: "Select one keyed rule to create or update; a new rule also needs strength, statement, rationale, and method." },
       { name: "--strength", arity: "value", valueLabel: "<MUST|SHOULD|MAY>", description: "Set the selected rule strength." },
       { name: "--statement", arity: "value", valueLabel: "<text>", description: "Set the selected rule statement." },
@@ -40706,8 +40629,6 @@ var COMMAND_METADATA_ENTRIES = {
       { name: "--remove-example-good", arity: "value", valueLabel: "<text>", description: "Remove this exact good example from the selected rule.", repeatable: true },
       { name: "--remove-example-bad", arity: "value", valueLabel: "<text>", description: "Remove this exact bad example from the selected rule.", repeatable: true },
       { name: "--remove-exception", arity: "value", valueLabel: "<text>", description: "Remove this exact exception from the selected rule.", repeatable: true },
-      { name: "--remove-implementation", arity: "value", valueLabel: "<path>", description: "Remove this exact implementation mapping and preserve all others.", repeatable: true },
-      { name: "--remove-enforcement", arity: "value", valueLabel: "<path>", description: "Remove this exact enforcement mapping and preserve all others.", repeatable: true },
       { name: "--delete", arity: "boolean", description: "Delete the resolved standard and its index entry in one isolated transaction; refused with editing flags, path mismatches, or active delta references." }
     ],
     output: {
@@ -40717,7 +40638,7 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
-      "Scalar and keyed restatement affects only the named content; mappings and rule lists append uniquely and removals are exact.",
+      "Scalar and keyed restatement affects only the named content; rule lists append uniquely and removals are exact.",
       "Creation defaults to .strict-spec-driven/tech/<standard-id>.yaml and persists only after a title, category, and complete rule validate.",
       "Use schema-show main-tech and sample-show main-tech to inspect the artifact contract."
     ]
@@ -42565,20 +42486,6 @@ var MCP_READ_ONLY_TOOL_INVENTORY = [
     mutates: false
   },
   {
-    name: "verify_spec_mappings",
-    description: mcpToolDescription("verify-spec-mappings"),
-    safety: "read",
-    cliCommand: "verify-spec-mappings",
-    mutates: false
-  },
-  {
-    name: "verify_tech_mappings",
-    description: mcpToolDescription("verify-tech-mappings"),
-    safety: "read",
-    cliCommand: "verify-tech-mappings",
-    mutates: false
-  },
-  {
     name: "tech_status",
     description: mcpToolDescription("tech-status"),
     safety: "read",
@@ -42869,9 +42776,9 @@ var MCP_PROMPT_DEFINITIONS = [
 `)),
   prompt("strict_archive_change", changeSchema, (args) => [
     `Use strict-spec-archive for change ${String(args.change)}.`,
-    "Before final verification, run the mandatory current-change tech-sync checkpoint over the selected change artifacts, mappings, attributable files, and applicable standards without absorbing unrelated repository drift.",
+    "Before final verification, run the mandatory current-change tech-sync checkpoint over the selected change artifacts, attributable files, and applicable standards without absorbing unrelated repository drift.",
     "Continue when existing standards or current delta tech cover the change; otherwise pause for operator-confirmed current-change delta-tech capture or explicit classification that the surfaced pattern is not reusable, and never defer a confirmed reusable convention until after archive.",
-    "After any delta-tech edit, review the artifact and rerun strict verification plus invalidated complete regression evidence. Archive only after verify and verify-spec-mappings pass and review evidence confirms the complete regression command passed for the final state.",
+    "After any delta-tech edit, review the artifact and rerun strict verification plus invalidated complete regression evidence. Archive only after verify passes and review evidence confirms the complete regression command passed for the final state.",
     "Use the raw archive command only as the deterministic mechanism that merges delta specs and delta tech, regenerates indexes, reconciles roadmap state, and moves the change.",
     "Do not manually move change directories or bypass archive preconditions."
   ].join(`
@@ -43178,8 +43085,6 @@ var READ_ONLY_TOOL_DEFINITIONS = [
       cliArgs.push(args.artifactKind);
     return cliArgs;
   }, optionalArtifactKindSchema),
-  command(inventoryFor("verify_spec_mappings"), () => ["verify-spec-mappings"]),
-  command(inventoryFor("verify_tech_mappings"), () => ["verify-tech-mappings"]),
   command(inventoryFor("tech_status"), () => ["tech-status"]),
   command(inventoryFor("harness_plan"), (args) => {
     const cliArgs = ["harness-plan"];

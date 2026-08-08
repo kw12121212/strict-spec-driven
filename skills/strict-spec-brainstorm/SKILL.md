@@ -284,12 +284,12 @@ run `init` from this skill.
     - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
-    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
+    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
       One requirement can include multiple scenario groups by repeating
       `--scenario`. A later compatible call for the same operation, requirement
       id, strength, and statement appends new scenario ids and remains idempotent
       for equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
-    - when the change alters a technical standard, `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] [--implementation "src/file.ts"] [--enforcement "config"] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
+    - when the change alters a technical standard, `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
     If the change has no observable spec impact, leave the `specs/` directory
     empty rather than inventing a prose-only file. Prefer one invocation per
     supported generated artifact (or per target spec for delta specs) so

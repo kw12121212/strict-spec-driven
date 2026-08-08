@@ -239,7 +239,7 @@ run `init` from this skill.
    - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."`
      Include impact analysis and recommendation/options in `--context`; do
      not pass nonexistent `--impact` or `--recommendation` flags.
-   - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
+   - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
      One requirement can include multiple scenario groups by repeating
      `--scenario`. A later compatible call for the same operation, requirement
      id, strength, and statement appends new scenario ids and remains idempotent

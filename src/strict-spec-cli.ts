@@ -25,7 +25,7 @@ import { runSopCategoryList, runSopCategoryShow, runSopCreate, runSopEdit, runSo
 import { runLessonCreate, runLessonEdit, runLessonList, runLessonObsolete, runLessonShow, runLessonStatus } from "./cli/cmd-lessons.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
-import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
+import { runShip, runValidateSkills, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSpecEdit, runTechEdit } from "./cli/cmd-spec-tech.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import { runYamlAuthoringProtocol } from "./cli/cmd-yaml-authoring-protocol.js";
@@ -122,8 +122,6 @@ export const commands = createCliCommandTable({
   verify: (argv) => runVerify(argv),
   ready: (argv) => runReady(argv),
   next: (argv) => runNext(argv),
-  "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
-  "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
   "tech-status": (argv) => runTechStatus(argv),
   "spec-edit": (argv) => runSpecEdit(argv),
   "tech-edit": (argv) => runTechEdit(argv),

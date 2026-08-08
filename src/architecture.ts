@@ -262,7 +262,7 @@ function renderSpecificationSurfaceBlock(rootDir: string): DocumentBlock {
     };
   }
 
-  lines.push("| Spec | ID | Requirements | Implementation files | Test files |", "| --- | --- | --- | --- | --- |");
+  lines.push("| Spec | ID | Requirements |", "| --- | --- | --- |");
 
   for (const rawSpec of specs) {
     const spec = asRecord(rawSpec);
@@ -270,17 +270,14 @@ function renderSpecificationSurfaceBlock(rootDir: string): DocumentBlock {
     const specPath = asText(spec.path);
     const specTitle = asText(spec.title) || specId;
     const mainSpec = specPath
-      ? readYamlIfPresent<{ requirements?: unknown; mapping?: unknown }>(path.join(rootDir, specPath), specPath)
+      ? readYamlIfPresent<{ requirements?: unknown }>(path.join(rootDir, specPath), specPath)
       : null;
 
     const requirementCount = mainSpec ? Object.keys(asRecord(mainSpec.requirements)).length : null;
-    const mapping = asRecord(mainSpec?.mapping);
-    const implementationCount = mainSpec ? asStringArray(mapping.implementation).length : null;
-    const testCount = mainSpec ? asStringArray(mapping.tests).length : null;
     const titleCell = specPath ? `[${specTitle}](${specPath})` : specTitle;
 
     lines.push(
-      `| ${titleCell} | \`${specId}\` | ${requirementCount ?? "—"} | ${implementationCount ?? "—"} | ${testCount ?? "—"} |`,
+      `| ${titleCell} | \`${specId}\` | ${requirementCount ?? "—"} |`,
     );
   }
 

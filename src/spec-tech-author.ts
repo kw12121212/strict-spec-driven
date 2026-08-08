@@ -33,8 +33,6 @@ export type MainSpecAuthorInput = {
   id: string;
   specPath?: string;
   title?: string;
-  implementation: string[];
-  tests: string[];
   requirement?: {
     id: string;
     strength?: string;
@@ -43,8 +41,6 @@ export type MainSpecAuthorInput = {
   };
   removeRequirements: string[];
   removeScenarios: string[];
-  removeImplementations: string[];
-  removeTests: string[];
   delete: boolean;
 };
 
@@ -53,8 +49,6 @@ export type MainTechAuthorInput = {
   techPath?: string;
   title?: string;
   category?: string;
-  implementation: string[];
-  enforcement: string[];
   rule?: {
     id: string;
     strength?: string;
@@ -70,8 +64,6 @@ export type MainTechAuthorInput = {
     removeExceptions: string[];
   };
   removeRules: string[];
-  removeImplementations: string[];
-  removeEnforcement: string[];
   delete: boolean;
 };
 
@@ -120,17 +112,6 @@ function listYamlFiles(directoryPath: string): string[] {
 
 function assertId(id: string, label: string): void {
   if (!ID_PATTERN.test(id)) throw new Error(`${label} must be a lowercase kebab-case id`);
-}
-
-function normalizeMappingPath(value: string, flagName: string): string {
-  const normalized = path.posix.normalize(value.replaceAll("\\", "/"));
-  const isAbsoluteLike = path.isAbsolute(value)
-    || path.posix.isAbsolute(normalized)
-    || /^[A-Za-z]:\//u.test(normalized);
-  if (!value || isAbsoluteLike || normalized === ".." || normalized.startsWith("../")) {
-    throw new Error(`${flagName} requires a normalized repo-relative path`);
-  }
-  return normalized;
 }
 
 function canonicalArtifactPath(
@@ -206,15 +187,13 @@ function removeValues(existing: string[], removals: string[]): string[] {
 }
 
 function hasSpecEditIntent(input: MainSpecAuthorInput): boolean {
-  return input.title !== undefined || input.implementation.length > 0 || input.tests.length > 0
-    || input.requirement !== undefined || input.removeRequirements.length > 0 || input.removeScenarios.length > 0
-    || input.removeImplementations.length > 0 || input.removeTests.length > 0;
+  return input.title !== undefined
+    || input.requirement !== undefined || input.removeRequirements.length > 0 || input.removeScenarios.length > 0;
 }
 
 function hasTechEditIntent(input: MainTechAuthorInput): boolean {
-  return input.title !== undefined || input.category !== undefined || input.implementation.length > 0
-    || input.enforcement.length > 0 || input.rule !== undefined || input.removeRules.length > 0
-    || input.removeImplementations.length > 0 || input.removeEnforcement.length > 0;
+  return input.title !== undefined || input.category !== undefined
+    || input.rule !== undefined || input.removeRules.length > 0;
 }
 
 function buildBaseSpec(input: MainSpecAuthorInput): RawRecord {
@@ -239,13 +218,8 @@ function applySpecInput(candidate: RawRecord, input: MainSpecAuthorInput, creati
   if (input.title !== undefined) header.title = input.title;
   candidate.spec = header;
 
-  // File mappings were removed from the strict YAML artifact model. The path flags still
-  // parse and normalize so existing callers keep working, but nothing is recorded, and any
-  // write strips a residual mapping field left by an artifact authored before the removal.
-  for (const value of input.implementation) normalizeMappingPath(value, "--implementation");
-  for (const value of input.tests) normalizeMappingPath(value, "--test");
-  for (const value of input.removeImplementations) normalizeMappingPath(value, "--remove-implementation");
-  for (const value of input.removeTests) normalizeMappingPath(value, "--remove-test");
+  // File mappings were removed from the strict YAML artifact model, so any write strips a
+  // residual mapping field left by an artifact authored before the removal.
   delete candidate.mapping;
 
   const requirements = asRecord(candidate.requirements);
@@ -348,12 +322,7 @@ function applyTechInput(candidate: RawRecord, input: MainTechAuthorInput, creati
   }
   candidate.standard = header;
 
-  // See applySpecInput: the path flags are accepted and normalized but no longer recorded,
-  // and any write strips a residual mapping field.
-  for (const value of input.implementation) normalizeMappingPath(value, "--implementation");
-  for (const value of input.enforcement) normalizeMappingPath(value, "--enforcement");
-  for (const value of input.removeImplementations) normalizeMappingPath(value, "--remove-implementation");
-  for (const value of input.removeEnforcement) normalizeMappingPath(value, "--remove-enforcement");
+  // See applySpecInput: any write strips a residual mapping field.
   delete candidate.mapping;
 
   const rules = asRecord(candidate.rules);

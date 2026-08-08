@@ -28,8 +28,8 @@ function usage(): string {
     "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>] | --delete",
     "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]... [--remove-question <id>]",
     "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
-    "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]... [--remove-requirement <id>] [--remove-scenario <requirement-id>:<scenario-id>] [--remove-implementation <path>] [--remove-test <path>] | --target-spec <id> --delete",
-    "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]... [--remove-rule <id>] [--remove-implementation <path>] [--remove-enforcement <path>] | --target-standard <id> --delete",
+    "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]... [--remove-requirement <id>] [--remove-scenario <requirement-id>:<scenario-id>] | --target-spec <id> --delete",
+    "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]... [--remove-rule <id>] | --target-standard <id> --delete",
   ].join("\n") + "\n";
 }
 
@@ -943,7 +943,6 @@ function existingDeltaInput(rootDir: string, changeName: string, targetSpec: str
   const input: GenerationInputRecord = {
     target_spec: artifact.target_spec ?? targetSpec,
     spec_path: relativeSpecPath,
-    mapping: isRecord(artifact.mapping) ? artifact.mapping : { implementation: [], tests: [] },
     operations: isRecord(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} },
   };
   if (isRecord(artifact.spec)) {
@@ -956,7 +955,6 @@ function emptyDeltaInput(targetSpec: string, specPath: string): GenerationInputR
   return {
     target_spec: targetSpec,
     spec_path: specPath,
-    mapping: { implementation: [], tests: [] },
     operations: { ADDED: {}, MODIFIED: {}, REMOVED: {} },
   };
 }
@@ -980,24 +978,16 @@ type DeltaCommandInput = {
   specPath?: string;
   title?: string;
   newSpecPath?: string;
-  implementation: string[];
-  tests: string[];
   requirements: DeltaRequirementGroup[];
   removedRequirements: string[];
   removedScenarios: string[];
-  removedImplementation: string[];
-  removedTests: string[];
 };
 
 function parseDeltaCommandInput(argv: string[], rootDir: string): DeltaCommandInput {
   const input: DeltaCommandInput = {
-    implementation: [],
-    tests: [],
     requirements: [],
     removedRequirements: [],
     removedScenarios: [],
-    removedImplementation: [],
-    removedTests: [],
   };
   let currentOperation: string | undefined;
   let hasPendingOperation = false;
@@ -1051,14 +1041,11 @@ function parseDeltaCommandInput(argv: string[], rootDir: string): DeltaCommandIn
     }
 
     const name = token.slice(2);
-    if (name === "remove-requirement" || name === "remove-scenario"
-      || name === "remove-implementation" || name === "remove-test") {
+    if (name === "remove-requirement" || name === "remove-scenario") {
       const value = readValue(name, index);
       index += 1;
       if (name === "remove-requirement") input.removedRequirements.push(value);
-      else if (name === "remove-scenario") input.removedScenarios.push(value);
-      else if (name === "remove-implementation") input.removedImplementation.push(value);
-      else input.removedTests.push(value);
+      else input.removedScenarios.push(value);
       continue;
     }
     if (name === "target-spec") {
@@ -1082,16 +1069,6 @@ function parseDeltaCommandInput(argv: string[], rootDir: string): DeltaCommandIn
     if (name === "new-spec-path") {
       if (input.newSpecPath !== undefined) throw new Error("--new-spec-path may only be supplied once");
       input.newSpecPath = readValue(name, index);
-      index += 1;
-      continue;
-    }
-    if (name === "implementation") {
-      input.implementation.push(readValue(name, index));
-      index += 1;
-      continue;
-    }
-    if (name === "test") {
-      input.tests.push(readValue(name, index));
       index += 1;
       continue;
     }
@@ -1171,19 +1148,6 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
     }
     input.spec = { title: commandInput.title, path: commandInput.newSpecPath };
   }
-
-  const mapping = isRecord(input.mapping) ? input.mapping : {};
-  const removedImplementation = new Set(commandInput.removedImplementation);
-  const removedTests = new Set(commandInput.removedTests);
-  mapping.implementation = uniqueStrings([
-    ...(Array.isArray(mapping.implementation) ? mapping.implementation as string[] : []),
-    ...commandInput.implementation,
-  ]).filter((entry) => !removedImplementation.has(entry));
-  mapping.tests = uniqueStrings([
-    ...(Array.isArray(mapping.tests) ? mapping.tests as string[] : []),
-    ...commandInput.tests,
-  ]).filter((entry) => !removedTests.has(entry));
-  input.mapping = mapping;
 
   const session = newWriteSession();
   const operations = isRecord(input.operations) ? input.operations : {};
@@ -1287,7 +1251,6 @@ function emptyDeltaTechInput(targetStandard: string, techPath: string): Generati
   return {
     target_standard: targetStandard,
     tech_path: techPath,
-    mapping: { implementation: [], enforcement: [] },
     operations: { ADDED: {}, MODIFIED: {}, REMOVED: {} },
   };
 }
@@ -1309,7 +1272,6 @@ function existingDeltaTechInput(
   const input: GenerationInputRecord = {
     target_standard: artifact.target_standard ?? targetStandard,
     tech_path: relativeTechPath,
-    mapping: isRecord(artifact.mapping) ? artifact.mapping : { implementation: [], enforcement: [] },
     operations: isRecord(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} },
   };
   if (isRecord(artifact.standard)) {
@@ -1334,25 +1296,17 @@ type TechRuleGroup = {
 
 type DeltaTechCommandInput = {
   removedRules: string[];
-  removedImplementation: string[];
-  removedEnforcement: string[];
   targetStandard?: string;
   techPath?: string;
   title?: string;
   category?: string;
-  implementation: string[];
-  enforcement: string[];
   rules: TechRuleGroup[];
 };
 
 function parseDeltaTechCommandInput(argv: string[], rootDir: string): DeltaTechCommandInput {
   const input: DeltaTechCommandInput = {
-    implementation: [],
-    enforcement: [],
     rules: [],
     removedRules: [],
-    removedImplementation: [],
-    removedEnforcement: [],
   };
   let currentOperation: string | undefined;
   let hasPendingOperation = false;
@@ -1388,12 +1342,9 @@ function parseDeltaTechCommandInput(argv: string[], rootDir: string): DeltaTechC
     }
 
     const name = token.slice(2);
-    if (name === "remove-rule" || name === "remove-implementation" || name === "remove-enforcement") {
-      const value = readValue(name, index);
+    if (name === "remove-rule") {
+      input.removedRules.push(readValue(name, index));
       index += 1;
-      if (name === "remove-rule") input.removedRules.push(value);
-      else if (name === "remove-implementation") input.removedImplementation.push(value);
-      else input.removedEnforcement.push(value);
       continue;
     }
     if (name === "target-standard") {
@@ -1417,16 +1368,6 @@ function parseDeltaTechCommandInput(argv: string[], rootDir: string): DeltaTechC
     if (name === "category") {
       if (input.category !== undefined) throw new Error("--category may only be supplied once");
       input.category = readValue(name, index);
-      index += 1;
-      continue;
-    }
-    if (name === "implementation") {
-      input.implementation.push(readValue(name, index));
-      index += 1;
-      continue;
-    }
-    if (name === "enforcement") {
-      input.enforcement.push(readValue(name, index));
       index += 1;
       continue;
     }
@@ -1504,20 +1445,6 @@ function buildDeltaTechInputFromArgs(rootDir: string, changeName: string, argv: 
     }
     input.standard = { title: commandInput.title, category: commandInput.category };
   }
-
-  const mapping = isRecord(input.mapping) ? input.mapping : {};
-  mapping.implementation = uniqueStrings([
-    ...(Array.isArray(mapping.implementation) ? mapping.implementation as string[] : []),
-    ...commandInput.implementation,
-  ]);
-  const removedTechImplementation = new Set(commandInput.removedImplementation);
-  const removedEnforcement = new Set(commandInput.removedEnforcement);
-  mapping.enforcement = uniqueStrings([
-    ...(Array.isArray(mapping.enforcement) ? mapping.enforcement as string[] : []),
-    ...commandInput.enforcement,
-  ]).filter((entry) => !removedEnforcement.has(entry));
-  mapping.implementation = (mapping.implementation as string[]).filter((entry) => !removedTechImplementation.has(entry));
-  input.mapping = mapping;
 
   const operations = isRecord(input.operations) ? input.operations : {};
   for (const ruleId of commandInput.removedRules) {

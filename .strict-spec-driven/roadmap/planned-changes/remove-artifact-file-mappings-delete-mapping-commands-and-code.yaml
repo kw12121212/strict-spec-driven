@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: delete-mapping-commands-and-code
   milestone: remove-artifact-file-mappings
-status: planned
+status: complete
 summary: Delete the mapping audit commands and every code path that reads or writes a mapping.
 details: Delete src/cli/spec-mapping.ts and src/cli/tech-mapping.ts, remove the verify-spec-mappings and verify-tech-mappings entries from the command registry, CLI usage and help, command metadata, and the MCP tool and inventory definitions, and delete their tests. Follow the removal-versus-deprecation decision so invoking either name produces the standard unknown-command diagnostic rather than a silent no-op. Remove the additive mapping union from applyDeltaToMainSpec and applyDeltaToMainTech, delete mapping arguments and defaults from proposal generation and artifact generation, and stop the legacy migration parsers from emitting mapping fields. Stop architecture rendering from reading main-spec mapping for implementation and test counts, drop those columns from ARCHITECTURE.md, and regenerate the document so its generated-doc check still passes. Leave the architecture component mapping and its drift reporting untouched, since that mapping is rendered and therefore has a reader.
 depends_on:

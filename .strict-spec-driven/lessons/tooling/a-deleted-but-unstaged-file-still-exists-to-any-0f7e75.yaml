@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-deleted-but-unstaged-file-still-exists-to-any-0f7e75
+  title: A deleted-but-unstaged file still exists to any check that discovers files through git ls-files
+category: tooling
+status: active
+created_at: '2026-08-08T03:46:28.246Z'
+updated_at: '2026-08-08T03:46:28.246Z'
+context: After deleting src/cli/spec-mapping.ts and src/cli/tech-mapping.ts from the working tree, inventory-edit was run to update the YAML mutation inventory.
+observation: 'inventory-edit failed with a discovery-failed diagnostic reading ENOENT: no such file or directory, open ''src/cli/spec-mapping.ts'', which reads as a stale inventory reference even though no inventory entry named that file. The repository coverage check enumerates files with git ls-files -co, and a tracked file deleted from the working tree is still listed until the deletion is staged. Staging just the two deletions made the command succeed with no other change.'
+takeaway: When a check that scans repository files fails on a file you just deleted, stage the deletion before hunting for a stale reference. git ls-files reports the index, not the working tree, so an unstaged rm is invisible to the tool and the resulting ENOENT points at the file rather than at the staging state.
+applies_when: Deleting tracked source files in a change, then running any repository check, coverage gate, or CLI command that discovers its scope through git ls-files rather than by walking the filesystem.
+occurrences:
+  - origin: delete-mapping-commands-and-code
+    date: '2026-08-08'
+    evidence: strict-spec-cli inventory-edit exited 1 with code discovery-failed and message ENOENT ... src/cli/spec-mapping.ts; git add -- src/cli/spec-mapping.ts src/cli/tech-mapping.ts made the identical invocation commit successfully.

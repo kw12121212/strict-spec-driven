@@ -316,10 +316,10 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 
 9. **Generate strict YAML delta specs only when specs change** — run this step
    only when the change has observable spec impact. Use one direct CLI
-   invocation per target spec and include all mapping paths and requirement
-   operations needed for that target in the same command:
+   invocation per target spec and include all requirement operations needed for
+   that target in the same command:
    ```bash
-   strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."
+   strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."
    ```
    One requirement can include multiple scenario groups by repeating
    `--scenario`. A later compatible call for the same operation, requirement id,

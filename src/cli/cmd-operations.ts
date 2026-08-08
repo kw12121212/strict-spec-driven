@@ -9,8 +9,7 @@ import { getCommandUsage } from "./command-metadata.js";
 import { findArchivedMatchesByBareName, getArchiveDir, listArchivedChanges } from "./changes.js";
 import { normalizeRepoRelativePath } from "./fs.js";
 import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
-import { verifySpecMappings } from "./spec-mapping.js";
-import { getTechStatus, verifyTechMappings } from "./tech-mapping.js";
+import { getTechStatus } from "./tech-status.js";
 
 export type ShipResult = {
   changeName: string;
@@ -98,34 +97,6 @@ export function runValidateSkills(argv: string[]): number {
   }
 
   const result = validateStrictSkillPackaging(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
-}
-
-export function runVerifySpecMappings(argv: string[]): number {
-  if (handleHelpRequest("verify-spec-mappings", argv)) {
-    return 0;
-  }
-  if (argv.length > 0) {
-    writeUsage(getCommandUsage("verify-spec-mappings"));
-    return 1;
-  }
-
-  const result = verifySpecMappings(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
-}
-
-export function runVerifyTechMappings(argv: string[]): number {
-  if (handleHelpRequest("verify-tech-mappings", argv)) {
-    return 0;
-  }
-  if (argv.length > 0) {
-    writeUsage(getCommandUsage("verify-tech-mappings"));
-    return 1;
-  }
-
-  const result = verifyTechMappings(process.cwd());
   writeJson(result);
   return result.valid ? 0 : 1;
 }

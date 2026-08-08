@@ -5302,11 +5302,8 @@ try {
     "migrate derives strict main spec identity from legacy spec path and heading",
   );
   context.assert(
-    JSON.stringify(migratedMainSpec.mapping) === JSON.stringify({
-      implementation: ["src/example.ts"],
-      tests: ["test/example.test.ts"],
-    }),
-    "migrate preserves legacy main spec mappings",
+    migratedMainSpec.mapping === undefined,
+    "migrate writes no mapping field when legacy main spec frontmatter declares one",
     `got ${JSON.stringify(migratedMainSpec.mapping)}`,
   );
   context.assert(
@@ -5392,11 +5389,9 @@ try {
     "migrate derives migrated delta target_spec from legacy delta path",
   );
   context.assert(
-    JSON.stringify(migratedActiveDelta.mapping) === JSON.stringify({
-      implementation: ["src/migrate.ts"],
-      tests: ["test/run.ts"],
-    }),
-    "migrate preserves legacy delta spec mappings",
+    migratedActiveDelta.mapping === undefined,
+    "migrate writes no mapping field when legacy delta spec frontmatter declares one",
+    `got ${JSON.stringify(migratedActiveDelta.mapping)}`,
   );
   context.assert(
     "delta-added" in migratedActiveDelta.operations.ADDED,
@@ -5494,11 +5489,8 @@ try {
     "migrate preserves archived delta target spec when legacy mapping fields are blank",
   );
   context.assert(
-    JSON.stringify(migratedArchivedEmptyMappingDelta.mapping) === JSON.stringify({
-      implementation: [],
-      tests: [],
-    }),
-    "migrate normalizes blank legacy mapping fields to empty arrays",
+    migratedArchivedEmptyMappingDelta.mapping === undefined,
+    "migrate writes no mapping field when legacy mapping frontmatter is blank, and does not defer the change",
     `got ${JSON.stringify(migratedArchivedEmptyMappingDelta.mapping)}`,
   );
   context.assert(

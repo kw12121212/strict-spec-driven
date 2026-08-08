@@ -12,16 +12,14 @@ import { writeError, writeJson, writeUsage } from "./output.js";
 type FlagMap = Record<string, string[]>;
 
 export const SPEC_EDIT_FLAGS = [
-  "spec-path", "title", "implementation", "test", "requirement", "strength", "statement", "scenario",
-  "given", "when", "then", "and", "remove-requirement", "remove-scenario", "remove-implementation",
-  "remove-test", "delete",
+  "spec-path", "title", "requirement", "strength", "statement", "scenario",
+  "given", "when", "then", "and", "remove-requirement", "remove-scenario", "delete",
 ] as const;
 
 export const TECH_EDIT_FLAGS = [
-  "tech-path", "title", "category", "implementation", "enforcement", "rule", "strength", "statement",
+  "tech-path", "title", "category", "rule", "strength", "statement",
   "rationale", "method", "detail", "example-good", "example-bad", "exception", "remove-rule",
-  "remove-example-good", "remove-example-bad", "remove-exception", "remove-implementation",
-  "remove-enforcement", "delete",
+  "remove-example-good", "remove-example-bad", "remove-exception", "delete",
 ] as const;
 
 function parseFlags(argv: string[], allowed: readonly string[]): FlagMap {
@@ -84,8 +82,7 @@ function parseSpecInput(id: string, argv: string[]): MainSpecAuthorInput {
     id,
     specPath: one(flags, "spec-path"),
     title: one(flags, "title"),
-    implementation: many(flags, "implementation"),
-    tests: many(flags, "test"),
+
     ...(requirementId === undefined ? {} : {
       requirement: {
         id: requirementId,
@@ -96,8 +93,7 @@ function parseSpecInput(id: string, argv: string[]): MainSpecAuthorInput {
     }),
     removeRequirements: many(flags, "remove-requirement"),
     removeScenarios: many(flags, "remove-scenario"),
-    removeImplementations: many(flags, "remove-implementation"),
-    removeTests: many(flags, "remove-test"),
+
     delete: flags.delete !== undefined,
   };
 }
@@ -117,8 +113,7 @@ function parseTechInput(id: string, argv: string[]): MainTechAuthorInput {
     techPath: one(flags, "tech-path"),
     title: one(flags, "title"),
     category: one(flags, "category"),
-    implementation: many(flags, "implementation"),
-    enforcement: many(flags, "enforcement"),
+
     ...(ruleId === undefined ? {} : {
       rule: {
         id: ruleId,
@@ -136,8 +131,7 @@ function parseTechInput(id: string, argv: string[]): MainTechAuthorInput {
       },
     }),
     removeRules: many(flags, "remove-rule"),
-    removeImplementations: many(flags, "remove-implementation"),
-    removeEnforcement: many(flags, "remove-enforcement"),
+
     delete: flags.delete !== undefined,
   };
 }

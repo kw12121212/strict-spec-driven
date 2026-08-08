@@ -234,6 +234,16 @@ export async function runArchitectureDocumentSuite(context: TestContext): Promis
       "specification surface projects the spec index entry",
     );
     context.assert(
+      firstRender.includes("| Spec | ID | Requirements |")
+        && !firstRender.includes("Implementation files")
+        && !firstRender.includes("Test files"),
+      "specification surface table carries no spec mapping implementation or test count columns",
+    );
+    context.assert(
+      firstRender.includes("**Implementation**"),
+      "component rendering still projects the architecture component implementation mapping",
+    );
+    context.assert(
       firstRender.includes("**MUST** `fixture-rule`"),
       "technical standards section projects the standard's rule and strength",
     );

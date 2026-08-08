@@ -348,7 +348,7 @@ run `init` from this skill.
    invocation per target spec and include all mapping paths and requirement
    operations needed for that target in the same command:
     ```bash
-    strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..." --operation MODIFIED --requirement <requirement-id> --strength MUST --statement "..."
+    strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..." --operation MODIFIED --requirement <requirement-id> --strength MUST --statement "..."
     ```
    One requirement can include multiple scenario groups by repeating
    `--scenario`. A later compatible call for the same operation, requirement id,
@@ -371,17 +371,14 @@ run `init` from this skill.
     `.strict-spec-driven/changes/<change-name>/tech/` with one direct CLI
     invocation per target standard:
     ```bash
-    strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> --implementation "src/file.ts" --enforcement "eslint.config.js" --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review --operation REMOVED --rule <rule-id> --reason "..."
+    strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review --operation REMOVED --rule <rule-id> --reason "..."
     ```
     `ADDED`/`MODIFIED` rules require `--strength`, `--statement`, `--rationale`,
     and `--method` (one of lint, ci, test, review, manual), with optional
     `--detail`, `--example-good`, `--example-bad`, and `--exception`; `REMOVED`
     rules take only `--reason`. To introduce a brand new standard, pass
     `--target-standard <new-id> --title "..." --category <category>`; archive
-    creates the standard file and merges the rules. The `mapping` (built from
-    `--implementation`/`--enforcement`) is additive: archive unions these paths
-    into the standard's existing mapping, so list only the paths this change adds
-    rather than restating the whole set. Run
+    creates the standard file and merges the rules. Run
     `strict-spec-cli schema-show delta-tech` if
     you need the full contract. Leave the `tech/` directory absent when the
     change only complies with existing standards and changes none of them.
