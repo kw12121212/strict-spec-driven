@@ -51,7 +51,6 @@
 | `roadmap-sync [--fix-names]` | 协调并重新生成严格路线图索引；`--fix-names` 将命名不规范的 planned-change 文件重命名为规范文件名 |
 | `roadmap-generate milestone` | 通过结构化命名参数创建或更新严格路线图里程碑 |
 | `roadmap-generate planned-change` | 在 CLI 计算的规范文件名处创建或更新独立 planned-change 工件 |
-| `verify-spec-mappings` | 审计规范实现和测试映射覆盖率 |
 | `validate-skills` | 验证严格 Skill 打包元数据和命令脚本符号链接 |
 | `schema-list` | 列出捆绑的严格 schema 资源键 |
 | `schema-show <name>` | 输出一个捆绑的严格 schema 资源 |
@@ -101,7 +100,6 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
 | `/strict-spec-design` | 编写或刷新设计系统制品并渲染 `DESIGN.md` |
 | `/strict-spec-design-sync` | 将设计系统制品与 UI 代码漂移对账同步 |
-| `/strict-spec-resync-code-mapping` | 修复规范实现和测试映射 |
 | `/strict-spec-maintenance` | 运行仓库维护工作流 |
 
 **严格路线图 Skills**（`strict-roadmap-*`）：

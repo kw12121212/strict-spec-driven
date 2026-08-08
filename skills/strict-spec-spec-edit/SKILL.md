@@ -20,7 +20,6 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
 ## Prerequisites
@@ -45,7 +44,7 @@ This skill writes `spec-state`.
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli spec-edit`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli verify-spec-mappings`
+7. **Run the artifact's validation command** — `strict-spec-cli check-workflow-state`
 
 **Stop rather than edit YAML directly.**
 
@@ -113,8 +112,6 @@ run `init` from this skill.
      --scenario <id> --given <text> --when <text> --then <text>`
    - update one requirement or scenario by restating its id and only the fields
      that changed; unnamed content is preserved
-   - add mappings with repeatable `--implementation` and `--test`; remove exact
-     paths with `--remove-implementation` and `--remove-test`
    - remove keyed content with `--remove-requirement <id>` or
      `--remove-scenario <requirement-id>:<scenario-id>`
    - use an isolated `spec-edit <spec-id> --delete` only when the confirmed
@@ -127,9 +124,6 @@ run `init` from this skill.
    - each edited file remains valid strict YAML
    - requirement and scenario structures still match the strict schema contract
    - the command result reports both the main artifact and reconciled index
-   - mapping fields still use normalized repo-relative paths
-
-   Run `verify-spec-mappings` when mapping fields changed.
 
 8. **Summarize** — tell the user which strict YAML spec files changed, what was
    added, modified, or removed, and whether `INDEX.yaml` was updated.
@@ -143,7 +137,5 @@ run `init` from this skill.
 - Describe observable behavior only, not implementation details
 - Do not implement product code
 - Do not create or interact with `.strict-spec-driven/changes/`
-- Keep mappings in `mapping.implementation` and `mapping.tests`, not in
-  requirement prose
 - Never hand-edit main-spec or spec-index YAML; express every mutation through
   `strict-spec-cli spec-edit` with named arguments

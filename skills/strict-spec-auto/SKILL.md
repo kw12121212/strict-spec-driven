@@ -27,7 +27,6 @@ apply: strict-spec-cli apply <change-name>
 verify: strict-spec-cli verify <change-name>
 ready: strict-spec-cli ready <change-name>
 next: strict-spec-cli next <change-name>
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 archive: strict-spec-cli archive <change-name>
 ```
 
@@ -78,7 +77,7 @@ This skill writes `change-planning-state`, `change-delta-state`, `spec-state`, `
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli propose`, `strict-spec-cli generate`, `strict-spec-cli apply`, `strict-spec-cli archive`, `strict-spec-cli lesson-create`, `strict-spec-cli lesson-edit`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli verify <change-name>`, `strict-spec-cli verify-spec-mappings`, `strict-spec-cli verify-tech-mappings`, `strict-spec-cli lesson-status`
+7. **Run the artifact's validation command** — `strict-spec-cli verify <change-name>`, `strict-spec-cli lesson-status`
 
 **Stop rather than edit YAML directly.**
 
@@ -176,9 +175,9 @@ explicit human decision; a fabricated answer passes silently and is worse.
 Before implementation handoff or automatic implementation, perform the required
 plain change-intake checklist from the strict workflow contract. First use
 project evidence to answer every recoverable item: `.strict-spec-driven/config.yaml`,
-relevant strict specs, technical standards, existing change artifacts, mapped
-implementation and test files, `git status`, and focused code search for the
-affected behavior.
+relevant strict specs, technical standards, existing change artifacts, the
+implementation and test files the change touches, `git status`, and focused code
+search for the affected behavior.
 
 When resuming a roadmap-backed scaffold, also read the proposal's roadmap links
 and use the selected standalone planned-change `summary`, `details`,
@@ -235,9 +234,10 @@ run `init` from this skill.
    unless it has been revalidated from the current change artifacts, relevant
    main specs, the applicable technical standards (run
    `strict-spec-cli tech-status` and read the
-   relevant files under `.strict-spec-driven/tech/`), mapped implementation and
-   test files, repository status, and regression configuration when needed. Do
-   not reread unrelated roadmap, archive, or spec files just because they exist.
+   relevant files under `.strict-spec-driven/tech/`), the implementation and
+   test files the change touches, repository status, and regression
+   configuration when needed. Do not reread unrelated roadmap, archive, or spec
+   files just because they exist.
    Also select the lesson category matching the affected spec or technical area, run
    `strict-spec-cli lesson-status --category <category>`, and match its `applies_when`
    conditions against the work at hand. Repeat for another category when the change genuinely
@@ -281,7 +281,7 @@ run `init` from this skill.
       - set the testing gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference task ids in the `Testing` section
       - the command upserts by `(section, task-id)` and is idempotent — re-running an identical call changes nothing
       - each call returns `{valid, ready, diagnostics}`: `valid` reports write success like every other artifact, and `ready` reports completeness — while the list is still incomplete `ready` is `false` and `diagnostics` names the empty sections or unset gates, so keep adding tasks and run `verify` before handoff (a `ready: false` result is not a failed write and is resolved by adding the missing tasks)
-      - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
+      - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, and archive-readiness or archive-merge checks when relevant
     - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."`
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
@@ -315,7 +315,7 @@ run `init` from this skill.
    relevant main specs, technical standards, and the existing project
    constraints. Check for decision-ready detail in scope, unchanged behavior,
    design decisions, task coverage, unresolved-question impact, delta spec
-   scenarios, delta tech use when applicable, and structured mapping fields.
+   scenarios, and delta tech use when applicable.
    When no delta specs are appropriate, replace delta spec scenario review with
    a justified absence check for the technical-only change. For technical-only
    changes, verify that tasks cover scripts or tooling, validation commands,
@@ -377,12 +377,11 @@ run `init` from this skill.
 8. **Verify the finished change** — run:
    ```bash
    strict-spec-cli verify <change-name>
-   strict-spec-cli verify-spec-mappings
    ```
    Fix safe blockers automatically, then rerun verification.
 
 9. **Review code quality** — read every changed implementation and test file
-   yourself, including mapped files from delta specs, `git status --short`, the
+   yourself, including the files named by delta specs, `git status --short`, the
    relevant tracked diff, and any untracked source, test, documentation, or
    strict workflow files that belong to the change. Do not call a
    `strict-spec-cli review` command and do not treat deterministic validation
@@ -395,7 +394,7 @@ run `init` from this skill.
    FIX; a deviation is acceptable only when `design.yaml` justifies it). When the
    change carries delta tech artifacts under `changes/<change-name>/tech/`,
    confirm each standard change is justified by the proposal and design and that
-   its operations and mapping are correct; treat an unjustified or malformed
+   its operations are correct; treat an unjustified or malformed
    standard change as a MUST FIX. Fix MUST
    FIX issues automatically when safe and in scope. If review-time code or
    workflow artifact changes are made, rerun strict verification and the
@@ -449,14 +448,12 @@ run `init` from this skill.
 
 12. **Run the final current-change tech sync** — before invoking archive, apply
    the active-change procedure from `strict-tech-sync` to the selected change.
-   Bound the scan to its planning artifacts, delta artifacts, structured
-   mappings, attributable tracked and untracked files, and applicable technical
-   standards; exclude unrelated repository drift. Continue immediately when
+   Bound the scan to its planning artifacts, delta artifacts, attributable
+   tracked and untracked files, and applicable technical standards; exclude unrelated repository drift. Continue immediately when
    existing standards and current delta tech cover the change. When a possible
    reusable convention remains, pause for the operator to confirm the target
-   standard, operation, stable rule id, strength, statement, rationale,
-   enforcement, and mappings, or to explicitly classify the pattern as not
-   reusable. A convention confirmed as reusable cannot be deferred until after
+   standard, operation, stable rule id, strength, statement, rationale, and
+   enforcement, or to explicitly classify the pattern as not reusable. A convention confirmed as reusable cannot be deferred until after
    archive and must be generated as current-change delta tech rather than by
    editing live standards. After any delta-tech edit, review the artifact, rerun
    strict verification, and rerun the configured complete project regression
@@ -509,7 +506,6 @@ implementation or review requires starting declared components:
 - When a change must alter a standard, carry it as a delta tech artifact under
   the change's `tech/` directory so it merges on archive; never edit live
   standards directly during a change
-- Keep mappings in structured YAML fields
 - The final `/strict-spec-ship <change-name>` recommendation is advisory and
   must not be treated as required to complete `strict-spec-auto`
 - Do not call or rely on a `strict-spec-cli review` command

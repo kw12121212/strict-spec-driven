@@ -27,7 +27,6 @@ ready: strict-spec-cli ready <change-name>
 next: strict-spec-cli next <change-name>
 apply: strict-spec-cli apply <change-name>
 verify: strict-spec-cli verify <change-name>
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 archive: strict-spec-cli archive <change-name>
 ```
 
@@ -78,7 +77,7 @@ This skill writes `change-planning-state`, `change-delta-state`, `spec-state`, `
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli propose`, `strict-spec-cli generate`, `strict-spec-cli apply`, `strict-spec-cli archive`, `strict-spec-cli lesson-create`, `strict-spec-cli lesson-edit`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli verify <change-name>`, `strict-spec-cli verify-spec-mappings`, `strict-spec-cli verify-tech-mappings`, `strict-spec-cli lesson-status`
+7. **Run the artifact's validation command** — `strict-spec-cli verify <change-name>`, `strict-spec-cli lesson-status`
 
 **Stop rather than edit YAML directly.**
 
@@ -176,9 +175,9 @@ explicit human decision; a fabricated answer passes silently and is worse.
 Before implementation handoff, perform the required plain change-intake
 checklist from the strict workflow contract. First use project evidence to
 answer every recoverable item: `.strict-spec-driven/config.yaml`, relevant
-strict specs, technical standards, existing change artifacts, mapped
-implementation and test files, `git status`, and focused code search for the
-affected behavior.
+strict specs, technical standards, existing change artifacts, the
+implementation and test files the change touches, `git status`, and focused code
+search for the affected behavior.
 
 - Do not ask the human for information already recoverable from the request or
   repository evidence.
@@ -305,10 +304,9 @@ run `init` from this skill.
    every generated or edited file under `.strict-spec-driven/changes/<change-name>/`
    against the known bug, reproduction evidence, expected behavior, relevant
    main specs, applicable technical standards, unchanged behavior, task
-   coverage, unresolved-question impact, delta spec scenarios, delta tech use
-   when applicable, and structured mapping fields. When no delta specs are
-   appropriate, replace delta spec scenario review with a justified absence
-   check for the technical-only bugfix. For technical-only bugfixes, verify that
+   coverage, unresolved-question impact, delta spec scenarios, and delta tech
+   use when applicable. When no delta specs are appropriate, replace delta spec
+   scenario review with a justified absence check for the technical-only bugfix. For technical-only bugfixes, verify that
    tasks cover reproduction evidence, scripts or tooling, validation commands,
    `ready`/`verify`, and archive or archive-merge checks when archive behavior
    is affected. The checkpoint should fix safe, in-scope
@@ -351,7 +349,6 @@ run `init` from this skill.
 11. **Verify and review before archive** — run:
     ```bash
     strict-spec-cli verify <change-name>
-    strict-spec-cli verify-spec-mappings
     ```
     Read the changed implementation, tests, strict artifacts, relevant main
     specs, and tracked diff yourself. Check correctness, spec alignment,
@@ -373,8 +370,7 @@ run `init` from this skill.
     a plain typo teaches nothing and should be declared "no lesson".
 
 13. **Archive only when clean** — archive only after strict verification,
-    mapping verification, direct review, targeted regression, and complete
-    regression evidence pass:
+    direct review, targeted regression, and complete regression evidence pass:
     ```bash
     strict-spec-cli archive <change-name>
     ```
@@ -404,5 +400,4 @@ requires starting declared components:
 - Keep the change narrow and preserve documented unchanged behavior.
 - Do not implement adjacent fixes or refactors unless required for the target bug.
 - Stop for explicit human input when reproduction, expected behavior, or scope is ambiguous.
-- Keep strict YAML artifacts structured and keep implementation/test mappings in structured fields, not prose.
-- Archive only after strict verification, mapping verification, direct review, targeted regression, and complete project regression evidence pass.
+- Archive only after strict verification, direct review, targeted regression, and complete project regression evidence pass.

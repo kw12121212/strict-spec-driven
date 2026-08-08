@@ -173,9 +173,9 @@ explicit human decision; a fabricated answer passes silently and is worse.
 Before implementation handoff or proposal validation, perform the required
 plain change-intake checklist from the strict workflow contract. First use
 project evidence to answer every recoverable item: `.strict-spec-driven/config.yaml`,
-relevant strict specs, technical standards, existing change artifacts, mapped
-implementation and test files, `git status`, and focused code search for the
-affected behavior.
+relevant strict specs, technical standards, existing change artifacts, the
+implementation and test files the change touches, `git status`, and focused code
+search for the affected behavior.
 
 - Do not ask the human for information already recoverable from the request or
   repository evidence.
@@ -345,8 +345,8 @@ run `init` from this skill.
 
 8. **Generate strict YAML delta specs only when specs change** — run this step
    only when the change has observable spec impact. Use one direct CLI
-   invocation per target spec and include all mapping paths and requirement
-   operations needed for that target in the same command:
+   invocation per target spec and include all requirement operations needed for
+   that target in the same command:
     ```bash
     strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..." --operation MODIFIED --requirement <requirement-id> --strength MUST --statement "..."
     ```
@@ -356,8 +356,7 @@ run `init` from this skill.
    equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
    The generated files under `.strict-spec-driven/changes/<name>/specs/` should
    mirror the target main spec paths.
-   - use strict YAML delta artifacts with `target_spec`, `mapping`, and
-     `operations`
+   - use strict YAML delta artifacts with `target_spec` and `operations`
    - populate `operations.ADDED`, `operations.MODIFIED`, and `operations.REMOVED`
      only as needed
    - added and replacement requirements use structured fields such as `id`,
@@ -389,9 +388,9 @@ run `init` from this skill.
    relevant main specs, technical standards, and the existing project constraints.
    Check for decision-ready detail in scope, unchanged behavior, design
    decisions, task coverage, unresolved-question impact, delta spec scenarios,
-   delta tech use when applicable, and structured mapping fields. When no delta
-   specs are appropriate, replace delta spec scenario review with a justified
-   absence check for the technical-only change. For technical-only changes,
+   and delta tech use when applicable. When no delta specs are appropriate,
+   replace delta spec scenario review with a justified absence check for the
+   technical-only change. For technical-only changes,
    verify that tasks cover scripts or tooling, validation commands,
    `ready`/`verify`, and archive or archive-merge checks when archive behavior
    is affected. The checkpoint
@@ -431,8 +430,6 @@ run `init` from this skill.
 - Document ambiguity in `questions.yaml` instead of guessing
 - Do not auto-invoke `/strict-spec-auto` during strict-spec-propose; hand off
   after proposal validation instead
-- Keep spec-code mappings in structured `mapping` fields rather than burying
-  them in prose
 - Treat applicable technical standards under `.strict-spec-driven/tech/` as
   binding: design within MUST rules, follow SHOULD rules by default, and record
   any deviation or conflict as a decision or open question

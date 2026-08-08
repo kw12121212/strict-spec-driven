@@ -1,0 +1,85 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: purge-mapping-from-skills-and-prove-removal
+sections:
+  Implementation:
+    delete-resync-skill-directory:
+      text: Delete the skills/strict-spec-resync-code-mapping/ directory and every file it contains.
+      status: complete
+    deregister-resync-skill:
+      text: Remove the strict-spec-resync-code-mapping entry from skills/marketplace.json, from the PLANNING_STRICT_SKILL_EXPECTATIONS record in src/skills/model.ts, and from the resync-code-mapping alternative in the GUIDANCE_MUTATION regex in scripts/check-yaml-mutation-inventory.ts.
+      status: complete
+    remove-mapping-command-entries-from-skills:
+      text: 'Remove the verify-spec-mappings and verify-tech-mappings entries from the ''## This Skill''s Commands'' block of every remaining SKILL.md that declares them: apply, archive, auto, bugfix, init, migrate, review, spec-edit, sync-specs, tech-edit, tech-sync, and verify.'
+      status: complete
+    remove-mapping-steps-from-skills:
+      text: Remove the mapping validation steps, mapping upkeep instructions, and mapping rules from the remaining skill prompts, including the 'Check main-spec mappings' step in verify, the mapping validation-command lines in archive, auto, bugfix, init, migrate, spec-edit, sync-specs, tech-edit, and tech-sync, the mapping.implementation / mapping.tests / mapping.enforcement authoring guidance, the mapping-repair ownership statements, and the structured-mapping rules in apply, modify, review, and bugfix.
+      status: complete
+    update-verify-skill-description:
+      text: Update the strict-spec-verify SKILL.md frontmatter description so it no longer advertises main-spec mapping validity as something the skill checks.
+      status: complete
+    remove-mapping-snippets-from-skill-model:
+      text: 'Remove the structured-mapping required snippets from src/skills/model.ts: drop ''and structured mapping fields'' from PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET and drop ''structured mappings'' from the strict-tech-sync required snippet, keeping both snippets matching the edited skill text.'
+      status: complete
+    update-mutation-inventory:
+      text: Through inventory-edit, set artifact_families.spec-state.validation_command to 'verify <change-name>' and artifact_families.tech-state.validation_command to 'tech-status', drop the mapping-synchronization reference_side_effects entries from both live families, drop skills/strict-spec-resync-code-mapping/SKILL.md from the skill evidence list, and remove the dead top-level 'families:' block that commit b92c457 appended, which no loader or checker reads.
+      status: complete
+    remove-mapping-prose-from-bundled-schemas:
+      text: Through the bundled-asset CLI mutation surface, remove the residual mapping prose from templates/strict-spec-driven/schemas/delta-tech.yaml (the mapping_merge block and the mapping reference in new_standard_creation) and from templates/strict-spec-driven/schemas/delta-spec.yaml (the delta-mapping references in the merge and new-spec descriptions).
+      status: complete
+    regenerate-embedded-templates:
+      text: Regenerate src/embedded-templates.ts so the embedded inventory and schema copies match the edited bundled assets and no longer name the deleted skill.
+      status: complete
+    update-readme-tables:
+      text: Remove the verify-spec-mappings command row and the /strict-spec-resync-code-mapping skill row from the tables in README.md and README.zh.md.
+      status: complete
+    generate-delta-spec-requirements:
+      text: Author the delta spec against contracts-yaml-artifacts with MODIFIED strict-planning-skill-command-contract, strict-planning-skill-guidance-contract, and proposal-generating-skills-run-proposal-checkpoint through the strict generate delta-spec command.
+      status: complete
+    sweep-surviving-references:
+      text: Sweep source, schemas, examples, skills, specs, standards, tests, generated documents, and README material for the mapping field names, verify-spec-mappings, verify-tech-mappings, and strict-spec-resync-code-mapping, then remove each surviving hit or record a written justification for each unrelated use of the word mapping.
+      status: complete
+    regenerate-architecture-doc:
+      text: Rebuild the project and regenerate ARCHITECTURE.md so it reflects the shrunken skill inventory and passes its generated-doc check.
+      status: complete
+  Testing:
+    add-mapping-removal-sweep-test:
+      text: Add a focused regression test asserting that no packaged skill, bundled schema, reference example, live spec, technical standard, mutation inventory entry, or README table row names verify-spec-mappings, verify-tech-mappings, or strict-spec-resync-code-mapping, and that strict-spec-resync-code-mapping is absent from the packaged skill inventory.
+      status: complete
+    run-skill-packaging-validation:
+      text: Run the strict skill packaging and skill content validation to confirm every remaining skill still satisfies its required headings, required snippets, and command mappings after the mapping text is stripped.
+      status: complete
+      command: bun run build
+    run-mutation-inventory-check:
+      text: Run the YAML mutation inventory cross-check to confirm the edited inventory still matches the implementation in both directions after the deleted skill and deleted validation commands are removed.
+      status: complete
+      command: bun scripts/check-yaml-mutation-inventory.ts
+    run-unit-regression:
+      text: Run the project unit and regression suite against compiled output and confirm the new sweep test and the existing mapping-removal suite both pass.
+      status: complete
+      command: bun test/run.ts
+    run-complete-project-regression:
+      text: Run the configured complete project regression with the coverage gate at threshold 78 and record the measured src line coverage as the evidence for the milestone's coverage-threshold-after-removal intake question.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-generated-architecture:
+      text: Confirm ARCHITECTURE.md matches its generated-doc check after regeneration.
+      status: complete
+      command: strict-spec-cli architecture-status
+    run-ready:
+      text: Run the strict ready check for this change.
+      status: complete
+      command: strict-spec-cli ready purge-mapping-from-skills-and-prove-removal
+    run-verify:
+      text: Run the strict verify check for this change and confirm no open questions or incomplete tasks remain.
+      status: complete
+      command: strict-spec-cli verify purge-mapping-from-skills-and-prove-removal
+    check-archive-readiness:
+      text: Confirm the delta spec against contracts-yaml-artifacts merges cleanly on archive, that the three MODIFIED requirements resolve to existing requirement ids, and that the roadmap milestone remove-artifact-file-mappings reconciles to complete once this change archives.
+      status: complete
+testing_gates:
+  validation_task: run-complete-project-regression
+  unit_test_task: run-unit-regression

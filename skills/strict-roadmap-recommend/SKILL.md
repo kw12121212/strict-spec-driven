@@ -235,7 +235,7 @@ run `init` from this skill.
      - values may begin with a dash via `--text=...` or `--command=...` (the `--flag=value` form)
      - set the gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference `Testing` task ids
      - the command upserts by `(section, task-id)` and is idempotent; each call returns `{valid, ready, diagnostics}` — `valid` reports write success and `ready` reports completeness, so a `ready: false` result naming empty sections or unset gates is not a failed write, keep adding tasks and confirm with `verify` before handoff
-     - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
+     - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, and archive-readiness or archive-merge checks when relevant
    - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."`
      Include impact analysis and recommendation/options in `--context`; do
      not pass nonexistent `--impact` or `--recommendation` flags.
@@ -264,10 +264,9 @@ run `init` from this skill.
    change artifacts against the selected roadmap planned change, relevant main
    specs, technical standards, and project constraints. Check for decision-ready
    detail in scope, unchanged behavior, design decisions, task coverage,
-   unresolved-question impact, delta spec scenarios, delta tech use when
-   applicable, and structured mapping fields. When no delta specs are
-   appropriate, replace delta spec scenario review with a justified absence
-   check for the technical-only change. For technical-only changes, verify that
+   unresolved-question impact, delta spec scenarios, and delta tech use when
+   applicable. When no delta specs are appropriate, replace delta spec scenario
+   review with a justified absence check for the technical-only change. For technical-only changes, verify that
    tasks cover scripts or tooling, validation commands, `ready`/`verify`, and
    archive or archive-merge checks when archive behavior is affected. The checkpoint should fix safe,
    in-scope documentation gaps immediately, and record real ambiguity in

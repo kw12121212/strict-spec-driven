@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: purge-mapping-from-skills-and-prove-removal
+  status: proposed
+summary:
+  what:
+    - Delete the strict-spec-resync-code-mapping skill and deregister it from skill packaging, the marketplace manifest, the skill content expectations, and the YAML mutation inventory.
+    - 'Strip spec and technical-standard file-mapping guidance from every remaining SKILL.md: the verify-spec-mappings and verify-tech-mappings command entries, mapping upkeep steps, mapping-repair ownership statements, and mapping rules.'
+    - Remove the two deleted audit commands as declared validation_command values for the spec-state and tech-state families in inventory/yaml-mutation-surfaces.yaml and its embedded copy.
+    - Remove residual mapping prose from the bundled delta-spec and delta-tech schema documents, including the delta-tech mapping_merge block, and refresh the embedded template copies.
+    - Drop the deleted command row and the deleted skill row from README.md and README.zh.md.
+    - Modify the contracts-yaml-artifacts requirements that name resync-code-mapping as a packaged planning skill, name mapping repair as an ownership boundary, and list structured mapping fields as a proposal checkpoint criterion.
+    - Sweep the whole repository for surviving spec and tech mapping references across source, schemas, examples, skills, specs, standards, tests, generated documents, and README material, and remove or justify each remaining hit.
+  why:
+    - The mapping field, its audit commands, and its schema surface are already deleted, so every remaining skill instruction to author, repair, or audit a mapping now directs agents at a capability that does not exist and at commands that fail with an unknown-command diagnostic.
+    - The strict-spec-resync-code-mapping skill exists solely to repair mapping drift; leaving it packaged and registered would ship a dangling installed skill whose only command surface is gone.
+    - The milestone done criteria require that no remaining skill instructs mapping upkeep, that no artifact references a deleted mapping command, that ARCHITECTURE.md regenerates cleanly, and that the complete project regression passes with the coverage gate satisfied — none of which can be asserted without the proof sweep.
+scope:
+  in:
+    - Deletion of skills/strict-spec-resync-code-mapping/ and its registration in skills/marketplace.json, src/skills/model.ts, inventory/yaml-mutation-surfaces.yaml, src/embedded-templates.ts, and the check-yaml-mutation-inventory guidance regex.
+    - Removal of verify-spec-mappings and verify-tech-mappings command entries, steps, and rules from every remaining SKILL.md that declares them.
+    - Removal of mapping upkeep, mapping repair ownership, and mapping.implementation / mapping.tests / mapping.enforcement instructions from the remaining skill prompts.
+    - Removal of the structured-mapping required snippets from src/skills/model.ts skill content expectations.
+    - Replacement or removal of the spec-state and tech-state validation_command values in the YAML mutation inventory.
+    - Removal of residual mapping prose from the bundled delta-spec and delta-tech schema documents and their embedded copies.
+    - README.md and README.zh.md command-table and skill-table rows naming the deleted command and the deleted skill.
+    - Delta spec modifying the contracts-yaml-artifacts requirements that still name mapping repair, the resync skill, or structured mapping fields.
+    - A repository-wide sweep with focused tests proving no surviving reference to the deleted mapping fields, commands, or skill remains outside archived change history.
+    - Regeneration of ARCHITECTURE.md and the complete project regression run with the coverage gate, recording measured coverage against the declared threshold of 78.
+  out:
+    - Any replacement traceability mechanism; this milestone removes a capability and substitutes nothing.
+    - The architecture artifact component mapping and the design-system implementation and snapshot mappings, which have real consumers and are retained.
+    - Schema and artifact fields using the word mapping for unrelated purposes, including roadmap paused mappings, lesson enforcement, skill command mappings, and YAML-mapping-the-datatype error text.
+    - Archived change history under .strict-spec-driven/changes/archive/, which records what past changes did and is not rewritten.
+    - Changing the declared coverage threshold of 78 unless the final measured value forces it.
+unchanged_behavior:
+  - Every strict CLI command other than the already-deleted mapping audits keeps its current name, flags, and JSON output shape.
+  - Artifacts that still carry a residual mapping field continue to validate and are still stripped on the next CLI write, rather than being rejected.
+  - Skill packaging validation continues to enforce required headings, required snippets, and command mappings for every skill that remains.
+  - The architecture and design-system mapping features keep rendering their drift reports and counts.
+roadmap:
+  milestone: remove-artifact-file-mappings
+  planned_change: purge-mapping-from-skills-and-prove-removal

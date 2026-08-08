@@ -150,7 +150,7 @@ artifact_families:
       named_remove: cli-owned
       delete: cli-owned
     reference_side_effects:
-      - Spec index entries and implementation/test mappings must stay synchronized.
+      - Spec index entries must stay synchronized with the main spec files they name.
       - Archive merges delta spec operations into main specs.
     cli_owners:
       - archive
@@ -163,7 +163,7 @@ artifact_families:
       - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
-    validation_command: verify-spec-mappings
+    validation_command: verify <change-name>
   tech-state:
     artifact_types:
       - tech_index
@@ -182,7 +182,7 @@ artifact_families:
       named_remove: cli-owned
       delete: cli-owned
     reference_side_effects:
-      - Tech index entries and implementation/enforcement mappings must stay synchronized.
+      - Tech index entries must stay synchronized with the standard files they name.
       - Archive merges delta tech operations into main standards.
     cli_owners:
       - archive
@@ -194,7 +194,7 @@ artifact_families:
       - .strict-spec-driven/tech/yaml-first-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
-    validation_command: verify-tech-mappings
+    validation_command: tech-status
   change-planning-state:
     artifact_types:
       - change_proposal
@@ -786,7 +786,6 @@ mutation_surfaces:
       - skills/strict-spec-modify/SKILL.md
       - skills/strict-spec-propose-from-roadmap/SKILL.md
       - skills/strict-spec-propose/SKILL.md
-      - skills/strict-spec-resync-code-mapping/SKILL.md
       - skills/strict-spec-review/SKILL.md
       - skills/strict-spec-sop/SKILL.md
       - skills/strict-spec-spec-edit/SKILL.md
@@ -904,12 +903,3 @@ mutation_surfaces:
     evidence:
       - test/fixtures/policy-skills/README.md
       - test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit/SKILL.md
-families:
-  spec-state:
-    validation_command: verify <change-name>
-    reference_side_effects:
-      '0': Spec index entries must stay synchronized with the main spec files they name.
-  tech-state:
-    validation_command: tech-status
-    reference_side_effects:
-      '0': Tech index entries must stay synchronized with the standard files they name.

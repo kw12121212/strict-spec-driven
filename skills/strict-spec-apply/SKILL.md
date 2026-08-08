@@ -19,7 +19,6 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
-verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 apply: strict-spec-cli apply <change-name>
 verify: strict-spec-cli verify <change-name>
@@ -173,12 +172,10 @@ run `init` from this skill.
    complete.
 
 8. **Update delta specs and delta tech after coding** — re-read the strict YAML
-   delta specs and make sure they match what was actually implemented. Keep
-   `mapping` fields in sync with the implementation and test files that were
-   changed or directly relied on. If the change carries delta tech artifacts
-   under `changes/<name>/tech/`, re-read them too and confirm the rule
-   operations and `mapping` still match the standard change that was actually
-   implemented.
+   delta specs and make sure they match what was actually implemented. If the
+   change carries delta tech artifacts under `changes/<name>/tech/`, re-read
+   them too and confirm the rule operations still match the standard change
+   that was actually implemented.
 
 9. **Gitignore hygiene** — once all tasks are complete, check for non-source
    artifacts that should not be committed:
@@ -228,4 +225,3 @@ requires starting declared components or opening declared targets:
 - When a change must alter a standard, do it through a delta tech artifact under
   the change's `tech/` directory, never by editing the live standard during the
   change
-- Keep implementation and test mappings in structured YAML fields, not prose

@@ -28,7 +28,6 @@
     { "name": "strict-spec-design-sync", "family": "strict-spec" },
     { "name": "strict-spec-propose", "family": "strict-spec" },
     { "name": "strict-spec-propose-from-roadmap", "family": "strict-spec" },
-    { "name": "strict-spec-resync-code-mapping", "family": "strict-spec" },
     { "name": "strict-spec-review", "family": "strict-spec" },
     { "name": "strict-spec-ship", "family": "strict-spec" },
     { "name": "strict-spec-sop", "family": "strict-spec" },

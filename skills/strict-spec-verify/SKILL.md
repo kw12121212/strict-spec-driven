@@ -1,6 +1,6 @@
 ---
 name: strict-spec-verify
-description: Verify a strict YAML change before archive. Checks strict artifact structure, task completion, open questions, and main-spec mapping validity.
+description: Verify a strict YAML change before archive. Checks strict artifact structure, task completion, open questions, and unchanged behavior.
 metadata:
   skill_id: strict_spec_verify
   author: strict-spec-driven
@@ -19,7 +19,6 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 modify: strict-spec-cli modify [change-name|archive-dir]
 verify: strict-spec-cli verify <change-name>
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
 ## Prerequisites
@@ -52,21 +51,16 @@ run `init` from this skill.
    ```
    Treat the returned diagnostics as lifecycle blockers until resolved.
 
-3. **Check main-spec mappings** — run:
-   ```bash
-   strict-spec-cli verify-spec-mappings
-   ```
-   Treat invalid or missing main-spec mappings as blockers for affected specs.
-
-4. **Read the current change artifacts** — inspect:
+3. **Read the current change artifacts** — inspect:
    - `proposal.yaml`
    - `design.yaml`
    - `tasks.yaml`
    - `questions.yaml`
    - strict YAML delta specs under `changes/<name>/specs/`
-   - relevant strict YAML main specs and mapped implementation and test files
+   - relevant strict YAML main specs and the implementation and test files the
+     change touches
 
-5. **Check completion evidence** — confirm the repository state matches every
+4. **Check completion evidence** — confirm the repository state matches every
    completed task.
    - unfinished work in `tasks.yaml` is a blocker
    - non-empty `questions.yaml.open` is a blocker
@@ -77,13 +71,13 @@ run `init` from this skill.
      exactly like failing tests, never advisory output, and verification never
      measures coverage itself or second-guesses the declared threshold
 
-6. **Check unchanged behavior** — compare the implementation against
+5. **Check unchanged behavior** — compare the implementation against
    `proposal.yaml.unchanged_behavior` and treat regressions as blockers.
 
-7. **Fix safe blockers automatically** — if a verification issue is clearly
-   fixable, fix it and rerun both `verify` and `verify-spec-mappings`.
+6. **Fix safe blockers automatically** — if a verification issue is clearly
+   fixable, fix it and rerun `verify`.
 
-8. **Report the result** — provide a tiered summary of blockers, warnings, and
+7. **Report the result** — provide a tiered summary of blockers, warnings, and
    optional suggestions, then recommend `strict-spec-review` when the change is
    clean.
 
@@ -106,4 +100,3 @@ evidence is expected as part of verification:
 
 - Be honest; do not treat checked tasks as proof by themselves
 - Use the current YAML artifacts and repository state as the source of truth
-- Keep implementation and test mappings in structured YAML fields

@@ -144,9 +144,9 @@ explicit human decision; a fabricated answer passes silently and is worse.
 Before proposal confirmation or implementation handoff, perform the required
 plain change-intake checklist from the strict workflow contract. First use
 project evidence to answer every recoverable item: `.strict-spec-driven/config.yaml`,
-relevant strict specs, technical standards, existing change artifacts, mapped
-implementation and test files, `git status`, and focused code search for the
-affected behavior.
+relevant strict specs, technical standards, existing change artifacts, the
+implementation and test files the change touches, `git status`, and focused code
+search for the affected behavior.
 
 - Do not ask the human for information already recoverable from the request or
   repository evidence.
@@ -186,7 +186,7 @@ A strict change may legitimately have no delta spec. Do not invent a
 - In the proposal checkpoint, explicitly say either which strict spec areas
   will change or that no strict spec area is expected to change, with the reason.
 - Still require `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`,
-  testing tasks, verification tasks, and any applicable structured mappings.
+  testing tasks, and verification tasks.
 
 ## Steps
 
@@ -279,8 +279,7 @@ run `init` from this skill.
       - cover Implementation tasks for script, tooling, documentation, or
         skill-prompt edits in scope; Testing tasks with runnable validation and
         unit/regression commands; and Verification tasks for `ready`, `verify`,
-        mapping checks, and archive-readiness or archive-merge checks when
-        relevant
+        and archive-readiness or archive-merge checks when relevant
     - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
@@ -301,9 +300,9 @@ run `init` from this skill.
    summary, the relevant main specs if any, technical standards, and the
    existing project constraints. Check for decision-ready detail in scope,
    unchanged behavior, design decisions, task coverage, unresolved-question
-   impact, delta spec scenarios, delta tech use when applicable, and structured
-   mapping fields. When no delta specs are appropriate, replace delta spec
-   scenario review with a justified absence check for the technical-only change.
+   impact, delta spec scenarios, and delta tech use when applicable. When no
+   delta specs are appropriate, replace delta spec scenario review with a
+   justified absence check for the technical-only change.
    For technical-only changes, verify that the task list includes the concrete
    scripts or generated assets to edit, validation commands to run, strict
    `ready`/`verify` checks, and archive or archive-merge checks whenever the
@@ -343,4 +342,3 @@ run `init` from this skill.
 - Keep all planning artifacts in strict YAML structures under
   `.strict-spec-driven/`
 - Record ambiguity in `questions.yaml` instead of guessing silently
-- Keep spec-code mappings in structured YAML mapping fields, not prose

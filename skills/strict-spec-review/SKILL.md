@@ -18,7 +18,6 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
-verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 verify: strict-spec-cli verify <change-name>
 lesson-status: strict-spec-cli lesson-status [--category <category>]
@@ -125,10 +124,8 @@ run `init` from this skill.
    - delta tech correctness: when the change carries delta tech artifacts under
      `changes/<name>/tech/`, confirm each standard change is justified by
      `proposal.yaml`/`design.yaml`, that the `operations` target the right rule
-     ids, that `ADDED` rules do not duplicate existing rules, that the `mapping`
-     lists the implementation and enforcement paths this change adds (the merge
-     is additive — it unions into the standard's existing mapping), and that a
-     new standard supplies a `standard` block with title and category. Flag an
+     ids, that `ADDED` rules do not duplicate existing rules, and that a new
+     standard supplies a `standard` block with title and category. Flag an
      unjustified or incorrect standard change as a MUST FIX finding.
 
 6. **Check spec alignment** — confirm the implementation and tests match the

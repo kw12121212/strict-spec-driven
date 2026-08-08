@@ -51,7 +51,6 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `roadmap-sync [--fix-names]` | Reconcile and regenerate strict roadmap index; `--fix-names` renames misnamed planned-change files to canonical names |
 | `roadmap-generate milestone` | Create or update a strict roadmap milestone through structured named arguments |
 | `roadmap-generate planned-change` | Create or update a standalone planned-change artifact at its canonical CLI-computed filename |
-| `verify-spec-mappings` | Audit spec implementation and test mapping coverage |
 | `validate-skills` | Validate strict skill packaging metadata and command symlinks |
 | `schema-list` | List bundled strict schema asset keys |
 | `schema-show <name>` | Print a bundled strict schema asset |
@@ -101,7 +100,6 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
 | `/strict-spec-design` | Author or refresh the design system artifact and render `DESIGN.md` |
 | `/strict-spec-design-sync` | Reconcile the design system artifact with UI code drift |
-| `/strict-spec-resync-code-mapping` | Repair spec implementation and test mappings |
 | `/strict-spec-maintenance` | Run repository maintenance workflow |
 
 **Strict roadmap skills** (`strict-roadmap-*`):

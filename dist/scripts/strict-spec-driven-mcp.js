@@ -31391,13 +31391,13 @@ merge_rules:
     If a REMOVED entry targets a requirement ID that does not exist in the main spec at
     archive time, the entry is silently skipped and recorded as a skipped removal in the
     archive merge report.
-  new_spec_creation: |
+  new_spec_creation: |-
     If target_spec does not match any existing main spec id at archive time, the delta is a
     new-spec creation only when it provides a spec block with title and a repo-relative path
     under .strict-spec-driven/specs/. Archive creates a new main_spec file at that path from
-    target_spec (spec id), the spec block title, the delta mapping, and the ADDED requirements,
-    then regenerates the spec index. A new-spec delta MUST supply at least one ADDED requirement
-    and MUST keep MODIFIED and REMOVED empty. The path MUST be a repo-relative .yaml file under
+    target_spec (spec id), the spec block title, and the ADDED requirements, then regenerates
+    the spec index. A new-spec delta MUST supply at least one ADDED requirement and MUST keep
+    MODIFIED and REMOVED empty. The path MUST be a repo-relative .yaml file under
     .strict-spec-driven/specs/, MUST NOT be INDEX.yaml, MUST NOT use parent traversal, and MUST
     NOT collide with an existing main spec id or path. When target_spec is missing and no spec
     block is present, archive fails with the existing missing-target error rather than creating
@@ -31467,7 +31467,7 @@ json_schema:
       type: string
     spec:
       type: object
-      description: Optional new-spec block. Present only when this delta creates a brand-new main spec whose id (target_spec) does not yet exist. Archive materializes the main spec at path from target_spec, title, the delta mapping, and the ADDED requirements.
+      description: Optional new-spec block. Present only when this delta creates a brand-new main spec whose id (target_spec) does not yet exist. Archive materializes the main spec at path from target_spec, title, and the ADDED requirements.
       additionalProperties: false
       required:
         - title
@@ -31533,18 +31533,12 @@ merge_rules:
     If a REMOVED entry targets a rule ID that does not exist in the standard at
     archive time, the entry is silently skipped and recorded as a skipped removal
     in the archive merge report.
-  new_standard_creation: |
+  new_standard_creation: |-
     If target_standard does not match any existing standard id at archive time,
     the delta is a new-standard creation: it MUST provide a standard block with
     title and category, archive creates a new main_tech file at
-    .strict-spec-driven/tech/<target_standard>.yaml from the standard block,
-    mapping, and ADDED rules, and the tech index is regenerated.
-  mapping_merge: |
-    The mapping block is additive on merge: archive unions the delta's
-    implementation and enforcement paths into the standard's existing mapping and
-    de-duplicates, rather than replacing it. An empty or partial delta mapping
-    therefore never removes paths the change did not touch. Use /strict-tech-edit
-    for standalone removal of mapping paths.
+    .strict-spec-driven/tech/<target_standard>.yaml from the standard block and
+    ADDED rules, and the tech index is regenerated.
 json_schema:
   $schema: http://json-schema.org/draft-07/schema#
   definitions:
@@ -35803,7 +35797,7 @@ artifact_families:
       named_remove: cli-owned
       delete: cli-owned
     reference_side_effects:
-      - Spec index entries and implementation/test mappings must stay synchronized.
+      - Spec index entries must stay synchronized with the main spec files they name.
       - Archive merges delta spec operations into main specs.
     cli_owners:
       - archive
@@ -35816,7 +35810,7 @@ artifact_families:
       - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
-    validation_command: verify-spec-mappings
+    validation_command: verify <change-name>
   tech-state:
     artifact_types:
       - tech_index
@@ -35835,7 +35829,7 @@ artifact_families:
       named_remove: cli-owned
       delete: cli-owned
     reference_side_effects:
-      - Tech index entries and implementation/enforcement mappings must stay synchronized.
+      - Tech index entries must stay synchronized with the standard files they name.
       - Archive merges delta tech operations into main standards.
     cli_owners:
       - archive
@@ -35847,7 +35841,7 @@ artifact_families:
       - .strict-spec-driven/tech/yaml-first-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
-    validation_command: verify-tech-mappings
+    validation_command: tech-status
   change-planning-state:
     artifact_types:
       - change_proposal
@@ -36439,7 +36433,6 @@ mutation_surfaces:
       - skills/strict-spec-modify/SKILL.md
       - skills/strict-spec-propose-from-roadmap/SKILL.md
       - skills/strict-spec-propose/SKILL.md
-      - skills/strict-spec-resync-code-mapping/SKILL.md
       - skills/strict-spec-review/SKILL.md
       - skills/strict-spec-sop/SKILL.md
       - skills/strict-spec-spec-edit/SKILL.md
@@ -36557,15 +36550,6 @@ mutation_surfaces:
     evidence:
       - test/fixtures/policy-skills/README.md
       - test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit/SKILL.md
-families:
-  spec-state:
-    validation_command: verify <change-name>
-    reference_side_effects:
-      '0': Spec index entries must stay synchronized with the main spec files they name.
-  tech-state:
-    validation_command: tech-status
-    reference_side_effects:
-      '0': Tech index entries must stay synchronized with the standard files they name.
 `
 };
 function getEmbeddedTemplateKeys() {

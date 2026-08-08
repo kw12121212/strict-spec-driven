@@ -53,7 +53,7 @@ risks:
   - Roughly 750 lines of well-covered implementation are being deleted, which moves measured src coverage in an unpredictable direction against the declared threshold of 78 and may force a threshold decision mid-milestone.
   - Mapping is referenced by more than one hundred requirement lines across two large specs; removing them through delta specs risks deleting neighboring requirements or leaving dangling references in other specs, standards, and skills.
   - Skills are packaged and installed artifacts, so deleting one requires packaging and marketplace updates or installed copies will dangle after upgrade.
-status: proposed
+status: complete
 notes:
   - 'Decision evidence: the user reviewed a requirement-level mapping rebuild, judged it still not good enough to justify its cost, and chose outright removal instead.'
   - 'Scope evidence: the user confirmed removal covers both spec mapping and technical-standard mapping, and chose to drop the spec mapping count columns from ARCHITECTURE.md rather than substitute another statistic.'

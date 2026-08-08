@@ -342,8 +342,8 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
     planned change, relevant main specs, technical standards, and project
     constraints. Check for decision-ready detail in scope, unchanged behavior,
     design decisions, task coverage, unresolved-question impact, delta spec
-    scenarios, delta tech use when applicable, and structured mapping fields.
-    When no delta specs are appropriate, replace delta spec scenario review with
+    scenarios, and delta tech use when applicable. When no delta specs are
+    appropriate, replace delta spec scenario review with
     a justified absence check for the technical-only change. For technical-only
     changes, verify that tasks cover scripts or tooling, validation commands,
     `ready`/`verify`, and archive or archive-merge checks when archive behavior
@@ -382,8 +382,6 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
   strict-spec-propose-from-roadmap; hand off after proposal validation.
 - Keep all change artifacts in strict YAML structures.
 - Document ambiguity in `questions.yaml` instead of guessing.
-- Keep spec-code mappings in structured `mapping` fields rather than burying
-  them in prose.
 - When the change must alter a standard, carry that change as a delta tech
   artifact under the change's `tech/` directory; never edit live standards under
   `.strict-spec-driven/tech/` directly during a change.

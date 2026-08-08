@@ -1,0 +1,52 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+operations:
+  ADDED: {}
+  MODIFIED:
+    strict-planning-skill-command-contract:
+      strength: MUST
+      statement: The system MUST provide strict planning and documentation skill packages for `brainstorm`, `spec-edit`, and `sync-specs` with explicit command mappings that reference the strict bundled CLI subcommands those skills depend on, and MUST NOT package a `resync-code-mapping` skill, because the spec and technical-standard file mapping fields and their audit commands have been removed and there is no mapping left to repair.
+      scenarios:
+        planning-skills-expose-concrete-strict-commands:
+          - GIVEN: a strict planning or documentation `SKILL.md` file is reviewed
+          - WHEN: its `## This Skill's Commands` section is inspected
+          - THEN: the command mapping identifies the specific strict bundled CLI command entry or entries the skill uses
+          - THEN: the command mapping is not limited to a generic placeholder command
+        no-planning-skill-declares-a-removed-mapping-command:
+          - GIVEN: the packaged strict skill inventory is inspected
+          - WHEN: the planning and documentation skill packages are enumerated and their command mappings are read
+          - THEN: no package named strict-spec-resync-code-mapping is present in the repository, the marketplace manifest, or the skill content expectations
+          - THEN: no skill command mapping declares verify-spec-mappings or verify-tech-mappings
+    strict-planning-skill-guidance-contract:
+      strength: MUST
+      statement: The system MUST ensure strict planning and documentation skill packages describe strict YAML workflow artifacts, preserve ownership between brainstorming, main-spec intent editing, and repository synchronization, and route each repository-owned YAML mutation through the applicable artifact-aware CLI operation rather than direct document editing.
+      scenarios:
+        planning-skills-reference-strict-workflow-artifacts:
+          - GIVEN: A strict planning or documentation skill file is reviewed
+          - WHEN: Its prerequisites and workflow instructions are inspected
+          - THEN: The skill describes .strict-spec-driven YAML workflow artifacts rather than legacy or packaging-only placeholder state
+        planning-skills-preserve-semantic-ownership-and-cli-mechanics:
+          - GIVEN: The strict planning and documentation skill prompts are reviewed
+          - WHEN: Their workflow guidance is inspected
+          - THEN: Main-spec intent editing remains owned by strict-spec-spec-edit and repository drift synchronization remains owned by strict-spec-sync-specs
+          - THEN: Each skill supplies semantic facts to artifact-aware CLI operations and does not edit YAML document shape directly
+        no-skill-instructs-mapping-upkeep:
+          - GIVEN: any packaged strict skill prompt is reviewed
+          - WHEN: its steps and rules are inspected for file-mapping instructions
+          - THEN: no step instructs an agent to author, repair, audit, or keep in sync a spec or technical-standard file mapping
+    proposal-generating-skills-run-proposal-checkpoint:
+      strength: MUST
+      statement: Proposal-generating and proposal-handoff skills MUST guide agents to run a proposal checkpoint over generated planning artifacts after population and before ready/verify validation, ready handoff, auto implementation, or handoff to another strict workflow skill so semantic quality issues and insufficient change-document detail are corrected without naming the planning-stage gate a review.
+      scenarios:
+        proposal-checkpoint-requires-decision-ready-detail:
+          - GIVEN: strict-spec-brainstorm, strict-spec-propose, a strict roadmap handoff skill, or the creation path of strict-spec-auto has populated proposal, design, task, question, and delta artifacts for a change
+          - WHEN: the skill workflow proceeds toward proposal handoff, ready validation, verify validation, auto implementation, or another strict workflow skill
+          - THEN: the skill requires a proposal checkpoint over generated artifacts against the confirmed request or brainstorm summary, relevant main specs, technical standards, and project constraints before that handoff
+          - THEN: the checkpoint criteria require decision-ready detail in scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable
+          - THEN: the checkpoint criteria name no file-mapping field, because the spec and technical-standard mapping fields have been removed from the artifact model
+          - THEN: the checkpoint guidance tells agents to fix safe, in-scope documentation gaps without expanding scope or answering unresolved human questions
+          - THEN: unresolved ambiguity remains recorded in questions.yaml with enough context and impact to block implementation deliberately
+  REMOVED: {}

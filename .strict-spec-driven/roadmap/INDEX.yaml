@@ -18,4 +18,4 @@ milestones:
   remove-artifact-file-mappings:
     title: Remove spec and standard file mappings
     path: roadmap/milestones/remove-artifact-file-mappings.yaml
-    status: proposed
+    status: complete

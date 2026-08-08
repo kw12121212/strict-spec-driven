@@ -88,7 +88,7 @@ const AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET =
 const PROPOSAL_CHECKPOINT_SNIPPET = "proposal checkpoint";
 const PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET = "decision-ready detail";
 const PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET =
-  "scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields";
+  "scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable";
 const PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET = "fix safe, in-scope documentation gaps";
 const REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 const REVIEW_POST_FIX_REGRESSION_SNIPPET =
@@ -370,7 +370,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredSnippets: [
       ".strict-spec-driven/",
       "active-change sync",
-      "selected change's proposal, design, tasks, questions, delta specs, delta tech, structured mappings",
+      "selected change's proposal, design, tasks, questions, delta specs, delta tech",
       CURRENT_CHANGE_SCOPE_SNIPPET,
       "explicitly approves both the normative content and its strength",
       "explicitly classified as not reusable",
@@ -578,13 +578,6 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [".strict-spec-driven/specs/", "INDEX.yaml"],
-  },
-  "strict-spec-resync-code-mapping": {
-    requiredCommands: {
-      "spec-edit": `${COMMAND_PREFIX} spec-edit <spec-id> [--spec-path <path>] --<named-args>`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/specs/"],
   },
 };
 

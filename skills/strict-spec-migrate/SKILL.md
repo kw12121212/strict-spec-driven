@@ -19,7 +19,6 @@ before running anything. Do not guess.
 ```yaml
 migrate: strict-spec-cli migrate
 roadmap-status: strict-spec-cli roadmap-status
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
 ## Prerequisites
@@ -46,7 +45,7 @@ This skill writes `workflow-config`, `spec-state`, `roadmap-state`.
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli migrate`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli check-workflow-state`, `strict-spec-cli verify-spec-mappings`, `strict-spec-cli roadmap-status`
+7. **Run the artifact's validation command** — `strict-spec-cli check-workflow-state`, `strict-spec-cli roadmap-status`
 
 **Stop rather than edit YAML directly.**
 
@@ -94,10 +93,10 @@ the active user message explicitly asks for a different language.
 5. **Validate the migrated strict state** — after a successful migration, run:
    ```bash
    strict-spec-cli roadmap-status
-   strict-spec-cli verify-spec-mappings
+   strict-spec-cli check-workflow-state
    ```
    Use those checks to confirm the generated `.strict-spec-driven/` state is
-   structurally usable, especially for roadmap references and spec mappings.
+   structurally usable, especially for roadmap references.
 
 6. **Guide manual follow-up explicitly** — if the report includes warnings,
    errors, or `manualFollowUp` items, summarize what still needs a human

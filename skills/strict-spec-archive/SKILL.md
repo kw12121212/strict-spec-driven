@@ -19,7 +19,6 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 modify: strict-spec-cli modify [change-name|archive-dir]
 verify: strict-spec-cli verify <change-name>
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
 archive: strict-spec-cli archive <change-name>
 lesson-status: strict-spec-cli lesson-status [--category <category>]
@@ -63,7 +62,7 @@ This skill writes `change-planning-state`, `change-delta-state`, `spec-state`, `
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli archive`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli verify <change-name>`, `strict-spec-cli verify-spec-mappings`, `strict-spec-cli verify-tech-mappings`
+7. **Run the artifact's validation command** — `strict-spec-cli verify <change-name>`
 
 **Stop rather than edit YAML directly.**
 
@@ -101,17 +100,17 @@ run `init` from this skill.
    invoking the raw archive command, apply the active-change procedure from
    `strict-tech-sync` to the selected change.
    - bound the scan to the selected change's proposal, design, tasks, questions,
-     delta specs, delta tech, structured mappings, attributable tracked and
-     untracked files, and applicable technical standards
+     delta specs, delta tech, attributable tracked and untracked files, and
+     applicable technical standards
    - exclude unrelated repository drift and surface ambiguous file ownership
      instead of silently widening the archive scope
    - continue immediately when applicable main standards and current delta tech
      already cover the change and no reusable convention gap remains
    - when a possible reusable convention is uncovered, present the target or
      proposed standard, operation, stable rule id, strength, statement,
-     rationale, enforcement, and mappings; do not continue until the operator
-     either confirms delta-tech capture or explicitly classifies the pattern as
-     not reusable
+     rationale, and enforcement; do not continue until the operator either
+     confirms delta-tech capture or explicitly classifies the pattern as not
+     reusable
    - never defer a convention confirmed as reusable until after archive; use
      `generate <change-name> delta-tech ...` so it remains part of the active
      change rather than editing a live main standard directly
@@ -132,9 +131,8 @@ run `init` from this skill.
    evidence reruns, run:
    ```bash
    strict-spec-cli verify <change-name>
-   strict-spec-cli verify-spec-mappings
    ```
-   Stop if either command reports blockers.
+   Stop if the command reports blockers.
 
 5. **Check for observable spec impact** — inspect
    `.strict-spec-driven/changes/<name>/specs/`.

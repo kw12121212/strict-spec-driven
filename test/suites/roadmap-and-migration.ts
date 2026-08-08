@@ -3617,7 +3617,7 @@ try {
       (diagnostic) =>
         diagnostic.code === "skill.roadmap.required_snippet.missing"
         && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
-        && diagnostic.expected === "scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields",
+        && diagnostic.expected === "scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable",
     ),
     "roadmap skill validation requires concrete checkpoint criteria guidance",
   );

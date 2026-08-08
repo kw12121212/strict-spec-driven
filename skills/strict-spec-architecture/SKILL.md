@@ -98,8 +98,8 @@ Put in it only what no other strict artifact holds:
 
 Keep out of it anything the renderer already projects:
 
-- spec ids, titles, paths, requirement counts, or spec mappings — these come
-  from `.strict-spec-driven/specs/INDEX.yaml` and the main specs
+- spec ids, titles, paths, or requirement counts — these come from
+  `.strict-spec-driven/specs/INDEX.yaml` and the main specs
 - technical-standard rules, strengths, or categories — these come from
   `.strict-spec-driven/tech/`
 - project context prose — this comes from the `context` field of

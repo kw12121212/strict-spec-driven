@@ -25,18 +25,12 @@ merge_rules:
     If a REMOVED entry targets a rule ID that does not exist in the standard at
     archive time, the entry is silently skipped and recorded as a skipped removal
     in the archive merge report.
-  new_standard_creation: |
+  new_standard_creation: |-
     If target_standard does not match any existing standard id at archive time,
     the delta is a new-standard creation: it MUST provide a standard block with
     title and category, archive creates a new main_tech file at
-    .strict-spec-driven/tech/<target_standard>.yaml from the standard block,
-    mapping, and ADDED rules, and the tech index is regenerated.
-  mapping_merge: |
-    The mapping block is additive on merge: archive unions the delta's
-    implementation and enforcement paths into the standard's existing mapping and
-    de-duplicates, rather than replacing it. An empty or partial delta mapping
-    therefore never removes paths the change did not touch. Use /strict-tech-edit
-    for standalone removal of mapping paths.
+    .strict-spec-driven/tech/<target_standard>.yaml from the standard block and
+    ADDED rules, and the tech index is regenerated.
 json_schema:
   $schema: http://json-schema.org/draft-07/schema#
   definitions:

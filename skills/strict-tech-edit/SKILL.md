@@ -36,7 +36,6 @@ tech-edit: strict-spec-cli tech-edit <standard-id> [--tech-path <path>] --<named
 tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --promoted-standard <id> --promoted-rule <id>
-verify-tech-mappings: strict-spec-cli verify-tech-mappings
 schema-show: strict-spec-cli schema-show main-tech
 ```
 
@@ -62,7 +61,7 @@ This skill writes `tech-state`.
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli tech-edit`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli verify-tech-mappings`
+7. **Run the artifact's validation command** — `strict-spec-cli tech-status`
 
 **Stop rather than edit YAML directly.**
 
@@ -134,9 +133,6 @@ run `init` from this skill.
    - `enforcement`: a `method` of `lint`, `ci`, `test`, `review`, or `manual`,
      plus optional `detail`
    - optional `examples.good` / `examples.bad` and `exceptions`
-   Keep `mapping.implementation` (representative files the standard governs) and
-   `mapping.enforcement` (lint configs, CI files, or tests that enforce it) as
-   repo-relative path arrays. Either may be empty for a manual-only standard.
 
 6. **Present and confirm** — show the user:
    - which strict YAML standard file or files will change
@@ -152,8 +148,6 @@ run `init` from this skill.
      <lint|ci|test|review|manual>`
    - update one rule by restating `--rule <id>` and only the scalar, enforcement,
      example, or exception fields that changed
-   - add mappings with repeatable `--implementation` and `--enforcement`, and
-     remove exact paths with their named removal flags
    - remove keyed content with `--remove-rule`, or rule-scoped examples and
      exceptions with their named removal flags
    - use isolated `tech-edit <standard-id> --delete` only for a confirmed whole
@@ -172,7 +166,6 @@ run `init` from this skill.
 8. **Validate the result** — after editing, verify:
    - each edited file remains valid strict YAML matching the `main-tech` schema
    - the mutation result reports the reconciled tech index
-   - run `verify-tech-mappings` when mapping fields changed
    - run `tech-status` to confirm the standards and rules read back correctly
 
 9. **Summarize** — tell the user which strict YAML standard files changed, what
@@ -188,7 +181,5 @@ run `init` from this skill.
   rules
 - Do not implement product code
 - Do not create or interact with `.strict-spec-driven/changes/`
-- Keep mappings in `mapping.implementation` and `mapping.enforcement`, not in
-  rule prose
 - Never hand-edit main-tech or tech-index YAML; express every standalone
   mutation through `strict-spec-cli tech-edit`

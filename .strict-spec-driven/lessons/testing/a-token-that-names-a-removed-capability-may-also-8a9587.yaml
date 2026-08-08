@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-token-that-names-a-removed-capability-may-also-8a9587
+  title: A token that names a removed capability may also name a retained one
+category: testing
+status: active
+created_at: '2026-08-08T05:04:04.175Z'
+updated_at: '2026-08-08T05:04:04.175Z'
+context: Writing a repository-wide sweep test to prove the spec and technical-standard file mappings were fully removed, by scanning every tracked file for the deleted command names, the deleted skill name, and the mapping field accessors.
+observation: 'The accessor matcher /mapping\.(implementation|tests|enforcement)/ reported the whole architecture and design-system subsystem as surviving references, because components in those retained artifacts still carry mapping.implementation and mapping.snapshots. The failure was easy to misread: the assertion detail joined survivors with newlines and the runner printed only the first line, so a run with many false hits looked like a single legitimate one. Narrowing the matcher to mapping.tests and mapping.enforcement, the two accessors that belong to main specs and standards alone, separated the removed capability from the retained ones.'
+takeaway: 'Before scanning for a token as proof that a capability is gone, check whether a retained feature uses the same token. Pick matchers that are unique to the removed capability rather than the most obvious name for it, and assert explicitly that the matcher leaves the retained users alone, since a shared token turns a removal proof into a report about live code. Also print or count the full survivor list: a one-line failure message hides how many hits there really were.'
+applies_when: Writing a static check or sweep test that proves a capability, field, command, or flag has been removed, especially when the removed thing shares a name with something the same removal deliberately kept.
+occurrences:
+  - origin: purge-mapping-from-skills-and-prove-removal
+    date: '2026-08-08'
+    evidence: The sweep initially failed naming .strict-spec-driven/specs/cli/foundation.yaml:725 only, while src/design-system-author.ts:179, src/architecture-author.ts:133, and src/design-system.ts:247 also matched mapping.implementation; narrowing to /mapping\.(tests|enforcement)/ and adding an assertion over the architecture and design-system lines cleared it.

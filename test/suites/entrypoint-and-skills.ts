@@ -959,7 +959,7 @@ for (const [normalizedSkillContent, skillName] of questionGateSkillChecks) {
       && normalizedSkillContent.includes("plain change-intake checklist")
       && normalizedSkillContent.includes("Do not ask the human for information already recoverable from the request or repository evidence")
       && normalizedSkillContent.includes("Do ask when a required answer remains absent after discovery")
-      && normalizedSkillContent.includes("mapped implementation and test files")
+      && normalizedSkillContent.includes("the implementation and test files the change touches")
       && normalizedSkillContent.includes("focused code search")
       && normalizedSkillContent.includes("questions.yaml.open")
       && normalizedSkillContent.includes("stable language-neutral ids")
@@ -1039,7 +1039,7 @@ context.assert(
       && normalizedProposeSkillContent.includes("before validation")
       && normalizedProposeSkillContent.includes("semantic self-check")
       && normalizedProposeSkillContent.includes("decision-ready detail")
-      && normalizedProposeSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedProposeSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable")
       && normalizedProposeSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && normalizedProposeSkillContent.includes("proposal checkpoint refinements made")
@@ -1063,7 +1063,7 @@ context.assert(
       && normalizedProposeFromRoadmapSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose-from-roadmap")
       && normalizedProposeFromRoadmapSkillContent.includes("proposal checkpoint")
       && normalizedProposeFromRoadmapSkillContent.includes("decision-ready detail")
-      && normalizedProposeFromRoadmapSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedProposeFromRoadmapSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable")
       && normalizedProposeFromRoadmapSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedProposeFromRoadmapSkillContent.includes("ready <change-name>")
       && normalizedProposeFromRoadmapSkillContent.includes("verify <change-name>")
@@ -1086,7 +1086,7 @@ context.assert(
       && normalizedAutoSkillContent.includes("proposal checkpoint")
       && normalizedAutoSkillContent.includes("semantic self-check")
       && normalizedAutoSkillContent.includes("decision-ready detail")
-      && normalizedAutoSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedAutoSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable")
       && normalizedAutoSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedAutoSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && !autoSkillContent.includes("strict-spec-cli review <change-name>"),
@@ -1107,7 +1107,7 @@ context.assert(
   );
   context.assert(
     normalizedTechSyncSkillContent.includes("active-change sync")
-      && normalizedTechSyncSkillContent.includes("selected change's proposal, design, tasks, questions, delta specs, delta tech, structured mappings")
+      && normalizedTechSyncSkillContent.includes("selected change's proposal, design, tasks, questions, delta specs, delta tech")
       && normalizedTechSyncSkillContent.includes("attributable tracked and untracked files")
       && normalizedTechSyncSkillContent.includes("explicitly approves both the normative content and its strength")
       && normalizedTechSyncSkillContent.includes("generate <change-name> delta-tech")
@@ -1131,7 +1131,7 @@ context.assert(
       && normalizedBrainstormSkillContent.includes("semantic self-check")
       && normalizedBrainstormSkillContent.includes("confirmed brainstorm summary")
       && normalizedBrainstormSkillContent.includes("decision-ready detail")
-      && normalizedBrainstormSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedBrainstormSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable")
       && normalizedBrainstormSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedBrainstormSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && normalizedBrainstormSkillContent.includes("proposal checkpoint refinements made")
@@ -1245,7 +1245,7 @@ context.assert(
       && normalizedRoadmapRecommendSkillContent.includes("populated change scaffold")
       && normalizedRoadmapRecommendSkillContent.includes("proposal checkpoint")
       && normalizedRoadmapRecommendSkillContent.includes("decision-ready detail")
-      && normalizedRoadmapRecommendSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedRoadmapRecommendSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable")
       && normalizedRoadmapRecommendSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedRoadmapRecommendSkillContent.includes("instead of manually choosing among planned changes"),
     "strict-roadmap-recommend requires scripted-first recommendation, proposal checkpoint, ready handoff, and populated auto resume guidance",

@@ -20,7 +20,6 @@ before running anything. Do not guess.
 init: strict-spec-cli init
 config-edit: strict-spec-cli config-edit --<named-args>
 spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
 ## Prerequisites
@@ -45,7 +44,7 @@ This skill writes `workflow-config` and `spec-state`.
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli init`, `strict-spec-cli config-edit`, `strict-spec-cli spec-edit`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli check-workflow-state`, `strict-spec-cli verify-spec-mappings`
+7. **Run the artifact's validation command** — `strict-spec-cli check-workflow-state`
 
 **Stop rather than edit YAML directly.**
 
@@ -119,14 +118,13 @@ the active user message explicitly asks for a different language.
    `.strict-spec-driven/specs/` by invoking `strict-spec-cli spec-edit <spec-id>
    --spec-path <path> --title <text> --requirement <id> --strength
    <MUST|SHOULD|MAY> --statement <text>` once per spec, adding `--scenario <id>
-   --given <text> --when <text> --then <text>` for each scenario and repeatable
-   `--implementation` and `--test` for mappings.
+   --given <text> --when <text> --then <text>` for each scenario.
    - do not write `.strict-spec-driven/specs/INDEX.yaml`; `spec-edit` reconciles
      the index in the same transaction as the spec it writes
-   - supply `spec.id`, `spec.title`, `mapping`, and `requirements` content as
-     named arguments rather than as YAML text
+   - supply `spec.id`, `spec.title`, and `requirements` content as named
+     arguments rather than as YAML text
    - describe current observable behavior, not future aspirations
-   - run `strict-spec-cli verify-spec-mappings` once the specs are in place
+   - run `strict-spec-cli check-workflow-state` once the specs are in place
 
 6. **Confirm** — summarize what was created and suggest
    `strict-roadmap-plan` to shape the roadmap or `strict-spec-propose` to create

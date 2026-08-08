@@ -28,7 +28,6 @@ tech-status: strict-spec-cli tech-status
 tech-edit: strict-spec-cli tech-edit <standard-id> [--tech-path <path>] --<named-args>
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --promoted-standard <id> --promoted-rule <id>
-verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
 verify: strict-spec-cli verify <change-name>
@@ -56,7 +55,7 @@ This skill writes `tech-state`, `change-delta-state`.
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli tech-edit`, `strict-spec-cli generate`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli verify-tech-mappings`, `strict-spec-cli verify <change-name>`
+7. **Run the artifact's validation command** — `strict-spec-cli tech-status`, `strict-spec-cli verify <change-name>`
 
 **Stop rather than edit YAML directly.**
 
@@ -102,10 +101,9 @@ run `init` from this skill.
 
    An active-change sync is always bounded to the selected change. Build its
    scope from the selected change's proposal, design, tasks, questions, delta
-   specs, delta tech, structured mappings, and repository changes attributable
-   to the change. Use attributable tracked and untracked files only as
-   supporting evidence; surface ambiguous ownership instead of absorbing
-   unrelated repository drift.
+   specs, delta tech, and repository changes attributable to the change. Use
+   attributable tracked and untracked files only as supporting evidence; surface
+   ambiguous ownership instead of absorbing unrelated repository drift.
    If a standalone user already gave a scope, use it. Otherwise ask whether to
    scan the whole repository or a narrower target.
 
@@ -153,10 +151,10 @@ run `init` from this skill.
 6. **Get operator confirmation** — before writing any standard or delta-tech
    artifact, ask the operator to confirm each proposed change. For every finding,
    provide the target standard (or proposed new standard), operation, stable rule
-   id, strength, normative statement, rationale, enforcement method, and
-   implementation/enforcement mappings. Do not proceed until the operator
-   explicitly approves both the normative content and its strength. A convention
-   only becomes a MUST when the operator agrees it is mandatory. A surfaced
+   id, strength, normative statement, rationale, and enforcement method. Do not
+   proceed until the operator explicitly approves both the normative content and
+   its strength. A convention only becomes a MUST when the operator agrees it is
+   mandatory. A surfaced
    pattern may instead be explicitly classified as not reusable; a convention
    confirmed as reusable may not be deferred until after its active change is
    archived.
@@ -167,13 +165,11 @@ run `init` from this skill.
      update a strict delta-tech artifact under the selected change; never edit a
      live main standard directly
    - in standalone mode, invoke `tech-edit <standard-id>` with named semantic
-     arguments for each confirmed scalar, keyed rule, example, exception, or
-     mapping mutation; use `--tech-path`, title, category, and one complete rule
-     when creating a standard
+     arguments for each confirmed scalar, keyed rule, example, or exception
+     mutation; use `--tech-path`, title, category, and one complete rule when
+     creating a standard
    - add, modify, or remove structured rules with `strength`, `statement`,
      `rationale`, and `enforcement`
-   - update `mapping.implementation` and `mapping.enforcement` to match the
-     repository evidence used for the sync
    - if no existing category or file fits, create a new standard through the
      selected mode with the correct relative path and category
    - never edit live main-tech or tech-index YAML text; `tech-edit` validates and
@@ -192,11 +188,10 @@ run `init` from this skill.
 
 9. **Refresh supporting tech state** — after all edits are complete:
    - in active-change mode, run `verify <change-name>`, review every generated
-     delta-tech operation and mapping against the confirmed finding, and rerun
-     any complete regression evidence invalidated by the artifact edit before
-     archive continues
+     delta-tech operation against the confirmed finding, and rerun any complete
+     regression evidence invalidated by the artifact edit before archive
+     continues
    - in standalone mode, confirm `tech-edit` reported the reconciled tech index
-     and run `verify-tech-mappings` when mapping fields changed
    - run `tech-status` to confirm the standards read back correctly
 
 10. **Report final changes** — summarize:
@@ -216,6 +211,4 @@ run `init` from this skill.
   live standards only in standalone mode.
 - Do not write a standalone report file; the summary belongs in chat
 - Get explicit user confirmation before editing any strict YAML standard file
-- Keep mappings in `mapping.implementation` and `mapping.enforcement`, not in
-  rule prose
 - Never hand-edit main-tech or tech-index YAML

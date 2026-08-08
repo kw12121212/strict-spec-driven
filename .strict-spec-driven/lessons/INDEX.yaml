@@ -30,6 +30,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/a-text-matching-check-can-be-silently-unfireable-e4f026.yaml
+    a-token-that-names-a-removed-capability-may-also-8a9587:
+      title: A token that names a removed capability may also name a retained one
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-token-that-names-a-removed-capability-may-also-8a9587.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability
@@ -116,3 +121,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-deleted-but-unstaged-file-still-exists-to-any-0f7e75.yaml
+    a-set-field-path-that-does-not-exist-creates-a-n-02ec26:
+      title: A --set field path that does not exist creates a new branch instead of failing
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-set-field-path-that-does-not-exist-creates-a-n-02ec26.yaml

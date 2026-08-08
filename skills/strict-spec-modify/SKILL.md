@@ -119,9 +119,9 @@ run `init` from this skill.
      unchanged-behavior, status, roadmap-link, and removal arguments
    - for `design.yaml`, use named approach, decision, alternative, risk,
      removal, or isolated deletion arguments
-   - for strict YAML delta specs and delta tech, use target-confined mapping,
-     operation, requirement/rule, scenario, removal, and deletion arguments;
-     preserve `target_spec` or `target_standard` identity
+   - for strict YAML delta specs and delta tech, use target-confined operation,
+     requirement/rule, scenario, removal, and deletion arguments; preserve
+     `target_spec` or `target_standard` identity
    - for `tasks.yaml`, use `strict-spec-cli generate <change-name> tasks` to
      add or update a task — one invocation per task, `--section <name> --task
      <id> --text "..."` (upserts by section and task id, so
@@ -155,6 +155,5 @@ run `init` from this skill.
 
 - Preserve completed task state unless the user explicitly asks otherwise
 - Keep strict delta specs aligned to the target main spec paths
-- Keep mappings in structured YAML fields, not prose
 - Never hand-edit change planning or delta YAML; every supported mutation flows
   through `generate`

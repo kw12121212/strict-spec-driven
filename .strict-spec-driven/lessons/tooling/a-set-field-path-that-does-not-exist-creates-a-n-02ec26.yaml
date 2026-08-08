@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-set-field-path-that-does-not-exist-creates-a-n-02ec26
+  title: A --set field path that does not exist creates a new branch instead of failing
+category: tooling
+status: active
+created_at: '2026-08-08T04:56:03.542Z'
+updated_at: '2026-08-08T04:56:03.542Z'
+context: Purging the mapping capability from skills and sweeping the repository for surviving references, after the previous change had already updated the YAML mutation inventory to drop the two deleted audit commands.
+observation: 'The live entries at artifact_families.spec-state.validation_command and artifact_families.tech-state.validation_command still named the deleted verify-spec-mappings and verify-tech-mappings. Commit b92c457 had run inventory-edit with --set families.spec-state.validation_command instead of --set artifact_families.spec-state.validation_command, so the write succeeded by creating a brand-new top-level ''families:'' mapping at the end of the file. Nothing read it: src/yaml-mutation-surface.ts:263 and scripts/check-yaml-mutation-inventory.ts:203 both load artifact_families, and the inventory coverage check passed because the real entries were still schema-valid. The dead block also held reference_side_effects as a ''0''-keyed mapping rather than a list, which no consumer rejected either.'
+takeaway: An addressed-path write reports success for a path it invented, so a committed:true result proves the command ran, not that it edited the field you meant. When a --set or --append path names a container you did not create in that same session, read the artifact's top-level keys back and confirm the value landed under the branch the loader actually reads, rather than trusting the transaction result.
+applies_when: Using a dotted --set, --append, or --remove-entry field path with inventory-edit, schema-edit, config-edit, or any other addressed-path CLI mutation, especially when correcting an existing nested field rather than adding a new one.
+occurrences:
+  - origin: purge-mapping-from-skills-and-prove-removal
+    date: '2026-08-08'
+    evidence: git show b92c457 -- inventory/yaml-mutation-surfaces.yaml shows a 9-line addition creating a top-level 'families:' block, while artifact_families.spec-state.validation_command still read verify-spec-mappings; grep '^[a-z_]*:' on the file revealed both 'artifact_families' (line 25) and 'families' (line 907).

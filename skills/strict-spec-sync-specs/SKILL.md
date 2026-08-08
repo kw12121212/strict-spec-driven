@@ -19,7 +19,6 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
-verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
 ## Prerequisites
@@ -44,7 +43,7 @@ This skill writes `spec-state`.
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
 5. **Execute the owning command with those arguments** — `strict-spec-cli spec-edit`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
-7. **Run the artifact's validation command** — `strict-spec-cli verify-spec-mappings`
+7. **Run the artifact's validation command** — `strict-spec-cli check-workflow-state`
 
 **Stop rather than edit YAML directly.**
 
@@ -116,8 +115,6 @@ run `init` from this skill.
    - create a new main spec with `--spec-path`, `--title`, and one complete
      `--requirement` / `--scenario` group
    - add or update requirements and scenarios by stable id
-   - append mappings with `--implementation` and `--test`, and remove stale
-     paths with the exact named removal flags
    - remove obsolete keyed entries with `--remove-requirement` or
      `--remove-scenario`
    Describe observable behavior only. Never edit the main-spec YAML or spec
@@ -126,7 +123,6 @@ run `init` from this skill.
 
 8. **Refresh supporting spec state** — after all strict spec edits are complete:
    - confirm each mutation result reports the reconciled spec index
-   - run `verify-spec-mappings` when mapping fields changed
 
 9. **Report final changes** — summarize:
    - which strict spec files were added, modified, or removed
@@ -143,6 +139,4 @@ run `init` from this skill.
 - Do not create a strict change — author live specs through `spec-edit`
 - Do not write a standalone report file; the summary belongs in chat
 - Get explicit user confirmation before editing any strict YAML spec file
-- Keep mappings in `mapping.implementation` and `mapping.tests`, not in
-  requirement prose
 - Never hand-edit main-spec or spec-index YAML

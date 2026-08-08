@@ -1,7 +1,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
+import { spawnSync } from "child_process";
 import {
+  ROOT,
   TestContext,
   cli,
   createCopiedProjectWorkspace,
@@ -439,4 +441,205 @@ export async function runMappingRemovalSuite(context: TestContext): Promise<void
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+}
+
+/**
+ * The removed mapping capability leaves three token families behind: the two deleted audit
+ * commands, the deleted repair skill, and the mapping field accessors on specs and standards.
+ * Each is a separate matcher so a surviving hit names which family it belongs to.
+ *
+ * The accessor matcher deliberately names only mapping.tests and mapping.enforcement. Those two
+ * belong to main specs and technical standards alone, so any surviving use is the removed
+ * capability. mapping.implementation is excluded because the retained architecture and
+ * design-system artifacts still carry it, and matching it would flag live features as survivors.
+ */
+const REMOVED_MAPPING_TOKENS: ReadonlyArray<{ category: string; pattern: RegExp }> = [
+  { category: "deleted-audit-command", pattern: /verify-(?:spec|tech)-mappings/u },
+  { category: "deleted-repair-skill", pattern: /strict-spec-resync-code-mapping/u },
+  { category: "removed-mapping-accessor", pattern: /mapping\.(?:tests|enforcement)/u },
+];
+
+/**
+ * Migration still reads the legacy Markdown workflow, whose specs carry mapping frontmatter, so a
+ * line describing that legacy input is stating live behavior rather than surviving guidance. The
+ * test is what the line is about, not which file it sits in.
+ */
+function describesLegacyMigrationInput(line: string): boolean {
+  return /\.spec-driven|legacy|frontmatter/iu.test(line);
+}
+
+/**
+ * A requirement or rule that forbids the removed capability has to name it to be verifiable, so a
+ * line asserting absence is proof of the removal rather than a survivor of it. This is the same
+ * distinction the legacy-input predicate draws: the sweep must separate text that uses the removed
+ * thing from text that is about its removal.
+ */
+function assertsRemoval(line: string): boolean {
+  return /MUST NOT|\bno longer\b|\bnever\b|\bis absent\b|\bare absent\b|\babsent from\b|\bno (?:package|skill|governed|artifact|step|remaining)\b/iu
+    .test(line);
+}
+
+/**
+ * History is not rewritten by a removal, so these path prefixes record what the workflow used to
+ * do and legitimately still name it. This is a predicate over categories of history, not a
+ * hand-enumerated list of the files that happen to fail today.
+ */
+function isRemovalHistory(relativePath: string): boolean {
+  return relativePath.startsWith(".strict-spec-driven/changes/archive/")
+    || relativePath.startsWith(".strict-spec-driven/roadmap/archive/")
+    || relativePath.startsWith(".strict-spec-driven/lessons/")
+    // The milestone and its planned changes must name the capability they remove.
+    || relativePath.startsWith(".strict-spec-driven/roadmap/")
+    // Legacy .spec-driven/ Markdown is migration input; those artifacts carry mapping frontmatter.
+    || relativePath.includes("/.spec-driven/")
+    // The suite that proves the removal necessarily names what was removed.
+    || relativePath === "test/suites/change-lifecycle.ts"
+    || relativePath === "test/suites/spec-tech-authoring.ts";
+}
+
+/**
+ * A main spec that an active change is revising states its corrected text in that change's delta
+ * spec, which archive merges; the live file still shows the pre-merge wording until then. Scanning
+ * it would assert a state the workflow deliberately defers, so the spec is judged through its
+ * delta instead. This clears itself: once the change archives, no active delta targets the spec
+ * and the live file is scanned again.
+ */
+function specsUnderActiveRevision(yaml: YamlModule): Set<string> {
+  const specPathsById = new Map<string, string>();
+  const indexPath = path.join(ROOT, ".strict-spec-driven", "specs", "INDEX.yaml");
+  if (existsSync(indexPath)) {
+    const index = yaml.parseYamlFile<{ specs?: Array<{ id?: string; path?: string }> }>(indexPath);
+    for (const entry of index.specs ?? []) {
+      if (entry.id !== undefined && entry.path !== undefined) specPathsById.set(entry.id, entry.path);
+    }
+  }
+
+  const revised = new Set<string>();
+  const changesRoot = path.join(ROOT, ".strict-spec-driven", "changes");
+  if (!existsSync(changesRoot)) return revised;
+  for (const changeName of readdirSync(changesRoot)) {
+    if (changeName === "archive") continue;
+    const deltaRoot = path.join(changesRoot, changeName, "specs");
+    if (!existsSync(deltaRoot)) continue;
+    const pending = [deltaRoot];
+    while (pending.length > 0) {
+      const current = pending.pop() as string;
+      for (const entry of readdirSync(current, { withFileTypes: true })) {
+        const entryPath = path.join(current, entry.name);
+        if (entry.isDirectory()) {
+          pending.push(entryPath);
+          continue;
+        }
+        if (!entry.name.endsWith(".yaml")) continue;
+        const delta = yaml.parseYamlFile<{ target_spec?: string }>(entryPath);
+        const targetPath = delta.target_spec === undefined ? undefined : specPathsById.get(delta.target_spec);
+        if (targetPath !== undefined) revised.add(targetPath);
+      }
+    }
+  }
+  return revised;
+}
+
+export async function runMappingReferenceSweepSuite(context: TestContext): Promise<void> {
+  context.section("[mapping-sweep] no live artifact references the removed mapping capability");
+
+  // Each matcher must be observed firing on realistic input before a clean scan means anything;
+  // a regex that can never match would otherwise report success over the whole repository.
+  for (const { category, pattern } of REMOVED_MAPPING_TOKENS) {
+    const sample = {
+      "deleted-audit-command": "run strict-spec-cli verify-spec-mappings after editing",
+      "deleted-repair-skill": "use /strict-spec-resync-code-mapping to repair drift",
+      "removed-mapping-accessor": "keep paths in mapping.tests and mapping.enforcement",
+    }[category] as string;
+    context.assert(pattern.test(sample), `the ${category} matcher fires on realistic input`, sample);
+  }
+
+  context.assert(
+    describesLegacyMigrationInput("a legacy spec carries `mapping.tests` in its Markdown frontmatter")
+      && !describesLegacyMigrationInput("keep paths in mapping.tests and mapping.enforcement"),
+    "the legacy-migration predicate separates legacy input prose from surviving authoring guidance",
+  );
+
+  context.assert(
+    assertsRemoval("MUST NOT package a `resync-code-mapping` skill")
+      && assertsRemoval("no skill command mapping declares verify-spec-mappings or verify-tech-mappings")
+      && !assertsRemoval("run `strict-spec-cli verify-spec-mappings` once the specs are in place")
+      && !assertsRemoval("keep paths in mapping.tests and mapping.enforcement"),
+    "the removal-assertion predicate separates prohibitions from surviving instructions",
+  );
+
+  const accessorMatcher = REMOVED_MAPPING_TOKENS
+    .find(({ category }) => category === "removed-mapping-accessor")?.pattern as RegExp;
+  context.assert(
+    !accessorMatcher.test("mapping.implementation = appendUnique(strings(mapping.implementation), input.component.implementation)")
+      && !accessorMatcher.test("them from `components.<id>.mapping.snapshots` so `design-status` can report"),
+    "the accessor matcher leaves the retained architecture and design-system mappings alone",
+  );
+
+  // The governed set is scanned from the index rather than enumerated, so a file added later is
+  // covered without anyone remembering to list it.
+  const yaml = await loadDistModule<YamlModule>("yaml.js");
+  const underRevision = specsUnderActiveRevision(yaml);
+  const tracked = spawnSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" });
+  context.assert(tracked.status === 0, "git ls-files enumerates the governed file set");
+  const governed = tracked.stdout
+    .split("\0")
+    .filter((entry) => entry.length > 0)
+    .filter((entry) => /\.(?:ts|md|ya?ml|json)$/u.test(entry))
+    .filter((entry) => !entry.startsWith("dist/"))
+    .filter((entry) => !isRemovalHistory(entry))
+    .filter((entry) => !underRevision.has(entry));
+  context.assert(governed.length > 100, `the scan reaches the repository (${governed.length} files)`);
+
+  const survivors: string[] = [];
+  for (const relativePath of governed) {
+    const text = readFileSync(path.join(ROOT, relativePath), "utf8");
+    for (const { category, pattern } of REMOVED_MAPPING_TOKENS) {
+      const lines = text.split("\n");
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index] as string;
+        if (!pattern.test(line)) continue;
+        if (category === "removed-mapping-accessor" && describesLegacyMigrationInput(line)) continue;
+        if (assertsRemoval(line)) continue;
+        survivors.push(`${relativePath}:${index + 1} (${category})`);
+      }
+    }
+  }
+  context.assert(
+    survivors.length === 0,
+    "no governed file references a deleted mapping command, the deleted repair skill, or a mapping accessor",
+    survivors.slice(0, 20).join("\n"),
+  );
+
+  // The negative case: the same scan over content that does carry the removed tokens must fail,
+  // proving a clean result is evidence about the repository and not about an unfireable check.
+  const negativeRoot = mkdtempSync(path.join(os.tmpdir(), "strict-mapping-sweep-negative-"));
+  try {
+    const planted = path.join(negativeRoot, "planted.md");
+    writeFileSync(planted, "Run `strict-spec-cli verify-tech-mappings` and keep mapping.enforcement current.\n", "utf8");
+    const plantedText = readFileSync(planted, "utf8");
+    const firedCategories = REMOVED_MAPPING_TOKENS
+      .filter(({ pattern }) => pattern.test(plantedText))
+      .map(({ category }) => category);
+    context.assert(
+      firedCategories.includes("deleted-audit-command") && firedCategories.includes("removed-mapping-accessor"),
+      "the sweep reports a surviving reference when one is planted",
+      firedCategories.join(", "),
+    );
+  } finally {
+    rmSync(negativeRoot, { recursive: true, force: true });
+  }
+
+  // The packaged skill inventory must no longer offer the deleted skill.
+  context.assert(
+    !existsSync(path.join(ROOT, "skills", "strict-spec-resync-code-mapping")),
+    "the strict-spec-resync-code-mapping skill package is absent from the repository",
+  );
+  const marketplace = JSON.parse(readFileSync(path.join(ROOT, "skills", "marketplace.json"), "utf8")) as {
+    skills: Array<{ name: string }>;
+  };
+  context.assert(
+    !marketplace.skills.some((entry) => entry.name === "strict-spec-resync-code-mapping"),
+    "the marketplace manifest no longer registers the deleted skill",
+  );
 }
