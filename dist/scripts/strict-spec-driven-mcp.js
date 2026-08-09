@@ -39930,7 +39930,7 @@ var COMMAND_METADATA_ENTRIES = {
       "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>]",
       "  strict-spec-cli generate <change-name> design --delete",
       "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
-      "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
+      "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
     ].join(`
@@ -40242,7 +40242,7 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--section",
         arity: "value",
         valueLabel: "<Implementation|Testing|Verification>",
-        description: "Opens a tasks group; the following --task, --text, --status, and --command belong to it.",
+        description: "Opens a tasks group; the following --task, --text, --status, --command, --before, and --after belong to it.",
         repeatable: true,
         repeatSemantics: "Repeat once per task."
       },
@@ -40273,6 +40273,22 @@ var COMMAND_METADATA_ENTRIES = {
         valueLabel: "<text>",
         description: "Runnable command recorded with the task.",
         repeatable: true
+      },
+      {
+        name: "--before",
+        arity: "value",
+        valueLabel: "<task-id>",
+        description: "Place the open --task immediately before this anchor task instead of appending it, and move it there when it is already recorded. Task order is the order apply walks, so this is how work discovered mid-change is put ahead of existing pending tasks. The anchor must already exist in the same section: an anchor that is absent, that lives in another section, that names the task itself, or that only a later --task group creates exits non-zero without writing. Task status never constrains placement. Rejected alongside --after for the same task.",
+        repeatable: true,
+        repeatSemantics: "At most once per task group, and never together with --after for that task."
+      },
+      {
+        name: "--after",
+        arity: "value",
+        valueLabel: "<task-id>",
+        description: "Place the open --task immediately after this anchor task instead of appending it, and move it there when it is already recorded. Carries the same anchor rules as --before: same section, already recorded, not the task itself, and rejected alongside --before for the same task. Moving a recorded task preserves its status, command, and any field the invocation does not supply.",
+        repeatable: true,
+        repeatSemantics: "At most once per task group, and never together with --before for that task."
       },
       {
         name: "--remove",

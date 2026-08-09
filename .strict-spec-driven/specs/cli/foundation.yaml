@@ -2749,3 +2749,59 @@ requirements:
         - GIVEN: a mutation-capable bundled skill package has its CLI-only authoring guidance removed entirely
         - WHEN: validate-skills runs
         - THEN: the package is still classified as mutation-capable and the command reports diagnostics for the missing guidance rather than treating the package as exempt
+  cli-generate-tasks-supports-positional-placement:
+    strength: MUST
+    statement: 'The system MUST let a generate tasks invocation state where a task belongs within its section, through two positional arguments that name an anchor task and place the subject task immediately before or immediately after it. Positional placement MUST apply both to a task the invocation creates and to a task already recorded in that section, and moving a recorded task MUST preserve its status, its command, and any field the invocation does not supply. The anchor MUST live in the same section as the subject task, and the command MUST exit non-zero without writing anything when the anchor is absent from that section, when the anchor names a different section, when the anchor names the subject task itself, when both positional arguments are supplied for one task, or when the anchor names a task that only a later task group in the same invocation creates. Task status MUST NOT constrain placement: an anchor is validated on identity and section membership only. An invocation that supplies neither positional argument MUST behave exactly as before, appending a new task to the end of its section and leaving a recorded task in place.'
+    scenarios:
+      positioned-insert-places-new-task-ahead-of-anchor:
+        - GIVEN: a change task list records several pending tasks in a section, and an agent discovers work that must run before one of them
+        - WHEN: the agent runs generate tasks naming that section, a new task id, its text, and the positional argument that places it before the existing task
+        - THEN: the new task is written immediately ahead of the named anchor rather than at the end of the section, and the next apply invocation returns the newly placed task id
+      positioned-move-preserves-recorded-task-state:
+        - GIVEN: a change task list records a task whose status is complete and which carries a command value
+        - WHEN: an agent runs generate tasks naming that task id with a positional argument anchoring it to another task in the same section, and supplies no other field
+        - THEN: the task is relocated to the requested position while its complete status, its command value, and its existing text are preserved, and every sibling task keeps its own status, command, and relative position
+      absent-positional-arguments-keep-existing-placement:
+        - GIVEN: a change task list records tasks in a section
+        - WHEN: an agent runs generate tasks supplying neither positional argument, both for a new task id and for a task already recorded
+        - THEN: the new task is appended to the end of its section and the recorded task keeps its current position, exactly as before the positional arguments existed
+      anchor-outside-the-named-section-is-refused:
+        - GIVEN: a change task list records tasks in more than one section
+        - WHEN: an agent runs generate tasks placing a task with an anchor that lives in a different section than the one named
+        - THEN: the command exits non-zero naming both the anchor and the two sections, the task list is left unchanged, and the caller is directed to the existing removal and restatement path for moving a task between sections
+      conflicting-or-self-referential-anchors-are-refused:
+        - GIVEN: a change task list records tasks in a section
+        - WHEN: an agent supplies both positional arguments for one task, or supplies an anchor naming that same task
+        - THEN: the command exits non-zero naming the offending task id and leaves the task list unchanged
+      an-anchor-created-later-in-the-same-invocation-is-refused:
+        - GIVEN: a single generate tasks invocation names several task groups in one section
+        - WHEN: an earlier group anchors to a task id that only a later group in the same invocation creates
+        - THEN: the command exits non-zero reporting that the anchor is not yet present, and leaves the task list unchanged
+      an-anchor-created-earlier-in-the-same-invocation-resolves:
+        - GIVEN: a single generate tasks invocation names several task groups in one section
+        - WHEN: a later group anchors to a task id that an earlier group in the same invocation created
+        - THEN: the anchor resolves against the section state as that group is applied, and both tasks are written in the requested order
+      task-status-does-not-constrain-placement:
+        - GIVEN: a change task list records a completed task followed by pending tasks in the same section
+        - WHEN: an agent places a pending task immediately ahead of the completed one
+        - THEN: the command exits zero with no diagnostic, the pending task is written ahead of the completed task, and the completed task keeps its status and position relative to its other siblings
+  cli-skills-document-task-order-adjustment:
+    strength: MUST
+    statement: Every bundled skill that directs an agent to author or extend a change task list MUST document how to adjust task order, stating that a task which must run before existing pending work is placed with a positional anchor rather than appended, and the apply skill MUST additionally document that work finished out of list order is recorded by addressing the task by id rather than by repeating the positional apply command. The set of skills governed by this requirement MUST be discovered by scanning bundled skill content for task-list authoring usage rather than from an enumerated list, and an automated skill-validation check MUST fail, naming the offending skill file, when a governed skill omits the guidance.
+    scenarios:
+      task-authoring-skills-state-how-to-place-a-task:
+        - GIVEN: a bundled skill directs an agent to populate or extend a change task list
+        - WHEN: an agent reads that skill before writing tasks
+        - THEN: the skill states that a task which must run before existing pending work is placed with a positional anchor rather than appended, and names the arguments that express it
+      apply-skill-states-how-to-record-out-of-order-work:
+        - GIVEN: an agent implementing a change finishes work in a different order than the task list records
+        - WHEN: the agent reads the apply skill for how to record that completion
+        - THEN: the skill states that the completed task is addressed by id rather than by repeating the positional apply command, and explains that repeating apply completes whichever task is next in list order
+      skill-validation-fails-when-guidance-is-missing:
+        - GIVEN: a bundled skill that directs task-list authoring has had its task-ordering guidance removed
+        - WHEN: the skill-validation command runs
+        - THEN: the command exits non-zero with a diagnostic naming that skill file and the missing guidance
+      governed-skill-set-is-discovered-by-scanning:
+        - GIVEN: a bundled skill that directs task-list authoring is added without being listed anywhere in the validation code
+        - WHEN: the skill-validation command runs against it while it carries no task-ordering guidance
+        - THEN: the scan discovers the skill as governed and the check fails for it, so no task-authoring skill escapes the requirement by being absent from a hand-maintained list

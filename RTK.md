@@ -78,5 +78,20 @@ never assume a source-repository `templates` or `examples` directory.
   has a build pipeline.
 - Add tests for schema validation, migration, archive/merge behavior, and error
   messages when implementing YAML artifact support.
+- Redirect test, lint, and coverage output to a file and read the exit status of
+  the command itself, never a pipeline's:
+
+  ```bash
+  bun test/run.ts > /tmp/suite.log 2>&1; echo "EXIT=$?"
+  grep -n FAIL /tmp/suite.log
+  ```
+
+  The suite prints thousands of lines, so a filter is needed to read it — but
+  applying that filter with a pipe destroys the evidence. A pipeline's exit
+  status is its **last** command's, so `bun test/run.ts | tail -25` reports
+  `tail`'s success and silently discards a failing run. Redirecting first keeps
+  the full output for analysis and the runner's own status for the pass/fail
+  decision. The same applies to `bun scripts/coverage-gate.ts`, whose non-zero
+  exit below the declared threshold is a blocking archive gate.
 - Do not silently widen workflow scope. If the desired YAML contract changes,
   update the relevant spec-driven artifacts first.

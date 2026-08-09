@@ -320,6 +320,10 @@ run `init` from this skill.
      `command` survive a text-only edit; a brand-new task still needs `--text`
    - delete a task with `--remove <task-id>`; to move a task between sections,
      `--remove` it and restate it under the new section in the same call
+   - place a task with `--before <task-id>` or `--after <task-id>` instead of letting
+     it append; task order is the order `apply` walks, so a task that must run before
+     existing pending work is anchored rather than appended, and naming an existing
+     task id with an anchor moves it there while preserving its `status` and `command`
    - values may begin with a dash via `--text=...` or `--command=...`
    - set the gates with `--validation-task <task-id>` and
      `--unit-test-task <task-id>`; both must reference `Testing` task ids

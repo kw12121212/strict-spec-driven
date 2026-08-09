@@ -126,3 +126,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-set-field-path-that-does-not-exist-creates-a-n-02ec26.yaml
+    piping-a-test-runner-into-tail-or-head-discards-15d651:
+      title: Piping a test runner into tail or head discards its exit status
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/piping-a-test-runner-into-tail-or-head-discards-15d651.yaml

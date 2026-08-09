@@ -292,6 +292,12 @@ run `init` from this skill.
      include the concrete scripts, tooling, generated assets, documentation, or
      skill-prompt edits in scope; include validation, strict `ready`/`verify`,
      and archive-readiness or archive-merge checks when relevant.
+     The reproduction task must come first in list order, so place a task with
+     `--before <task-id>` or `--after <task-id>` instead of letting it append;
+     task order is the order `apply` walks, so a task that must run before
+     existing pending work is anchored rather than appended, and naming an
+     existing task id with an anchor moves it there while preserving its
+     `status` and `command`.
    - `questions.yaml`: leave `open: []` only when reproduction, scope, expected
      behavior, and regression validation are all clear. Otherwise record the
      missing decision and stop before implementation.

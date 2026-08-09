@@ -130,7 +130,12 @@ run `init` from this skill.
      `command` are preserved automatically on a text-only edit — you no longer
      need to re-pass `--status complete`. Delete a task with `--remove <id>`,
      and move a task between sections by `--remove`-ing it and restating it
-     under the new section in the same call; set gates with
+     under the new section in the same call. Place a task with
+     `--before <task-id>` or `--after <task-id>` instead of letting it append;
+     task order is the order `apply` walks, so a task that must run before
+     existing pending work is anchored rather than appended, and naming an
+     existing task id with an anchor moves it there while preserving its
+     `status` and `command`. Set gates with
      `--validation-task`/`--unit-test-task`. Use `--text=...`/`--command=...`
      when a value begins with a dash. Rename a task id by removing the old id
      and restating it under the new id in one invocation. Preserve existing

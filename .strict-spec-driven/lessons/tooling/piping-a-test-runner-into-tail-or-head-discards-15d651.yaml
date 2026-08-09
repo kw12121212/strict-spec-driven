@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: piping-a-test-runner-into-tail-or-head-discards-15d651
+  title: Piping a test runner into tail or head discards its exit status
+category: tooling
+status: active
+created_at: '2026-08-09T02:33:19.991Z'
+updated_at: '2026-08-09T02:33:19.991Z'
+context: Running the full suite as 'bun run lint && bun run build && bun test/run.ts | tail -25' to keep the captured output small, then reading the harness's reported exit code to decide whether the change was green.
+observation: The pipeline reported exit code 0 while the suite's own summary line, visible in the same captured output, read '3/4221 tests failed'. In a POSIX shell the exit status of a pipeline is the status of its LAST command, so 'bun test/run.ts | tail -25' reports tail's success and discards the runner's failure. The failure was only caught because the tail window happened to include the summary line; had the suite printed more trailing output, a red run would have been recorded as green and carried into archive as regression evidence.
+takeaway: 'Never pipe a test, lint, or coverage command into tail, head, or grep when its exit status is the thing being judged. Redirect the full output to a file and read the status of the command itself: ''bun test/run.ts > run.log 2>&1; echo EXIT=$?'' then grep the file. The same trap applies to the coverage gate, whose non-zero exit on a below-threshold measurement is a blocking archive gate. Reading a summary line is not a substitute, because a passing-looking tail window and a genuinely passing run are indistinguishable.'
+applies_when: About to run a test, lint, build, or coverage command through a pipe into tail, head, grep, or any other filter, and intending to use that invocation's exit status or the harness's reported exit code as pass/fail evidence.
+occurrences:
+  - origin: positioned-task-placement
+    date: '2026-08-09'
+    evidence: '''bun test/run.ts | tail -25'' reported exit code 0 while the captured summary read ''3/4221 tests failed''; re-running as ''bun test/run.ts > suite.log 2>&1'' returned EXIT=1 and the three failing assertion names.'

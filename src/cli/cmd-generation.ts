@@ -27,7 +27,7 @@ function usage(): string {
     "  strict-spec-cli generate <change-name> proposal [--what <text>] [--why <text>] [--in <text>] [--out <text>] [--unchanged <text>] [--remove-what <substring>] [--remove-why <substring>] [--remove-in <substring>] [--remove-out <substring>] [--remove-unchanged <substring>]",
     "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>] | --delete",
     "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]... [--remove-question <id>]",
-    "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
+    "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
     "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]... [--remove-requirement <id>] [--remove-scenario <requirement-id>:<scenario-id>] | --target-spec <id> --delete",
     "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]... [--remove-rule <id>] | --target-standard <id> --delete",
   ].join("\n") + "\n";
@@ -707,6 +707,8 @@ type TaskGroup = {
   text?: string;
   status?: string;
   command?: string;
+  before?: string;
+  after?: string;
 };
 
 export type TaskRemovalOutcome = {
@@ -725,7 +727,11 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
   const input: TaskCommandInput = { removals: [], groups: [] };
   let current: TaskGroup | undefined;
 
-  function setField(field: "id" | "text" | "status" | "command", value: string, flagName: string): void {
+  function setField(
+    field: "id" | "text" | "status" | "command" | "before" | "after",
+    value: string,
+    flagName: string,
+  ): void {
     if (!current) {
       throw new Error("missing required argument --section before --" + flagName);
     }
@@ -768,6 +774,17 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
       continue;
     }
     if (name === "text" || name === "status" || name === "command") {
+      setField(name, readValue(), name);
+      continue;
+    }
+    // Placement belongs to the open task group rather than to the invocation, so a multi-task call
+    // can position each task independently.
+    if (name === "before" || name === "after") {
+      const opposite = name === "before" ? "after" : "before";
+      if (current?.[opposite] !== undefined) {
+        const subject = current.id ? `task '${current.id}'` : `the open '${current.section}' task`;
+        throw new Error(`--before and --after cannot both be supplied for ${subject}`);
+      }
       setField(name, readValue(), name);
       continue;
     }
@@ -832,6 +849,58 @@ function findTaskSection(sections: GenerationInputRecord, taskId: string): strin
   return undefined;
 }
 
+/**
+ * Rejects an anchor that cannot position `taskId`, before any section is rebuilt.
+ *
+ * An anchor is validated on identity and section membership only: task status never constrains
+ * placement, so a pending task may be positioned ahead of a completed one.
+ */
+function assertPlaceableAnchor(
+  sections: GenerationInputRecord,
+  sectionName: string,
+  taskId: string,
+  anchorId: string,
+): void {
+  if (anchorId === taskId) {
+    throw new Error(`task '${taskId}' cannot be placed relative to itself`);
+  }
+  const anchorSection = findTaskSection(sections, anchorId);
+  if (anchorSection === undefined) {
+    throw new Error(
+      `anchor task '${anchorId}' does not exist in section '${sectionName}'; an anchor must already be recorded when the task is placed, so a task created by a later --task group in the same invocation cannot serve as one`,
+    );
+  }
+  if (anchorSection !== sectionName) {
+    throw new Error(
+      `anchor task '${anchorId}' is in section '${anchorSection}', not '${sectionName}'; an anchor must be in the same section, so use --remove and restate the task to move it between sections`,
+    );
+  }
+}
+
+/**
+ * Rebuilds a section so `taskId` sits immediately before or after `anchorId`.
+ *
+ * Task order inside a section map is the execution order `apply` walks, so placement is expressed
+ * as key order rather than as a stored field. The section is rebuilt into a fresh record because
+ * key order is only observable through insertion order, and every task entry is carried across by
+ * reference so no field is rewritten as a side effect of moving one key.
+ */
+function placeTaskInSection(
+  sectionTasks: GenerationInputRecord,
+  taskId: string,
+  anchorId: string,
+  side: "before" | "after",
+): GenerationInputRecord {
+  const reordered: GenerationInputRecord = {};
+  for (const [currentId, task] of Object.entries(sectionTasks)) {
+    if (currentId === taskId) continue;
+    if (currentId === anchorId && side === "before") reordered[taskId] = sectionTasks[taskId];
+    reordered[currentId] = task;
+    if (currentId === anchorId && side === "after") reordered[taskId] = sectionTasks[taskId];
+  }
+  return reordered;
+}
+
 function buildTaskListInputFromArgs(
   rootDir: string,
   changeName: string,
@@ -894,6 +963,15 @@ function buildTaskListInputFromArgs(
 
     sectionTasks[group.id] = task;
     sections[group.section] = sectionTasks;
+
+    // Anchors resolve against the section as it stands when this group is applied, so a group may
+    // anchor to a task an earlier group created but not to one a later group will create.
+    const anchorId = group.before ?? group.after;
+    if (anchorId !== undefined) {
+      const side = group.before !== undefined ? "before" : "after";
+      assertPlaceableAnchor(sections, group.section, group.id, anchorId);
+      sections[group.section] = placeTaskInSection(sectionTasks, group.id, anchorId, side);
+    }
   }
 
   if (commandInput.validationTask !== undefined) gates.validation_task = commandInput.validationTask;

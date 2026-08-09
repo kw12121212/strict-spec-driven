@@ -277,6 +277,11 @@ run `init` from this skill.
       - each later task: one `--section`/`--task`/`--text` group per call
       - restating an existing `(section, task-id)` is a field-level merge — it overwrites only the fields you pass, so a task's `status: complete` and `command` survive a text-only edit; a brand-new task still needs `--text`
       - delete a task with `--remove <task-id>` (a repeatable global flag); to move a task between sections, `--remove` it and restate it under the new section in the same call
+      - place a task with `--before <task-id>` or `--after <task-id>` instead of
+        letting it append; task order is the order `apply` walks, so a task that must
+        run before existing pending work is anchored rather than appended, and naming
+        an existing task id with an anchor moves it there while preserving its `status`
+        and `command`
       - values may begin with a dash via `--text=...` or `--command=...` (the `--flag=value` form), needed when a task names a CLI flag
       - set the testing gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference task ids in the `Testing` section
       - the command upserts by `(section, task-id)` and is idempotent — re-running an identical call changes nothing

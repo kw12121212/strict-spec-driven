@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: positioned-task-placement
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: New work discovered mid-change lands at the end of its section. Because generate tasks appends a new task id and apply completes the first pending task in list order, a task that must run before existing pending work cannot be placed there, so the change is executed in the wrong sequence.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: Two observable results. First, generate tasks with a section, a new task id, its text, and an anchor writes that task directly ahead of the anchor, and the next apply invocation returns the new task id. Second, naming an existing task id with an anchor moves that task to the new position while its recorded complete status and command survive the move. In both cases every other task keeps its status, command, and position.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: AI agents running the workflow keep getting task order wrong. They author and extend task lists in a broken sequence and have no documented recourse, so nothing fails and nothing warns. Left alone the damage compounds silently across every change, as the recorded tooling lesson apply-completes-the-next-task-in-list-order already shows once, where a chained apply marked an unstarted task complete purely because it was next in the list.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'Section order stays fixed: Implementation, Testing, and Verification are not reorderable relative to one another, only tasks within a section move. No auto-sorting: no dependency inference and no smart placement, so order is only ever what the caller states with an explicit anchor. Confirmed separately: apply keeps its positional contract with no task-id flag, and no other artifact family gains ordering flags.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Both halves of the request are in scope: the CLI gains positioned insert and positioned move of an existing task, not merely one of the two. Anchors are same-section only, so naming an anchor in a different section is rejected and cross-section moves keep using the existing removal-plus-restatement path. The AI-facing guidance goes into the task-authoring skills and into strict-spec-apply for the out-of-order case, on top of the flag semantics that the command-metadata registry already requires.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: placement-relative-to-completed-tasks
+    question: When a positional flag would place a pending task before a task already recorded complete, should the CLI accept it, or reject it as a list that misrepresents progress?
+    context: 'Impact: this is observable rejection behavior, so it needs its own spec scenario and its own test either way, and adding the restriction later would be a breaking change to an invocation the CLI had already accepted. Evidence: apply skips completed tasks and takes the first pending one, so accepting the placement breaks nothing mechanically; the list simply reads as though completed work sits after work not yet started. Options: (a) Accept without restriction, treating list order as a plan the caller owns and keeping flag semantics uniform regardless of status -- recommended, because the same situation already arises whenever a task is completed out of order and the CLI does not police it there either. (b) Reject with a diagnostic naming the completed anchor, guaranteeing every pending task sits after every completed one within a section. (c) Accept but report a non-blocking warning naming the completed task it was placed ahead of. A sufficient answer names one of these; if (b), it also states whether the restriction applies to the whole section or only to the adjacent anchor.'
+    answer: 'Accept without restriction. Task status has no bearing on whether a positional anchor is valid, so the placement flags behave uniformly regardless of the subject task''s or the anchor''s status, and no diagnostic is emitted. List order is a plan the caller owns: the same situation already arises whenever a task is completed out of order, and the CLI does not police it there either. No rejection path and no advisory diagnostic are added for this case.'
+    status: resolved
+    kind: technical
+    answered_by: human

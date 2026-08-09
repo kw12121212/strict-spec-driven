@@ -16111,7 +16111,7 @@ var COMMAND_METADATA_ENTRIES = {
       "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>]",
       "  strict-spec-cli generate <change-name> design --delete",
       "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
-      "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
+      "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
     ].join(`
@@ -16423,7 +16423,7 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--section",
         arity: "value",
         valueLabel: "<Implementation|Testing|Verification>",
-        description: "Opens a tasks group; the following --task, --text, --status, and --command belong to it.",
+        description: "Opens a tasks group; the following --task, --text, --status, --command, --before, and --after belong to it.",
         repeatable: true,
         repeatSemantics: "Repeat once per task."
       },
@@ -16454,6 +16454,22 @@ var COMMAND_METADATA_ENTRIES = {
         valueLabel: "<text>",
         description: "Runnable command recorded with the task.",
         repeatable: true
+      },
+      {
+        name: "--before",
+        arity: "value",
+        valueLabel: "<task-id>",
+        description: "Place the open --task immediately before this anchor task instead of appending it, and move it there when it is already recorded. Task order is the order apply walks, so this is how work discovered mid-change is put ahead of existing pending tasks. The anchor must already exist in the same section: an anchor that is absent, that lives in another section, that names the task itself, or that only a later --task group creates exits non-zero without writing. Task status never constrains placement. Rejected alongside --after for the same task.",
+        repeatable: true,
+        repeatSemantics: "At most once per task group, and never together with --after for that task."
+      },
+      {
+        name: "--after",
+        arity: "value",
+        valueLabel: "<task-id>",
+        description: "Place the open --task immediately after this anchor task instead of appending it, and move it there when it is already recorded. Carries the same anchor rules as --before: same section, already recorded, not the task itself, and rejected alongside --before for the same task. Moving a recorded task preserves its status, command, and any field the invocation does not supply.",
+        repeatable: true,
+        repeatSemantics: "At most once per task group, and never together with --before for that task."
       },
       {
         name: "--remove",
@@ -20030,7 +20046,7 @@ function usage() {
     "  strict-spec-cli generate <change-name> proposal [--what <text>] [--why <text>] [--in <text>] [--out <text>] [--unchanged <text>] [--remove-what <substring>] [--remove-why <substring>] [--remove-in <substring>] [--remove-out <substring>] [--remove-unchanged <substring>]",
     "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>] | --delete",
     "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]... [--remove-question <id>]",
-    "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
+    "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
     "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]... [--remove-requirement <id>] [--remove-scenario <requirement-id>:<scenario-id>] | --target-spec <id> --delete",
     "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]... [--remove-rule <id>] | --target-standard <id> --delete"
   ].join(`
@@ -20561,6 +20577,15 @@ function parseTaskCommandInput(argv, rootDir) {
       setField(name, readValue(), name);
       continue;
     }
+    if (name === "before" || name === "after") {
+      const opposite = name === "before" ? "after" : "before";
+      if (current?.[opposite] !== undefined) {
+        const subject = current.id ? `task '${current.id}'` : `the open '${current.section}' task`;
+        throw new Error(`--before and --after cannot both be supplied for ${subject}`);
+      }
+      setField(name, readValue(), name);
+      continue;
+    }
     if (name === "remove") {
       input.removals.push(readValue());
       continue;
@@ -20614,6 +20639,31 @@ function findTaskSection(sections, taskId) {
   }
   return;
 }
+function assertPlaceableAnchor(sections, sectionName, taskId, anchorId) {
+  if (anchorId === taskId) {
+    throw new Error(`task '${taskId}' cannot be placed relative to itself`);
+  }
+  const anchorSection = findTaskSection(sections, anchorId);
+  if (anchorSection === undefined) {
+    throw new Error(`anchor task '${anchorId}' does not exist in section '${sectionName}'; an anchor must already be recorded when the task is placed, so a task created by a later --task group in the same invocation cannot serve as one`);
+  }
+  if (anchorSection !== sectionName) {
+    throw new Error(`anchor task '${anchorId}' is in section '${anchorSection}', not '${sectionName}'; an anchor must be in the same section, so use --remove and restate the task to move it between sections`);
+  }
+}
+function placeTaskInSection(sectionTasks, taskId, anchorId, side) {
+  const reordered = {};
+  for (const [currentId, task] of Object.entries(sectionTasks)) {
+    if (currentId === taskId)
+      continue;
+    if (currentId === anchorId && side === "before")
+      reordered[taskId] = sectionTasks[taskId];
+    reordered[currentId] = task;
+    if (currentId === anchorId && side === "after")
+      reordered[taskId] = sectionTasks[taskId];
+  }
+  return reordered;
+}
 function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
   const commandInput = parseTaskCommandInput(argv, rootDir);
   const input = existingTaskListInput(rootDir, changeName);
@@ -20661,6 +20711,12 @@ function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
       task.command = command;
     sectionTasks[group.id] = task;
     sections[group.section] = sectionTasks;
+    const anchorId = group.before ?? group.after;
+    if (anchorId !== undefined) {
+      const side = group.before !== undefined ? "before" : "after";
+      assertPlaceableAnchor(sections, group.section, group.id, anchorId);
+      sections[group.section] = placeTaskInSection(sectionTasks, group.id, anchorId, side);
+    }
   }
   if (commandInput.validationTask !== undefined)
     gates.validation_task = commandInput.validationTask;
@@ -32790,6 +32846,45 @@ var REQUIREMENT_INTERROGATION_SKILLS = [
   "strict-spec-auto"
 ];
 var REQUIREMENT_INTERROGATION_HEADING = "## Requirement Interrogation";
+var TASK_GENERATOR_PATTERNS = [
+  /generate\s+<change(?:-name)?>\s+tasks/,
+  /tasks\s+--section\s+</
+];
+var TASK_SECTION_NAMES_IN_PROSE = ["Implementation", "Testing", "Verification"];
+function directsTaskListAuthoring(content) {
+  if (TASK_GENERATOR_PATTERNS.some((pattern) => pattern.test(content)))
+    return true;
+  return content.includes("tasks.yaml") && TASK_SECTION_NAMES_IN_PROSE.every((sectionName) => content.includes(sectionName));
+}
+var TASK_ORDER_APPLY_SKILL = "strict-spec-apply";
+var TASK_ORDER_PLACEMENT_SNIPPETS = [
+  {
+    snippet: "`--before <task-id>` or `--after <task-id>`",
+    element: "the positional arguments that place a task within its section"
+  },
+  {
+    snippet: "task order is the order `apply` walks",
+    element: "why task order matters, namely that it is the order apply walks"
+  },
+  {
+    snippet: "must run before existing pending work is anchored rather than appended",
+    element: "the rule that work which must run before existing pending tasks is anchored, not appended"
+  }
+];
+var TASK_ORDER_APPLY_SNIPPETS = [
+  {
+    snippet: "`apply` is positional, not addressed",
+    element: "that apply completes whichever task is next in list order rather than one named by id"
+  },
+  {
+    snippet: "--status complete",
+    element: "addressing a task by id to record work finished out of list order"
+  },
+  {
+    snippet: "`--before <task-id>` or `--after <task-id>`",
+    element: "repositioning the remaining tasks when the list order itself is wrong"
+  }
+];
 var REQUIREMENT_INTERROGATION_SNIPPETS = [
   { snippet: "never answered from repository evidence", element: "the rule that requirement items are never answered from repository evidence" },
   { snippet: "requirement-problem", element: "the canonical requirement id 'requirement-problem'" },
@@ -33264,6 +33359,24 @@ function validateRequirementInterrogationGuidance(skillName, content, skillPath,
     diagnostics.push(makeDiagnostic5("skill.requirement_interrogation.guidance.missing", skillPath, `proposal-oriented strict skills must document ${expectation.element}`, expectation.snippet));
   }
 }
+function validateTaskOrderGuidance(skillName, content, skillPath, diagnostics) {
+  const normalizedContent = content.replace(/\s+/g, " ");
+  if (skillName === TASK_ORDER_APPLY_SKILL) {
+    for (const expectation of TASK_ORDER_APPLY_SNIPPETS) {
+      if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " ")))
+        continue;
+      diagnostics.push(makeDiagnostic5("skill.task_order.apply_guidance.missing", skillPath, `the apply skill must document ${expectation.element}`, expectation.snippet));
+    }
+    return;
+  }
+  if (!directsTaskListAuthoring(content))
+    return;
+  for (const expectation of TASK_ORDER_PLACEMENT_SNIPPETS) {
+    if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " ")))
+      continue;
+    diagnostics.push(makeDiagnostic5("skill.task_order.placement_guidance.missing", skillPath, `a skill that directs change task-list authoring must document ${expectation.element}`, expectation.snippet));
+  }
+}
 function requiresExistingStrictWorkflowState(skillName) {
   return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-") || skillName.startsWith("strict-tech-")) && skillName !== "strict-spec-init" && skillName !== "strict-spec-migrate";
 }
@@ -33427,6 +33540,7 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
+  validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
 }
 

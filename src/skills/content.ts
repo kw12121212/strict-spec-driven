@@ -16,6 +16,10 @@ import {
   REQUIREMENT_INTERROGATION_HEADING,
   REQUIREMENT_INTERROGATION_SKILLS,
   REQUIREMENT_INTERROGATION_SNIPPETS,
+  directsTaskListAuthoring,
+  TASK_ORDER_APPLY_SKILL,
+  TASK_ORDER_APPLY_SNIPPETS,
+  TASK_ORDER_PLACEMENT_SNIPPETS,
   STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,
   STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET,
   STRICT_WORKFLOW_NO_INIT_SNIPPET,
@@ -51,6 +55,51 @@ function validateRequirementInterrogationGuidance(
         "skill.requirement_interrogation.guidance.missing",
         skillPath,
         `proposal-oriented strict skills must document ${expectation.element}`,
+        expectation.snippet,
+      ),
+    );
+  }
+}
+
+/**
+ * Requires task-ordering guidance in every skill that directs task-list authoring, and the
+ * out-of-order completion guidance in the apply skill.
+ *
+ * The governed set is discovered by scanning content for task-authoring usage rather than read
+ * from a list, so adding a task-authoring skill cannot silently skip the requirement.
+ */
+function validateTaskOrderGuidance(
+  skillName: string,
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  const normalizedContent = content.replace(/\s+/g, " ");
+
+  if (skillName === TASK_ORDER_APPLY_SKILL) {
+    for (const expectation of TASK_ORDER_APPLY_SNIPPETS) {
+      if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " "))) continue;
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.task_order.apply_guidance.missing",
+          skillPath,
+          `the apply skill must document ${expectation.element}`,
+          expectation.snippet,
+        ),
+      );
+    }
+    return;
+  }
+
+  if (!directsTaskListAuthoring(content)) return;
+
+  for (const expectation of TASK_ORDER_PLACEMENT_SNIPPETS) {
+    if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " "))) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.task_order.placement_guidance.missing",
+        skillPath,
+        `a skill that directs change task-list authoring must document ${expectation.element}`,
         expectation.snippet,
       ),
     );
@@ -506,5 +555,6 @@ export function validateCommandSection(
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
+  validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
 }

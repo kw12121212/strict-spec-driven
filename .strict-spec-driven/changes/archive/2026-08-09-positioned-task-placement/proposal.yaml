@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: positioned-task-placement
+  status: proposed
+summary:
+  what:
+    - Add --before and --after positional flags to the generate tasks artifact so a task can be created at, or moved to, an explicit position within its section instead of always appending to the end
+    - Reject a positional anchor that does not exist in the section named by --section, that names the task being placed, or that is combined with the opposing positional flag in the same task group
+    - Document how and when to adjust task order in the bundled task-authoring skills and in strict-spec-apply, and enforce that guidance through a validate-skills content check
+  why:
+    - 'Task order is load-bearing: apply completes the first pending task in list order and accepts no task id, and the apply skill directs agents to work tasks in that order, so a task written in the wrong position is executed in the wrong sequence'
+    - A task discovered mid-change always appends to the end of its section, so newly found work that must run before existing pending tasks cannot be placed correctly
+    - The only reordering path today is a named removal followed by restatement, which still lands the task at the end of the section and discards its recorded status and command
+    - AI agents running the workflow author and extend task lists in a broken sequence and have no documented recourse, so the damage compounds silently across changes rather than surfacing as a failure
+scope:
+  in:
+    - Positional --before and --after flags on generate tasks, belonging to the open --task group alongside --text, --status, and --command
+    - 'Positioned creation: a new task supplied with an anchor is inserted adjacent to that anchor rather than appended'
+    - 'Positioned move: an existing task in the same section is relocated adjacent to the anchor while its status, command, and unsupplied text are preserved'
+    - Same-section anchor constraint, with a non-zero exit naming both sections when the anchor lives in a different section
+    - 'Sequential anchor resolution within one invocation: an anchor created by an earlier --task group resolves, one created by a later group is an error'
+    - Command-metadata registry entries describing the two new flags, their pairing with --task, and their rejection semantics
+    - Ordering guidance in the task-authoring skills and in strict-spec-apply, plus a validate-skills check that fails when a governed skill omits it
+  out:
+    - An apply task-id flag or any other way to complete a task by id, because generate tasks with --task and --status complete already addresses a task by id
+    - Positional flags on delta-spec requirements, delta-tech rules, question entries, or proposal list entries
+    - Reordering the Implementation, Testing, and Verification sections relative to one another
+    - Automatic sorting, dependency inference, or any placement the caller did not state with an explicit anchor
+    - An integer order flag for task placement, because placement is expressed only through named anchors
+unchanged_behavior:
+  - 'A generate tasks invocation that supplies neither positional flag behaves exactly as it does today: a new task appends to the end of its section and an existing task keeps its current position'
+  - apply remains positional, completing the first pending task in list order and accepting no task id
+  - Section order remains Implementation, then Testing, then Verification
+  - Removals continue to run before upserts, so the existing cross-section move path of a named removal plus restatement under a new section keeps working
+  - 'Field-level merge semantics are preserved: a positioned restatement overwrites only the fields the invocation supplies'
+  - Every artifact family other than the change task list keeps its current authoring surface

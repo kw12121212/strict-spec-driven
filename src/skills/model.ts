@@ -123,6 +123,64 @@ export const REQUIREMENT_INTERROGATION_SKILLS = [
 
 export const REQUIREMENT_INTERROGATION_HEADING = "## Requirement Interrogation";
 
+const TASK_GENERATOR_PATTERNS: readonly RegExp[] = [
+  /generate\s+<change(?:-name)?>\s+tasks/,
+  /tasks\s+--section\s+</,
+];
+
+const TASK_SECTION_NAMES_IN_PROSE: readonly string[] = ["Implementation", "Testing", "Verification"];
+
+/**
+ * Reports whether a skill directs change task-list authoring, and is therefore governed by the
+ * task-ordering requirement.
+ *
+ * The governed set is derived from what a skill's content actually does rather than enumerated, so
+ * a task-authoring skill added later inherits the requirement instead of escaping it by being
+ * absent from a list. Two independent signals are recognized, because a skill may direct authoring
+ * either by naming the tasks generator or by prescribing the artifact's section content: matching
+ * only one of them would let a reworded skill drop out of the governed set silently.
+ */
+export function directsTaskListAuthoring(content: string): boolean {
+  if (TASK_GENERATOR_PATTERNS.some((pattern) => pattern.test(content))) return true;
+  return content.includes("tasks.yaml")
+    && TASK_SECTION_NAMES_IN_PROSE.every((sectionName) => content.includes(sectionName));
+}
+
+/** The apply skill carries the out-of-order completion guidance rather than the placement guidance. */
+export const TASK_ORDER_APPLY_SKILL = "strict-spec-apply";
+
+/** Placement guidance every task-authoring skill must carry, matched on normalized whitespace. */
+export const TASK_ORDER_PLACEMENT_SNIPPETS: ReadonlyArray<{ snippet: string; element: string }> = [
+  {
+    snippet: "`--before <task-id>` or `--after <task-id>`",
+    element: "the positional arguments that place a task within its section",
+  },
+  {
+    snippet: "task order is the order `apply` walks",
+    element: "why task order matters, namely that it is the order apply walks",
+  },
+  {
+    snippet: "must run before existing pending work is anchored rather than appended",
+    element: "the rule that work which must run before existing pending tasks is anchored, not appended",
+  },
+];
+
+/** Out-of-order completion guidance the apply skill must carry. */
+export const TASK_ORDER_APPLY_SNIPPETS: ReadonlyArray<{ snippet: string; element: string }> = [
+  {
+    snippet: "`apply` is positional, not addressed",
+    element: "that apply completes whichever task is next in list order rather than one named by id",
+  },
+  {
+    snippet: "--status complete",
+    element: "addressing a task by id to record work finished out of list order",
+  },
+  {
+    snippet: "`--before <task-id>` or `--after <task-id>`",
+    element: "repositioning the remaining tasks when the list order itself is wrong",
+  },
+];
+
 export type RequirementInterrogationExpectation = {
   /** Text the skill must carry verbatim. */
   snippet: string;

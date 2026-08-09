@@ -1869,6 +1869,227 @@ try {
   rmSync(interrogationGuidanceRoot, { recursive: true, force: true });
 }
 
+// The governed set is derived by scanning content, so the fixture skill is named something the
+// check has never heard of: only its task-authoring text can bring it under the requirement.
+const taskOrderGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-task-order-"));
+try {
+  const taskOrderSkillName = "strict-spec-unlisted-authoring-fixture";
+  const taskOrderSkillDir = path.join(taskOrderGuidanceRoot, "skills", taskOrderSkillName);
+  mkdirSync(path.join(taskOrderGuidanceRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(taskOrderGuidanceRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(taskOrderSkillDir, { recursive: true });
+  symlinkSync("../../dist/scripts", path.join(taskOrderSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(taskOrderSkillDir, "templates"));
+  writeFileSync(
+    path.join(taskOrderGuidanceRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: taskOrderSkillName, family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const taskAuthoringLine = "Populate the list with `strict-spec-cli generate <change-name> tasks --section <section>`.";
+  const placementGuidanceLines = [
+    "Place a task with `--before <task-id>` or `--after <task-id>` instead of letting it append;",
+    "task order is the order `apply` walks, so a task that must run before existing pending work",
+    "is anchored rather than appended.",
+  ];
+
+  const authoringCommandLine = "generate: strict-spec-cli generate <change-name> tasks --<named-args>";
+  const readOnlyCommandLine = "verify: strict-spec-cli verify <change-name>";
+
+  function writeTaskOrderSkill(bodyLines: string[], commandLine = authoringCommandLine): void {
+    writeFileSync(
+      path.join(taskOrderSkillDir, "SKILL.md"),
+      [
+        "---",
+        `name: ${taskOrderSkillName}`,
+        "description: stub",
+        "metadata:",
+        "  skill_id: strict_spec_unlisted_authoring_fixture",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        `# ${taskOrderSkillName}`,
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        commandLine,
+        "```",
+        "",
+        ...bodyLines,
+      ].join("\n") + "\n",
+      "utf8",
+    );
+  }
+
+  const taskOrderDiagnostics = (): Array<{ code: string; path: string; expected?: string }> =>
+    skillValidationModule
+      .validateStrictSkillPackaging(taskOrderGuidanceRoot)
+      .diagnostics.filter((diagnostic) => diagnostic.code.startsWith("skill.task_order."));
+
+  // Negative case: a task-authoring skill with the guidance removed must fail, naming its file.
+  writeTaskOrderSkill(["## Steps", "", taskAuthoringLine]);
+  const missingPlacement = taskOrderDiagnostics();
+  context.assert(
+    missingPlacement.length > 0
+      && missingPlacement.every((diagnostic) => diagnostic.code === "skill.task_order.placement_guidance.missing"),
+    "validate-skills rejects a task-authoring skill whose ordering guidance was removed",
+    `diagnostics: ${JSON.stringify(missingPlacement)}`,
+  );
+  context.assert(
+    missingPlacement.every((diagnostic) => diagnostic.path.includes(taskOrderSkillName)),
+    "the task-order diagnostic names the offending skill file",
+    `diagnostics: ${JSON.stringify(missingPlacement)}`,
+  );
+  for (const expected of [
+    "`--before <task-id>` or `--after <task-id>`",
+    "task order is the order `apply` walks",
+    "must run before existing pending work is anchored rather than appended",
+  ]) {
+    context.assert(
+      missingPlacement.some((diagnostic) => diagnostic.expected === expected),
+      `each task-order matcher category fires on realistic input (${expected})`,
+      `diagnostics: ${JSON.stringify(missingPlacement)}`,
+    );
+  }
+
+  // Positive case: the scan governs a skill no list names, purely from its task-authoring text.
+  writeTaskOrderSkill(["## Steps", "", taskAuthoringLine, "", ...placementGuidanceLines]);
+  context.assert(
+    taskOrderDiagnostics().length === 0,
+    "validate-skills accepts a scanned task-authoring skill that carries the ordering guidance",
+    `diagnostics: ${JSON.stringify(taskOrderDiagnostics())}`,
+  );
+
+  // Second signal: a skill that prescribes the artifact's section content is governed even when it
+  // never names the generator, so rewording away from the command cannot drop it from the set.
+  writeTaskOrderSkill(
+    [
+      "## Steps",
+      "",
+      "Populate `tasks.yaml` with concrete Implementation, Testing, and Verification entries.",
+    ],
+    readOnlyCommandLine,
+  );
+  const sectionProseOnly = taskOrderDiagnostics();
+  context.assert(
+    sectionProseOnly.length > 0
+      && sectionProseOnly.every((diagnostic) => diagnostic.code === "skill.task_order.placement_guidance.missing"),
+    "a skill that prescribes task-list section content is governed even without naming the generator",
+    `diagnostics: ${JSON.stringify(sectionProseOnly)}`,
+  );
+
+  // A skill that never authors task lists stays outside the governed set.
+  writeTaskOrderSkill(
+    ["## Steps", "", "Read the change and report on it without writing tasks."],
+    readOnlyCommandLine,
+  );
+  context.assert(
+    taskOrderDiagnostics().length === 0,
+    "a skill that does not direct task-list authoring is not governed by the ordering requirement",
+    `diagnostics: ${JSON.stringify(taskOrderDiagnostics())}`,
+  );
+} finally {
+  rmSync(taskOrderGuidanceRoot, { recursive: true, force: true });
+}
+
+// The apply skill carries the out-of-order completion guidance rather than the placement guidance,
+// so its branch needs its own negative case.
+const applyGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-apply-order-"));
+try {
+  const applySkillDir = path.join(applyGuidanceRoot, "skills", "strict-spec-apply");
+  mkdirSync(path.join(applyGuidanceRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(applyGuidanceRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(applySkillDir, { recursive: true });
+  symlinkSync("../../dist/scripts", path.join(applySkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(applySkillDir, "templates"));
+  writeFileSync(
+    path.join(applyGuidanceRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-apply", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  function writeApplySkill(bodyLines: string[]): void {
+    writeFileSync(
+      path.join(applySkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-apply",
+        "description: stub",
+        "metadata:",
+        "  skill_id: strict_spec_apply",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "# strict-spec-apply",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "apply: strict-spec-cli apply <change-name>",
+        "```",
+        "",
+        ...bodyLines,
+      ].join("\n") + "\n",
+      "utf8",
+    );
+  }
+
+  const applyOrderDiagnostics = (): Array<{ code: string; path: string; expected?: string }> =>
+    skillValidationModule
+      .validateStrictSkillPackaging(applyGuidanceRoot)
+      .diagnostics.filter((diagnostic) => diagnostic.code.startsWith("skill.task_order."));
+
+  writeApplySkill(["## Steps", "", "Run the apply command after finishing a task."]);
+  const missingApplyGuidance = applyOrderDiagnostics();
+  context.assert(
+    missingApplyGuidance.length > 0
+      && missingApplyGuidance.every((diagnostic) => diagnostic.code === "skill.task_order.apply_guidance.missing"),
+    "validate-skills rejects an apply skill missing the out-of-order completion guidance",
+    `diagnostics: ${JSON.stringify(missingApplyGuidance)}`,
+  );
+  context.assert(
+    missingApplyGuidance.some((diagnostic) => diagnostic.expected === "`apply` is positional, not addressed"),
+    "the apply-guidance diagnostic names the positional-versus-addressed rule",
+    `diagnostics: ${JSON.stringify(missingApplyGuidance)}`,
+  );
+
+  writeApplySkill([
+    "## Steps",
+    "",
+    "`apply` is positional, not addressed: it completes whichever task is next in list order.",
+    "Record work finished out of order with `--task <id> --status complete`, and fix a wrong",
+    "sequence with `--before <task-id>` or `--after <task-id>`.",
+  ]);
+  context.assert(
+    applyOrderDiagnostics().length === 0,
+    "validate-skills accepts an apply skill carrying the out-of-order completion guidance",
+    `diagnostics: ${JSON.stringify(applyOrderDiagnostics())}`,
+  );
+} finally {
+  rmSync(applyGuidanceRoot, { recursive: true, force: true });
+}
+
 const invalidGenericCommandSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-generic-command-invalid-"));
 try {
   const invalidGenericCommandSkillDir = path.join(invalidGenericCommandSkillRoot, "skills", "strict-spec-placeholder-fixture");

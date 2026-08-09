@@ -20,6 +20,7 @@ check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 modify: strict-spec-cli modify [change-name|archive-dir]
+generate: strict-spec-cli generate <change-name> tasks --<named-args>
 apply: strict-spec-cli apply <change-name>
 verify: strict-spec-cli verify <change-name>
 ```
@@ -162,6 +163,15 @@ run `init` from this skill.
    ```
    and confirm the returned `sectionName` and `taskId` match the task you just
    completed.
+
+   `apply` is positional, not addressed: it completes whichever task is next in
+   list order, so a returned `taskId` that does not match your work means the
+   list order and the work order have diverged. Work finished out of list order
+   is recorded by addressing the task by id with
+   `strict-spec-cli generate <change-name> tasks --section <section> --task <id> --status complete`
+   rather than by running `apply` again. When the remaining tasks are simply in
+   the wrong sequence, fix the list itself with `--before <task-id>` or
+   `--after <task-id>` so later `apply` calls land on the right task.
 
 6. **Do not use `apply` as a read-only status command** — the strict apply
    command mutates `tasks.yaml` by marking the first pending task complete. Read

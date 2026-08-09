@@ -1,0 +1,45 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: positioned-task-placement
+approach:
+  - 'Task order in tasks.yaml is key insertion order inside each section map, and that order is what apply walks, so placement is expressed by rebuilding one section''s key sequence rather than by adding an order field to the schema. The task-list schema stays untouched: sections remain keyed maps whose additionalProperties describe text, status, and command, so no existing artifact is invalidated and no tombstone is needed.'
+  - Two new flags, --before and --after, join the per-task group in the generate tasks argument parser, set through the same setField helper that rejects a repeated --text or --command within one group. Because they live in the task group rather than as global flags, each task named in a multi-task invocation can carry its own placement, and an invocation that names no placement takes the existing append or in-place path unchanged.
+  - Placement is applied inside mergeTaskListInput after the existing removal pass and as part of the same upsert loop. Once a task group has been written into its section record, the section map is rebuilt in the requested key order by splicing the placed id adjacent to its anchor. Rebuilding one section object rather than mutating positions in place keeps the whole-document candidate the single thing that commitYamlMutation validates, so an invalid placement leaves the file untouched exactly like every other rejected write.
+  - Anchors resolve against the section state at the moment their own task group is applied, so a group may anchor to an id an earlier group created in the same invocation. The alternative two-pass resolution was rejected because it makes a rejection message reference an id the caller cannot yet see in the file.
+  - 'The skill layer carries what the CLI cannot: when reordering is the right response. The task-authoring skills gain a short instruction that a task which must run before existing pending work is placed with an anchor rather than appended, and strict-spec-apply gains the out-of-order case already recorded in the tooling lesson. A validate-skills content check derives its governed set by scanning bundled skills for generate tasks usage rather than from a hand-written list, so a new task-authoring skill cannot silently escape the requirement.'
+  - Task status is not an input to placement. A positional anchor is validated on identity and section membership only, so a pending task may be placed ahead of a completed one and no diagnostic is emitted, matching the fact that the CLI already tolerates out-of-order completion elsewhere.
+decisions:
+  placement-by-key-order:
+    decision: Express task position as the key order of the section map and rebuild that map on placement, instead of adding an explicit order or position field to the task-list schema.
+    rationale: apply already derives execution order from key order, so an order field would create a second source of truth that could disagree with the sequence apply actually walks, and every existing tasks.yaml would need the new field backfilled or made optional. Rebuilding key order keeps one source of truth and leaves schema v2 and all existing artifacts valid.
+  anchor-flags-not-integer-order:
+    decision: Express placement only as --before or --after naming another task id, with no integer index or order value.
+    rationale: A task list is edited incrementally across many invocations, so an integer index chosen in one invocation is silently invalidated by the next insertion, while an anchor id keeps meaning as the list grows. It also matches roadmap-reorder, whose --before and --after operators agents already know, and it satisfies the confirmed non-goal that placement is never inferred.
+  same-section-anchor-only:
+    decision: Require the anchor to live in the section named by --section, and exit non-zero naming both sections when it does not, rather than letting an anchor move a task across sections.
+    rationale: A cross-section anchor would make --section redundant or contradictory in the same invocation, and it would overlap the existing removal-plus-restatement path that already moves tasks between sections. Refusing it keeps one meaning for --section and leaves the established cross-section path as the single way to change a task's section.
+  sequential-anchor-resolution:
+    decision: Resolve each anchor against the section state at the time that task group is applied, so an earlier group's new task is a valid anchor and a later group's is not.
+    rationale: The upsert loop is already sequential and its diagnostics already name state as it exists when a group is processed, so sequential resolution needs no lookahead pass and produces a rejection the caller can verify against the file. Two-pass resolution would accept forward references at the cost of error messages that name ids absent from the artifact being described.
+  guidance-enforced-by-scan:
+    decision: Enforce the new skill ordering guidance with a validate-skills check whose governed skill set is discovered by scanning bundled skills for generate tasks usage, not from an enumerated list.
+    rationale: The workflow-regression-coverage standard requires a hand-enumerated set of governed files to be replaced by a scan and requires the check to be proven by a negative case, and the existing requirement-interrogation guidance check in src/skills/content.ts establishes the pattern. A scan means a skill added later inherits the requirement instead of escaping it.
+  status-does-not-constrain-placement:
+    decision: Validate a positional anchor on identity and section membership only, accepting a placement that puts a pending task ahead of a task already recorded complete, with no rejection and no advisory diagnostic.
+    rationale: apply skips completed tasks and takes the first pending one, so the placement breaks nothing mechanically, and the same reading already arises whenever a task is completed out of list order without the CLI objecting. Adding a status rule here would introduce an invariant the rest of the task-list surface does not enforce, and it would be the project's only non-blocking advisory diagnostic.
+alternatives:
+  - option: Add a tasks-reorder sibling command mirroring roadmap-reorder, leaving generate tasks to append as it does today
+    reason: 'It cannot fix the confirmed failure, which is a newly discovered task landing at the end: the agent would have to write the task and then issue a second command to move it, so every mid-change insertion becomes two invocations and an agent that forgets the second one reproduces the original bug'
+  - option: Add an explicit integer order or position field to each task entry in the task-list schema
+    reason: It creates a second source of execution order alongside key order, which apply reads, so the two can disagree and produce a list whose written order and executed order differ silently
+  - option: Document reordering as remove-then-restate in the skills without any CLI change
+    reason: Restating a removed task appends it to the end of its section, so the documented procedure cannot actually place a task before existing pending work, and it discards the removed task's recorded status and command
+  - option: Let --before and --after accept an anchor in any section and move the task there
+    reason: It makes --section either redundant or contradictory within the same task group, and it duplicates the cross-section move that removal plus restatement already performs
+risks:
+  - Rebuilding a section map changes the physical key order of tasks.yaml, so a placement invocation produces a larger diff than a field-level edit; a review reading the diff could mistake reordered untouched tasks for modified ones
+  - Sequential anchor resolution means a multi-task invocation whose groups are ordered inconveniently fails on a forward reference, and the caller must reorder their own arguments; the rejection message must name the anchor and say it is not yet present or the failure will read as a missing task
+  - The validate-skills scan must recognize how each bundled skill refers to generate tasks; a skill that names the command in an unanticipated form would be silently skipped by the scan, which is exactly the false-negative the negative-case proof requirement exists to catch
+  - Positional flags give agents a new way to reorder pending work relative to tasks already recorded complete, which could place a pending task before a completed one and make the list read as though completed work is still ahead

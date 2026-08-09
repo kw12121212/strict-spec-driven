@@ -338,6 +338,175 @@ try {
     "scripted task generation writes the requested tasks and testing gates",
   );
 
+  // Task order is the order apply walks, so placement is asserted through key order.
+  type TaskEntry = { text: string; status: string; command?: string };
+  type TaskSections = { Implementation: Record<string, TaskEntry>; Testing: Record<string, TaskEntry> };
+  const readTaskSections = (): TaskSections =>
+    yamlModule.parseYamlDocument<{ sections: TaskSections }>(
+      readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"),
+    ).sections;
+  const implementationOrder = (): string[] => Object.keys(readTaskSections().Implementation);
+
+  const beforeAppend = implementationOrder();
+  const positionedInsert = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "discovered-prerequisite",
+    "--text", "Work discovered mid-change that must run first.",
+    "--before", "impl-1",
+  ], { cwd: workflowGuidanceDir });
+  context.assert(positionedInsert.status === 0, "generate tasks accepts --before for a new task", positionedInsert.stderr.trim());
+  const insertedOrder = implementationOrder();
+  context.assert(
+    insertedOrder.indexOf("discovered-prerequisite") === insertedOrder.indexOf("impl-1") - 1,
+    "--before inserts a new task immediately ahead of its anchor instead of appending it",
+    insertedOrder.join(","),
+  );
+  context.assert(
+    insertedOrder.length === beforeAppend.length + 1
+      && beforeAppend.every((id) => insertedOrder.includes(id)),
+    "positioned insertion adds exactly one task and drops none",
+    insertedOrder.join(","),
+  );
+
+  const applyAfterInsert = cli(["apply", changeName], { cwd: workflowGuidanceDir });
+  context.assert(
+    applyAfterInsert.status === 0 && JSON.parse(applyAfterInsert.stdout.trim()).taskId === "discovered-prerequisite",
+    "apply completes the newly positioned task first because it now leads the section",
+    applyAfterInsert.stdout.trim(),
+  );
+
+  // The task completed just above carries status complete, so moving it proves state survives a move.
+  const movedTask = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "discovered-prerequisite", "--after", "do-the-work",
+  ], { cwd: workflowGuidanceDir });
+  context.assert(movedTask.status === 0, "generate tasks moves an existing task with --after", movedTask.stderr.trim());
+  const movedSections = readTaskSections();
+  const movedOrder = Object.keys(movedSections.Implementation);
+  context.assert(
+    movedOrder.indexOf("discovered-prerequisite") === movedOrder.indexOf("do-the-work") + 1,
+    "--after relocates an existing task immediately behind its anchor",
+    movedOrder.join(","),
+  );
+  context.assert(
+    movedSections.Implementation["discovered-prerequisite"]?.status === "complete"
+      && movedSections.Implementation["discovered-prerequisite"]?.text === "Work discovered mid-change that must run first.",
+    "moving a recorded task preserves its status and unsupplied text",
+    JSON.stringify(movedSections.Implementation["discovered-prerequisite"]),
+  );
+  context.assert(
+    movedSections.Testing["run-tests"]?.command === "bun test/run.ts",
+    "moving a task in one section leaves other sections' commands untouched",
+  );
+
+  // Status never constrains placement: pending impl-1 moves ahead of the completed task.
+  const aheadOfCompleted = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "impl-1", "--before", "discovered-prerequisite",
+  ], { cwd: workflowGuidanceDir });
+  const aheadSections = readTaskSections();
+  const aheadOrder = Object.keys(aheadSections.Implementation);
+  context.assert(
+    aheadOfCompleted.status === 0
+      && JSON.parse(aheadOfCompleted.stdout.trim()).diagnostics.length === 0
+      && aheadOrder.indexOf("impl-1") === aheadOrder.indexOf("discovered-prerequisite") - 1
+      && aheadSections.Implementation["impl-1"]?.status === "pending"
+      && aheadSections.Implementation["discovered-prerequisite"]?.status === "complete",
+    "task status does not constrain placement: a pending task may be placed ahead of a completed one",
+    aheadOfCompleted.stdout.trim(),
+  );
+
+  const orderBeforeRejections = implementationOrder();
+  const placementRejections: Array<{ args: string[]; label: string; expected: string }> = [
+    {
+      args: ["--section", "Implementation", "--task", "do-the-work", "--before", "no-such-task"],
+      label: "an anchor that is not recorded in the section is refused",
+      expected: "does not exist in section",
+    },
+    {
+      args: ["--section", "Implementation", "--task", "do-the-work", "--before", "run-tests"],
+      label: "an anchor in a different section is refused and names both sections",
+      expected: "not 'Implementation'",
+    },
+    {
+      args: ["--section", "Implementation", "--task", "do-the-work", "--after", "do-the-work"],
+      label: "an anchor naming the task itself is refused",
+      expected: "cannot be placed relative to itself",
+    },
+    {
+      args: [
+        "--section", "Implementation", "--task", "do-the-work",
+        "--before", "discovered-prerequisite", "--after", "discovered-prerequisite",
+      ],
+      label: "supplying both positional arguments for one task is refused",
+      expected: "cannot both be supplied",
+    },
+    {
+      args: [
+        "--section", "Implementation", "--task", "earlier-task", "--text", "Anchors forward.",
+        "--before", "later-task",
+        "--section", "Implementation", "--task", "later-task", "--text", "Created afterwards.",
+      ],
+      label: "an anchor created by a later task group in the same invocation is refused",
+      expected: "later --task group",
+    },
+  ];
+  for (const rejection of placementRejections) {
+    const result = cli(["generate", changeName, "tasks", ...rejection.args], { cwd: workflowGuidanceDir });
+    context.assert(
+      result.status !== 0 && result.stderr.includes(rejection.expected),
+      `generate tasks rejects placement when ${rejection.label}`,
+      `status=${result.status} stderr=${result.stderr.trim()}`,
+    );
+  }
+  context.assert(
+    implementationOrder().join(",") === orderBeforeRejections.join(","),
+    "a rejected placement leaves the recorded task order unchanged",
+    implementationOrder().join(","),
+  );
+
+  const forwardResolves = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "first-created", "--text", "Created first.", "--before", "impl-1",
+    "--section", "Implementation", "--task", "anchored-to-earlier", "--text", "Anchors backwards.",
+    "--after", "first-created",
+  ], { cwd: workflowGuidanceDir });
+  const resolvedOrder = implementationOrder();
+  // The second group lands between first-created and impl-1, so the two are no longer adjacent.
+  context.assert(
+    forwardResolves.status === 0
+      && resolvedOrder.indexOf("anchored-to-earlier") === resolvedOrder.indexOf("first-created") + 1
+      && resolvedOrder.indexOf("first-created") < resolvedOrder.indexOf("impl-1"),
+    "an anchor created by an earlier task group in the same invocation resolves",
+    `status=${forwardResolves.status} order=${resolvedOrder.join(",")} ${forwardResolves.stderr.trim()}`,
+  );
+  const cleanupExtras = cli([
+    "generate", changeName, "tasks", "--remove", "first-created", "--remove", "anchored-to-earlier",
+  ], { cwd: workflowGuidanceDir });
+  context.assert(cleanupExtras.status === 0, "removing the sequencing fixtures succeeds", cleanupExtras.stderr.trim());
+
+  const orderBeforeDefault = implementationOrder();
+  const defaultAppend = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "appended-task", "--text", "No anchor supplied.",
+  ], { cwd: workflowGuidanceDir });
+  const defaultOrder = implementationOrder();
+  context.assert(
+    defaultAppend.status === 0 && defaultOrder[defaultOrder.length - 1] === "appended-task",
+    "omitting both positional arguments still appends a new task to the end of its section",
+    defaultOrder.join(","),
+  );
+  const defaultRestate = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "do-the-work", "--text", "Restated without an anchor.",
+  ], { cwd: workflowGuidanceDir });
+  context.assert(
+    defaultRestate.status === 0
+      && implementationOrder().indexOf("do-the-work") === orderBeforeDefault.indexOf("do-the-work"),
+    "restating an existing task without a positional argument leaves its position unchanged",
+    implementationOrder().join(","),
+  );
+
   const readyChangeName = "workflow-ready";
   const readyChangeDir = path.join(workflowGuidanceDir, ".strict-spec-driven", "changes", readyChangeName);
   mkdirSync(path.join(readyChangeDir, "specs", "cli"), { recursive: true });

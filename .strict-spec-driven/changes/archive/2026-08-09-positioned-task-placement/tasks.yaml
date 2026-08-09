@@ -1,0 +1,93 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: positioned-task-placement
+sections:
+  Implementation:
+    add-positional-task-flags:
+      text: In src/cli/cmd-generation.ts, accept --before and --after inside the per-task group of parseTaskListCommandInput, storing them through the same setField helper that already rejects a repeated --text or --command within one group, and reject a group that supplies both.
+      status: complete
+    apply-placement-in-merge:
+      text: In mergeTaskListInput, after the existing removal pass and as part of the upsert loop, rebuild the target section map so the placed task id sits immediately before or after its anchor, leaving every other task entry and every other section untouched.
+      status: complete
+    reject-invalid-anchors:
+      text: Emit deterministic non-zero rejections naming the offending ids for an anchor absent from the section, an anchor in a different section than --section, an anchor equal to the task being placed, and a forward reference to a task id created by a later group in the same invocation.
+      status: complete
+    register-positional-flag-metadata:
+      text: Add --before and --after to the generate command entry in src/cli/command-metadata-entries.ts with their pairing to --task, their repeat semantics, and their rejection semantics, so text help, JSON help, and the MCP tool description all render them from the single metadata source.
+      status: complete
+    add-skill-ordering-guidance:
+      text: Add task-ordering guidance to the bundled task-authoring skills under skills/ (brainstorm, propose, propose-from-roadmap, bugfix, modify, auto) explaining that a task which must run before existing pending work is placed with an anchor rather than appended, and add the out-of-order completion case to skills/strict-spec-apply/SKILL.md.
+      status: complete
+    add-validate-skills-ordering-check:
+      text: In src/skills/content.ts, add a validate-skills check that discovers its governed skill set by scanning bundled skills for generate tasks usage rather than from an enumerated list, and fails naming the file and missing guidance when a governed skill omits the ordering instruction.
+      status: complete
+    review-yaml-mutation-inventory:
+      text: Check inventory/yaml-mutation-surfaces.yaml against the widened change-planning-state mutation surface and update it through its owning command if the new placement operation changes any declared entry.
+      status: complete
+    regenerate-bundled-assets:
+      text: Regenerate the embedded template bundle and compiled output so the edited skill packages and CLI behavior ship together.
+      status: complete
+      command: bun run build
+  Testing:
+    unit-test-positioned-insert:
+      text: Add tests proving a new task supplied with an anchor is written immediately before or after that anchor rather than appended, and that the next apply invocation returns the newly placed task id.
+      status: complete
+    unit-test-positioned-move:
+      text: Add tests proving an existing task moved with an anchor keeps its recorded status, command, and unsupplied text, and that every sibling task and every other section is left byte-identical apart from the reordered keys.
+      status: complete
+    unit-test-anchor-rejections:
+      text: 'Add tests covering each rejection: an anchor absent from the section, an anchor in a different section, an anchor naming the task itself, both positional flags in one task group, and a forward reference to a task created by a later group, asserting the non-zero exit and that tasks.yaml is unchanged after each.'
+      status: complete
+    unit-test-default-path-unchanged:
+      text: Add a regression test proving an invocation that supplies no positional flag still appends a new task to the end of its section and leaves an existing task in place, so the confirmed unchanged behavior is asserted rather than assumed.
+      status: complete
+    unit-test-skill-guidance-check:
+      text: Prove the validate-skills ordering check by running a negative case in which the guidance is removed from a governed skill and the check is observed to fail naming that file, and a positive case in which the scan is observed to discover a governed skill it was not hand-told about.
+      status: complete
+    unit-test-status-ignored-in-placement:
+      text: Add a test proving a pending task may be placed immediately ahead of a task recorded complete, asserting a zero exit with no diagnostic and that the completed task keeps its status.
+      status: complete
+    run-lint:
+      text: Run the type check over the edited sources.
+      status: complete
+      command: bun run lint
+    run-build-validation:
+      text: Build the project so the regenerated template bundle and compiled CLI reflect the source and skill edits.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run the full project test suite against compiled output.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the configured complete project regression command with the coverage gate as required review evidence.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    check-yaml-inventory:
+      text: Run the YAML mutation inventory check so the widened task-list mutation surface stays represented.
+      status: complete
+      command: bun run check:yaml-inventory
+    run-validate-skills:
+      text: Run validate-skills so the edited bundled skills pass every content check, including the new ordering-guidance check.
+      status: complete
+      command: bun run validate-skills
+    run-strict-ready:
+      text: Run the strict readiness check for this change.
+      status: complete
+      command: strict-spec-cli ready positioned-task-placement
+    run-strict-verify:
+      text: Run strict verification for this change.
+      status: complete
+      command: strict-spec-cli verify positioned-task-placement
+    confirm-unchanged-behavior:
+      text: 'Confirm each recorded unchanged behavior against the built result: the no-flag append path, apply staying positional, fixed section order, the removal-plus-restatement cross-section path, field-level merge semantics, and every other artifact family''s authoring surface.'
+      status: complete
+    check-archive-readiness:
+      text: Confirm the delta spec merges cleanly into the cli-foundation main spec on archive and that the regenerated template bundle is committed alongside the skill edits it embeds.
+      status: complete
+testing_gates:
+  validation_task: run-build-validation
+  unit_test_task: run-tests
