@@ -454,6 +454,8 @@ export function buildMilestoneStatus(
       id,
       source,
       path: plannedChangePath,
+      summary: entry.summary,
+      dependsOn: [...entry.depends_on],
       declaredStatus: entry.status,
       derivedStatus,
       state,

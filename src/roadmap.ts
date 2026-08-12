@@ -16,6 +16,7 @@ import {
   type RoadmapRecommendationCandidate,
   type RoadmapRecommendationSkip,
   type RoadmapStatusResult,
+  type RoadmapSyncMilestoneStatus,
   type RoadmapSyncResult,
   type LoadedRoadmap,
   type LoadedMilestone,
@@ -503,6 +504,21 @@ function mergeRoadmapMutations(mutations: readonly RoadmapMutation[]): RoadmapMu
   return Array.from(byPath.values());
 }
 
+function buildRoadmapSyncMilestones(milestones: RoadmapMilestoneStatus[]): RoadmapSyncMilestoneStatus[] {
+  return milestones.map((milestone) => ({
+    ...milestone,
+    plannedChanges: milestone.plannedChanges.map((plannedChange) => ({
+      id: plannedChange.id,
+      source: plannedChange.source,
+      path: plannedChange.path,
+      declaredStatus: plannedChange.declaredStatus,
+      derivedStatus: plannedChange.derivedStatus,
+      state: plannedChange.state,
+      mismatches: plannedChange.mismatches,
+    })),
+  }));
+}
+
 export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): RoadmapSyncResult {
   const renameResult = options.fixNames === true
     ? fixPlannedChangeFileNames(rootDir, options.materializePlannedChanges === true)
@@ -633,6 +649,6 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
     diagnostics: status.diagnostics,
     updatedFiles,
     ...renamedFilesResult,
-    milestones: status.milestones,
+    milestones: buildRoadmapSyncMilestones(status.milestones),
   };
 }

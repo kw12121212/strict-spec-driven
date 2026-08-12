@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: shared-projections-can-widen-sibling-command-out-699fbe
+  title: Shared projections can widen sibling command output
+category: architecture
+status: active
+created_at: '2026-08-12T03:54:03.409Z'
+updated_at: '2026-08-12T03:54:03.409Z'
+context: Extending roadmap-status with summary and dependsOn fields while preserving roadmap-sync's compact output contract.
+observation: The shared RoadmapPlannedChangeStatus projection flowed through syncRoadmap's getRoadmapStatus result, so the first complete regression run failed the existing roadmap-sync omission assertion and required a newly discovered implementation and regression task.
+takeaway: Before extending a shared result model or projection builder, enumerate every command that returns it and add an explicit bounded projection wherever sibling commands promise a narrower wire contract.
+applies_when: Adding fields to a shared result type or projection builder that is returned by multiple CLI commands with different output contracts.
+occurrences:
+  - origin: roadmap-status-detail-fields
+    date: '2026-08-12'
+    evidence: bun test/run.ts failed 'roadmap-sync omits bulky or redundant roadmap fields from command output'; src/roadmap.ts now builds an explicit RoadmapSyncMilestoneStatus projection and the rerun passed 4235/4235.

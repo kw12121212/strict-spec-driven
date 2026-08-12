@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-status-detail-fields
+open: []
+resolved:
+  - id: output-field-shape
+    question: Which planned-change detail fields should roadmap-status add?
+    context: This determines the observable JSON contract and downstream compatibility. The confirmed option is the smallest camelCase projection needed by SOP Studio, without widening to raw artifact content.
+    answer: Add summary as a string and dependsOn as an array of planned-change ids to every valid plannedChanges entry; do not expose details, team metadata, or additional artifact fields.
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: requirement-problem
+    question: What concrete problem is the upstream change solving, and for whom?
+    context: This answer records the operator-visible need rather than merely naming a field addition.
+    answer: SOP Studio cannot show planned-change descriptions or dependency relationships from the authoritative roadmap-status response, so it would otherwise need to parse roadmap YAML and create a second source of truth.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable result proves the upstream problem is solved?
+    context: This answer defines the CLI behavior that downstream consumers can verify without reading implementation code.
+    answer: For a valid roadmap, roadmap-status returns each planned change with its exact summary and dependency ids as summary and dependsOn while retaining the existing status, state, path, ordering, and diagnostic fields.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why is this change needed now?
+    context: This answer records the concrete dependency that makes the work current rather than speculative.
+    answer: The confirmed sop-agent roadmap change studio-roadmap-milestone-detail is ready to implement and is blocked specifically because its daemon and generated SDK cannot obtain these fields from the pinned strict CLI.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What nearby behavior must not change?
+    context: This answer protects compact output and excludes unrelated roadmap surfaces from the upstream prerequisite.
+    answer: Do not change roadmap-overview, roadmap-recommend, roadmap-sync, YAML artifact schemas, state derivation, diagnostics, ordering, or exit semantics; do not expose details, team metadata, milestone goals, or redundant file fields.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which interpretation of the requested output is intended?
+    context: This answer distinguishes extending the authoritative default projection from adding a second command, flag, or downstream YAML parser.
+    answer: Extend the default roadmap-status plannedChanges JSON projection with camelCase summary and dependsOn fields for both inline compatibility entries and standalone planned changes; downstream callers continue invoking the same fixed command.
+    status: resolved
+    kind: requirement
+    answered_by: human

@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-status-detail-fields
+  status: proposed
+summary:
+  what:
+    - Expose each valid roadmap-status plannedChanges entry's summary and dependency ids as summary and dependsOn fields.
+  why:
+    - The SOP Studio roadmap detail view needs authoritative planned-change descriptions and dependency relationships without parsing roadmap YAML or inventing a second source of truth.
+scope:
+  in:
+    - Extend the RoadmapPlannedChangeStatus contract and buildMilestoneStatus projection with summary and a copied dependsOn array for inline and standalone planned changes.
+    - Update the roadmap-status observable contract and roadmap-and-migration regression assertions for exact summary and dependency projection.
+  out:
+    - Change roadmap-overview, roadmap-recommend, roadmap-sync, roadmap YAML schemas, or planned-change authoring behavior.
+    - Expose planned-change details, team metadata, milestone goal text, or additional roadmap artifact content.
+unchanged_behavior:
+  - Declared and derived status calculation, active/archived/missing/ambiguous state, mismatch diagnostics, ordering, source paths, and exit semantics remain unchanged.
+  - roadmap-overview and roadmap-recommend retain their existing compact output behavior.
+  - roadmap-status continues to omit milestone goal, milestone file, planned-change details, and team metadata.

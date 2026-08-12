@@ -22541,6 +22541,8 @@ function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = ge
       id,
       source,
       path: plannedChangePath,
+      summary: entry.summary,
+      dependsOn: [...entry.depends_on],
       declaredStatus: entry.status,
       derivedStatus: derivedStatus2,
       state,
@@ -23167,6 +23169,20 @@ function mergeRoadmapMutations(mutations) {
   }
   return Array.from(byPath.values());
 }
+function buildRoadmapSyncMilestones(milestones) {
+  return milestones.map((milestone) => ({
+    ...milestone,
+    plannedChanges: milestone.plannedChanges.map((plannedChange) => ({
+      id: plannedChange.id,
+      source: plannedChange.source,
+      path: plannedChange.path,
+      declaredStatus: plannedChange.declaredStatus,
+      derivedStatus: plannedChange.derivedStatus,
+      state: plannedChange.state,
+      mismatches: plannedChange.mismatches
+    }))
+  }));
+}
 function syncRoadmap(rootDir, options = {}) {
   const renameResult = options.fixNames === true ? fixPlannedChangeFileNames(rootDir, options.materializePlannedChanges === true) : undefined;
   if (renameResult && renameResult.diagnostics.length > 0) {
@@ -23280,7 +23296,7 @@ function syncRoadmap(rootDir, options = {}) {
     diagnostics: status.diagnostics,
     updatedFiles,
     ...renamedFilesResult,
-    milestones: status.milestones
+    milestones: buildRoadmapSyncMilestones(status.milestones)
   };
 }
 

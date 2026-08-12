@@ -14,7 +14,7 @@ import {
   type MilestoneIntakeQuestion,
   type PlannedChangeTeamMetadata,
   type RoadmapDiagnostic,
-  type RoadmapMilestoneStatus,
+  type RoadmapSyncMilestoneStatus,
 } from "./model.js";
 import { loadRoadmap } from "./load.js";
 import {
@@ -67,7 +67,7 @@ export type RoadmapMilestoneAuthorResult = {
     title: string;
     path: string;
   };
-  milestones: RoadmapMilestoneStatus[];
+  milestones: RoadmapSyncMilestoneStatus[];
 };
 
 function uniqueStrings(values: string[]): string[] {
@@ -488,7 +488,7 @@ export type RoadmapPlannedChangeAuthorResult = {
     milestone: string;
     path: string;
   };
-  milestones: RoadmapMilestoneStatus[];
+  milestones: RoadmapSyncMilestoneStatus[];
 };
 
 function findExistingPlannedChange(plannedChanges: LoadedPlannedChange[], id: string): LoadedPlannedChange | undefined {

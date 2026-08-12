@@ -211,8 +211,16 @@ try {
   context.assert(
     roadmapStatusBeforeJson.milestones[0].file === undefined
       && roadmapStatusBeforeJson.milestones[0].goal === undefined
-      && roadmapStatusBeforeJson.milestones[0].plannedChanges[0].summary === undefined,
-    "roadmap-status omits bulky or redundant roadmap fields from default output",
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[0].details === undefined
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[0].team === undefined,
+    "roadmap-status omits bulky or redundant roadmap fields and planned-change metadata from default output",
+  );
+  context.assert(
+    roadmapStatusBeforeJson.milestones[0].plannedChanges[0].summary === "Active work remains in progress."
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[0].dependsOn.length === 0
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].summary === "Archived work should reconcile to complete."
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].dependsOn.join(",") === "active-change",
+    "roadmap-status reports exact planned-change summaries and dependency ids",
   );
   context.assert(
     roadmapStatusBeforeJson.milestones[0].declaredStatus === "blocked"
@@ -325,7 +333,8 @@ try {
   context.assert(
     roadmapSyncJson.milestones[0].file === undefined
       && roadmapSyncJson.milestones[0].goal === undefined
-      && roadmapSyncJson.milestones[0].plannedChanges[0].summary === undefined,
+      && roadmapSyncJson.milestones[0].plannedChanges[0].summary === undefined
+      && roadmapSyncJson.milestones[0].plannedChanges[0].dependsOn === undefined,
     "roadmap-sync omits bulky or redundant roadmap fields from command output",
   );
   context.assert(

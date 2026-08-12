@@ -3,6 +3,12 @@ schema_version: 2
 artifact_type: lessons_index
 schema_file: templates/strict-spec-driven/schemas/lessons-index.yaml
 categories:
+  architecture:
+    shared-projections-can-widen-sibling-command-out-699fbe:
+      title: Shared projections can widen sibling command output
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/architecture/shared-projections-can-widen-sibling-command-out-699fbe.yaml
   documentation:
     adding-cli-mutation-guidance-to-a-document-enrol-18d554:
       title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory

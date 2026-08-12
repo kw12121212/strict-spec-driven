@@ -241,6 +241,8 @@ export type RoadmapPlannedChangeStatus = {
   id: string;
   source: "inline" | "standalone";
   path: string;
+  summary: string;
+  dependsOn: string[];
   declaredStatus: DeclaredPlannedChangeStatus;
   derivedStatus: DeclaredPlannedChangeStatus;
   state: PlannedChangeState;
@@ -306,6 +308,12 @@ export type RoadmapStatusResult = {
   milestones: RoadmapMilestoneStatus[];
 };
 
+export type RoadmapSyncPlannedChangeStatus = Omit<RoadmapPlannedChangeStatus, "summary" | "dependsOn">;
+
+export type RoadmapSyncMilestoneStatus = Omit<RoadmapMilestoneStatus, "plannedChanges"> & {
+  plannedChanges: RoadmapSyncPlannedChangeStatus[];
+};
+
 export type RoadmapRecommendStatus = "recommended" | "no-candidate" | "roadmap-error";
 
 export type RoadmapRecommendResult = {
@@ -323,7 +331,7 @@ export type RoadmapSyncResult = {
   diagnostics: RoadmapDiagnostic[];
   updatedFiles: string[];
   renamedFiles?: Array<{ from: string; to: string }>;
-  milestones: RoadmapMilestoneStatus[];
+  milestones: RoadmapSyncMilestoneStatus[];
 };
 
 export type RoadmapArchiveSkippedMilestone = {

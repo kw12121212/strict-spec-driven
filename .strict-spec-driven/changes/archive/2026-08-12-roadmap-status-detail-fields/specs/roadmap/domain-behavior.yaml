@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+operations:
+  ADDED: {}
+  MODIFIED:
+    roadmap-status-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-status validate roadmap artifacts, report compact declared and derived milestone and planned-change state, expose standalone planned-change source paths together with each planned change's summary and dependency ids, omit bulky or redundant milestone fields plus planned-change details and team metadata from default status output, and surface mismatches or diagnostics deterministically.
+      scenarios:
+        status-reports-compact-valid-roadmap-state:
+          - GIVEN: A structurally valid roadmap exists with milestone goals and planned changes containing summaries, details, dependencies, and optional team metadata.
+          - WHEN: strict-spec-driven roadmap-status runs.
+          - THEN: The command exits zero and reports valid=true, milestone order, declared status, derived status, planned changes, source paths, state, each planned change's exact summary, and its dependency ids as dependsOn, without emitting milestone goal, milestone file, planned-change details, or team metadata.
+        status-reports-invalid-artifacts:
+          - GIVEN: Roadmap artifacts are malformed or contain cross-file conflicts.
+          - WHEN: strict-spec-driven roadmap-status runs.
+          - THEN: The command exits non-zero with deterministic diagnostics including artifact path and field path context.
+  REMOVED: {}

@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-status-detail-fields
+sections:
+  Implementation:
+    extend-status-projection:
+      text: Add summary and dependsOn to RoadmapPlannedChangeStatus and project entry.summary plus a fresh copy of entry.depends_on from buildMilestoneStatus without changing state derivation or diagnostic behavior.
+      status: complete
+    update-roadmap-status-regression:
+      text: Update the real roadmap-and-migration CLI fixture assertions to require exact summary and dependency projection while continuing to prove that milestone goal, file, planned-change details, and team metadata stay omitted.
+      status: complete
+    preserve-sync-projection:
+      text: Preserve the compact roadmap-sync milestone output by omitting roadmap-status-only summary and dependency fields.
+      status: complete
+  Testing:
+    build-project:
+      text: Rebuild TypeScript and bundled CLI output after source edits so all dist-based behavior uses the current status contract.
+      status: complete
+      command: bun run build
+    update-roadmap-sync-regression:
+      text: Extend roadmap-sync regression coverage to require omission of summary and dependency fields.
+      status: complete
+    run-project-tests:
+      text: Run the complete repository test runner and confirm the roadmap-status projection and all unchanged workflow behavior pass.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    ready-change:
+      text: Run the deterministic proposal handoff check after questions and planning artifacts are complete.
+      status: complete
+      command: strict-spec-cli ready roadmap-status-detail-fields
+    verify-change:
+      text: Run strict verification after implementation and testing tasks are complete.
+      status: complete
+      command: strict-spec-cli verify roadmap-status-detail-fields
+    coverage-gate:
+      text: Run the configured complete project regression and 78 percent src line coverage gate, preserving the full redirected log and checking the command exit status before archive.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+testing_gates:
+  validation_task: build-project
+  unit_test_task: run-project-tests
