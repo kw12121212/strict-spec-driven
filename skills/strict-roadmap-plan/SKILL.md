@@ -19,6 +19,7 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-generate-milestone: strict-spec-cli roadmap-generate milestone --<named-args>
 roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--remove-depends-on <planned-change-id>]
+roadmap-delete-planned-change: strict-spec-cli roadmap-delete-planned-change <planned-change-id> [--allow-complete] [--detach-dependents]
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
 ```
@@ -134,6 +135,15 @@ run `init` from this skill.
     If a milestone needs more than ten planned changes or mixes unrelated work,
     split it or stop for explicit user confirmation instead of hiding the scope
     problem in one large milestone.
+    Restructuring that consolidates or drops planned work removes artifacts with:
+    ```bash
+    strict-spec-cli roadmap-delete-planned-change <planned-change-id> [--allow-complete] [--detach-dependents]
+    ```
+    Deletion refuses by default when other planned changes depend on the target;
+    `--detach-dependents` drops those `depends_on` edges in the same operation so
+    the roadmap is never written through a dangling-reference state. Never remove
+    a planned-change file by hand — reducing the planned-change count is a CLI
+    operation like every other roadmap mutation.
 
 4. **Normalize roadmap state** — run:
    ```bash

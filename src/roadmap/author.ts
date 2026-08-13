@@ -22,6 +22,7 @@ import {
   isDeclaredPlannedChangeStatus,
   makeDiagnostic,
   normalizeRepoRelativePath,
+  partitionRepairableDiagnostics,
   sortDiagnostics,
 } from "./shared.js";
 import { buildCanonicalPlannedChangeArtifact, nextAppendedMilestoneOrder } from "./sync.js";
@@ -128,6 +129,32 @@ function mergeList(
       );
     }
     merged = merged.filter((entry) => entry !== matched[0]);
+  }
+  return merged;
+}
+
+/**
+ * Merge an id-valued list, matching removals exactly rather than by substring.
+ *
+ * `depends_on` holds planned-change ids, and ids routinely share prefixes — a
+ * roadmap with both `base` and `base-extra` is ordinary. Under substring
+ * matching the edge to `base` is unremovable: every substring of `base` also
+ * occurs in `base-extra`, so removal always reports an ambiguous match and no
+ * narrower argument exists. Exact matching is also what the flag documents,
+ * since `--remove-depends-on` is specified to take an id.
+ */
+function mergeIdList(
+  existing: string[],
+  additions: string[],
+  removals: string[],
+  flagName: string,
+): string[] {
+  let merged = appendUnique(existing, additions);
+  for (const needle of removals) {
+    if (!merged.includes(needle)) {
+      throw new Error(`--${flagName} matched no entry: '${needle}'`);
+    }
+    merged = merged.filter((entry) => entry !== needle);
   }
   return merged;
 }
@@ -369,8 +396,10 @@ export function generateRoadmapMilestone(
 
   const roadmap = loadRoadmap(rootDir, { allowInlinePlannedChanges: true });
   const preflight = getRoadmapStatus(rootDir);
-  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic) =>
-    diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR
+  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(
+    preflight.diagnostics.filter((diagnostic) =>
+      diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR
+    ),
   );
   if (blockingPreflightDiagnostics.length > 0) {
     return {
@@ -423,14 +452,21 @@ export function generateRoadmapMilestone(
     };
   }
 
-  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
-    absolutePath: milestonePath,
-    artifactId: input.id,
-    schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
-    operation: existing ? "update" : "create",
-    candidate: nextArtifact,
-  }] });
-  if (!syncResult.valid) {
+  const syncResult = syncRoadmap(rootDir, {
+    toleratedDiagnostics,
+    stagedMutations: [{
+      absolutePath: milestonePath,
+      artifactId: input.id,
+      schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+      operation: existing ? "update" : "create",
+      candidate: nextArtifact,
+    }],
+  });
+  // A sync that wrote files while the roadmap still reports pre-existing
+  // repairable diagnostics is a completed write with more work to do, not a
+  // refusal. Reporting empty updatedFiles here would tell the caller nothing
+  // changed while the artifact on disk had in fact been rewritten.
+  if (!syncResult.valid && syncResult.updatedFiles.length === 0) {
     return {
       valid: false,
       warnings: syncResult.warnings,
@@ -572,7 +608,7 @@ function buildPlannedChangeArtifact(
     status: (status ?? "planned") as DeclaredPlannedChangeStatus,
     summary,
     details,
-    depends_on: mergeList(
+    depends_on: mergeIdList(
       existing?.artifact.depends_on ?? [],
       input.dependsOn,
       input.removedDependsOn,
@@ -619,8 +655,10 @@ export function generateRoadmapPlannedChange(
 
   const roadmap = loadRoadmap(rootDir);
   const preflight = getRoadmapStatus(rootDir);
-  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic) =>
-    diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR
+  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(
+    preflight.diagnostics.filter((diagnostic) =>
+      diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR
+    ),
   );
   if (blockingPreflightDiagnostics.length > 0) {
     return {
@@ -718,14 +756,21 @@ export function generateRoadmapPlannedChange(
     };
   }
 
-  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
-    absolutePath: plannedChangePath,
-    artifactId: input.id,
-    schemaId: PLANNED_CHANGE_SCHEMA_ID,
-    operation: existing ? "update" : "create",
-    candidate: nextArtifact,
-  }] });
-  if (!syncResult.valid) {
+  const syncResult = syncRoadmap(rootDir, {
+    toleratedDiagnostics,
+    stagedMutations: [{
+      absolutePath: plannedChangePath,
+      artifactId: input.id,
+      schemaId: PLANNED_CHANGE_SCHEMA_ID,
+      operation: existing ? "update" : "create",
+      candidate: nextArtifact,
+    }],
+  });
+  // A sync that wrote files while the roadmap still reports pre-existing
+  // repairable diagnostics is a completed write with more work to do, not a
+  // refusal. Reporting empty updatedFiles here would tell the caller nothing
+  // changed while the artifact on disk had in fact been rewritten.
+  if (!syncResult.valid && syncResult.updatedFiles.length === 0) {
     return {
       valid: false,
       warnings: syncResult.warnings,

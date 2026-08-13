@@ -12,6 +12,7 @@ import {
   type RoadmapMilestoneAuthorInput,
   type RoadmapPlannedChangeAuthorInput,
 } from "../roadmap/author.js";
+import { deletePlannedChange, type RoadmapDeleteInput } from "../roadmap/delete.js";
 import { movePlannedChangeToMilestone, type RoadmapMoveInput } from "../roadmap/move.js";
 import { pauseMilestone, resumeMilestone } from "../roadmap/pause.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
@@ -28,6 +29,7 @@ const ROADMAP_RESUME_USAGE = getCommandUsage("roadmap-resume");
 const ROADMAP_REORDER_USAGE = getCommandUsage("roadmap-reorder");
 const ROADMAP_RENUMBER_USAGE = getCommandUsage("roadmap-renumber");
 const ROADMAP_MOVE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-move-planned-change");
+const ROADMAP_DELETE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-delete-planned-change");
 const ROADMAP_GENERATE_USAGE = getCommandUsage("roadmap-generate");
 const ACTIONABLE_BLOCKER_LIMIT = 10;
 const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["clear-owner", "clear-blocked"]);
@@ -537,6 +539,44 @@ export function runRoadmapMovePlannedChange(argv: string[]): number {
     return 1;
   }
   const result = movePlannedChangeToMilestone(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+function parseRoadmapDeletePlannedChangeArgs(argv: string[]): RoadmapDeleteInput {
+  const [plannedChangeId, ...rest] = argv;
+  if (!plannedChangeId || plannedChangeId.startsWith("--")) throw new Error("missing planned change id");
+  let allowComplete = false;
+  let detachDependents = false;
+  for (const token of rest) {
+    if (token === "--allow-complete") {
+      if (allowComplete) throw new Error("--allow-complete may only be supplied once");
+      allowComplete = true;
+      continue;
+    }
+    if (token === "--detach-dependents") {
+      if (detachDependents) throw new Error("--detach-dependents may only be supplied once");
+      detachDependents = true;
+      continue;
+    }
+    throw new Error(`unsupported argument: ${token}`);
+  }
+  return { plannedChangeId, allowComplete, detachDependents };
+}
+
+export function runRoadmapDeletePlannedChange(argv: string[]): number {
+  if (handleHelpRequest("roadmap-delete-planned-change", argv)) {
+    return 0;
+  }
+  let input: RoadmapDeleteInput;
+  try {
+    input = parseRoadmapDeletePlannedChangeArgs(argv);
+  } catch (error) {
+    writeError(error instanceof Error ? error.message : String(error));
+    writeUsage(ROADMAP_DELETE_PLANNED_CHANGE_USAGE);
+    return 1;
+  }
+  const result = deletePlannedChange(process.cwd(), input);
   writeJson(result);
   return result.valid ? 0 : 1;
 }

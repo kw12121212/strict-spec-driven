@@ -1884,7 +1884,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       "  A supplied scalar field replaces the recorded value; no confirming flag is needed.",
       "  List fields always append unique values. No flag replaces a list, so editing one field can never discard unrelated recorded content.",
       "  Intake questions merge by id; restating an id replaces just that question, and naming one id twice in a single invocation with conflicting content is reported.",
-      "  Removing a recorded entry requires naming it: --remove-scope-in, --remove-scope-out, --remove-done, --remove-dependency, --remove-risk and --remove-note take a substring that must match exactly one entry, while --remove-intake-question and --remove-depends-on take an id.",
+      "  Removing a recorded entry requires naming it: --remove-scope-in, --remove-scope-out, --remove-done, --remove-dependency, --remove-risk and --remove-note take a substring that must match exactly one entry, while --remove-intake-question and --remove-depends-on take an id matched exactly, so an id that is a prefix of another id still removes only itself.",
       "  planned-change writes the artifact at its canonical filename <milestone-id>-<planned-change-id>.yaml under roadmap/planned-changes/ (the milestone prefix is not duplicated when the id already starts with it); callers never choose filenames.",
     ].join("\n") + "\n",
     arguments: [
@@ -2043,6 +2043,33 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       keys: ["valid", "diagnostics"],
       description: "A JSON move result.",
     },
+    exitCodes: VALIDITY_EXIT_CODES,
+  },
+
+  "roadmap-delete-planned-change": {
+    name: "roadmap-delete-planned-change",
+    group: "roadmap",
+    summary: "Delete an active planned change from the roadmap.",
+    usage: "Usage: strict-spec-cli roadmap-delete-planned-change <planned-change-id> [--allow-complete] [--detach-dependents]\n",
+    arguments: [{ name: "planned-change-id", description: "The planned change to delete.", required: true }],
+    flags: [
+      { name: "--allow-complete", arity: "boolean", description: "Permit deleting a planned change whose strict change is already archived." },
+      {
+        name: "--detach-dependents",
+        arity: "boolean",
+        description: "Drop the deleted id from every dependent planned change's depends_on in the same operation.",
+      },
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "warnings", "diagnostics", "updatedFiles", "deleted"],
+      description: "A JSON delete result reporting the removed planned change and any detached dependents.",
+    },
+    notes: [
+      "Refuses by default when other planned changes depend on the target; --detach-dependents removes those edges atomically so the roadmap is never written through a dangling-reference state.",
+      "Archived planned changes are frozen history and are never deleted.",
+      "A pre-existing dangling depends_on elsewhere in the roadmap does not refuse the write, but it keeps valid false until it is repaired.",
+    ],
     exitCodes: VALIDITY_EXIT_CODES,
   },
 

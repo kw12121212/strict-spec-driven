@@ -18,6 +18,7 @@ import {
   listYamlFiles,
   makeDiagnostic,
   normalizeRepoRelativePath,
+  partitionRepairableDiagnostics,
   readYamlFile,
   sortDiagnostics,
 } from "./shared.js";
@@ -165,7 +166,9 @@ export function movePlannedChangeToMilestone(rootDir: string, input: RoadmapMove
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
+  const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(
+    roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH),
+  );
   if (blockingDiagnostics.length > 0) return invalidMoveResult(roadmap.warnings, blockingDiagnostics);
 
   const targetMilestone = roadmap.milestones.find(
@@ -294,8 +297,10 @@ export function movePlannedChangeToMilestone(rootDir: string, input: RoadmapMove
       operation: "delete",
     });
   }
-  const syncResult = syncRoadmap(rootDir, { stagedMutations: moveRequests });
-  if (!syncResult.valid) {
+  const syncResult = syncRoadmap(rootDir, { toleratedDiagnostics, stagedMutations: moveRequests });
+  // See the equivalent guard in roadmap/author.ts: a write that landed while a
+  // pre-existing repairable diagnostic remains must still report its files.
+  if (!syncResult.valid && syncResult.updatedFiles.length === 0) {
     return {
       valid: false,
       warnings: syncResult.warnings,

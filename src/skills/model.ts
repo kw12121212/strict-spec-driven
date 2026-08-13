@@ -476,6 +476,8 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     requiredCommands: {
       "roadmap-generate-milestone": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
       "roadmap-generate-planned-change": `${COMMAND_PREFIX} roadmap-generate planned-change`,
+      "roadmap-delete-planned-change":
+        `${COMMAND_PREFIX} roadmap-delete-planned-change <planned-change-id> [--allow-complete] [--detach-dependents]`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
     },

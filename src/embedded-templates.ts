@@ -5206,6 +5206,7 @@ artifact_families:
       - roadmap-generate
       - roadmap-sync
       - roadmap-move-planned-change
+      - roadmap-delete-planned-change
       - roadmap-pause
       - roadmap-resume
       - roadmap-reorder

@@ -2,6 +2,7 @@ import { existsSync, readdirSync, statSync } from "fs";
 import path from "path";
 import {
   canonicalPlannedChangeFileName,
+  MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE,
   STRICT_WORKFLOW_DIR,
   type ChangeStateIndex,
   type DeclaredPlannedChangeStatus,
@@ -264,7 +265,7 @@ function reportDependencyReferenceErrors(
             "reference",
             reference.artifactPath,
             fieldPath,
-            "planned change dependency is missing from roadmap planned-change sources",
+            MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE,
             "planned change id present in roadmap planned-change sources",
             dependencyId,
           ),

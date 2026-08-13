@@ -135,6 +135,7 @@ const expectedCommandOrder = [
   "roadmap-reorder",
   "roadmap-renumber",
   "roadmap-move-planned-change",
+  "roadmap-delete-planned-change",
   "roadmap-recommend",
   "roadmap-archive",
   "roadmap-reopen",

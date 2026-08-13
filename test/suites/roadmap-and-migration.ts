@@ -2539,6 +2539,525 @@ try {
   rmSync(roadmapMoveDir, { recursive: true, force: true });
 }
 
+const roadmapDeleteDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-delete-"));
+try {
+  const deletePlannedChangesDir = path.join(roadmapDeleteDir, ".strict-spec-driven", "roadmap", "planned-changes");
+  const readDeleteFile = (fileName: string): string => readFileSync(path.join(deletePlannedChangesDir, fileName), "utf8");
+  const deleteFileExists = (fileName: string): boolean => existsSync(path.join(deletePlannedChangesDir, fileName));
+
+  // `live` has an in-progress strict change; `done-change` has an archived one.
+  mkdirSync(path.join(roadmapDeleteDir, ".strict-spec-driven", "changes", "live"), { recursive: true });
+  mkdirSync(
+    path.join(roadmapDeleteDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-done-change`),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapDeleteDir, "alpha.yaml", {
+    id: "alpha",
+    title: "Alpha",
+    goal: "Own planned changes that a restructuring removes.",
+    status: "active",
+    plannedChanges: [],
+    order: 100,
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeleteDir, "planned-changes/alpha-base.yaml", {
+    id: "base",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work other planned changes depend on.",
+    details: "Standalone details for base.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeleteDir, "planned-changes/alpha-dependent.yaml", {
+    id: "dependent",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work that depends on base.",
+    details: "Standalone details for dependent.",
+    depends_on: ["base"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeleteDir, "planned-changes/alpha-leaf.yaml", {
+    id: "leaf",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work nothing depends on.",
+    details: "Standalone details for leaf.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeleteDir, "planned-changes/alpha-live.yaml", {
+    id: "live",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work with an in-progress strict change.",
+    details: "Standalone details for live.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeleteDir, "planned-changes/alpha-done-change.yaml", {
+    id: "done-change",
+    milestone: "alpha",
+    status: "complete",
+    summary: "Completed work whose strict change is archived.",
+    details: "Standalone details for done-change.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapDeleteDir, [
+    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "active" },
+  ]);
+
+  const deleteStatusBefore = cli(["roadmap-status"], { cwd: roadmapDeleteDir });
+  context.assert(
+    deleteStatusBefore.status === 0,
+    "roadmap-status is valid before a planned-change deletion",
+    deleteStatusBefore.stdout || deleteStatusBefore.stderr,
+  );
+
+  const baseBefore = readDeleteFile("alpha-base.yaml");
+  const dependentBefore = readDeleteFile("alpha-dependent.yaml");
+  const doneChangeBefore = readDeleteFile("alpha-done-change.yaml");
+
+  const deleteUnknown = cli(["roadmap-delete-planned-change", "missing-change"], { cwd: roadmapDeleteDir });
+  context.assert(deleteUnknown.status !== 0, "roadmap-delete-planned-change exits non-zero for an unknown planned change");
+  const deleteUnknownJson = JSON.parse(deleteUnknown.stdout.trim());
+  context.assert(
+    deleteUnknownJson.diagnostics.some((diagnostic: { message: string }) =>
+      diagnostic.message === "roadmap-delete-planned-change planned change was not found in the active roadmap"
+    ),
+    "roadmap-delete-planned-change reports a not-found diagnostic for an unknown planned change",
+    deleteUnknown.stdout,
+  );
+
+  // A planned change other work depends on cannot vanish silently: refusing here is
+  // what keeps the roadmap from being written through a dangling-reference state.
+  const deleteWithDependents = cli(["roadmap-delete-planned-change", "base"], { cwd: roadmapDeleteDir });
+  context.assert(
+    deleteWithDependents.status !== 0,
+    "roadmap-delete-planned-change exits non-zero when other planned changes depend on the target",
+  );
+  const deleteWithDependentsJson = JSON.parse(deleteWithDependents.stdout.trim());
+  context.assert(
+    deleteWithDependentsJson.diagnostics.some((diagnostic: { message: string; artifactPath: string }) =>
+      diagnostic.message.includes("--detach-dependents")
+      && diagnostic.artifactPath === ".strict-spec-driven/roadmap/planned-changes/alpha-dependent.yaml"
+    ),
+    "roadmap-delete-planned-change names --detach-dependents and the dependent artifact when refusing",
+    deleteWithDependents.stdout,
+  );
+
+  const deleteCompletedWithoutFlag = cli(["roadmap-delete-planned-change", "done-change"], { cwd: roadmapDeleteDir });
+  context.assert(
+    deleteCompletedWithoutFlag.status !== 0,
+    "roadmap-delete-planned-change exits non-zero for completed work without --allow-complete",
+  );
+  context.assert(
+    JSON.parse(deleteCompletedWithoutFlag.stdout.trim()).diagnostics.some((diagnostic: { message: string }) =>
+      diagnostic.message.includes("--allow-complete")
+    ),
+    "roadmap-delete-planned-change names --allow-complete when refusing to delete completed work",
+    deleteCompletedWithoutFlag.stdout,
+  );
+
+  context.assert(
+    readDeleteFile("alpha-base.yaml") === baseBefore
+      && readDeleteFile("alpha-dependent.yaml") === dependentBefore
+      && readDeleteFile("alpha-done-change.yaml") === doneChangeBefore,
+    "a rejected roadmap-delete-planned-change leaves every planned change byte-identical",
+  );
+
+  // Happy path: a leaf planned change is removed and the roadmap stays valid.
+  const deleteLeaf = cli(["roadmap-delete-planned-change", "leaf"], { cwd: roadmapDeleteDir });
+  context.assert(
+    deleteLeaf.status === 0,
+    "roadmap-delete-planned-change exits zero for a planned change nothing depends on",
+    deleteLeaf.stdout || deleteLeaf.stderr,
+  );
+  const deleteLeafJson = JSON.parse(deleteLeaf.stdout.trim());
+  context.assert(
+    deleteLeafJson.valid === true
+      && deleteLeafJson.deleted.id === "leaf"
+      && deleteLeafJson.deleted.milestone === "alpha"
+      && deleteLeafJson.deleted.path === ".strict-spec-driven/roadmap/planned-changes/alpha-leaf.yaml"
+      && deleteLeafJson.deleted.detachedDependents.length === 0
+      && !deleteFileExists("alpha-leaf.yaml"),
+    "roadmap-delete-planned-change removes the artifact and reports the deleted planned change",
+    deleteLeaf.stdout,
+  );
+
+  // --detach-dependents drops the edges in the same operation, so the roadmap is
+  // never left reporting a dependency on work that no longer exists.
+  const deleteBase = cli(["roadmap-delete-planned-change", "base", "--detach-dependents"], { cwd: roadmapDeleteDir });
+  context.assert(
+    deleteBase.status === 0,
+    "roadmap-delete-planned-change exits zero with --detach-dependents",
+    deleteBase.stdout || deleteBase.stderr,
+  );
+  const deleteBaseJson = JSON.parse(deleteBase.stdout.trim());
+  context.assert(
+    deleteBaseJson.valid === true
+      && deleteBaseJson.deleted.detachedDependents.join(",") === "dependent"
+      && !deleteFileExists("alpha-base.yaml"),
+    "roadmap-delete-planned-change --detach-dependents reports every dependent it rewrote",
+    deleteBase.stdout,
+  );
+  const detachedDependent = yamlModule.parseYamlFile<{ depends_on: string[]; summary: string }>(
+    path.join(deletePlannedChangesDir, "alpha-dependent.yaml"),
+  );
+  context.assert(
+    detachedDependent.depends_on.length === 0
+      && detachedDependent.summary === "Work that depends on base.",
+    "roadmap-delete-planned-change --detach-dependents drops only the dependency edge, not dependent content",
+  );
+  const deleteStatusAfter = JSON.parse(cli(["roadmap-status"], { cwd: roadmapDeleteDir }).stdout.trim());
+  context.assert(
+    deleteStatusAfter.valid === true && deleteStatusAfter.diagnostics.length === 0,
+    "the roadmap is valid after a delete that detached dependents",
+    JSON.stringify(deleteStatusAfter.diagnostics),
+  );
+
+  // An active strict change is reported, not refused: this command never writes
+  // under the changes directory.
+  const deleteLive = cli(["roadmap-delete-planned-change", "live"], { cwd: roadmapDeleteDir });
+  context.assert(deleteLive.status === 0, "roadmap-delete-planned-change deletes a planned change with an active strict change");
+  context.assert(
+    JSON.parse(deleteLive.stdout.trim()).warnings.some((warning: string) =>
+      warning.includes("active strict change 'live'") && warning.includes("strict-spec-cli cancel live")
+    )
+      && existsSync(path.join(roadmapDeleteDir, ".strict-spec-driven", "changes", "live")),
+    "roadmap-delete-planned-change warns about the orphaned active change instead of writing under changes/",
+    deleteLive.stdout,
+  );
+
+  const deleteCompletedWithFlag = cli(
+    ["roadmap-delete-planned-change", "done-change", "--allow-complete"],
+    { cwd: roadmapDeleteDir },
+  );
+  context.assert(
+    deleteCompletedWithFlag.status === 0 && !deleteFileExists("alpha-done-change.yaml"),
+    "roadmap-delete-planned-change deletes completed work with --allow-complete",
+    deleteCompletedWithFlag.stdout || deleteCompletedWithFlag.stderr,
+  );
+
+  // Deleting the last planned change leaves the milestone with none, which
+  // re-derives it as proposed rather than leaving a stale declared status.
+  const deleteLast = cli(["roadmap-delete-planned-change", "dependent"], { cwd: roadmapDeleteDir });
+  context.assert(deleteLast.status === 0, "roadmap-delete-planned-change deletes the last planned change of a milestone", deleteLast.stdout);
+  const emptiedStatus = JSON.parse(cli(["roadmap-status"], { cwd: roadmapDeleteDir }).stdout.trim());
+  const emptiedMilestone = emptiedStatus.milestones.find((milestone: { id: string }) => milestone.id === "alpha");
+  context.assert(
+    emptiedStatus.valid === true
+      && emptiedMilestone.plannedChanges.length === 0
+      && emptiedMilestone.derivedStatus === "proposed",
+    "a milestone emptied by deletion stays valid and re-derives as proposed",
+    JSON.stringify(emptiedStatus.diagnostics),
+  );
+
+  const deleteNoArgs = cli(["roadmap-delete-planned-change"], { cwd: roadmapDeleteDir });
+  context.assert(deleteNoArgs.status !== 0, "roadmap-delete-planned-change exits non-zero when no planned change id is supplied");
+  const deleteUnknownFlag = cli(["roadmap-delete-planned-change", "dependent", "--force"], { cwd: roadmapDeleteDir });
+  context.assert(deleteUnknownFlag.status !== 0, "roadmap-delete-planned-change exits non-zero for an unsupported flag");
+} finally {
+  rmSync(roadmapDeleteDir, { recursive: true, force: true });
+}
+
+// Archived planned changes are frozen history: deletion must refuse them by id and
+// leave the archived artifact byte-identical.
+const roadmapDeleteArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-delete-archive-"));
+try {
+  const archivedPlannedChangesDir = path.join(
+    roadmapDeleteArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes",
+  );
+  mkdirSync(archivedPlannedChangesDir, { recursive: true });
+
+  writeRoadmapMilestoneArtifact(roadmapDeleteArchiveDir, "alpha.yaml", {
+    id: "alpha",
+    title: "Alpha",
+    goal: "Hold active work alongside archived history.",
+    status: "proposed",
+    plannedChanges: [],
+    order: 100,
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeleteArchiveDir, "planned-changes/alpha-active-work.yaml", {
+    id: "active-work",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Active work that may be deleted.",
+    details: "Standalone details for active-work.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeleteArchiveDir, "archive/planned-changes/alpha-frozen.yaml", {
+    id: "frozen",
+    milestone: "alpha",
+    status: "complete",
+    summary: "Archived history that must never be rewritten.",
+    details: "Standalone details for frozen.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapDeleteArchiveDir, [
+    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "proposed" },
+  ]);
+
+  const frozenPath = path.join(archivedPlannedChangesDir, "alpha-frozen.yaml");
+  const frozenBefore = readFileSync(frozenPath, "utf8");
+  const deleteArchived = cli(["roadmap-delete-planned-change", "frozen"], { cwd: roadmapDeleteArchiveDir });
+  context.assert(
+    deleteArchived.status !== 0
+      && JSON.parse(deleteArchived.stdout.trim()).diagnostics.some((diagnostic: { message: string }) =>
+        diagnostic.message === "roadmap-delete-planned-change planned change is archived and cannot be deleted"
+      ),
+    "roadmap-delete-planned-change refuses an archived planned change by id",
+    deleteArchived.stdout,
+  );
+  context.assert(
+    readFileSync(frozenPath, "utf8") === frozenBefore,
+    "roadmap-delete-planned-change leaves archived planned-change files byte-identical (immutable)",
+  );
+
+  // Deleting active work must not touch the archive tree either.
+  const deleteActive = cli(["roadmap-delete-planned-change", "active-work"], { cwd: roadmapDeleteArchiveDir });
+  context.assert(
+    deleteActive.status === 0 && readFileSync(frozenPath, "utf8") === frozenBefore,
+    "deleting active work leaves the archived planned-change tree untouched",
+    deleteActive.stdout || deleteActive.stderr,
+  );
+} finally {
+  rmSync(roadmapDeleteArchiveDir, { recursive: true, force: true });
+}
+
+// A dangling depends_on edge used to make every roadmap mutation command refuse to
+// write — including the commands that would remove the edge — leaving a hand-deleted
+// planned change unrecoverable through the CLI. Pre-existing dangling references are
+// now carried forward, while newly introduced ones are still rejected.
+const roadmapRepairDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-repair-"));
+try {
+  const repairPlannedChangesDir = path.join(roadmapRepairDir, ".strict-spec-driven", "roadmap", "planned-changes");
+
+  writeRoadmapMilestoneArtifact(roadmapRepairDir, "alpha.yaml", {
+    id: "alpha",
+    title: "Alpha",
+    goal: "Hold planned changes through a dangling-reference repair.",
+    status: "proposed",
+    plannedChanges: [],
+    order: 100,
+  });
+  writeStandalonePlannedChangeArtifact(roadmapRepairDir, "planned-changes/alpha-base.yaml", {
+    id: "base",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Dependency target that goes missing.",
+    details: "Standalone details for base.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapRepairDir, "planned-changes/alpha-dependent.yaml", {
+    id: "dependent",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work left holding a dangling dependency.",
+    details: "Standalone details for dependent.",
+    depends_on: ["base"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapRepairDir, "planned-changes/alpha-other.yaml", {
+    id: "other",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Unrelated work edited while the roadmap holds a dangling reference.",
+    details: "Standalone details for other.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapRepairDir, [
+    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "proposed" },
+  ]);
+
+  // `depends_on` holds ids, so removal matches exactly. Under substring matching the
+  // edge to `base` was unremovable while `base-extra` existed, because every substring
+  // of the shorter id also occurs in the longer one.
+  writeStandalonePlannedChangeArtifact(roadmapRepairDir, "planned-changes/alpha-base-extra.yaml", {
+    id: "base-extra",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work whose id has another planned change id as a prefix.",
+    details: "Standalone details for base-extra.",
+    depends_on: [],
+  });
+  const addPrefixSharingEdges = cli(
+    [
+      "roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "dependent",
+      "--depends-on", "base-extra",
+    ],
+    { cwd: roadmapRepairDir },
+  );
+  context.assert(addPrefixSharingEdges.status === 0, "roadmap-generate planned-change appends a second dependency", addPrefixSharingEdges.stdout);
+  const removePrefixEdge = cli(
+    ["roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "dependent", "--remove-depends-on", "base"],
+    { cwd: roadmapRepairDir },
+  );
+  context.assert(
+    removePrefixEdge.status === 0,
+    "--remove-depends-on removes an id that is a prefix of another recorded dependency id",
+    removePrefixEdge.stdout || removePrefixEdge.stderr,
+  );
+  context.assert(
+    yamlModule.parseYamlFile<{ depends_on: string[] }>(
+      path.join(repairPlannedChangesDir, "alpha-dependent.yaml"),
+    ).depends_on.join(",") === "base-extra",
+    "--remove-depends-on drops only the exactly matching dependency id",
+  );
+  const removeUnknownEdge = cli(
+    ["roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "dependent", "--remove-depends-on", "base-ext"],
+    { cwd: roadmapRepairDir },
+  );
+  context.assert(
+    removeUnknownEdge.status !== 0
+      && `${removeUnknownEdge.stdout}${removeUnknownEdge.stderr}`.includes("--remove-depends-on matched no entry"),
+    "--remove-depends-on rejects a partial id instead of removing a dependency the caller did not name",
+    removeUnknownEdge.stdout || removeUnknownEdge.stderr,
+  );
+  // Restore the dependency the deadlock repair assertions below operate on.
+  cli(
+    [
+      "roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "dependent",
+      "--depends-on", "base", "--remove-depends-on", "base-extra",
+    ],
+    { cwd: roadmapRepairDir },
+  );
+
+  // A newly introduced dangling dependency is still refused, and writes nothing.
+  const otherBefore = readFileSync(path.join(repairPlannedChangesDir, "alpha-other.yaml"), "utf8");
+  const introduceDangling = cli(
+    ["roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "other", "--depends-on", "ghost"],
+    { cwd: roadmapRepairDir },
+  );
+  context.assert(
+    introduceDangling.status !== 0
+      && JSON.parse(introduceDangling.stdout.trim()).updatedFiles.length === 0
+      && readFileSync(path.join(repairPlannedChangesDir, "alpha-other.yaml"), "utf8") === otherBefore,
+    "roadmap-generate planned-change still refuses a newly introduced dangling dependency and writes nothing",
+    introduceDangling.stdout,
+  );
+
+  rmSync(path.join(repairPlannedChangesDir, "alpha-base.yaml"));
+  const danglingStatus = JSON.parse(cli(["roadmap-status"], { cwd: roadmapRepairDir }).stdout.trim());
+  context.assert(
+    danglingStatus.valid === false
+      && danglingStatus.diagnostics.some((diagnostic: { message: string }) =>
+        diagnostic.message === "planned change dependency is missing from roadmap planned-change sources"
+      ),
+    "roadmap-status reports a dangling depends_on reference",
+    JSON.stringify(danglingStatus.diagnostics),
+  );
+
+  // Editing an unrelated planned change is not blocked by the pre-existing dangle.
+  const editUnrelated = cli(
+    ["roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "other", "--summary", "Edited while dangling."],
+    { cwd: roadmapRepairDir },
+  );
+  const editUnrelatedJson = JSON.parse(editUnrelated.stdout.trim());
+  context.assert(
+    editUnrelatedJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/alpha-other.yaml"),
+    "a pre-existing dangling dependency does not refuse an unrelated roadmap-generate write",
+    editUnrelated.stdout,
+  );
+  // The write landed, so it must be reported; the roadmap is still invalid, so
+  // valid must stay false. Reporting empty updatedFiles here would tell the
+  // caller nothing changed while the artifact on disk had been rewritten.
+  context.assert(
+    editUnrelatedJson.valid === false
+      && yamlModule.parseYamlFile<{ summary: string }>(
+        path.join(repairPlannedChangesDir, "alpha-other.yaml"),
+      ).summary === "Edited while dangling.",
+    "a write completed under a pre-existing dangling reference reports its files while valid stays false",
+    editUnrelated.stdout,
+  );
+
+  // roadmap-move-planned-change and roadmap-delete-planned-change take the same
+  // preflight, so the tolerance has to hold for them too.
+  writeRoadmapMilestoneArtifact(roadmapRepairDir, "beta.yaml", {
+    id: "beta",
+    title: "Beta",
+    goal: "Receive a planned change while the roadmap holds a dangling reference.",
+    status: "proposed",
+    plannedChanges: [],
+    order: 200,
+  });
+  const moveWhileDangling = cli(["roadmap-move-planned-change", "other", "--milestone", "beta"], { cwd: roadmapRepairDir });
+  context.assert(
+    JSON.parse(moveWhileDangling.stdout.trim()).updatedFiles.length > 0
+      && existsSync(path.join(repairPlannedChangesDir, "beta-other.yaml")),
+    "a pre-existing dangling dependency does not refuse roadmap-move-planned-change",
+    moveWhileDangling.stdout || moveWhileDangling.stderr,
+  );
+  const deleteWhileDangling = cli(["roadmap-delete-planned-change", "other"], { cwd: roadmapRepairDir });
+  context.assert(
+    JSON.parse(deleteWhileDangling.stdout.trim()).deleted?.id === "other"
+      && !existsSync(path.join(repairPlannedChangesDir, "beta-other.yaml")),
+    "a pre-existing dangling dependency does not refuse roadmap-delete-planned-change",
+    deleteWhileDangling.stdout || deleteWhileDangling.stderr,
+  );
+
+  // The tolerance is scoped to the dangling-dependency diagnostic. Any other broken
+  // state must still refuse every write, because a milestone that fails to load
+  // would be dropped from the regenerated index.
+  const brokenMilestonePath = path.join(roadmapRepairDir, ".strict-spec-driven", "roadmap", "milestones", "beta.yaml");
+  const brokenMilestoneBefore = readFileSync(brokenMilestonePath, "utf8");
+  writeFileSync(brokenMilestonePath, brokenMilestoneBefore.replace(/^goal:.*$/m, "goal: []"), "utf8");
+  const dependentBeforeSchemaBreak = readFileSync(path.join(repairPlannedChangesDir, "alpha-dependent.yaml"), "utf8");
+  const writeUnderSchemaBreak = cli(
+    ["roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "dependent", "--summary", "Should not be written."],
+    { cwd: roadmapRepairDir },
+  );
+  context.assert(
+    writeUnderSchemaBreak.status !== 0
+      && JSON.parse(writeUnderSchemaBreak.stdout.trim()).updatedFiles.length === 0
+      && readFileSync(path.join(repairPlannedChangesDir, "alpha-dependent.yaml"), "utf8") === dependentBeforeSchemaBreak,
+    "a schema-invalid milestone still refuses every roadmap-generate write",
+    writeUnderSchemaBreak.stdout || writeUnderSchemaBreak.stderr,
+  );
+  writeFileSync(brokenMilestonePath, brokenMilestoneBefore, "utf8");
+
+  // A self-dependency is a semantic diagnostic, not a repairable reference, so it
+  // must keep refusing writes rather than riding along as tolerated state.
+  writeStandalonePlannedChangeArtifact(roadmapRepairDir, "planned-changes/beta-self.yaml", {
+    id: "self",
+    milestone: "beta",
+    status: "planned",
+    summary: "Work that names itself as a dependency.",
+    details: "Standalone details for self.",
+    depends_on: ["self"],
+  });
+  const writeUnderSelfDependency = cli(
+    ["roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "dependent", "--summary", "Should not be written."],
+    { cwd: roadmapRepairDir },
+  );
+  context.assert(
+    writeUnderSelfDependency.status !== 0
+      && JSON.parse(writeUnderSelfDependency.stdout.trim()).updatedFiles.length === 0
+      && readFileSync(path.join(repairPlannedChangesDir, "alpha-dependent.yaml"), "utf8") === dependentBeforeSchemaBreak,
+    "a self-dependency still refuses every roadmap-generate write",
+    writeUnderSelfDependency.stdout || writeUnderSelfDependency.stderr,
+  );
+  rmSync(path.join(repairPlannedChangesDir, "beta-self.yaml"));
+
+  // The repair itself must be able to write, which is the deadlock this fixes.
+  const repair = cli(
+    ["roadmap-generate", "planned-change", "--milestone", "alpha", "--id", "dependent", "--remove-depends-on", "base"],
+    { cwd: roadmapRepairDir },
+  );
+  context.assert(
+    repair.status === 0
+      && JSON.parse(repair.stdout.trim()).updatedFiles.includes(
+        ".strict-spec-driven/roadmap/planned-changes/alpha-dependent.yaml",
+      ),
+    "roadmap-generate planned-change --remove-depends-on repairs a dangling reference instead of refusing",
+    repair.stdout || repair.stderr,
+  );
+  const repairedStatus = JSON.parse(cli(["roadmap-status"], { cwd: roadmapRepairDir }).stdout.trim());
+  context.assert(
+    repairedStatus.valid === true && repairedStatus.diagnostics.length === 0,
+    "the roadmap is valid again once the dangling reference is removed",
+    JSON.stringify(repairedStatus.diagnostics),
+  );
+} finally {
+  rmSync(roadmapRepairDir, { recursive: true, force: true });
+}
+
 const roadmapMoveArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-move-archive-"));
 try {
   const moveArchivePlannedChangesDir = path.join(roadmapMoveArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes");

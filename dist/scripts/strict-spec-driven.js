@@ -11720,6 +11720,7 @@ artifact_families:
       - roadmap-generate
       - roadmap-sync
       - roadmap-move-planned-change
+      - roadmap-delete-planned-change
       - roadmap-pause
       - roadmap-resume
       - roadmap-reorder
@@ -17780,7 +17781,7 @@ var COMMAND_METADATA_ENTRIES = {
       "  A supplied scalar field replaces the recorded value; no confirming flag is needed.",
       "  List fields always append unique values. No flag replaces a list, so editing one field can never discard unrelated recorded content.",
       "  Intake questions merge by id; restating an id replaces just that question, and naming one id twice in a single invocation with conflicting content is reported.",
-      "  Removing a recorded entry requires naming it: --remove-scope-in, --remove-scope-out, --remove-done, --remove-dependency, --remove-risk and --remove-note take a substring that must match exactly one entry, while --remove-intake-question and --remove-depends-on take an id.",
+      "  Removing a recorded entry requires naming it: --remove-scope-in, --remove-scope-out, --remove-done, --remove-dependency, --remove-risk and --remove-note take a substring that must match exactly one entry, while --remove-intake-question and --remove-depends-on take an id matched exactly, so an id that is a prefix of another id still removes only itself.",
       "  planned-change writes the artifact at its canonical filename <milestone-id>-<planned-change-id>.yaml under roadmap/planned-changes/ (the milestone prefix is not duplicated when the id already starts with it); callers never choose filenames."
     ].join(`
 `) + `
@@ -17941,6 +17942,33 @@ var COMMAND_METADATA_ENTRIES = {
       keys: ["valid", "diagnostics"],
       description: "A JSON move result."
     },
+    exitCodes: VALIDITY_EXIT_CODES
+  },
+  "roadmap-delete-planned-change": {
+    name: "roadmap-delete-planned-change",
+    group: "roadmap",
+    summary: "Delete an active planned change from the roadmap.",
+    usage: `Usage: strict-spec-cli roadmap-delete-planned-change <planned-change-id> [--allow-complete] [--detach-dependents]
+`,
+    arguments: [{ name: "planned-change-id", description: "The planned change to delete.", required: true }],
+    flags: [
+      { name: "--allow-complete", arity: "boolean", description: "Permit deleting a planned change whose strict change is already archived." },
+      {
+        name: "--detach-dependents",
+        arity: "boolean",
+        description: "Drop the deleted id from every dependent planned change's depends_on in the same operation."
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "warnings", "diagnostics", "updatedFiles", "deleted"],
+      description: "A JSON delete result reporting the removed planned change and any detached dependents."
+    },
+    notes: [
+      "Refuses by default when other planned changes depend on the target; --detach-dependents removes those edges atomically so the roadmap is never written through a dangling-reference state.",
+      "Archived planned changes are frozen history and are never deleted.",
+      "A pre-existing dangling depends_on elsewhere in the roadmap does not refuse the write, but it keeps valid false until it is repaired."
+    ],
     exitCodes: VALIDITY_EXIT_CODES
   },
   "roadmap-recommend": {
@@ -18946,6 +18974,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "roadmap-reorder",
   "roadmap-renumber",
   "roadmap-move-planned-change",
+  "roadmap-delete-planned-change",
   "roadmap-recommend",
   "roadmap-archive",
   "roadmap-reopen",
@@ -21458,6 +21487,7 @@ var DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"];
 var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 var PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
+var MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE = "planned change dependency is missing from roadmap planned-change sources";
 function canonicalPlannedChangeFileName(milestoneId, plannedChangeId) {
   if (plannedChangeId === milestoneId || plannedChangeId.startsWith(`${milestoneId}-`)) {
     return `${plannedChangeId}.yaml`;
@@ -21574,6 +21604,30 @@ function sortDiagnostics(diagnostics) {
     diagnostic2.expected ?? "",
     diagnostic2.actual ?? ""
   ]);
+}
+function diagnosticKey(diagnostic2) {
+  return [
+    diagnostic2.source,
+    diagnostic2.artifactPath,
+    diagnostic2.fieldPath,
+    diagnostic2.message,
+    diagnostic2.expected ?? "",
+    diagnostic2.actual ?? ""
+  ].join("\x00");
+}
+function isRepairableRoadmapDiagnostic(diagnostic2) {
+  return diagnostic2.source === "reference" && diagnostic2.message === MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE;
+}
+function partitionRepairableDiagnostics(diagnostics) {
+  const blocking = [];
+  const repairable = [];
+  for (const diagnostic2 of diagnostics) {
+    if (isRepairableRoadmapDiagnostic(diagnostic2))
+      repairable.push(diagnostic2);
+    else
+      blocking.push(diagnostic2);
+  }
+  return { blocking, repairable };
 }
 function isRecord3(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -22422,7 +22476,7 @@ function reportDependencyReferenceErrors(references, archivedPlannedChangeIds, d
         continue;
       }
       if (!knownIds.has(dependencyId)) {
-        diagnostics.push(makeDiagnostic("reference", reference.artifactPath, fieldPath, "planned change dependency is missing from roadmap planned-change sources", "planned change id present in roadmap planned-change sources", dependencyId));
+        diagnostics.push(makeDiagnostic("reference", reference.artifactPath, fieldPath, MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE, "planned change id present in roadmap planned-change sources", dependencyId));
         continue;
       }
       dependencies.add(dependencyId);
@@ -23202,7 +23256,8 @@ function syncRoadmap(rootDir, options = {}) {
   applyStagedRoadmapMutations(rootDir, roadmap, options.stagedMutations ?? []);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic2.artifactPath === ROADMAP_DIR));
+  const tolerated = new Set((options.toleratedDiagnostics ?? []).map(diagnosticKey));
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic2.artifactPath === ROADMAP_DIR) && !tolerated.has(diagnosticKey(diagnostic2)));
   if (blockingDiagnostics.length > 0) {
     return {
       valid: false,
@@ -25805,6 +25860,16 @@ function mergeList(existing, additions, removals, flagName) {
   }
   return merged;
 }
+function mergeIdList(existing, additions, removals, flagName) {
+  let merged = appendUnique2(existing, additions);
+  for (const needle of removals) {
+    if (!merged.includes(needle)) {
+      throw new Error(`--${flagName} matched no entry: '${needle}'`);
+    }
+    merged = merged.filter((entry) => entry !== needle);
+  }
+  return merged;
+}
 function mergeExactList(existing, additions, removals, flagName, artifactPath, fieldPath, diagnostics) {
   let merged = appendUnique2(existing, additions);
   for (const value of removals) {
@@ -25924,7 +25989,7 @@ function generateRoadmapMilestone(rootDir, input) {
   }
   const roadmap = loadRoadmap(rootDir, { allowInlinePlannedChanges: true });
   const preflight = getRoadmapStatus(rootDir);
-  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR);
+  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR));
   if (blockingPreflightDiagnostics.length > 0) {
     return {
       valid: false,
@@ -25963,14 +26028,17 @@ function generateRoadmapMilestone(rootDir, input) {
       milestones: []
     };
   }
-  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
-    absolutePath: milestonePath,
-    artifactId: input.id,
-    schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
-    operation: existing ? "update" : "create",
-    candidate: nextArtifact
-  }] });
-  if (!syncResult.valid) {
+  const syncResult = syncRoadmap(rootDir, {
+    toleratedDiagnostics,
+    stagedMutations: [{
+      absolutePath: milestonePath,
+      artifactId: input.id,
+      schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+      operation: existing ? "update" : "create",
+      candidate: nextArtifact
+    }]
+  });
+  if (!syncResult.valid && syncResult.updatedFiles.length === 0) {
     return {
       valid: false,
       warnings: syncResult.warnings,
@@ -26069,7 +26137,7 @@ function buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics) 
     status: status ?? "planned",
     summary,
     details,
-    depends_on: mergeList(existing?.artifact.depends_on ?? [], input.dependsOn, input.removedDependsOn, "remove-depends-on"),
+    depends_on: mergeIdList(existing?.artifact.depends_on ?? [], input.dependsOn, input.removedDependsOn, "remove-depends-on"),
     ...hasTeam ? { team } : {},
     ...existing?.artifact.extensions !== undefined ? { extensions: existing.artifact.extensions } : {}
   };
@@ -26088,7 +26156,7 @@ function generateRoadmapPlannedChange(rootDir, input) {
   }
   const roadmap = loadRoadmap(rootDir);
   const preflight = getRoadmapStatus(rootDir);
-  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR);
+  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR));
   if (blockingPreflightDiagnostics.length > 0) {
     return {
       valid: false,
@@ -26150,14 +26218,17 @@ function generateRoadmapPlannedChange(rootDir, input) {
       milestones: []
     };
   }
-  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
-    absolutePath: plannedChangePath,
-    artifactId: input.id,
-    schemaId: PLANNED_CHANGE_SCHEMA_ID,
-    operation: existing ? "update" : "create",
-    candidate: nextArtifact
-  }] });
-  if (!syncResult.valid) {
+  const syncResult = syncRoadmap(rootDir, {
+    toleratedDiagnostics,
+    stagedMutations: [{
+      absolutePath: plannedChangePath,
+      artifactId: input.id,
+      schemaId: PLANNED_CHANGE_SCHEMA_ID,
+      operation: existing ? "update" : "create",
+      candidate: nextArtifact
+    }]
+  });
+  if (!syncResult.valid && syncResult.updatedFiles.length === 0) {
     return {
       valid: false,
       warnings: syncResult.warnings,
@@ -26177,6 +26248,103 @@ function generateRoadmapPlannedChange(rootDir, input) {
       path: artifactPath.replace(/^\.strict-spec-driven\//, "")
     },
     milestones: syncResult.milestones
+  };
+}
+
+// src/roadmap/delete.ts
+function invalidDeleteResult(warnings, diagnostics) {
+  return {
+    valid: false,
+    warnings,
+    diagnostics: sortDiagnostics(diagnostics),
+    updatedFiles: [],
+    milestones: []
+  };
+}
+function findDependents(plannedChanges, plannedChangeId) {
+  return plannedChanges.filter((candidate) => candidate.artifact.planned_change.id !== plannedChangeId).filter((candidate) => candidate.artifact.depends_on.includes(plannedChangeId)).sort((left, right) => left.artifact.planned_change.id.localeCompare(right.artifact.planned_change.id));
+}
+function deletePlannedChange(rootDir, input) {
+  const roadmap = loadRoadmap(rootDir);
+  const changeStates = getChangeStateIndex(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH));
+  if (blockingDiagnostics.length > 0)
+    return invalidDeleteResult(roadmap.warnings, blockingDiagnostics);
+  const plannedChange = roadmap.plannedChanges.find((candidate) => candidate.artifact.planned_change.id === input.plannedChangeId);
+  if (!plannedChange) {
+    const archived = loadArchivedPlannedChangeIds(rootDir).has(input.plannedChangeId);
+    return invalidDeleteResult(roadmap.warnings, [
+      makeDiagnostic("reference", `${ROADMAP_DIR}/planned-changes`, "$.planned_change.id", archived ? "roadmap-delete-planned-change planned change is archived and cannot be deleted" : "roadmap-delete-planned-change planned change was not found in the active roadmap", "active standalone planned change id", input.plannedChangeId)
+    ]);
+  }
+  const milestoneId = plannedChange.artifact.planned_change.milestone;
+  const deletedPath = normalizeRepoRelativePath2(rootDir, plannedChange.absolutePath);
+  const plannedChangeState = derivePlannedChangeState(changeStates, input.plannedChangeId);
+  if (plannedChangeState === "archived" && !input.allowComplete) {
+    return invalidDeleteResult(roadmap.warnings, [
+      makeDiagnostic("semantic", plannedChange.repoRelativePath, "$.planned_change.id", "roadmap-delete-planned-change refuses to delete a completed planned change because it can flip the owning milestone from complete back to proposed and leaves the archived strict change describing work the roadmap no longer records; rerun with --allow-complete to delete it deliberately", "planned change with unstarted or in-progress strict change state", "archived strict change state")
+    ]);
+  }
+  const dependents = findDependents(roadmap.plannedChanges, input.plannedChangeId);
+  if (dependents.length > 0 && !input.detachDependents) {
+    return invalidDeleteResult(roadmap.warnings, dependents.map((dependent) => makeDiagnostic("reference", dependent.repoRelativePath, "$.depends_on", "roadmap-delete-planned-change refuses to leave a dangling dependency; rerun with --detach-dependents to drop this edge in the same operation", "planned change with no dependency on the deleted planned change", input.plannedChangeId)));
+  }
+  const milestone = roadmap.milestones.find((candidate) => candidate.artifact.milestone.id === milestoneId);
+  const mutations = [{
+    absolutePath: plannedChange.absolutePath,
+    artifactId: input.plannedChangeId,
+    schemaId: PLANNED_CHANGE_SCHEMA_ID,
+    operation: "delete"
+  }];
+  const detachedDependents = [];
+  for (const dependent of dependents) {
+    const dependentMilestone = roadmap.milestones.find((candidate) => candidate.artifact.milestone.id === dependent.artifact.planned_change.milestone);
+    if (!dependentMilestone)
+      continue;
+    const detached = {
+      ...dependent,
+      artifact: {
+        ...dependent.artifact,
+        depends_on: dependent.artifact.depends_on.filter((id) => id !== input.plannedChangeId)
+      }
+    };
+    const dependentStatus = buildMilestoneStatus(dependentMilestone, changeStates, getMergedPlannedChangesForMilestone(dependentMilestone, getStandalonePlannedChangesForMilestone(roadmap, dependentMilestone)));
+    mutations.push({
+      absolutePath: dependent.absolutePath,
+      artifactId: dependent.artifact.planned_change.id,
+      schemaId: PLANNED_CHANGE_SCHEMA_ID,
+      candidate: buildCanonicalPlannedChangeArtifact(detached, dependentStatus)
+    });
+    detachedDependents.push(dependent.artifact.planned_change.id);
+  }
+  const syncResult = syncRoadmap(rootDir, { toleratedDiagnostics, stagedMutations: mutations });
+  if (!syncResult.valid && syncResult.updatedFiles.length === 0) {
+    return {
+      valid: false,
+      warnings: syncResult.warnings,
+      diagnostics: syncResult.diagnostics,
+      updatedFiles: [],
+      milestones: []
+    };
+  }
+  const warnings = [...syncResult.warnings];
+  if (changeStates.active.has(input.plannedChangeId)) {
+    warnings.push(`active strict change '${input.plannedChangeId}' still exists and its proposal roadmap linkage now names a deleted planned change; ` + `resolve it with strict-spec-cli cancel ${input.plannedChangeId} or relink it to a recorded planned change`);
+  }
+  if (milestone === undefined) {
+    warnings.push(`deleted planned change '${input.plannedChangeId}' named milestone '${milestoneId}', which is not an active roadmap milestone`);
+  }
+  return {
+    ...syncResult,
+    warnings,
+    milestones: syncResult.milestones.length > 0 ? syncResult.milestones : getRoadmapStatus(rootDir).milestones,
+    deleted: {
+      id: input.plannedChangeId,
+      milestone: milestoneId,
+      path: deletedPath,
+      detachedDependents
+    }
   };
 }
 
@@ -26248,7 +26416,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH);
+  const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH));
   if (blockingDiagnostics.length > 0)
     return invalidMoveResult(roadmap.warnings, blockingDiagnostics);
   const targetMilestone = roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === input.targetMilestoneId);
@@ -26327,8 +26495,8 @@ function movePlannedChangeToMilestone(rootDir, input) {
       operation: "delete"
     });
   }
-  const syncResult = syncRoadmap(rootDir, { stagedMutations: moveRequests });
-  if (!syncResult.valid) {
+  const syncResult = syncRoadmap(rootDir, { toleratedDiagnostics, stagedMutations: moveRequests });
+  if (!syncResult.valid && syncResult.updatedFiles.length === 0) {
     return {
       valid: false,
       warnings: syncResult.warnings,
@@ -26904,6 +27072,7 @@ var ROADMAP_RESUME_USAGE = getCommandUsage("roadmap-resume");
 var ROADMAP_REORDER_USAGE = getCommandUsage("roadmap-reorder");
 var ROADMAP_RENUMBER_USAGE = getCommandUsage("roadmap-renumber");
 var ROADMAP_MOVE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-move-planned-change");
+var ROADMAP_DELETE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-delete-planned-change");
 var ROADMAP_GENERATE_USAGE = getCommandUsage("roadmap-generate");
 var ACTIONABLE_BLOCKER_LIMIT = 10;
 var ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["clear-owner", "clear-blocked"]);
@@ -27370,6 +27539,45 @@ function runRoadmapMovePlannedChange(argv) {
     return 1;
   }
   const result2 = movePlannedChangeToMilestone(process.cwd(), input);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
+}
+function parseRoadmapDeletePlannedChangeArgs(argv) {
+  const [plannedChangeId, ...rest] = argv;
+  if (!plannedChangeId || plannedChangeId.startsWith("--"))
+    throw new Error("missing planned change id");
+  let allowComplete = false;
+  let detachDependents = false;
+  for (const token of rest) {
+    if (token === "--allow-complete") {
+      if (allowComplete)
+        throw new Error("--allow-complete may only be supplied once");
+      allowComplete = true;
+      continue;
+    }
+    if (token === "--detach-dependents") {
+      if (detachDependents)
+        throw new Error("--detach-dependents may only be supplied once");
+      detachDependents = true;
+      continue;
+    }
+    throw new Error(`unsupported argument: ${token}`);
+  }
+  return { plannedChangeId, allowComplete, detachDependents };
+}
+function runRoadmapDeletePlannedChange(argv) {
+  if (handleHelpRequest("roadmap-delete-planned-change", argv)) {
+    return 0;
+  }
+  let input;
+  try {
+    input = parseRoadmapDeletePlannedChangeArgs(argv);
+  } catch (error) {
+    writeError(error instanceof Error ? error.message : String(error));
+    writeUsage(ROADMAP_DELETE_PLANNED_CHANGE_USAGE);
+    return 1;
+  }
+  const result2 = deletePlannedChange(process.cwd(), input);
   writeJson(result2);
   return result2.valid ? 0 : 1;
 }
@@ -33187,6 +33395,7 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
     requiredCommands: {
       "roadmap-generate-milestone": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
       "roadmap-generate-planned-change": `${COMMAND_PREFIX} roadmap-generate planned-change`,
+      "roadmap-delete-planned-change": `${COMMAND_PREFIX} roadmap-delete-planned-change <planned-change-id> [--allow-complete] [--detach-dependents]`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`
     },
@@ -38903,6 +39112,7 @@ var commands = createCliCommandTable({
   "roadmap-reorder": (argv) => runRoadmapReorder(argv),
   "roadmap-renumber": (argv) => runRoadmapRenumber(argv),
   "roadmap-move-planned-change": (argv) => runRoadmapMovePlannedChange(argv),
+  "roadmap-delete-planned-change": (argv) => runRoadmapDeletePlannedChange(argv),
   "roadmap-recommend": (argv) => runRoadmapRecommend(argv),
   "roadmap-archive": (argv) => runRoadmapArchive(argv),
   "roadmap-reopen": (argv) => runRoadmapReopen(argv),

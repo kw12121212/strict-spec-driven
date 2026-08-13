@@ -14,6 +14,15 @@ export const ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 export const ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 export const PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
 
+/**
+ * Message of the cross-file diagnostic raised when a `depends_on` entry names a
+ * planned change that no roadmap source declares. It is a named constant
+ * because roadmap mutation commands must recognize this specific diagnostic to
+ * tolerate it as pre-existing state; see `isRepairableRoadmapDiagnostic`.
+ */
+export const MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE =
+  "planned change dependency is missing from roadmap planned-change sources";
+
 export type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 export type DeclaredPlannedChangeStatus = (typeof DECLARED_PLANNED_CHANGE_STATUSES)[number];
 

@@ -306,3 +306,51 @@ requirements:
         - GIVEN: A requested roadmap mutation would violate a schema, dependency, canonical-name, archive, or cross-file relationship rule
         - WHEN: The roadmap domain command validates the candidate transaction
         - THEN: The command exits non-zero with path-aware deterministic diagnostics and every active, indexed, and archived roadmap file remains unchanged
+  roadmap-delete-planned-change-contract:
+    strength: MUST
+    statement: The system MUST provide a roadmap-delete-planned-change command that removes exactly one active standalone planned-change artifact and runs roadmap synchronization after the write. The command MUST reject an unknown or archived planned change, and a planned change whose derived state is archived unless an explicit allow-complete flag is supplied, each with deterministic diagnostics and no file writes. When other planned changes declare the target in depends_on, the command MUST refuse by default with a diagnostic naming each dependent artifact and the detach-dependents flag, and when that flag is supplied it MUST remove the deleted id from every dependent depends_on in the same operation so the roadmap is never written through a dangling-reference state. The command MUST never modify archived roadmap artifacts or any artifact under the changes directory, MUST report an active strict change for the deleted planned change as a warning rather than a refusal, and MUST report the deleted planned change id, milestone, path, and detached dependents deterministically.
+    scenarios:
+      delete-removes-a-planned-change-nothing-depends-on:
+        - GIVEN: a valid roadmap contains an active standalone planned change that no other planned change declares in depends_on
+        - WHEN: strict-spec-cli roadmap-delete-planned-change runs for that planned change id
+        - THEN: the command exits zero, removes the planned-change artifact, synchronizes the roadmap, and reports the deleted planned change id, milestone, and path
+      delete-refuses-dependents-without-the-detach-flag:
+        - GIVEN: a valid roadmap contains an active standalone planned change that another planned change declares in depends_on
+        - WHEN: strict-spec-cli roadmap-delete-planned-change runs for that planned change id without the detach-dependents flag
+        - THEN: the command exits non-zero, writes no file, and reports a diagnostic on each dependent artifact naming the detach-dependents flag
+      delete-detaches-dependents-atomically:
+        - GIVEN: a valid roadmap contains an active standalone planned change that another planned change declares in depends_on
+        - WHEN: strict-spec-cli roadmap-delete-planned-change runs for that planned change id with the detach-dependents flag
+        - THEN: the command exits zero, removes the planned-change artifact, removes the deleted id from every dependent depends_on without altering other dependent content, reports the detached dependents, and leaves roadmap-status valid
+      delete-refuses-archived-and-completed-work:
+        - GIVEN: a planned change is archived, or its derived state is archived because its strict change is archived
+        - WHEN: strict-spec-cli roadmap-delete-planned-change runs for that planned change id without the allow-complete flag
+        - THEN: the command exits non-zero with a deterministic diagnostic, leaves archived planned-change files byte-identical, and writes no file
+  roadmap-mutation-repairable-diagnostic-tolerance:
+    strength: MUST
+    statement: The system MUST let roadmap mutation commands write while the roadmap already reports a dangling depends_on reference, because that reference is repairable through those same commands and cannot affect which milestones load or what the regenerated index records. The tolerated set MUST be captured before the mutation is staged, so a dangling reference the mutation itself introduces is still refused with no file writes, and every other diagnostic kind MUST continue to refuse every write. A command that completed its write while a pre-existing repairable diagnostic remains MUST report its updated files and MUST report validity as false until the roadmap is repaired.
+    scenarios:
+      preexisting-dangling-reference-does-not-refuse-a-write:
+        - GIVEN: a roadmap planned change declares a depends_on entry naming a planned change that no roadmap source declares
+        - WHEN: strict-spec-cli roadmap-generate planned-change, roadmap-move-planned-change, or roadmap-delete-planned-change runs on any planned change
+        - THEN: the command applies its mutation, reports the updated files, and reports validity as false while the dangling reference remains
+      dangling-reference-remains-repairable-through-the-cli:
+        - GIVEN: a roadmap planned change declares a depends_on entry naming a planned change that no roadmap source declares
+        - WHEN: strict-spec-cli roadmap-generate planned-change runs for the dependent planned change with remove-depends-on naming that entry
+        - THEN: the command exits zero, removes the entry, and roadmap-status reports the roadmap as valid with no diagnostics
+      introduced-dangling-reference-and-other-diagnostics-still-refuse:
+        - GIVEN: a roadmap is valid, or is invalid for a reason other than a dangling depends_on reference such as a schema-invalid milestone or a self-dependency
+        - WHEN: strict-spec-cli roadmap-generate planned-change runs with a depends_on entry naming no declared planned change, or runs while that other diagnostic is present
+        - THEN: the command exits non-zero, writes no file, and leaves every roadmap artifact byte-identical
+  roadmap-planned-change-dependency-id-matching:
+    strength: MUST
+    statement: The system MUST match roadmap-generate planned-change depends_on removals against recorded entries by exact planned-change id rather than by substring, because planned-change ids routinely share prefixes and substring matching makes an edge to the shorter id unremovable. A removal naming an id that is not recorded MUST fail with a deterministic error and write no file.
+    scenarios:
+      removal-matches-a-prefix-sharing-id-exactly:
+        - GIVEN: a planned change records depends_on entries whose ids share a prefix, such as one id that is a prefix of another
+        - WHEN: strict-spec-cli roadmap-generate planned-change runs with remove-depends-on naming the shorter id
+        - THEN: the command exits zero and removes only the exactly matching entry, leaving the prefix-sharing entry recorded
+      removal-of-an-unrecorded-id-is-refused:
+        - GIVEN: a planned change records depends_on entries
+        - WHEN: strict-spec-cli roadmap-generate planned-change runs with remove-depends-on naming a partial id or an id that is not recorded
+        - THEN: the command exits non-zero with a deterministic error and writes no file

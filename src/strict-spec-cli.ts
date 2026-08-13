@@ -10,6 +10,7 @@ import { runCheckWorkflowState, runConfigEdit, runNext, runReady } from "./cli/c
 import {
   runRoadmapArchive,
   runRoadmapGenerate,
+  runRoadmapDeletePlannedChange,
   runRoadmapMovePlannedChange,
   runRoadmapOverview,
   runRoadmapPause,
@@ -166,6 +167,7 @@ export const commands = createCliCommandTable({
   "roadmap-reorder": (argv) => runRoadmapReorder(argv),
   "roadmap-renumber": (argv) => runRoadmapRenumber(argv),
   "roadmap-move-planned-change": (argv) => runRoadmapMovePlannedChange(argv),
+  "roadmap-delete-planned-change": (argv) => runRoadmapDeletePlannedChange(argv),
   "roadmap-recommend": (argv) => runRoadmapRecommend(argv),
   "roadmap-archive": (argv) => runRoadmapArchive(argv),
   "roadmap-reopen": (argv) => runRoadmapReopen(argv),

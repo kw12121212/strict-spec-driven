@@ -22,7 +22,13 @@ import {
   type LoadedMilestone,
   type LoadedPlannedChange,
 } from "./roadmap/model.js";
-import { ensureTrailingNewline, makeDiagnostic, normalizeRepoRelativePath, sortDiagnostics } from "./roadmap/shared.js";
+import {
+  diagnosticKey,
+  ensureTrailingNewline,
+  makeDiagnostic,
+  normalizeRepoRelativePath,
+  sortDiagnostics,
+} from "./roadmap/shared.js";
 import { loadArchivedPlannedChangeIds, loadRoadmap } from "./roadmap/load.js";
 import {
   appendRoadmapCrossFileDiagnostics,
@@ -62,6 +68,14 @@ export type RoadmapSyncOptions = {
   materializePlannedChanges?: boolean;
   fixNames?: boolean;
   stagedMutations?: readonly RoadmapMutation[];
+  /**
+   * Diagnostics observed before this mutation was staged that must not refuse
+   * the write. Callers pass the repairable subset of their own preflight (see
+   * `partitionRepairableDiagnostics`), which keeps the roadmap recoverable
+   * without letting a mutation introduce a *new* dangling reference: anything
+   * this mutation creates is absent from the pre-mutation set and still blocks.
+   */
+  toleratedDiagnostics?: readonly RoadmapDiagnostic[];
 };
 
 export type RoadmapSyncRenamedFile = {
@@ -541,9 +555,11 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
   applyStagedRoadmapMutations(rootDir, roadmap, options.stagedMutations ?? []);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const tolerated = new Set((options.toleratedDiagnostics ?? []).map(diagnosticKey));
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) =>
     diagnostic.artifactPath !== ROADMAP_INDEX_PATH
-      && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic.artifactPath === ROADMAP_DIR));
+      && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic.artifactPath === ROADMAP_DIR)
+      && !tolerated.has(diagnosticKey(diagnostic)));
   if (blockingDiagnostics.length > 0) {
     return {
       valid: false,
