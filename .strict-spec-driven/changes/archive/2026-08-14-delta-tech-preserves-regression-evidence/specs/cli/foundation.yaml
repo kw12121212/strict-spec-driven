@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-archive-runs-current-change-tech-sync:
+      strength: MUST
+      statement: The system MUST require every supported AI-guided strict change archive surface, including strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt, to complete a final current-change-scoped tech sync before invoking the raw archive command; continue immediately when existing standards and delta-tech cover the change; pause unresolved reusable convention findings for confirmed delta-tech capture or explicit non-reusable classification; forbid post-archive deferral of a convention confirmed as reusable; and rerun strict verification and delta-tech review after archive-time delta-tech edits while treating a change-local delta-tech artifact as the single write that does not invalidate previously passed complete regression evidence, so any other implementation, test, strict artifact, or configuration file written after that evidence passed still requires a regression rerun before archive.
+      scenarios:
+        archive-continues-when-tech-state-is-covered:
+          - GIVEN: a verified active change reaches final AI-guided archive preparation and its bounded scan finds no uncaptured reusable convention or confirms that existing delta-tech already covers each finding
+          - WHEN: the current-change tech sync checkpoint completes
+          - THEN: archive preparation continues without creating unnecessary tech artifacts
+        archive-pauses-for-reusable-convention-gap:
+          - GIVEN: the final bounded scan finds a possible reusable convention absent from the applicable main standards and current delta-tech
+          - WHEN: archive preparation evaluates the finding
+          - THEN: archive does not invoke strict-spec-cli archive until the operator confirms delta-tech capture or explicitly classifies the pattern as not reusable, and a convention the operator confirms as reusable cannot be deferred until after archive
+        archive-revalidates-after-delta-tech-capture:
+          - GIVEN: the operator confirms a reusable convention and archive preparation generates or updates current-change delta-tech, with complete regression evidence already passing for the change
+          - WHEN: the delta-tech artifact is the only file written since that evidence passed
+          - THEN: strict verification and delta-tech artifact review are rerun before archive, and the previously passed complete regression evidence stands without a rerun
+        code-edit-still-invalidates-regression-evidence:
+          - GIVEN: archive preparation writes any file that is not a change-local delta-tech artifact after complete regression evidence passed
+          - WHEN: the archive surface evaluates its regression evidence before invoking archive
+          - THEN: the configured complete project regression command is rerun and must pass before archive proceeds
+        raw-archive-remains-deterministic-merge-primitive:
+          - GIVEN: the final sync checkpoint is complete under an AI-guided archive surface
+          - WHEN: that surface invokes strict-spec-cli archive for the selected change
+          - THEN: the raw command retains its deterministic verification, delta merge, index regeneration, roadmap reconciliation, and change-move responsibilities without requiring an AI sync receipt
+  REMOVED: {}

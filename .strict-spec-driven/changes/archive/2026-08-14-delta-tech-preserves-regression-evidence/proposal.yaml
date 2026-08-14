@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: delta-tech-preserves-regression-evidence
+  status: proposed
+summary:
+  what:
+    - A change-local delta-tech write stops invalidating previously passed complete project regression evidence. The archive-time surfaces that capture a reusable convention as delta-tech - strict-spec-auto step 12, strict-spec-archive, and strict-tech-sync active-change mode - continue to rerun strict verification and review the generated delta artifact, but no longer rerun the configured complete project regression command solely because a delta-tech artifact was written.
+  why:
+    - The final current-change tech sync runs after review, after the coverage gate has already passed. Capturing one reusable convention as delta-tech therefore costs a full rebuild, full suite, and coverage measurement at the very end of every strict-spec-auto run, to re-prove a result that the delta-tech file cannot change. A delta-tech artifact under a change's tech/ directory is not compiled, not imported by the suite, and merges into a live standard only at archive.
+scope:
+  in:
+    - The cli-foundation requirement cli-archive-runs-current-change-tech-sync and its archive-revalidates-after-delta-tech-capture scenario; the POST_TECH_EDIT_EVIDENCE_SNIPPET required-snippet contract in src/skills/model.ts; the archive-time guidance in skills/strict-spec-auto/SKILL.md steps 11 and 12, skills/strict-spec-archive/SKILL.md, and skills/strict-tech-sync/SKILL.md step 9; and the skill-content assertions in test/suites/entrypoint-and-skills.ts that pin the current wording.
+  out:
+    - 'Any relaxation for artifacts other than delta-tech. Delta-spec, task-list, question-list, proposal, design, and workflow-config writes keep the current invalidation rule. The strict-spec-review post-fix regression contract is out of scope: cli-foundation requires review to defer delta-tech capture to the final tech sync, so a review-time delta-tech write is not on this path. Standalone strict-tech-sync main-standard editing is also out of scope.'
+unchanged_behavior:
+  - The configured complete project regression command, its threshold of 78, its coverage contract, and its blocking non-zero exit semantics are unchanged. Any edit to src/, test/, scripts/, skills/, templates/, or examples/ still invalidates previously passed regression evidence and still forces a full rerun. Strict verification and delta-tech artifact review still run after every archive-time delta-tech edit. The archive command's deterministic delta-tech merge into live standards is unchanged.

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: delta-tech-preserves-regression-evidence
+open: []
+resolved:
+  - id: requirement-problem
+    question: What concretely goes wrong today, and for whom?
+    context: Establishes the need behind the request rather than the proposed fix. Reported from the requester's most recent occurrence.
+    answer: At the end of a strict-spec-auto run, step 12's final current-change tech sync captured a reusable convention as delta-tech. Because a delta-tech file is a strict artifact, step 11's invalidation rule voided the regression evidence that had passed minutes earlier, forcing a full rebuild, full suite, and coverage measurement before archive could proceed.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: Distinguishes the end state from the mechanism; three mechanisms were offered and the cheapest was chosen.
+    answer: strict-spec-auto reaches step 12, writes the delta-tech, reruns verify only, and archives on the earlier passing regression run. Rerunning a cheap substitute check or building a deterministic CLI classifier were both offered and declined as more machinery than the problem warrants.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now - what forced this?
+    context: Tests whether the trigger is real by asking what happens if nothing is done.
+    answer: 'Nothing forces it. The cost is an extra full build, suite, and coverage cycle on every auto run that records a convention: annoying but survivable. The requester is not skipping conventions to avoid it and is not bypassing the gate by hand, so this is a proportionality fix rather than an unblocking one.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Fences the carve-out so it cannot become precedent for weakening the gate on code changes.
+    answer: 'The coverage gate itself stays exactly as configured: command, threshold 78, and blocking non-zero exit semantics. The rule for code changes stays: any src/, test/, scripts/, skills/, or templates/ edit still invalidates prior evidence and forces the full rerun. The requester did not fence delta-tech archive merge behavior or the addition of new tooling, but this change touches neither.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which writes should stop invalidating passing regression evidence - delta-tech alone, planning artifacts too, or every change-local strict artifact?
+    context: The request said both 'delta-tech creation' and 'pure documentation modification', which are different sets. Whichever set the exemption names is what future changes may skip the gate for.
+    answer: 'delta-tech only: tech/*.yaml under an active change. Planning artifacts and delta-specs keep the current invalidation rule.'
+    status: resolved
+    kind: requirement
+    answered_by: human

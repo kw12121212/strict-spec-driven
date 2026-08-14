@@ -137,3 +137,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/piping-a-test-runner-into-tail-or-head-discards-15d651.yaml
+    a-testing-task-whose-command-runs-verify-can-nev-52acd1:
+      title: A Testing task whose command runs verify can never pass at its own runtime
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-testing-task-whose-command-runs-verify-can-nev-52acd1.yaml

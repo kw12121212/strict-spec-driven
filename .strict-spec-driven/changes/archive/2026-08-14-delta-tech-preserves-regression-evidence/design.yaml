@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: delta-tech-preserves-regression-evidence
+approach:
+  - State the carve-out once in the cli-foundation requirement that already owns the archive-time tech sync contract, then propagate it to the three archive-time skill prompts through the required-snippet constant that validate-skills enforces. The snippet constant is the single enforced source for the prompt wording, so updating it and the prompts together keeps the static check and the guidance from drifting apart.
+decisions:
+  carve-out-lives-in-existing-requirement:
+    decision: Modify the existing cli-archive-runs-current-change-tech-sync requirement and its archive-revalidates-after-delta-tech-capture scenario rather than adding a new requirement or a delta-tech standard.
+    rationale: 'The invalidation rule is stated in exactly one place today: the cli-foundation spec. The workflow-regression-coverage standard says nothing about what invalidates evidence. Adding a rule there would create a second source for one rule, which the yaml-first-artifacts standard''s single-source discipline exists to prevent.'
+  verification-still-runs:
+    decision: Strict verification and delta-tech artifact review remain mandatory after an archive-time delta-tech edit; only the complete regression rerun is dropped.
+    rationale: The failure a delta-tech write can actually cause is a malformed or schema-invalid artifact, and verify catches that in seconds. The regression command was never the check that protected against it.
+  accept-artifact-sweep-residual-risk:
+    decision: Accept that the repository-content sweep in test/suites/spec-tech-authoring.ts can read an active change's delta-tech file and will not be rerun under the new rule.
+    rationale: The sweep guards one completed capability removal through three token regexes. Tripping it requires a delta-tech rule statement that quotes a removed API name such as mapping.tests or verify-spec-mappings. Blocking every archive on a full coverage run to defend against that is the disproportion this change exists to remove, and the next change's own testing task rediscovers a tripped sweep.
+alternatives:
+  - option: Exclude .strict-spec-driven/changes/*/tech/ from the sweep's scanned set so the exemption is airtight
+    reason: Makes the exemption provably safe but weakens a sweep that deliberately scans live workflow artifacts, and adds src and test edits to defend against a narrow hypothetical.
+  - option: Substitute a cheap artifact-only check for the coverage gate after a delta-tech write
+    reason: test/run.ts has no suite-selection mechanism, so this needs new test tooling and a second evidence contract for a case that verify already covers.
+  - option: Move the final tech sync earlier so delta-tech is written before the regression run
+    reason: Reorders a contract that deliberately places the sync last so it can see the finished change, and would force conventions to be judged before review completes.
+risks:
+  - A delta-tech statement quoting a removed capability token would trip the repository-content sweep and land an archive on a suite-red repository, discovered at the next change's testing task rather than before archive.
+  - The required-snippet constant is asserted by both validate-skills and test/suites/entrypoint-and-skills.ts; changing the snippet without updating both leaves a green suite over stale guidance.

@@ -18,6 +18,10 @@ type CliRegistryModule = {
   COMMAND_REGISTRATION_ORDER: string[];
 };
 
+type SkillModelModule = {
+  CORE_STRICT_SKILL_EXPECTATIONS: Record<string, { requiredSnippets?: string[] }>;
+};
+
 type YamlAuthoringProtocolModule = {
   YAML_AUTHORING_PROTOCOL_STEPS: ReadonlyArray<{ order: number; id: string; title: string }>;
   YAML_AUTHORING_PROTOCOL_BOUNDARY: { id: string; title: string; statement: string; reportContains: string[] };
@@ -948,6 +952,14 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
   const normalizedInitSkillContent = initSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
+  /**
+   * The archive-time carve-out: capturing a convention as delta-tech does not cost a regression
+   * rerun. This suite asserts the wording reaches the shipped skill packages, and validate-skills
+   * requires it through its own snippet registry. Two declarations of one sentence drift silently
+   * unless they are compared, so the cross-check below reads the registry rather than trusting it.
+   */
+  const POST_TECH_EDIT_EVIDENCE_WORDING =
+    "a delta-tech write does not invalidate passing complete project regression evidence";
 const questionGateSkillChecks: Array<[string, string]> = [
   [normalizedProposeSkillContent, "strict-spec-propose"],
   [normalizedAutoSkillContent, "strict-spec-auto"],
@@ -1115,16 +1127,37 @@ context.assert(
       && normalizedTechSyncSkillContent.includes("never edit a live main standard directly")
       && normalizedTechSyncSkillContent.includes("use `tech-edit` for live standards only in standalone mode")
       && normalizedTechSyncSkillContent.includes("Never hand-edit main-tech or tech-index YAML")
+      && normalizedTechSyncSkillContent.includes(POST_TECH_EDIT_EVIDENCE_WORDING)
       && normalizedArchiveSkillContent.includes("final current-change tech sync")
       && normalizedArchiveSkillContent.includes("explicitly classifies the pattern as not reusable")
       && normalizedArchiveSkillContent.includes("Never defer a confirmed reusable convention until after archive")
-      && normalizedArchiveSkillContent.includes("rerun the configured complete project regression evidence")
+      && normalizedArchiveSkillContent.includes(POST_TECH_EDIT_EVIDENCE_WORDING)
       && normalizedArchiveSkillContent.includes("raw command only as the deterministic")
       && normalizedAutoSkillContent.includes("Run the final current-change tech sync")
       && normalizedAutoSkillContent.includes("explicitly classify the pattern as not reusable")
       && normalizedAutoSkillContent.includes("confirmed as reusable cannot be deferred until after archive")
-      && normalizedAutoSkillContent.includes("rerun the configured complete project regression evidence"),
+      && normalizedAutoSkillContent.includes(POST_TECH_EDIT_EVIDENCE_WORDING),
     "tech sync, archive, and automatic workflows enforce bounded current-change delta-tech capture before deterministic archive",
+  );
+  const skillModel = await loadDistModule<SkillModelModule>("skills/model.js");
+  const carveOutRegistrySkills = ["strict-spec-archive", "strict-spec-auto", "strict-tech-sync"];
+  const registryMissingCarveOut = carveOutRegistrySkills.filter(
+    (skillName) => !(skillModel.CORE_STRICT_SKILL_EXPECTATIONS[skillName]?.requiredSnippets ?? [])
+      .includes(POST_TECH_EDIT_EVIDENCE_WORDING),
+  );
+  context.assert(
+    registryMissingCarveOut.length === 0,
+    "validate-skills requires the delta-tech regression carve-out wording for every archive-time skill this suite asserts it in",
+    registryMissingCarveOut.join(", "),
+  );
+  const registryCarveOutSkills = Object.entries(skillModel.CORE_STRICT_SKILL_EXPECTATIONS)
+    .filter(([, expectation]) => (expectation.requiredSnippets ?? []).includes(POST_TECH_EDIT_EVIDENCE_WORDING))
+    .map(([skillName]) => skillName)
+    .sort();
+  context.assert(
+    registryCarveOutSkills.join(",") === [...carveOutRegistrySkills].sort().join(","),
+    "no skill requires the carve-out wording without this suite asserting it reaches that package",
+    registryCarveOutSkills.join(", "),
   );
   context.assert(
     normalizedBrainstormSkillContent.includes("proposal checkpoint")
@@ -2856,6 +2889,20 @@ try {
     ),
     "auto skill missing optional ship handoff reports required snippet diagnostic",
   );
+  // The carve-out is what stops a delta-tech capture from costing a regression rerun. A skill that
+  // silently loses the sentence would send the agent back to the old rule, so each archive-time
+  // package is checked against a body that omits it rather than only against the shipped text.
+  for (const carveOutSkillName of ["strict-spec-archive", "strict-spec-auto", "strict-tech-sync"]) {
+    context.assert(
+      invalidSemanticResult.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "skill.core.required_snippet.missing"
+          && diagnostic.path === `skills/${carveOutSkillName}/SKILL.md`
+          && diagnostic.expected === "a delta-tech write does not invalidate passing complete project regression evidence",
+      ),
+      `${carveOutSkillName} missing the delta-tech regression carve-out reports required snippet diagnostic`,
+    );
+  }
   context.assert(
     invalidSemanticResult.diagnostics.some(
       (diagnostic) =>

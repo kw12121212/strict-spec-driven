@@ -33053,7 +33053,7 @@ var CURRENT_CHANGE_TECH_SYNC_SNIPPET = "final current-change tech sync";
 var CURRENT_CHANGE_SCOPE_SNIPPET = "attributable tracked and untracked files";
 var CURRENT_CHANGE_DELTA_TECH_SNIPPET = "current-change delta tech";
 var NO_POST_ARCHIVE_DEFERRAL_SNIPPET = "confirmed as reusable";
-var POST_TECH_EDIT_EVIDENCE_SNIPPET = "complete project regression evidence";
+var POST_TECH_EDIT_EVIDENCE_SNIPPET = "a delta-tech write does not invalidate passing complete project regression evidence";
 var SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 var SHARED_SCHEMA_FILE_LOOKUP_SNIPPET = "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
 var SAMPLE_SHOW_LOOKUP_SNIPPET = "sample-show";
@@ -33354,7 +33354,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "explicitly classified as not reusable",
       "may not be deferred until after its active change is archived",
       "never edit a live main standard directly",
-      "rerun any complete regression evidence invalidated by the artifact edit"
+      POST_TECH_EDIT_EVIDENCE_SNIPPET
     ]
   },
   "strict-tech-edit": {

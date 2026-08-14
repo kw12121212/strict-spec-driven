@@ -97,7 +97,8 @@ const CURRENT_CHANGE_TECH_SYNC_SNIPPET = "final current-change tech sync";
 const CURRENT_CHANGE_SCOPE_SNIPPET = "attributable tracked and untracked files";
 const CURRENT_CHANGE_DELTA_TECH_SNIPPET = "current-change delta tech";
 const NO_POST_ARCHIVE_DEFERRAL_SNIPPET = "confirmed as reusable";
-const POST_TECH_EDIT_EVIDENCE_SNIPPET = "complete project regression evidence";
+const POST_TECH_EDIT_EVIDENCE_SNIPPET =
+  "a delta-tech write does not invalidate passing complete project regression evidence";
 const SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 const SHARED_SCHEMA_FILE_LOOKUP_SNIPPET =
   "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
@@ -434,7 +435,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "explicitly classified as not reusable",
       "may not be deferred until after its active change is archived",
       "never edit a live main standard directly",
-      "rerun any complete regression evidence invalidated by the artifact edit",
+      POST_TECH_EDIT_EVIDENCE_SNIPPET,
     ],
   },
   "strict-tech-edit": {

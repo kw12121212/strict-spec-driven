@@ -114,9 +114,11 @@ run `init` from this skill.
    - never defer a convention confirmed as reusable until after archive; use
      `generate <change-name> delta-tech ...` so it remains part of the active
      change rather than editing a live main standard directly
-   - after any delta-tech edit, review the final delta artifact, rerun strict
-     verification, and rerun the configured complete project regression evidence
-     when the artifact edit invalidated the earlier evidence
+   - after any delta-tech edit, review the final delta artifact and rerun strict
+     verification; a delta-tech write does not invalidate passing complete
+     project regression evidence, so rerun the configured regression command
+     here only when this step also changed a file that is not a change-local
+     delta-tech artifact
 
 3. **Confirm the lesson declaration** — confirm that review declared either a
    recorded lesson or a justified "no lesson" for this change. Experience is

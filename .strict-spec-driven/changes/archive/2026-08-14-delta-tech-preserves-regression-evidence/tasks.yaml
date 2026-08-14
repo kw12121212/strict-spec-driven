@@ -1,0 +1,53 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: delta-tech-preserves-regression-evidence
+sections:
+  Implementation:
+    update-required-snippet:
+      text: Update POST_TECH_EDIT_EVIDENCE_SNIPPET in src/skills/model.ts so the enforced archive-time wording states that strict verification and delta-tech review are rerun while passing complete regression evidence stands, replacing the current phrase that requires rerunning regression evidence invalidated by the edit.
+      status: complete
+    update-auto-skill:
+      text: 'Update skills/strict-spec-auto/SKILL.md: step 11''s evidence-invalidation list must exclude a delta-tech write, and step 12 must require verification and delta-tech review after a delta-tech edit without requiring a regression rerun.'
+      status: complete
+    update-archive-skill:
+      text: Update the archive-time tech sync bullet in skills/strict-spec-archive/SKILL.md to the same carve-out wording.
+      status: complete
+    update-tech-sync-skill:
+      text: Update step 9 of skills/strict-tech-sync/SKILL.md so active-change mode reruns verify and reviews the delta-tech operations without rerunning complete regression evidence for the delta-tech write alone.
+      status: complete
+    rebuild-embedded-assets:
+      text: 'Rebuild compiled output so dist/ carries the edited src/skills/model.ts snippet registry, which validate-skills reads from dist/. Bundled skill packages are not embedded assets: listEmbeddedAssetFiles scopes embedding to templates/, examples/, and inventory/, and validate-skills reads SKILL.md from the working tree.'
+      status: complete
+      command: bun run build
+  Testing:
+    update-skill-content-assertions:
+      text: Update the skill-content assertions in test/suites/entrypoint-and-skills.ts that currently pin 'rerun the configured complete project regression evidence' in the archive and auto skills, so they assert the new carve-out wording instead of the negated rule.
+      status: complete
+    prove-snippet-negative-case:
+      text: 'Prove the required-snippet check on the new wording in both directions: observe a validate-skills diagnostic naming the expected snippet when a skill package omits it, and observe the check passing on the edited packages. Required by the static-content-checks-prove-a-negative-case rule in the workflow-regression-coverage standard.'
+      status: complete
+    run-strict-validation:
+      text: 'Validate bundled skill packaging after the prompt and snippet-registry edits. Strict artifact verification is owned by the run-verify Verification task: chaining verify here could never exit zero, because verify reports this task''s own pending status.'
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-project-regression:
+      text: Run the complete project regression command; the declared coverage contract makes a non-zero exit below threshold 78 a blocking failure. This change edits src/, test/, and bundled skills, so it does not qualify for the carve-out it introduces.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready:
+      text: Confirm structural proposal readiness.
+      status: complete
+      command: strict-spec-cli ready delta-tech-preserves-regression-evidence
+    run-verify:
+      text: Confirm strict YAML schema and artifact shape for the change.
+      status: complete
+      command: strict-spec-cli verify delta-tech-preserves-regression-evidence
+    confirm-archive-merge:
+      text: Confirm the delta-spec merges cleanly into .strict-spec-driven/specs/cli/foundation.yaml on archive, preserving every scenario of cli-archive-runs-current-change-tech-sync that this change did not intend to alter.
+      status: complete
+testing_gates:
+  validation_task: run-strict-validation
+  unit_test_task: run-project-regression
