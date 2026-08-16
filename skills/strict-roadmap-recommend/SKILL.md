@@ -20,7 +20,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-status: strict-spec-cli roadmap-status
-roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]
+roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>] [--allow-unrefined]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -162,11 +162,23 @@ run `init` from this skill.
    selecting work, or opening candidate planned-change files, and treat the
    command's selected planned change as authoritative for the recommendation
    step. The scripted result already accounts for active strict change
-   conflicts, invalid roadmap state, and dependency blockers. The concise JSON
-   output includes a `status` field with one of three values. Branch on
-   `status`:
-   - `"roadmap-error"` — the roadmap has validation diagnostics. Surface the
+   conflicts, invalid roadmap state, dependency blockers, and milestones
+   awaiting refinement. The concise JSON output includes a `status` field with
+   one of four values. Branch on `status`:
+   - `"roadmap-error"` — the roadmap has validation diagnostics, or a
+     `--milestone` selector named a milestone awaiting refinement. Surface the
      JSON diagnostics and stop. Suggest running `roadmap-status` for details.
+     When the diagnostic names `--allow-unrefined`, report the refusal and the
+     override to the user; **never supply `--allow-unrefined` yourself.** The
+     gate exists to stop automation building a placeholder, and an override an
+     agent adds on its own is not a gate.
+   - `"refine-milestone"` — the earliest-ordered incomplete milestone is
+     deliberately deferred, so no implementation work is recommended. Do **not**
+     scaffold a strict change. Surface `refineAction` with the milestone id and
+     the recorded `reason`, and tell the user their options: elaborate that
+     milestone through `/strict-roadmap-refine`, or run the reported
+     `releaseWith` command to pause it so later milestones' work becomes
+     recommendable. Then stop.
    - `"no-candidate"` — the roadmap is valid but no planned change is eligible
      right now. Surface `candidateSummary` and the actionable `blockers[]`
      entries with their `skipReasons`, then stop. If the concise output is not

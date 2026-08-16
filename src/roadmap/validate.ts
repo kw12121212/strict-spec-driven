@@ -8,6 +8,7 @@ import {
   type RoadmapIndexEntry,
   type RoadmapMilestoneArtifact,
   type MilestoneIdentity,
+  type MilestoneAwaitingRefinementState,
   type MilestoneIntakeQuestion,
   type MilestonePausedState,
   type MilestoneScope,
@@ -392,6 +393,70 @@ function validatePausedMetadata(
   };
 }
 
+/**
+ * Validate the optional `awaiting_refinement` mapping on a milestone. Unlike
+ * `paused` this never forces the effective status to `blocked`: it declares the
+ * milestone as deliberately not yet elaborated, so roadmap-recommend surfaces a
+ * refine action instead of implementation work.
+ */
+function validateAwaitingRefinementMetadata(
+  value: unknown,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): MilestoneAwaitingRefinementState | null {
+  if (!isRecord(value)) {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, fieldPath, "awaiting_refinement must be a mapping", "mapping", typeof value),
+    );
+    return null;
+  }
+
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (key !== "status" && key !== "reason" && key !== "deferred_on") {
+      diagnostics.push(
+        makeDiagnostic(
+          "schema",
+          artifactPath,
+          `${fieldPath}.${key}`,
+          "unsupported awaiting_refinement metadata field",
+          "status, reason, or deferred_on",
+          key,
+        ),
+      );
+      valid = false;
+    }
+  }
+
+  if (value.status !== true) {
+    diagnostics.push(
+      makeDiagnostic(
+        "schema",
+        artifactPath,
+        `${fieldPath}.status`,
+        "awaiting_refinement.status must be the literal boolean true",
+        "true",
+        String(value.status),
+      ),
+    );
+    valid = false;
+  }
+
+  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
+  if (reason === null) valid = false;
+
+  const deferredOn = validateOptionalString(value, "deferred_on", artifactPath, `${fieldPath}.deferred_on`, diagnostics);
+  if (deferredOn === null) valid = false;
+
+  if (!valid) return null;
+  return {
+    status: true,
+    ...(typeof reason === "string" ? { reason } : {}),
+    ...(typeof deferredOn === "string" ? { deferred_on: deferredOn } : {}),
+  };
+}
+
 function validateExternalRefsMetadata(
   value: unknown,
   artifactPath: string,
@@ -651,6 +716,23 @@ export function validateMilestoneArtifact(
       })()
     : undefined;
 
+  const awaitingRefinementState = "awaiting_refinement" in artifact && artifact.awaiting_refinement !== undefined
+    ? (() => {
+        if (artifact.awaiting_refinement === null) {
+          diagnostics.push(
+            makeDiagnostic("schema", artifactPath, "$.awaiting_refinement", "awaiting_refinement must be a mapping", "mapping", "null"),
+          );
+          return null;
+        }
+        return validateAwaitingRefinementMetadata(
+          artifact.awaiting_refinement,
+          artifactPath,
+          "$.awaiting_refinement",
+          diagnostics,
+        );
+      })()
+    : undefined;
+
   const rawMilestone = artifact.milestone;
   let milestone: MilestoneIdentity | null = null;
   if (!isRecord(rawMilestone)) {
@@ -812,6 +894,7 @@ export function validateMilestoneArtifact(
     risks,
     status: statusValue,
     ...(pausedState ? { paused: pausedState } : {}),
+    ...(awaitingRefinementState ? { awaiting_refinement: awaitingRefinementState } : {}),
     notes,
     details: details ?? undefined,
   };

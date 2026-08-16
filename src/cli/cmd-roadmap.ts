@@ -15,6 +15,7 @@ import {
 import { deletePlannedChange, type RoadmapDeleteInput } from "../roadmap/delete.js";
 import { movePlannedChangeToMilestone, type RoadmapMoveInput } from "../roadmap/move.js";
 import { pauseMilestone, resumeMilestone } from "../roadmap/pause.js";
+import { deferMilestoneRefinement, refineMilestone } from "../roadmap/refinement.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { renumberRoadmapMilestones, reorderRoadmapMilestone, type RoadmapReorderInput } from "../roadmap/order.js";
 import { handleHelpRequest } from "./argv.js";
@@ -26,6 +27,8 @@ const ROADMAP_ARCHIVE_USAGE = getCommandUsage("roadmap-archive");
 const ROADMAP_REOPEN_USAGE = getCommandUsage("roadmap-reopen");
 const ROADMAP_PAUSE_USAGE = getCommandUsage("roadmap-pause");
 const ROADMAP_RESUME_USAGE = getCommandUsage("roadmap-resume");
+const ROADMAP_DEFER_USAGE = getCommandUsage("roadmap-defer");
+const ROADMAP_REFINE_USAGE = getCommandUsage("roadmap-refine");
 const ROADMAP_REORDER_USAGE = getCommandUsage("roadmap-reorder");
 const ROADMAP_RENUMBER_USAGE = getCommandUsage("roadmap-renumber");
 const ROADMAP_MOVE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-move-planned-change");
@@ -39,6 +42,7 @@ type FlagMap = Record<string, string[]>;
 type RoadmapRecommendArgs = {
   includeDetails: boolean;
   milestoneId?: string;
+  allowUnrefined: boolean;
 };
 
 function summarizeRoadmapRecommendation(result: RoadmapRecommendResult, args: RoadmapRecommendArgs): unknown {
@@ -83,6 +87,7 @@ function summarizeRoadmapRecommendation(result: RoadmapRecommendResult, args: Ro
     warnings: result.warnings,
     diagnostics: result.diagnostics,
     recommendation,
+    refineAction: result.refineAction,
     candidateSummary: {
       total: result.candidates.length,
       eligible,
@@ -370,12 +375,17 @@ export function runRoadmapGenerate(argv: string[]): number {
 }
 
 function parseRoadmapRecommendArgs(argv: string[]): RoadmapRecommendArgs {
-  const result: RoadmapRecommendArgs = { includeDetails: false };
+  const result: RoadmapRecommendArgs = { includeDetails: false, allowUnrefined: false };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--details") {
       if (result.includeDetails) throw new Error("--details may only be supplied once");
       result.includeDetails = true;
+      continue;
+    }
+    if (token === "--allow-unrefined") {
+      if (result.allowUnrefined) throw new Error("--allow-unrefined may only be supplied once");
+      result.allowUnrefined = true;
       continue;
     }
     if (token === "--milestone") {
@@ -412,7 +422,10 @@ export function runRoadmapRecommend(argv: string[]): number {
     return 1;
   }
 
-  const result = recommendRoadmapChange(process.cwd(), { milestoneId: args.milestoneId });
+  const result = recommendRoadmapChange(process.cwd(), {
+    milestoneId: args.milestoneId,
+    allowUnrefined: args.allowUnrefined,
+  });
   writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
   return result.status === "recommended" ? 0 : 1;
 }
@@ -689,6 +702,36 @@ export function runRoadmapResume(argv: string[]): number {
   const parsed = parseOptionalReasonArg(argv, ROADMAP_RESUME_USAGE);
   if (typeof parsed === "number") return parsed;
   const result = resumeMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+export function runRoadmapDefer(argv: string[]): number {
+  if (handleHelpRequest("roadmap-defer", argv)) {
+    return 0;
+  }
+  const parsed = parseOptionalReasonArg(argv, ROADMAP_DEFER_USAGE);
+  if (typeof parsed === "number") return parsed;
+  const result = deferMilestoneRefinement(
+    process.cwd(),
+    parsed.milestoneId,
+    parsed.reason !== undefined ? { reason: parsed.reason } : {},
+  );
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+export function runRoadmapRefine(argv: string[]): number {
+  if (handleHelpRequest("roadmap-refine", argv)) {
+    return 0;
+  }
+  const parsed = parseOptionalReasonArg(argv, ROADMAP_REFINE_USAGE);
+  if (typeof parsed === "number") return parsed;
+  const result = refineMilestone(
+    process.cwd(),
+    parsed.milestoneId,
+    parsed.reason !== undefined ? { reason: parsed.reason } : {},
+  );
   writeJson(result);
   return result.valid ? 0 : 1;
 }

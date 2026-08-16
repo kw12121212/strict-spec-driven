@@ -152,6 +152,7 @@ export type RoadmapMilestoneArtifact = {
   risks: string[];
   status: DeclaredRoadmapStatus;
   paused?: MilestonePausedState;
+  awaiting_refinement?: MilestoneAwaitingRefinementState;
   notes: string[];
   details?: string;
 };
@@ -182,6 +183,22 @@ export type MilestonePausedState = {
   status: true;
   reason?: string;
   paused_on?: string;
+};
+
+/**
+ * Declared operator intent that a milestone is planned but deliberately not yet
+ * elaborated, because a precondition has not matured. Unlike `paused` this does
+ * not force the effective status to `blocked`: the milestone keeps the status
+ * derived from its planned-change state, because it is not blocked, only
+ * undecomposed. roadmap-recommend surfaces such a milestone as a refine action
+ * instead of recommending implementation work. Only roadmap-refine clears the
+ * field; maturity is never derived from the presence of planned changes,
+ * because whether the precondition has matured is a human judgement.
+ */
+export type MilestoneAwaitingRefinementState = {
+  status: true;
+  reason?: string;
+  deferred_on?: string;
 };
 
 export type StandalonePlannedChangeArtifact = {
@@ -266,6 +283,12 @@ export type RoadmapMilestoneStatus = {
   displayOrdinal: number;
   declaredStatus: DeclaredRoadmapStatus;
   derivedStatus: DeclaredRoadmapStatus;
+  /**
+   * Present only while the milestone declares `awaiting_refinement`, so a
+   * reader can tell a deliberately undecomposed milestone from one that was
+   * merely authored incompletely.
+   */
+  awaitingRefinement?: MilestoneAwaitingRefinementState;
   plannedChanges: RoadmapPlannedChangeStatus[];
   mismatches: string[];
 };
@@ -275,6 +298,7 @@ export type RoadmapRecommendationSkipCode =
   | "workflow-state-archived"
   | "workflow-state-ambiguous"
   | "milestone-paused"
+  | "milestone-awaiting-refinement"
   | "planned-change-mismatch"
   | "dependency-incomplete";
 
@@ -323,7 +347,27 @@ export type RoadmapSyncMilestoneStatus = Omit<RoadmapMilestoneStatus, "plannedCh
   plannedChanges: RoadmapSyncPlannedChangeStatus[];
 };
 
-export type RoadmapRecommendStatus = "recommended" | "no-candidate" | "roadmap-error";
+/**
+ * The next action a deferred milestone calls for. It is deliberately not a
+ * `RoadmapRecommendation`: the work to do is elaborating the milestone through
+ * roadmap-generate, not scaffolding a strict change from a planned change.
+ */
+export type RoadmapRefineAction = {
+  milestone: {
+    id: string;
+    title: string;
+    path: string;
+  };
+  reason?: string;
+  deferredOn?: string;
+  releaseWith: string;
+};
+
+export type RoadmapRecommendStatus =
+  | "recommended"
+  | "refine-milestone"
+  | "no-candidate"
+  | "roadmap-error";
 
 export type RoadmapRecommendResult = {
   valid: boolean;
@@ -331,6 +375,12 @@ export type RoadmapRecommendResult = {
   warnings: string[];
   diagnostics: RoadmapDiagnostic[];
   recommendation: RoadmapRecommendation | null;
+  /**
+   * Set when the earliest-ordered incomplete milestone is awaiting refinement.
+   * Recommendation follows strict roadmap order, so this suppresses candidates
+   * owned by later milestones; pausing the deferred milestone releases them.
+   */
+  refineAction: RoadmapRefineAction | null;
   candidates: RoadmapRecommendationCandidate[];
 };
 

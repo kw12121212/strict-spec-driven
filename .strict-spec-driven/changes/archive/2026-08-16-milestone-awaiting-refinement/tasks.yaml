@@ -1,0 +1,111 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: milestone-awaiting-refinement
+sections:
+  Implementation:
+    add-awaiting-refinement-schema-field:
+      text: Add the optional awaiting_refinement object (status const true, optional reason, deferred_on) to templates/strict-spec-driven/schemas/roadmap-milestone.yaml without bumping the v2 schema id, mirroring the paused field shape.
+      status: complete
+    regenerate-embedded-schema:
+      text: Regenerate src/embedded-templates.ts so the bundled roadmap-milestone schema carries the new field, per the bundled-asset-writes-regenerate-derived-output rule.
+      status: complete
+    extend-roadmap-milestone-model:
+      text: Extend the milestone artifact model in src/roadmap/model.ts with the awaiting_refinement shape and its type guards.
+      status: complete
+    implement-defer-refine-module:
+      text: 'Implement src/roadmap/refinement.ts with the defer and refine operations, following the structure of src/roadmap/pause.ts: eligibility guards for unknown, archived, and complete milestones, atomic write, and post-write roadmap synchronization.'
+      status: complete
+    preserve-field-through-sync:
+      text: Make src/roadmap/sync.ts preserve awaiting_refinement across canonical rewrite without forcing the milestone status to blocked, unlike the paused field.
+      status: complete
+    validate-awaiting-refinement-field:
+      text: Add awaiting_refinement validation to src/roadmap/validate.ts so a malformed declaration is a deterministic diagnostic.
+      status: complete
+    report-state-in-status-and-overview:
+      text: Report the awaiting-refinement state from roadmap-status and roadmap-overview in src/roadmap/status.ts so a deferred milestone is distinguishable from an undetailed one.
+      status: complete
+    add-recommend-refine-action:
+      text: Extend roadmap-recommend in src/roadmap.ts to return a refine action for the earliest-ordered milestone declaring awaiting_refinement, in strict roadmap order, without falling through to later milestones' implementable work, and to attach an awaiting-refinement skip reason to every planned change that milestone owns.
+      status: complete
+    suppress-refine-action-when-paused:
+      text: Make a milestone that is both deferred and paused yield no refine action, so roadmap-pause remains the release valve for downstream candidates.
+      status: complete
+    gate-milestone-scoped-recommend:
+      text: Add the --allow-unrefined flag to roadmap-recommend and refuse a --milestone selector naming a deferred milestone by default, with a deterministic diagnostic naming both roadmap-refine and the override.
+      status: complete
+    register-defer-refine-commands:
+      text: Register roadmap-defer and roadmap-refine in src/cli/cmd-roadmap.ts, src/cli/registry.ts, and src/strict-spec-cli.ts.
+      status: complete
+    add-command-metadata:
+      text: Add roadmap-defer and roadmap-refine entries to src/cli/command-metadata-entries.ts with flag semantics, output keys, and exit-code meaning, as required by help-describes-argument-semantics.
+      status: complete
+    add-recommend-command-metadata:
+      text: Add the --allow-unrefined flag and the refine-action output key to the roadmap-recommend entry in src/cli/command-metadata-entries.ts, per help-describes-argument-semantics.
+      status: complete
+    update-yaml-mutation-inventory:
+      text: Add roadmap-defer and roadmap-refine to the roadmap-state cliOwners in inventory/yaml-mutation-surfaces.yaml so the mutation-surface check stays complete.
+      status: complete
+    add-defer-refine-skills:
+      text: Add skills/strict-roadmap-defer and skills/strict-roadmap-refine following the strict-roadmap-pause and strict-roadmap-resume packages, including the restated CLI-only authoring protocol step titles and no-fallback boundary statement required by skill-packages-are-static-protocol-surfaces, and register both in skills/marketplace.json.
+      status: complete
+    update-review-skill:
+      text: Update skills/strict-roadmap-review so a milestone declaring awaiting_refinement is reported as deliberately deferred and is never filled in with invented detail.
+      status: complete
+    update-recommend-skill:
+      text: Update skills/strict-roadmap-recommend to branch on the refine action instead of scaffolding a strict change, and to name roadmap-pause as the release valve when a deferred milestone blocks later work.
+      status: complete
+    update-plan-skill:
+      text: Update skills/strict-roadmap-plan to offer deferral when a milestone's detail cannot yet be authored, so the option is discoverable at the point of creation.
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output after the TypeScript edits, per rebuild-after-source-edits.
+      status: complete
+      command: bun run build
+    update-propose-from-roadmap-skill:
+      text: Update skills/strict-spec-propose-from-roadmap so it reports the awaiting-refinement refusal and never supplies --allow-unrefined itself; this repository packages strict-spec-propose-from-roadmap rather than a strict-roadmap-propose skill, per contracts/yaml-artifacts.yaml.
+      status: complete
+  Testing:
+    test-defer-refine-lifecycle:
+      text: In test/suites/roadmap-and-migration.ts, cover deferring a milestone, the field surviving roadmap-sync without forcing blocked status, refine clearing it only on explicit invocation, and defer/refine rejecting unknown, archived, and complete milestones without writing files.
+      status: complete
+    test-recommend-refine-behavior:
+      text: Cover roadmap-recommend returning the refine action for an earlier-ordered deferred milestone instead of a later milestone's eligible planned change, a deferred-and-paused milestone releasing that later work, and --milestone against a deferred milestone refusing without --allow-unrefined and succeeding with it.
+      status: complete
+    test-status-distinguishes-deferred:
+      text: Cover roadmap-status and roadmap-overview reporting the awaiting-refinement state on a deferred milestone and not on a merely undetailed one.
+      status: complete
+    test-schema-and-metadata-surfaces:
+      text: Cover schema validation of a malformed awaiting_refinement declaration, and assert roadmap-defer and roadmap-refine appear in command metadata and JSON help per single-source-command-descriptions. MCP tool exposure follows the roadmap-pause and roadmap-resume precedent, which is CLI-only, so the roadmap-state inventory cell needs no new MCP entry.
+      status: complete
+    run-validation:
+      text: Run the strict validation and inventory checks for the roadmap artifacts and mutation surfaces.
+      status: complete
+      command: strict-spec-cli roadmap-status
+    run-project-regression:
+      text: Run the complete project regression with the coverage gate, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope-match:
+      text: Confirm the implementation matches proposal scope, that no milestone required field was relaxed, and that roadmap-pause and roadmap-resume behavior is unchanged.
+      status: complete
+    check-archive-merge:
+      text: Confirm the delta spec merges cleanly into .strict-spec-driven/specs/roadmap/domain-behavior.yaml on archive, preserving every existing requirement this change did not intend to alter, and that the regenerated spec index stays valid.
+      status: complete
+    run-maintenance-checks:
+      text: Run the configured maintenance checks so the generated-doc, lesson-staleness, and cli-only-yaml-policy gates cover the new commands and skills.
+      status: complete
+      command: strict-spec-cli maintenance
+    run-ready:
+      text: Run the strict readiness check for this change.
+      status: complete
+      command: strict-spec-cli ready milestone-awaiting-refinement
+    run-verify:
+      text: Run the strict schema and artifact-shape check for this change.
+      status: complete
+      command: strict-spec-cli verify milestone-awaiting-refinement
+testing_gates:
+  validation_task: run-validation
+  unit_test_task: run-project-regression

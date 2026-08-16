@@ -411,14 +411,14 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | Spec | ID | Requirements |
 | --- | --- | --- |
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 206 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 208 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 119 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
 | [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 8 |
-| [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 21 |
+| [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 26 |
 | [Sessions Domain Behavior](.strict-spec-driven/specs/sessions/domain-behavior.yaml) | `sessions-domain-behavior` | 5 |
 | [SOP Domain Behavior](.strict-spec-driven/specs/sop/domain-behavior.yaml) | `sop-domain-behavior` | 6 |
 | [Testing Coverage Gate](.strict-spec-driven/specs/testing/coverage-gate.yaml) | `testing-coverage-gate` | 4 |

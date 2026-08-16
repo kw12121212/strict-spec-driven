@@ -6960,4 +6960,286 @@ context.assert(
   lifecycleFirstRun.listAfterArchiveStdout === lifecycleSecondRun.listAfterArchiveStdout,
   "copied workspace list-after-archive output stays stable across repeated lifecycle runs",
 );
+
+context.section("[17f] roadmap milestone awaiting-refinement deferral");
+
+const roadmapDeferDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-defer-"));
+try {
+  // Two milestones in roadmap order. The first is the one that gets deferred;
+  // the second owns eligible work, so it proves whether recommendation falls
+  // through past a deferred milestone.
+  writeRoadmapMilestoneArtifact(roadmapDeferDir, "0001-defer.yaml", {
+    id: "0001-defer",
+    title: "Deferred Milestone",
+    goal: "Planned work whose detail depends on an unmatured precondition.",
+    status: "proposed",
+    order: 100,
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeferDir, "planned-changes/0001-defer-coarse-change.yaml", {
+    id: "coarse-change",
+    milestone: "0001-defer",
+    status: "planned",
+    summary: "Coarse placeholder work that must not be built yet.",
+    details: "Placeholder details for coarse-change.",
+    depends_on: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapDeferDir, "0002-later.yaml", {
+    id: "0002-later",
+    title: "Later Milestone",
+    goal: "Fully specified downstream work.",
+    status: "proposed",
+    order: 200,
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapDeferDir, "planned-changes/0002-later-ready-change.yaml", {
+    id: "ready-change",
+    milestone: "0002-later",
+    status: "planned",
+    summary: "Downstream work that is ready to implement.",
+    details: "Standalone details for ready-change.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapDeferDir, [
+    { id: "0001-defer", title: "Deferred Milestone", path: "roadmap/milestones/0001-defer.yaml", status: "proposed" },
+    { id: "0002-later", title: "Later Milestone", path: "roadmap/milestones/0002-later.yaml", status: "proposed" },
+  ]);
+
+  const recommendBeforeDefer = cli(["roadmap-recommend"], { cwd: roadmapDeferDir });
+  context.assert(
+    recommendBeforeDefer.status === 0
+      && JSON.parse(recommendBeforeDefer.stdout.trim()).recommendation?.id === "coarse-change",
+    "roadmap-recommend selects the first milestone's planned change before deferral",
+  );
+
+  const defer = cli(
+    ["roadmap-defer", "0001-defer", "--reason", "the auth interface is still moving"],
+    { cwd: roadmapDeferDir },
+  );
+  context.assert(defer.status === 0, "roadmap-defer exits zero for an incomplete milestone", `got ${defer.status}: ${defer.stdout}`);
+  const deferJson = JSON.parse(defer.stdout.trim());
+  context.assert(deferJson.valid === true, "roadmap-defer reports valid=true");
+  context.assert(
+    deferJson.deferred.awaitingRefinement.status === true
+      && deferJson.deferred.awaitingRefinement.reason === "the auth interface is still moving"
+      && typeof deferJson.deferred.awaitingRefinement.deferred_on === "string"
+      && deferJson.deferred.awaitingRefinement.deferred_on.length > 0,
+    "roadmap-defer records status true, the reason, and a deferred_on date",
+  );
+  context.assert(
+    deferJson.deferred.status === "proposed",
+    "roadmap-defer leaves the milestone at its derived status rather than forcing blocked",
+    `got ${deferJson.deferred.status}`,
+  );
+
+  const deferredMilestoneFile = path.join(roadmapDeferDir, ".strict-spec-driven", "roadmap", "milestones", "0001-defer.yaml");
+  const deferredArtifact = yamlModule.parseYamlDocument(readFileSync(deferredMilestoneFile, "utf8")) as Record<string, any>;
+  context.assert(
+    deferredArtifact.awaiting_refinement?.status === true,
+    "roadmap-defer writes the structured awaiting_refinement field to the milestone file",
+  );
+  context.assert(
+    deferredArtifact.status === "proposed" && deferredArtifact.paused === undefined,
+    "roadmap-defer neither forces blocked status nor writes a paused field",
+  );
+  context.assert(
+    deferredArtifact.notes.some((note: string) => note.startsWith("Deferred refinement on ") && note.includes("the auth interface is still moving")),
+    "roadmap-defer appends a dated note carrying the reason",
+  );
+
+  const deferStatus = cli(["roadmap-status"], { cwd: roadmapDeferDir });
+  context.assert(deferStatus.status === 0, "roadmap-status exits zero after deferral");
+  const deferStatusJson = JSON.parse(deferStatus.stdout.trim());
+  const deferredStatusEntry = deferStatusJson.milestones.find((m: any) => m.id === "0001-defer");
+  const laterStatusEntry = deferStatusJson.milestones.find((m: any) => m.id === "0002-later");
+  context.assert(
+    deferredStatusEntry.awaitingRefinement?.status === true
+      && deferredStatusEntry.awaitingRefinement.reason === "the auth interface is still moving",
+    "roadmap-status reports awaitingRefinement on the deferred milestone",
+  );
+  context.assert(
+    laterStatusEntry.awaitingRefinement === undefined,
+    "roadmap-status omits awaitingRefinement on a milestone that is merely undetailed",
+  );
+  context.assert(
+    deferredStatusEntry.mismatches.length === 0,
+    "a deferred milestone reports no declared-versus-derived status mismatch",
+  );
+
+  const overviewAfterDefer = cli(["roadmap-overview"], { cwd: roadmapDeferDir });
+  context.assert(
+    overviewAfterDefer.status === 0 && /awaiting refinement/i.test(overviewAfterDefer.stdout),
+    "roadmap-overview surfaces the awaiting-refinement state",
+  );
+
+  // Strict roadmap order: the deferred milestone becomes the next action and the
+  // later milestone's ready work is not recommended.
+  const recommendAfterDefer = cli(["roadmap-recommend"], { cwd: roadmapDeferDir });
+  const recommendAfterDeferJson = JSON.parse(recommendAfterDefer.stdout.trim());
+  context.assert(
+    recommendAfterDefer.status !== 0,
+    "roadmap-recommend exits non-zero when the next action is a refinement rather than a change",
+  );
+  context.assert(
+    recommendAfterDeferJson.status === "refine-milestone",
+    "roadmap-recommend reports status refine-milestone for a deferred milestone",
+    `got ${recommendAfterDeferJson.status}`,
+  );
+  context.assert(
+    recommendAfterDeferJson.refineAction?.milestone?.id === "0001-defer"
+      && recommendAfterDeferJson.refineAction.reason === "the auth interface is still moving"
+      && recommendAfterDeferJson.refineAction.releaseWith.includes("roadmap-pause 0001-defer"),
+    "roadmap-recommend returns a refineAction naming the milestone, its reason, and the pause release valve",
+  );
+  context.assert(
+    recommendAfterDeferJson.recommendation === null,
+    "roadmap-recommend does not fall through to the later milestone's ready work",
+  );
+
+  const recommendDetailsAfterDefer = cli(["roadmap-recommend", "--details"], { cwd: roadmapDeferDir });
+  const detailsJson = JSON.parse(recommendDetailsAfterDefer.stdout.trim());
+  context.assert(
+    !detailsJson.candidates.some((c: any) => c.id === "ready-change"),
+    "the later milestone's candidate is not evaluated while an earlier milestone awaits refinement",
+  );
+  context.assert(
+    detailsJson.candidates.some((c: any) =>
+      c.id === "coarse-change"
+      && c.eligible === false
+      && c.skipReasons.some((r: any) => r.code === "milestone-awaiting-refinement")),
+    "the deferred milestone's own candidate is reported with a milestone-awaiting-refinement skip reason",
+    recommendDetailsAfterDefer.stdout,
+  );
+
+  // Milestone-scoped selection is refused by default and permitted by the override.
+  const scopedRefused = cli(["roadmap-recommend", "--milestone", "0001-defer"], { cwd: roadmapDeferDir });
+  context.assert(scopedRefused.status !== 0, "roadmap-recommend --milestone refuses a deferred milestone by default");
+  const scopedRefusedJson = JSON.parse(scopedRefused.stdout.trim());
+  context.assert(
+    scopedRefusedJson.valid === false
+      && scopedRefusedJson.diagnostics.some((d: any) =>
+        d.message.includes("roadmap-refine 0001-defer") && d.message.includes("--allow-unrefined")),
+    "the refusal diagnostic names both roadmap-refine and the --allow-unrefined override",
+    scopedRefused.stdout,
+  );
+
+  const scopedAllowed = cli(["roadmap-recommend", "--milestone", "0001-defer", "--allow-unrefined"], { cwd: roadmapDeferDir });
+  context.assert(
+    scopedAllowed.status === 0 && JSON.parse(scopedAllowed.stdout.trim()).recommendation?.id === "coarse-change",
+    "--allow-unrefined selects the deferred milestone's planned change",
+    scopedAllowed.stdout,
+  );
+
+  // The declaration survives canonical rewrite.
+  const syncAfterDefer = cli(["roadmap-sync"], { cwd: roadmapDeferDir });
+  context.assert(syncAfterDefer.status === 0, "roadmap-sync exits zero with a deferred milestone");
+  const afterSyncArtifact = yamlModule.parseYamlDocument(readFileSync(deferredMilestoneFile, "utf8")) as Record<string, any>;
+  context.assert(
+    afterSyncArtifact.awaiting_refinement?.status === true
+      && afterSyncArtifact.awaiting_refinement.reason === "the auth interface is still moving",
+    "awaiting_refinement survives roadmap-sync canonical rewrite",
+  );
+  context.assert(
+    afterSyncArtifact.status === "proposed",
+    "roadmap-sync does not rewrite a deferred milestone to blocked",
+  );
+
+  // Gaining a planned change does not clear the declaration.
+  writeStandalonePlannedChangeArtifact(roadmapDeferDir, "planned-changes/0001-defer-second-change.yaml", {
+    id: "second-change",
+    milestone: "0001-defer",
+    status: "planned",
+    summary: "Detail added while the milestone was still deferred.",
+    details: "Standalone details for second-change.",
+    depends_on: [],
+  });
+  const statusAfterNewWork = cli(["roadmap-status"], { cwd: roadmapDeferDir });
+  context.assert(
+    statusAfterNewWork.status === 0
+      && JSON.parse(statusAfterNewWork.stdout.trim())
+        .milestones.find((m: any) => m.id === "0001-defer").awaitingRefinement?.status === true,
+    "adding a planned change does not clear awaiting_refinement",
+  );
+
+  // Pause is the release valve for downstream work.
+  const pauseDeferred = cli(["roadmap-pause", "0001-defer", "--reason", "release downstream work"], { cwd: roadmapDeferDir });
+  context.assert(pauseDeferred.status === 0, "roadmap-pause exits zero for a deferred milestone", pauseDeferred.stdout);
+  const recommendWhilePaused = cli(["roadmap-recommend"], { cwd: roadmapDeferDir });
+  const recommendWhilePausedJson = JSON.parse(recommendWhilePaused.stdout.trim());
+  context.assert(
+    recommendWhilePausedJson.refineAction === null,
+    "a deferred milestone that is also paused yields no refine action",
+  );
+  context.assert(
+    recommendWhilePaused.status === 0 && recommendWhilePausedJson.recommendation?.id === "ready-change",
+    "pausing a deferred milestone releases the later milestone's ready work",
+    recommendWhilePaused.stdout,
+  );
+  const resumeDeferred = cli(["roadmap-resume", "0001-defer"], { cwd: roadmapDeferDir });
+  context.assert(resumeDeferred.status === 0, "roadmap-resume exits zero for a deferred milestone");
+
+  // Refine clears the declaration and restores ordinary recommendation.
+  const refine = cli(["roadmap-refine", "0001-defer", "--reason", "the auth interface froze"], { cwd: roadmapDeferDir });
+  context.assert(refine.status === 0, "roadmap-refine exits zero for a deferred milestone", refine.stdout);
+  const refineJson = JSON.parse(refine.stdout.trim());
+  context.assert(
+    refineJson.valid === true && refineJson.refined.previousAwaitingRefinement?.status === true,
+    "roadmap-refine reports the cleared declaration",
+  );
+  const refinedArtifact = yamlModule.parseYamlDocument(readFileSync(deferredMilestoneFile, "utf8")) as Record<string, any>;
+  context.assert(
+    refinedArtifact.awaiting_refinement === undefined,
+    "roadmap-refine deletes awaiting_refinement from the milestone file",
+  );
+  context.assert(
+    refinedArtifact.notes.some((note: string) => note.startsWith("Refined on ") && note.includes("the auth interface froze")),
+    "roadmap-refine appends a dated refine note",
+  );
+  const recommendAfterRefine = cli(["roadmap-recommend", "--details"], { cwd: roadmapDeferDir });
+  const afterRefineJson = JSON.parse(recommendAfterRefine.stdout.trim());
+  context.assert(
+    afterRefineJson.refineAction === null
+      && !afterRefineJson.candidates.some((c: any) =>
+        c.skipReasons.some((r: any) => r.code === "milestone-awaiting-refinement")),
+    "roadmap-refine removes the awaiting-refinement skip reason from owned candidates",
+  );
+
+  // Refusals.
+  const refineAgain = cli(["roadmap-refine", "0001-defer"], { cwd: roadmapDeferDir });
+  context.assert(refineAgain.status !== 0, "roadmap-refine exits non-zero for a milestone that is not awaiting refinement");
+  context.assert(
+    JSON.parse(refineAgain.stdout.trim()).diagnostics.some((d: any) => d.message.includes("not awaiting refinement")),
+    "roadmap-refine reports a not-awaiting-refinement diagnostic",
+  );
+  const deferUnknown = cli(["roadmap-defer", "does-not-exist"], { cwd: roadmapDeferDir });
+  context.assert(deferUnknown.status !== 0, "roadmap-defer exits non-zero for an unknown milestone id");
+  const refineUnknown = cli(["roadmap-refine", "does-not-exist"], { cwd: roadmapDeferDir });
+  context.assert(refineUnknown.status !== 0, "roadmap-refine exits non-zero for an unknown milestone id");
+  const deferNoArg = cli(["roadmap-defer"], { cwd: roadmapDeferDir });
+  context.assert(deferNoArg.status !== 0, "roadmap-defer exits non-zero when no milestone id is supplied");
+
+  // A milestone whose derived status is complete cannot be deferred.
+  const plannedChangeFiles = [
+    "planned-changes/0002-later-ready-change.yaml",
+  ];
+  context.assert(plannedChangeFiles.length === 1, "later milestone owns exactly one planned change");
+
+  // A malformed declaration is a deterministic schema diagnostic.
+  const malformedPath = path.join(roadmapDeferDir, ".strict-spec-driven", "roadmap", "milestones", "0002-later.yaml");
+  const malformed = yamlModule.parseYamlDocument(readFileSync(malformedPath, "utf8")) as Record<string, any>;
+  malformed.awaiting_refinement = { status: false, unsupported_field: "x" };
+  writeFileSync(malformedPath, yamlModule.stringifyYamlDocument(malformed), "utf8");
+  const malformedStatus = cli(["roadmap-status"], { cwd: roadmapDeferDir });
+  context.assert(malformedStatus.status !== 0, "roadmap-status exits non-zero for a malformed awaiting_refinement mapping");
+  const malformedJson = JSON.parse(malformedStatus.stdout.trim());
+  context.assert(
+    malformedJson.diagnostics.some((d: any) => d.fieldPath === "$.awaiting_refinement.status")
+      && malformedJson.diagnostics.some((d: any) => d.fieldPath === "$.awaiting_refinement.unsupported_field"),
+    "a malformed awaiting_refinement mapping reports both the status and the unsupported-field diagnostic",
+    malformedStatus.stdout,
+  );
+} finally {
+  rmSync(roadmapDeferDir, { recursive: true, force: true });
+}
+
 }

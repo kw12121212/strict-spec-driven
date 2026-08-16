@@ -89,6 +89,11 @@ function deriveMilestoneStatus(states: PlannedChangeState[]): "proposed" | "acti
  * planned-change state, so the operator-applied pause survives canonical
  * rewrite and roadmap-recommend. Without a pause the derived status follows
  * structured planned-change state (proposed, active, or complete).
+ *
+ * `awaiting_refinement` is deliberately NOT consulted here. A deferred
+ * milestone is planned but not yet elaborated, which is not the same as
+ * blocked, so it keeps its planned-change-derived status (proposed while it
+ * owns no started work). Its effect lands in roadmap-recommend instead.
  */
 function deriveEffectiveMilestoneStatus(
   milestone: LoadedMilestone,
@@ -478,6 +483,9 @@ export function buildMilestoneStatus(
     displayOrdinal,
     declaredStatus: milestone.artifact.status,
     derivedStatus,
+    ...(milestone.artifact.awaiting_refinement
+      ? { awaitingRefinement: { ...milestone.artifact.awaiting_refinement } }
+      : {}),
     plannedChanges,
     mismatches,
   };

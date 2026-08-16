@@ -22,6 +22,7 @@ roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change
 roadmap-delete-planned-change: strict-spec-cli roadmap-delete-planned-change <planned-change-id> [--allow-complete] [--detach-dependents]
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
+roadmap-defer: strict-spec-cli roadmap-defer <milestone-id> [--reason "..."]
 ```
 
 ## Prerequisites
@@ -55,11 +56,11 @@ validation command for that family.
 
 This skill writes `roadmap-state`.
 
-1. **Read the owning command's machine-readable help** — `strict-spec-cli roadmap-generate --help --json`, `strict-spec-cli roadmap-sync --help --json`
+1. **Read the owning command's machine-readable help** — `strict-spec-cli roadmap-generate --help --json`, `strict-spec-cli roadmap-defer --help --json`, `strict-spec-cli roadmap-sync --help --json`
 2. **Resolve the target artifact's schema** — `strict-spec-cli schema-list`, then `strict-spec-cli schema-show roadmap-index`, `strict-spec-cli schema-show roadmap-milestone`, `strict-spec-cli schema-show planned-change`
 3. **Inspect the registered minimal example** — `strict-spec-cli sample-list`, then `strict-spec-cli sample-show roadmap-index`, `strict-spec-cli sample-show roadmap-milestone`, `strict-spec-cli sample-show planned-change`. The example is read-only reference; never copy it into place as a starting file.
 4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
-5. **Execute the owning command with those arguments** — `strict-spec-cli roadmap-generate`, `strict-spec-cli roadmap-sync`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
+5. **Execute the owning command with those arguments** — `strict-spec-cli roadmap-generate`, `strict-spec-cli roadmap-defer`, `strict-spec-cli roadmap-sync`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
 6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
 7. **Run the artifact's validation command** — `strict-spec-cli roadmap-status`
 
@@ -145,14 +146,32 @@ run `init` from this skill.
     a planned-change file by hand — reducing the planned-change count is a CLI
     operation like every other roadmap mutation.
 
-4. **Normalize roadmap state** — run:
+4. **Offer deferral when a milestone cannot be detailed yet** — a milestone the
+   user is committed to but genuinely cannot elaborate — because an interface is
+   still moving, a dependency has not landed, or a decision belongs to someone
+   else — should not be padded with invented content, and should not be left out
+   of the roadmap either. Record the unmatured precondition as an
+   `--intake-question`, then declare the state:
+   ```bash
+   strict-spec-cli roadmap-defer <milestone-id> --reason "<the unmatured precondition>"
+   ```
+   This keeps the milestone at its planned-change-derived status rather than
+   forcing `blocked`, and makes `roadmap-recommend` return a refine action for it
+   instead of recommending its placeholder work. Recommendation follows strict
+   roadmap order, so tell the user that a deferred milestone suppresses later
+   milestones' work until `/strict-roadmap-refine` clears it or
+   `/strict-roadmap-pause` releases it. Never defer a milestone merely because
+   its detail is unwritten — that is authoring work, not a deferred
+   precondition — and never relax a required milestone field to create one.
+
+5. **Normalize roadmap state** — run:
    ```bash
    strict-spec-cli roadmap-sync
    ```
    Use this to regenerate canonical index state and reconcile roadmap status
    with active and archived strict changes.
 
-5. **Review the roadmap plan before handoff** — run `roadmap-status` after
+6. **Review the roadmap plan before handoff** — run `roadmap-status` after
    sync, then review the edited roadmap files directly. Check for placeholders,
    overbroad milestones, unclear dependencies, unverifiable done criteria, weak
    planned-change detail, excessive planned change count, stale status values,
@@ -161,7 +180,7 @@ run `init` from this skill.
    decision, milestone split, or prioritization decision that requires the user,
    stop and report the specific question instead of guessing.
 
-6. **Summarize the result** — report the milestone set, the next planned change
+7. **Summarize the result** — report the milestone set, the next planned change
    candidates, and any roadmap diagnostics that still need human attention.
 
 ## Rules

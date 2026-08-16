@@ -225,6 +225,8 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "roadmap-delete-planned-change",
       "roadmap-pause",
       "roadmap-resume",
+      "roadmap-defer",
+      "roadmap-refine",
       "roadmap-reorder",
       "roadmap-reopen",
       "roadmap-archive",

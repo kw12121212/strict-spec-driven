@@ -2078,20 +2078,29 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     group: "roadmap",
     summary: "Recommend the next roadmap-backed planned change to work on.",
     mcpDescription: "Recommend the next strict roadmap change.",
-    usage: "Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>]\n",
+    usage: "Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>] [--allow-unrefined]\n",
     arguments: [],
     flags: [
       { name: "--details", arity: "boolean", description: "Return the full candidate evaluation instead of the summary." },
       { name: "--milestone", arity: "value", valueLabel: "<milestone-id>", description: "Restrict candidates to one milestone." },
+      {
+        name: "--allow-unrefined",
+        arity: "boolean",
+        description:
+          "Select work owned by a milestone awaiting refinement, which --milestone otherwise refuses. Supply this only as a deliberate human decision; an agent must report the refusal rather than adding the flag itself.",
+      },
     ],
     output: {
       format: "json",
-      keys: ["valid", "status", "warnings", "diagnostics", "recommendation", "candidateSummary", "blockers", "detailsCommand"],
+      keys: ["valid", "status", "warnings", "diagnostics", "recommendation", "refineAction", "candidateSummary", "blockers", "detailsCommand"],
       description: "A JSON recommendation summary, or the full result with --details.",
     },
     exitCodes: [
       { code: 0, meaning: "A planned change was recommended." },
-      { code: 1, meaning: "Usage error, or no planned change could be recommended." },
+      { code: 1, meaning: "Usage error, no planned change could be recommended, or a milestone awaiting refinement was selected without --allow-unrefined." },
+    ],
+    notes: [
+      "Recommendation follows strict roadmap order. When the earliest-ordered incomplete milestone declares awaiting_refinement, status is 'refine-milestone' and refineAction names that milestone instead of returning implementation work from later milestones; pausing it releases those candidates.",
     ],
   },
 
@@ -2161,6 +2170,60 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       description: "A JSON resume result.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
+  },
+
+  "roadmap-defer": {
+    name: "roadmap-defer",
+    group: "roadmap",
+    summary: "Declare a milestone as planned but deliberately not yet elaborated.",
+    usage: "Usage: strict-spec-cli roadmap-defer <milestone-id> [--reason \"...\"]\n",
+    arguments: [{ name: "milestone-id", description: "The milestone whose detail is deferred.", required: true }],
+    flags: [
+      {
+        name: "--reason",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "The precondition that has not matured yet; recorded on the milestone and in a dated note.",
+      },
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "deferred", "updatedFiles", "diagnostics"],
+      description: "A JSON defer result naming the milestone, its status, and the recorded awaiting_refinement declaration.",
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Unlike roadmap-pause this does not force the milestone status to blocked; the milestone keeps the status derived from its planned-change state, because deferred detail is not the same as blocked work.",
+      "The declaration is sticky across roadmap-sync canonical rewrite and is cleared only by roadmap-refine, never by deriving maturity from the presence of planned changes.",
+      "roadmap-recommend follows strict roadmap order, so a deferred milestone becomes the next action and suppresses later milestones' work; roadmap-pause is the release valve when the deferral must not block downstream candidates.",
+      "Rejects an unknown milestone id and a milestone whose derived status is complete, writing no file.",
+    ],
+  },
+
+  "roadmap-refine": {
+    name: "roadmap-refine",
+    group: "roadmap",
+    summary: "Clear a milestone's awaiting-refinement declaration once its precondition has matured.",
+    usage: "Usage: strict-spec-cli roadmap-refine <milestone-id> [--reason \"...\"]\n",
+    arguments: [{ name: "milestone-id", description: "The deferred milestone to mark refined.", required: true }],
+    flags: [
+      {
+        name: "--reason",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Recorded reason for declaring the milestone refined; appended as a dated note.",
+      },
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "refined", "updatedFiles", "diagnostics"],
+      description: "A JSON refine result naming the milestone, its status, and the cleared declaration.",
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "This command records a judgement; it does not elaborate anything. Refinement itself is ordinary in-place editing through roadmap-generate milestone and roadmap-generate planned-change.",
+      "Rejects an unknown milestone id and a milestone that is not awaiting refinement, writing no file.",
+    ],
   },
 
   "sop-create": {

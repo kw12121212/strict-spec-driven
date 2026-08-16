@@ -8,7 +8,7 @@ lesson:
 category: tooling
 status: active
 created_at: '2026-08-04T10:14:52.191Z'
-updated_at: '2026-08-04T10:14:52.191Z'
+updated_at: '2026-08-16T14:34:28.685Z'
 context: Implementing a change whose task list was authored in one order while the work was done in another, and running strict-spec-cli apply twice in a row after finishing two pieces of work.
 observation: 'apply takes no task id: it marks the first pending task in list order complete and reports which one it took. The second invocation marked add-questions-generator-flags complete although that task had not been started, because it was simply next in the list. Nothing failed and nothing warned; the change simply carried a false completion record until the returned task id was read and compared against the work actually done.'
 takeaway: Run apply exactly once per completed task and read the returned taskId before continuing, because apply is positional rather than addressed. When work is finished out of list order, set that task's status directly with generate <change> tasks --section <s> --task <id> --status complete, which addresses the task by id; batching apply calls in a single shell line makes the mismatch invisible since only the last output is usually read.
@@ -17,3 +17,6 @@ occurrences:
   - origin: requirement-interrogation-gate
     date: '2026-08-04'
     evidence: two chained apply calls returned seed-requirement-questions-on-propose and add-questions-generator-flags, the second of which had no implementation yet and had to be reverted with generate tasks --status pending
+  - origin: milestone-awaiting-refinement
+    date: '2026-08-16'
+    evidence: Three apply calls chained on one shell line returned implement-defer-refine-module, preserve-field-through-sync, and validate-awaiting-refinement-field; only the sync and validate work was actually done, so implement-defer-refine-module was marked complete before src/roadmap/refinement.ts existed. The module was written immediately afterward to make the list honest.

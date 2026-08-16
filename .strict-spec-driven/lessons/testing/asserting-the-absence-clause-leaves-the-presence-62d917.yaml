@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: asserting-the-absence-clause-leaves-the-presence-62d917
+  title: Asserting the absence clause leaves the presence clause of the same requirement unproven
+category: testing
+status: active
+created_at: '2026-08-16T14:34:47.766Z'
+updated_at: '2026-08-16T14:34:47.766Z'
+context: 'A delta-spec requirement stated both clauses of one behavior: roadmap-recommend MUST surface a deferred milestone as a refine action and MUST skip every planned change that milestone owns with an awaiting-refinement skip reason, and MUST NOT fall through to later milestones'' work. The regression test was written from the scenario text and asserted the refine action plus the absence of the later milestone''s candidate.'
+observation: 'The first implementation broke out of the milestone walk before evaluating the deferred milestone''s own planned changes, so those candidates never appeared in the output at all. Every assertion passed: the refine action was present and the later candidate was absent. The missing skip reason was found only by reading the implementation diff back against the requirement statement, because no assertion named the candidate that was supposed to be present. The full suite of 4393 tests was green over the violating implementation.'
+takeaway: A requirement that combines a positive clause with a negative clause needs an assertion per clause; the negative one passes trivially when the code produces nothing at all, which is exactly the shape a premature break or early return produces. When a scenario says some entry MUST be reported with some annotation, assert that entry's presence and its annotation, not only that some other entry is missing.
+applies_when: Writing regression tests from a delta-spec scenario whose THEN text combines what must be reported with what must not be selected, or reviewing a change where an early return, break, or filter short-circuits a collection loop that also feeds diagnostic output.
+occurrences:
+  - origin: milestone-awaiting-refinement
+    date: '2026-08-16'
+    evidence: src/roadmap.ts recommendRoadmapChange initially set refineAction and broke before the inner getStandalonePlannedChangesForMilestone loop; the suite passed 4393/4393 while no candidate carried the milestone-awaiting-refinement skip reason the delta spec required. Fixed by computing blocksLaterMilestones, evaluating the milestone's own candidates, then breaking after the loop, and by adding an assertion that coarse-change is reported with eligible false and that skip reason.

@@ -2857,7 +2857,7 @@ artifact_name: roadmap-milestone
 description: Strict YAML roadmap milestone artifact (v2 — keyed milestone identity plus reserved planned_changes mapping for explicit legacy materialization workflows).
 example_ref: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   type: object
   additionalProperties: false
   required:
@@ -2893,7 +2893,7 @@ json_schema:
       minProperties: 1
       maxProperties: 1
       patternProperties:
-        "^(\\\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$":
+        ^(\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$:
           type: object
           additionalProperties: false
           required:
@@ -2939,7 +2939,7 @@ json_schema:
         properties:
           id:
             type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+            pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
           question:
             type: string
             minLength: 1
@@ -2956,7 +2956,7 @@ json_schema:
       type: object
       additionalProperties: false
       patternProperties:
-        "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
           type: object
           additionalProperties: false
           required:
@@ -3016,6 +3016,21 @@ json_schema:
         type: string
     details:
       type: string
+    awaiting_refinement:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: boolean
+          const: true
+        reason:
+          type: string
+          minLength: 1
+        deferred_on:
+          type: string
+          minLength: 1
 `,
   "strict-spec-driven/schemas/schema-registry.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -5212,6 +5227,8 @@ artifact_families:
       - roadmap-reorder
       - roadmap-reopen
       - roadmap-archive
+      - roadmap-defer
+      - roadmap-refine
     direct_write_paths:
       - src/roadmap/sync.ts
     evidence:
@@ -5697,6 +5714,8 @@ mutation_surfaces:
       - skills/strict-spec-sync-specs/SKILL.md
       - skills/strict-tech-edit/SKILL.md
       - skills/strict-tech-sync/SKILL.md
+      - skills/strict-roadmap-defer/SKILL.md
+      - skills/strict-roadmap-refine/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -5723,6 +5742,7 @@ mutation_surfaces:
     evidence:
       - skills/strict-spec-auto/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
+      - skills/strict-roadmap-defer/SKILL.md
   operator-documentation-guidance:
     path_patterns:
       - README.md

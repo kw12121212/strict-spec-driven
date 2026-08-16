@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: milestone-awaiting-refinement
+  status: proposed
+summary:
+  what:
+    - Add an optional awaiting_refinement field to the roadmap milestone artifact that declares a milestone as deliberately not yet elaborated because a precondition has not matured.
+    - Add roadmap-defer and roadmap-refine commands that set and clear that field on a non-archived milestone.
+    - Make roadmap-status, roadmap-overview, and roadmap-recommend report the awaiting-refinement state, and make roadmap-recommend surface such a milestone as a refine action while skipping every planned change it owns as an implementation candidate.
+    - Update the roadmap skills so review reports a deferred milestone as deliberately coarse instead of filling in detail, and add defer and refine skills.
+    - Gate roadmap-recommend --milestone against a deferred milestone behind an --allow-unrefined override, so explicitly selecting deferred work stays a human act.
+  why:
+    - A roadmap milestone that is planned but cannot yet be detailed has no representation, so a deliberately coarse milestone is indistinguishable from a half-authored one.
+    - 'Automation treats an undetailed milestone as ordinary work: roadmap-recommend has no not-ready concept and its skip reasons cover only change state, status mismatches, dependencies, and milestone-paused, so a placeholder gets selected and built.'
+    - strict-roadmap-review exists to make milestone definitions concrete and executable, so it pushes detail into milestones whose detail was deliberately deferred.
+    - 'Planning a real roadmap is blocked right now: a milestone cannot be recorded without inventing content the author does not yet believe.'
+scope:
+  in:
+    - Optional awaiting_refinement object on the roadmap-milestone schema, mirroring the existing paused field shape.
+    - roadmap-defer and roadmap-refine CLI commands with command metadata, registry entries, and machine-readable help.
+    - Preservation of awaiting_refinement across roadmap-sync canonical rewrite.
+    - awaiting-refinement reporting in roadmap-status and roadmap-overview.
+    - roadmap-recommend refine action for a deferred milestone plus a milestone-awaiting-refinement skip reason on the planned changes it owns.
+    - Skill updates for strict-roadmap-review and strict-roadmap-recommend, and new strict-roadmap-defer and strict-roadmap-refine skills.
+    - An --allow-unrefined flag on roadmap-recommend that gates milestone-scoped selection of a deferred milestone's planned changes.
+    - Suppression of the refine action when a deferred milestone is also paused, so roadmap-pause releases downstream candidates.
+  out:
+    - Parent-child or provenance links between a coarse roadmap entry and the finer entries derived from it.
+    - Any relaxation of the milestone schema required fields, including the minimum of one intake question.
+    - Any change to roadmap-pause or roadmap-resume semantics.
+    - An awaiting-refinement marker on standalone planned changes; the declared unit is the milestone.
+    - A new decomposition command that authors planned changes; refinement uses the existing roadmap-generate commands.
+    - Any awaiting-refinement gate on the propose command itself; propose accepts only a change name, so the gate belongs on milestone-scoped roadmap-recommend.
+    - A strict-roadmap-propose skill package; this repository packages strict-spec-propose-from-roadmap instead, per contracts/yaml-artifacts.yaml.
+unchanged_behavior:
+  - roadmap-pause and roadmap-resume continue to force blocked status and skip recommendation exactly as today.
+  - The roadmap-milestone schema stays at strict-spec-driven/roadmap-milestone/v2; the new field is optional and additive.
+  - Every existing milestone required field stays required, so a deferred milestone still declares goal, scope, done_criteria, and at least one intake question.
+  - A milestone with zero planned changes still derives status proposed and is still excluded from roadmap-archive.
+  - Roadmap commands still never write any artifact under .strict-spec-driven/changes/.

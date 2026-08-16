@@ -1,0 +1,56 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: milestone-awaiting-refinement
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'A milestone that is planned but cannot yet be detailed has no representation, which produces four concrete failures the requester confirmed: automation selected a coarse placeholder and built it; strict-roadmap-review pushed detail into milestones deliberately left coarse; a later reader cannot tell a deliberately undecomposed milestone from a half-authored abandoned one; and nothing marks that a milestone still needs refinement at all.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: Running roadmap-recommend against a roadmap containing a deferred milestone returns that milestone as a refine action rather than an implementation candidate, and reports every planned change it owns as skipped for being awaiting refinement. roadmap-status and roadmap-overview show the awaiting-refinement state, so a reader can tell deliberate coarseness from incomplete authoring without opening the file.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The requester is planning a real roadmap right now and is stuck on it. Without this change they must either invent milestone content they do not yet believe, or leave the milestone out of the roadmap entirely and lose the fact that it is planned.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: Four boundaries the requester stated directly. No parent-child or provenance structure between roadmap entries, because the milestone is one continuous artifact and nothing is ever replaced. No relaxation of any existing milestone required field, including the minimum of one intake question; the unmatured precondition is recorded as an intake question instead. No change to roadmap-pause or roadmap-resume semantics, since awaiting refinement is a separate state. No new decomposition command, because refinement is ordinary in-place editing through the existing roadmap-generate commands.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The declared unit is the milestone, not the planned change. The requester rejected the reading in which a coarse planned change is later split into finer successors: the milestone itself is the thing that starts coarse and grows in place, and refinement means adding planned changes and filling in detail on that same milestone. A planned change owned by a deferred milestone inherits the state rather than carrying its own marker.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: recommend-refine-priority
+    question: When an earlier-ordered milestone is awaiting refinement and a later-ordered milestone has an eligible planned change, what does roadmap-recommend return?
+    context: 'Impact: this decides whether one deferred milestone can starve every downstream implementation candidate. Strict roadmap order would return the refine action for the earlier milestone and never reach the later ready work, so a milestone deferred for months would block all automated recommendation. Options: (a) strict roadmap order, refine action wins; (b) implementable work wins, and a refine action is returned only when no implementable candidate exists anywhere; (c) return the implementable candidate as the primary recommendation and report pending refine actions as a separate list on the same result. Recommendation: (c), because automation keeps moving while the deferred milestones stay visible, which is what the requester asked for when choosing ''recommend it, but recommend decomposing it''. Blocks the roadmap-recommend implementation task.'
+    answer: 'Strict roadmap order: when the earliest-ordered incomplete milestone is awaiting refinement, roadmap-recommend returns that milestone''s refine action and does not reach later milestones'' implementable work. The requester chose this over the alternatives after the starvation consequence was stated. Because a deferred milestone therefore blocks every downstream candidate, roadmap-pause is the designated escape hatch: a milestone that is both deferred and paused yields no refine action, which is consistent with pause already suppressing every candidate the milestone owns.'
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: propose-from-deferred-milestone
+    question: When a caller explicitly names a planned change owned by an awaiting-refinement milestone, does strict-roadmap-propose refuse or warn?
+    context: 'Impact: this decides whether the declaration is an advisory marker or an enforced gate, and therefore whether the requester''s reported failure (automation building a placeholder) can still happen through the explicit path. Options: (a) hard refusal with a deterministic diagnostic naming roadmap-refine as the unblocking command; (b) non-blocking warning that still scaffolds the change; (c) refusal with an explicit allow-unrefined override flag, matching how roadmap-move-planned-change gates completed work behind allow-complete. Recommendation: (c), because it closes the gate by default while keeping a documented escape hatch consistent with an existing roadmap command convention. Blocks the propose-path implementation and skill tasks.'
+    answer: Refuse by default with an --allow-unrefined override. The gate lives on roadmap-recommend --milestone <id> rather than on propose, because propose accepts only a change name and the explicit selection of a deferred milestone's work happens through the milestone-scoped recommend call; keeping the gate there also keeps it inside the roadmap domain, as required by roadmap-commands-do-not-write-change-artifacts. The strict-spec-propose-from-roadmap skill must report the refusal and never supply --allow-unrefined on its own, so the override stays a human act.
+    status: resolved
+    kind: technical
+    answered_by: human

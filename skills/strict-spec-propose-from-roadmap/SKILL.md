@@ -25,7 +25,7 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 roadmap-status: strict-spec-cli roadmap-status
-roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]
+roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>] [--allow-unrefined]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -192,7 +192,18 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    planned-change files, and treat the command's selected planned change as
    authoritative. Branch on the returned `status`:
    - `roadmap-error` — surface the JSON diagnostics and stop. Suggest
-     `roadmap-status` for additional context.
+     `roadmap-status` for additional context. When the diagnostic reports that
+     the selected milestone is awaiting refinement, report the refusal, the
+     recorded reason, and the two supported paths — `/strict-roadmap-refine` to
+     elaborate the milestone, or the `--allow-unrefined` override — and stop.
+     **Never supply `--allow-unrefined` yourself.** The gate exists to stop a
+     placeholder being scaffolded into real work, so supplying the override
+     without being told to defeats the only thing it does.
+   - `refine-milestone` — the earliest-ordered incomplete milestone is
+     deliberately deferred and no implementation work is recommended. Do not
+     scaffold a strict change. Surface `refineAction` with the milestone id and
+     its recorded `reason`, name `/strict-roadmap-refine` and the reported
+     `releaseWith` pause command as the operator's options, and stop.
    - `no-candidate` — surface `candidateSummary` and the actionable
      `blockers[].skipReasons`, explain which blockers must clear, and stop.
      If the concise output does not explain the blockage, rerun

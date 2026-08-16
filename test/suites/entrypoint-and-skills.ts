@@ -145,6 +145,8 @@ const expectedCommandOrder = [
   "roadmap-reopen",
   "roadmap-pause",
   "roadmap-resume",
+  "roadmap-defer",
+  "roadmap-refine",
   "sop-create",
   "sop-list",
   "sop-show",

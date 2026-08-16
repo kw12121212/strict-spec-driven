@@ -354,3 +354,47 @@ requirements:
         - GIVEN: a planned change records depends_on entries
         - WHEN: strict-spec-cli roadmap-generate planned-change runs with remove-depends-on naming a partial id or an id that is not recorded
         - THEN: the command exits non-zero with a deterministic error and writes no file
+  roadmap-milestone-awaiting-refinement-contract:
+    strength: MUST
+    statement: The system MUST provide roadmap-defer and roadmap-refine commands that set and clear a declared awaiting-refinement state on a non-archived strict roadmap milestone. Deferring records an optional reason naming the unmatured precondition and a deterministic date in a structured top-level awaiting_refinement field on the milestone artifact, which roadmap-sync canonical rewrite MUST preserve without forcing the milestone status to blocked, so the milestone keeps the status derived from its planned-change state. roadmap-status and roadmap-overview MUST report the awaiting-refinement state so a deliberately undecomposed milestone is distinguishable from an incompletely authored one. roadmap-recommend MUST surface a deferred milestone as a refine action and MUST skip every planned change that milestone owns as an implementation candidate with an awaiting-refinement skip reason. Refining MUST clear the field only when the command is run, never by deriving maturity from the presence of planned changes. Both commands MUST reject unknown, archived, and complete milestone ids with deterministic diagnostics, MUST never modify any planned-change file or any artifact under the changes directory, and MUST leave the roadmap valid afterward.
+    scenarios:
+      defer-records-state-without-blocking:
+        - GIVEN: a valid active roadmap contains a non-archived milestone with no planned changes and no awaiting_refinement field
+        - WHEN: strict-spec-cli roadmap-defer runs for that milestone with a reason
+        - THEN: the command exits zero, reports valid true, writes an awaiting_refinement mapping with status true, the supplied reason, and a deferred_on date onto the milestone artifact, leaves the milestone status as the derived proposed rather than forcing blocked, and leaves roadmap-status reporting no mismatch
+      defer-survives-sync:
+        - GIVEN: a milestone has been deferred by roadmap-defer
+        - WHEN: strict-spec-cli roadmap-sync runs before any further edit
+        - THEN: the awaiting_refinement field survives canonical rewrite unchanged and the milestone status is still the status derived from its planned-change state
+      status-distinguishes-deferred-from-unauthored:
+        - GIVEN: a valid roadmap contains one deferred milestone and one milestone that is merely undetailed with no awaiting_refinement field
+        - WHEN: strict-spec-cli roadmap-status and roadmap-overview run
+        - THEN: both commands report the awaiting-refinement state on the deferred milestone only, so the deliberately coarse milestone is distinguishable from the incompletely authored one
+      recommend-returns-refine-action-and-skips-owned-work:
+        - GIVEN: a valid roadmap contains a deferred milestone that owns a planned change whose dependencies are complete and whose strict change state is pending
+        - WHEN: strict-spec-cli roadmap-recommend runs
+        - THEN: the deferred milestone is surfaced as a refine action, the planned change it owns is not returned as an implementation candidate, and that candidate carries an awaiting-refinement skip reason
+      refine-clears-only-on-explicit-command:
+        - GIVEN: a deferred milestone gains one or more planned changes through roadmap-generate planned-change
+        - WHEN: strict-spec-cli roadmap-status or roadmap-sync runs before roadmap-refine is invoked
+        - THEN: the awaiting_refinement field is still present and the milestone is still reported as awaiting refinement, and only a subsequent roadmap-refine invocation removes the field
+      defer-and-refine-reject-ineligible-milestones:
+        - GIVEN: a valid roadmap has no milestone with the requested id, or the requested milestone is archived, or its derived status is complete
+        - WHEN: strict-spec-cli roadmap-defer or roadmap-refine runs for that id
+        - THEN: the command exits non-zero with a deterministic diagnostic, writes no milestone file, and leaves every planned-change file and every artifact under the changes directory byte-identical
+  roadmap-awaiting-refinement-recommendation-gate:
+    strength: MUST
+    statement: 'The system MUST make roadmap-recommend treat a milestone awaiting refinement as the recommendation in strict roadmap order: when the earliest-ordered incomplete milestone declares awaiting_refinement, the command MUST return that milestone as a refine action and MUST NOT fall through to implementable planned changes owned by later-ordered milestones. A milestone that is both deferred and paused MUST yield no refine action, so pausing releases downstream candidates. When roadmap-recommend is scoped to a deferred milestone with --milestone, the command MUST refuse by default with a deterministic diagnostic naming both roadmap-refine and the --allow-unrefined override, and MUST return that milestone''s candidates only when --allow-unrefined is supplied.'
+    scenarios:
+      refine-action-wins-over-later-implementable-work:
+        - GIVEN: a valid roadmap contains an earlier-ordered milestone declaring awaiting_refinement and a later-ordered milestone owning a planned change whose dependencies are complete and whose strict change state is pending
+        - WHEN: strict-spec-cli roadmap-recommend runs without a milestone selector
+        - THEN: the command returns the earlier milestone as a refine action and does not return the later milestone's planned change as an implementation candidate
+      pausing-a-deferred-milestone-releases-later-work:
+        - GIVEN: the earliest-ordered incomplete milestone declares awaiting_refinement and has also been paused by roadmap-pause, while a later-ordered milestone owns an eligible planned change
+        - WHEN: strict-spec-cli roadmap-recommend runs without a milestone selector
+        - THEN: no refine action is returned for the paused milestone and the later milestone's eligible planned change becomes the recommendation
+      milestone-scoped-recommend-refuses-without-the-override:
+        - GIVEN: a valid roadmap contains a deferred milestone owning a planned change whose dependencies are complete
+        - WHEN: strict-spec-cli roadmap-recommend runs with --milestone naming that deferred milestone and without --allow-unrefined
+        - THEN: the command exits non-zero with a deterministic diagnostic naming roadmap-refine and the --allow-unrefined override, and the same command with --allow-unrefined supplied returns that milestone's eligible planned change

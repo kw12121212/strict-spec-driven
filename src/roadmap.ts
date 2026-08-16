@@ -13,6 +13,7 @@ import {
   type RoadmapMilestoneStatus,
   type RoadmapPlannedChangeStatus,
   type RoadmapRecommendation,
+  type RoadmapRefineAction,
   type RoadmapRecommendationCandidate,
   type RoadmapRecommendationSkip,
   type RoadmapStatusResult,
@@ -85,6 +86,11 @@ export type RoadmapSyncRenamedFile = {
 
 export type RoadmapRecommendOptions = {
   milestoneId?: string;
+  /**
+   * Selects work owned by a milestone awaiting refinement, which is otherwise
+   * refused. Only meaningful together with `milestoneId`.
+   */
+  allowUnrefined?: boolean;
 };
 
 type TextTableColumn<Row> = {
@@ -214,6 +220,16 @@ export function formatRoadmapOverview(result: RoadmapStatusResult): string {
       lines.push(`[${milestone.id}] ${milestone.title}`);
       lines.push(`path: ${milestone.path}`);
       lines.push(`status: declared=${milestone.declaredStatus} derived=${milestone.derivedStatus}`);
+      if (milestone.awaitingRefinement) {
+        // Printed so a reader can tell a deliberately undecomposed milestone
+        // from one that was merely authored incompletely, which the thin
+        // planned-change list alone cannot distinguish.
+        const reason = milestone.awaitingRefinement.reason;
+        const deferredOn = milestone.awaitingRefinement.deferred_on;
+        lines.push(
+          `awaiting refinement: deferred${deferredOn ? ` on ${deferredOn}` : ""}${reason ? ` because ${reason}` : ""}`,
+        );
+      }
       if (milestone.mismatches.length > 0) {
         for (const mismatch of milestone.mismatches) {
           lines.push(`issue: ${mismatch}`);
@@ -322,6 +338,7 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
       warnings,
       diagnostics,
       recommendation: null,
+      refineAction: null,
       candidates: [],
     };
   }
@@ -333,6 +350,36 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
     ? `first eligible standalone planned change in milestone '${options.milestoneId}' with complete dependencies and no roadmap mismatches`
     : "first eligible standalone planned change in roadmap order with complete dependencies and no roadmap mismatches";
   let recommendation: RoadmapRecommendation | null = null;
+  let refineAction: RoadmapRefineAction | null = null;
+
+  // Milestone-scoped selection of a deferred milestone's work is refused by
+  // default. The declaration exists to stop a placeholder being built, and a
+  // gate an agent can walk through without being told is no gate at all, so the
+  // override has to be supplied deliberately.
+  if (options.milestoneId !== undefined && !options.allowUnrefined) {
+    const scopedStatus = milestones.find((entry) => entry.id === options.milestoneId);
+    const scopedMilestone = scopedStatus ? milestoneByPath.get(scopedStatus.path) : undefined;
+    if (scopedMilestone?.artifact.awaiting_refinement?.status === true) {
+      return {
+        valid: false,
+        status: "roadmap-error",
+        warnings,
+        diagnostics: [
+          makeDiagnostic(
+            "semantic",
+            scopedMilestone.artifactPath,
+            "$.awaiting_refinement",
+            `milestone '${options.milestoneId}' is awaiting refinement; run 'strict-spec-cli roadmap-refine ${options.milestoneId}' once its precondition has matured, or supply --allow-unrefined to select its work anyway`,
+            "a milestone that is not awaiting refinement",
+            "awaiting_refinement.status === true",
+          ),
+        ],
+        recommendation: null,
+        refineAction: null,
+        candidates: [],
+      };
+    }
+  }
 
   for (const milestoneStatus of milestones) {
     if (options.milestoneId !== undefined && milestoneStatus.id !== options.milestoneId) continue;
@@ -340,6 +387,20 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
     if (!milestone) continue;
 
     const milestonePaused = milestone.artifact.paused?.status === true;
+    const milestoneAwaitingRefinement = milestone.artifact.awaiting_refinement?.status === true;
+
+    // Recommendation follows strict roadmap order, so the first incomplete
+    // milestone awaiting refinement becomes the next action and later
+    // milestones are never reached. A paused milestone is exempt: pause is the
+    // supported release valve for downstream work, and it already suppresses
+    // every candidate this milestone owns. The blocking milestone's own
+    // candidates are still evaluated below before the walk stops, so the
+    // reported skip reasons explain why its work was not selected.
+    const blocksLaterMilestones = milestoneAwaitingRefinement
+      && !milestonePaused
+      && milestoneStatus.derivedStatus !== "complete"
+      && options.milestoneId === undefined
+      && recommendation === null;
 
     for (const standalonePlannedChange of getStandalonePlannedChangesForMilestone(roadmap, milestone)) {
       const plannedChangePath = `roadmap/${standalonePlannedChange.relativeRoadmapPath}`;
@@ -359,6 +420,15 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
         skipReasons.push({
           code: "milestone-paused",
           message: "owning milestone is paused; run roadmap-resume to re-enter the recommendation pipeline",
+        });
+      }
+      // Suppressed under the override, which exists precisely to select this
+      // work; leaving the skip reason in place would make --allow-unrefined a
+      // flag that changes nothing.
+      if (milestoneAwaitingRefinement && !options.allowUnrefined) {
+        skipReasons.push({
+          code: "milestone-awaiting-refinement",
+          message: "owning milestone is awaiting refinement; run roadmap-refine once its precondition has matured to re-enter the recommendation pipeline",
         });
       }
       const candidate: RoadmapRecommendationCandidate = {
@@ -386,14 +456,34 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
         reason: recommendationReason,
       };
     }
+
+    if (blocksLaterMilestones) {
+      const declared = milestone.artifact.awaiting_refinement;
+      refineAction = {
+        milestone: {
+          id: milestoneStatus.id,
+          title: milestoneStatus.title,
+          path: milestoneStatus.path,
+        },
+        ...(declared?.reason !== undefined ? { reason: declared.reason } : {}),
+        ...(declared?.deferred_on !== undefined ? { deferredOn: declared.deferred_on } : {}),
+        releaseWith: `strict-spec-cli roadmap-pause ${milestoneStatus.id}`,
+      };
+      break;
+    }
   }
 
   return {
     valid: true,
-    status: recommendation ? "recommended" : "no-candidate",
+    status: recommendation
+      ? "recommended"
+      : refineAction
+        ? "refine-milestone"
+        : "no-candidate",
     warnings,
     diagnostics,
     recommendation,
+    refineAction,
     candidates,
   };
 }

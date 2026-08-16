@@ -1,0 +1,47 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: milestone-awaiting-refinement
+approach:
+  - 'Mirror the roadmap-pause implementation shape established by commit b796074: an optional structured object on the milestone artifact, a matched pair of set/clear commands, preservation through roadmap-sync, and reporting in roadmap-status.'
+  - Record the state as a top-level awaiting_refinement object with a const-true status, an optional reason naming the precondition, and a deferred_on date, so the declaration is machine-readable rather than prose in details or notes.
+  - Extend the roadmap-recommend result with a refine action for a deferred milestone and a milestone-awaiting-refinement skip reason on its planned changes, reusing the existing skipReasons mechanism.
+  - Leave refinement itself on the existing roadmap-generate milestone and roadmap-generate planned-change commands; roadmap-refine only clears the declaration.
+decisions:
+  milestone-is-the-declared-unit:
+    decision: The awaiting_refinement declaration lives on the milestone artifact only, not on standalone planned changes.
+    rationale: The requester confirmed the milestone is one continuous artifact whose content grows in place, so no entry is ever replaced and no finer-grained marker is needed; a planned change owned by a deferred milestone inherits the state through its owning milestone.
+  no-parent-child-provenance:
+    decision: No refined_from, refined_into, or equivalent link is introduced between roadmap entries.
+    rationale: 'The requester rejected parent-child structure explicitly: refinement adds content to the same milestone rather than splitting it into successors, so there is no predecessor to trace back to.'
+  separate-state-from-pause:
+    decision: awaiting_refinement is a state independent of paused rather than a pause reason or a generalized blocked-reason field.
+    rationale: Pause means the work is defined but suspended and forces status blocked; a deferred milestone is not blocked and must keep its derived proposed status. Folding them together would also lose the refine action, because pause only makes recommendation skip silently.
+  explicit-clear-only:
+    decision: Only roadmap-refine clears awaiting_refinement; the field is never cleared by deriving it from the presence of planned changes.
+    rationale: Whether the precondition has matured is a human judgement. Auto-clearing on the first planned change would unlock a milestone the moment a stray idea is recorded, which is precisely the premature-execution failure this change exists to prevent.
+  no-schema-relaxation:
+    decision: No milestone required field becomes optional; the unmatured precondition is recorded as an intake question plus the optional reason.
+    rationale: intake_questions already models what is not yet known, so it carries the precondition without a conditional-required schema. Keeping the required set unconditional avoids a validation shape that varies by state.
+  additive-optional-schema-field:
+    decision: awaiting_refinement is added to strict-spec-driven/roadmap-milestone/v2 as an optional property without a schema version bump.
+    rationale: The paused field was added to the same v2 schema the same way in commit b796074, so existing milestone artifacts stay valid and the established precedent is followed.
+  recommend-follows-strict-roadmap-order:
+    decision: roadmap-recommend returns the refine action for the earliest-ordered milestone awaiting refinement and does not fall through to implementable work in later milestones.
+    rationale: Chosen by the requester over a fall-through design after the starvation consequence was stated explicitly. Roadmap order stays the single sequencing rule, so recommendation never silently jumps a milestone the operator has not finished planning.
+  pause-is-the-starvation-escape-hatch:
+    decision: A milestone that is both deferred and paused yields no refine action, so pausing releases downstream work.
+    rationale: Strict roadmap order means one long-deferred milestone would otherwise block every later candidate with no way out. Pause already suppresses every candidate a milestone owns, so suppressing its refine action too is the consistent reading and gives the operator a supported release valve without weakening the ordering rule.
+  gate-lives-on-milestone-scoped-recommend:
+    decision: The awaiting-refinement gate and its --allow-unrefined override live on roadmap-recommend --milestone, not on propose.
+    rationale: propose accepts only a change name, so it is not where a planned change under a deferred milestone is explicitly selected; that happens through the milestone-scoped recommend call. Keeping the gate in the roadmap domain also respects roadmap-commands-do-not-write-change-artifacts.
+  override-is-a-human-act:
+    decision: The strict-spec-propose-from-roadmap skill reports the refusal and never supplies --allow-unrefined itself.
+    rationale: The reported failure is automation building a placeholder. A flag an agent may add on its own is equivalent to no gate, so the override is only meaningful if skill guidance forbids the agent from supplying it.
+alternatives: []
+risks:
+  - roadmap-recommend priority between a deferred milestone's refine action and a later milestone's ready implementation work is unresolved; returning the refine action strictly by roadmap order would starve all downstream execution behind one long-deferred milestone.
+  - A deferred milestone whose reason is never revisited becomes a silent permanent hole in the roadmap, because nothing forces the declaration to expire or be reviewed.
+  - Adding a milestone-level action kind to roadmap-recommend widens its result shape, which the recommend skills and any consumer of its structured output must handle.
+  - Strict roadmap order means a milestone deferred indefinitely blocks every later implementable candidate until it is refined or paused; the operator must know pause is the release valve, so the refusal output and skill guidance have to name it.

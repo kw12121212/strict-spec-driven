@@ -49,6 +49,16 @@ run `init` from this skill.
 - Milestone `intake_questions` are part of definition quality. Review them as
   planning checks whose answers must be recoverable from milestone fields or
   owned planned-change detail before the milestone is treated as executable.
+- **A milestone declaring `awaiting_refinement` is out of scope for filling in
+  detail.** That mapping is an operator's explicit statement that the milestone
+  is planned but cannot be elaborated yet, because a precondition named in its
+  `reason` has not matured. Its thin goal, sparse scope, or absent planned
+  changes are the declared state, not a defect. Report such a milestone as
+  deliberately deferred, quote the recorded reason, and move on — never invent
+  a goal, done criterion, or planned change for it, and never clear the
+  declaration. Only `/strict-roadmap-refine` clears it, and only a human can
+  judge that the precondition has matured. Reviewing its structural validity
+  (schema shape, canonical filenames, dependency references) is still in scope.
 
 ## CLI-Only YAML Authoring Protocol
 

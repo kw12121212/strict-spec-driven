@@ -190,6 +190,13 @@ export function buildCanonicalMilestoneArtifact(
     risks: [...milestone.artifact.risks],
     status: resolveCanonicalMilestoneStatus(milestone.artifact.status, status.derivedStatus),
     ...(milestone.artifact.paused ? { paused: { ...milestone.artifact.paused } } : {}),
+    // Preserved across canonical rewrite for the same reason `paused` is: it
+    // records operator intent that no derived state can reconstruct. Unlike
+    // `paused` it does not participate in status resolution above, so the
+    // milestone keeps the status derived from its planned-change state.
+    ...(milestone.artifact.awaiting_refinement
+      ? { awaiting_refinement: { ...milestone.artifact.awaiting_refinement } }
+      : {}),
     notes: [...milestone.artifact.notes],
     ...(milestone.artifact.details != null ? { details: milestone.artifact.details } : {}),
   };

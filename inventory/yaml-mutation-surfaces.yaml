@@ -308,6 +308,8 @@ artifact_families:
       - roadmap-reorder
       - roadmap-reopen
       - roadmap-archive
+      - roadmap-defer
+      - roadmap-refine
     direct_write_paths:
       - src/roadmap/sync.ts
     evidence:
@@ -793,6 +795,8 @@ mutation_surfaces:
       - skills/strict-spec-sync-specs/SKILL.md
       - skills/strict-tech-edit/SKILL.md
       - skills/strict-tech-sync/SKILL.md
+      - skills/strict-roadmap-defer/SKILL.md
+      - skills/strict-roadmap-refine/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -819,6 +823,7 @@ mutation_surfaces:
     evidence:
       - skills/strict-spec-auto/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
+      - skills/strict-roadmap-defer/SKILL.md
   operator-documentation-guidance:
     path_patterns:
       - README.md
