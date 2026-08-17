@@ -115,10 +115,11 @@ run `init` from this skill.
      `generate <change-name> delta-tech ...` so it remains part of the active
      change rather than editing a live main standard directly
    - after any delta-tech edit, review the final delta artifact and rerun strict
-     verification; a delta-tech write does not invalidate passing complete
-     project regression evidence, so rerun the configured regression command
-     here only when this step also changed a file that is not a change-local
-     delta-tech artifact
+     verification; a write the configured regression command neither compiles
+     nor reads — currently a change-local delta-tech artifact or a lesson — does
+     not invalidate passing complete project regression evidence, so rerun the
+     configured regression command here only when this step also changed a file
+     outside that carve-out
 
 3. **Confirm the lesson declaration** — confirm that review declared either a
    recorded lesson or a justified "no lesson" for this change. Experience is
@@ -128,6 +129,8 @@ run `init` from this skill.
    `strict-spec-review` — an overturned design decision, an unforeseen question,
    a task added from a discovery, or a regression exposing a pre-existing trap —
    and record the lesson before continuing. Do not invent one to fill the slot.
+   Recording it here costs no regression rerun: a lesson is inside the carve-out
+   named in the previous step.
 
 4. **Confirm readiness** — after the final tech-sync checkpoint and any required
    evidence reruns, run:

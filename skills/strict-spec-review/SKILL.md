@@ -154,6 +154,15 @@ run `init` from this skill.
    archive recommendation as blocked and give the human actionable setup or
    waiting guidance instead of inferring a clean result.
 
+   The evidence collected here survives the two steps that follow it: a write
+   the configured regression command neither compiles nor reads — currently a
+   change-local delta-tech artifact or a lesson — does not invalidate passing
+   complete project regression evidence, so recording the lesson in step 10 or
+   capturing a convention as delta tech in step 9 costs no rerun. Every other
+   write, including a delta-spec, a planning artifact, and any source or test
+   file, does invalidate it and forces the command to be rerun before archive is
+   recommended.
+
 9. **Reflect on uncaptured engineering conventions (non-blocking)** — after the
    review checklist, consider whether this change established a reusable
    engineering convention not yet captured under `.strict-spec-driven/tech/` (a

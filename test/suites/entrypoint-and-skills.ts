@@ -955,13 +955,15 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedInitSkillContent = initSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
   /**
-   * The archive-time carve-out: capturing a convention as delta-tech does not cost a regression
-   * rerun. This suite asserts the wording reaches the shipped skill packages, and validate-skills
-   * requires it through its own snippet registry. Two declarations of one sentence drift silently
-   * unless they are compared, so the cross-check below reads the registry rather than trusting it.
+   * The regression-evidence carve-out: a write the suite neither compiles nor reads — a delta-tech
+   * artifact or a lesson — does not cost a regression rerun. This suite asserts the wording reaches
+   * the shipped skill packages, and validate-skills requires it through its own snippet registry.
+   * Two declarations of one sentence drift silently unless they are compared, so the cross-check
+   * below reads the registry rather than trusting it.
    */
-  const POST_TECH_EDIT_EVIDENCE_WORDING =
-    "a delta-tech write does not invalidate passing complete project regression evidence";
+  const REGRESSION_EVIDENCE_CARVE_OUT_WORDING =
+    "a write the configured regression command neither compiles nor reads — currently a change-local"
+    + " delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence";
 const questionGateSkillChecks: Array<[string, string]> = [
   [normalizedProposeSkillContent, "strict-spec-propose"],
   [normalizedAutoSkillContent, "strict-spec-auto"],
@@ -1129,31 +1131,47 @@ context.assert(
       && normalizedTechSyncSkillContent.includes("never edit a live main standard directly")
       && normalizedTechSyncSkillContent.includes("use `tech-edit` for live standards only in standalone mode")
       && normalizedTechSyncSkillContent.includes("Never hand-edit main-tech or tech-index YAML")
-      && normalizedTechSyncSkillContent.includes(POST_TECH_EDIT_EVIDENCE_WORDING)
+      && normalizedTechSyncSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING)
       && normalizedArchiveSkillContent.includes("final current-change tech sync")
       && normalizedArchiveSkillContent.includes("explicitly classifies the pattern as not reusable")
       && normalizedArchiveSkillContent.includes("Never defer a confirmed reusable convention until after archive")
-      && normalizedArchiveSkillContent.includes(POST_TECH_EDIT_EVIDENCE_WORDING)
+      && normalizedArchiveSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING)
       && normalizedArchiveSkillContent.includes("raw command only as the deterministic")
       && normalizedAutoSkillContent.includes("Run the final current-change tech sync")
       && normalizedAutoSkillContent.includes("explicitly classify the pattern as not reusable")
       && normalizedAutoSkillContent.includes("confirmed as reusable cannot be deferred until after archive")
-      && normalizedAutoSkillContent.includes(POST_TECH_EDIT_EVIDENCE_WORDING),
+      && normalizedAutoSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING),
     "tech sync, archive, and automatic workflows enforce bounded current-change delta-tech capture before deterministic archive",
   );
+  /**
+   * Review and bugfix both collect complete regression evidence and then write a lesson before
+   * archive, so they are where the rerun decision is actually made. Asserting the wording in the
+   * archive-time packages alone would leave the two skills that caused the wasted rerun free of it.
+   */
+  context.assert(
+    normalizedReviewSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING)
+      && normalizedBugfixSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING),
+    "the skills that record a lesson after their regression evidence state the carve-out at that step",
+  );
   const skillModel = await loadDistModule<SkillModelModule>("skills/model.js");
-  const carveOutRegistrySkills = ["strict-spec-archive", "strict-spec-auto", "strict-tech-sync"];
+  const carveOutRegistrySkills = [
+    "strict-spec-archive",
+    "strict-spec-auto",
+    "strict-spec-bugfix",
+    "strict-spec-review",
+    "strict-tech-sync",
+  ];
   const registryMissingCarveOut = carveOutRegistrySkills.filter(
     (skillName) => !(skillModel.CORE_STRICT_SKILL_EXPECTATIONS[skillName]?.requiredSnippets ?? [])
-      .includes(POST_TECH_EDIT_EVIDENCE_WORDING),
+      .includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING),
   );
   context.assert(
     registryMissingCarveOut.length === 0,
-    "validate-skills requires the delta-tech regression carve-out wording for every archive-time skill this suite asserts it in",
+    "validate-skills requires the regression-evidence carve-out wording for every skill this suite asserts it in",
     registryMissingCarveOut.join(", "),
   );
   const registryCarveOutSkills = Object.entries(skillModel.CORE_STRICT_SKILL_EXPECTATIONS)
-    .filter(([, expectation]) => (expectation.requiredSnippets ?? []).includes(POST_TECH_EDIT_EVIDENCE_WORDING))
+    .filter(([, expectation]) => (expectation.requiredSnippets ?? []).includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING))
     .map(([skillName]) => skillName)
     .sort();
   context.assert(
@@ -2565,7 +2583,7 @@ try {
 
 const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));
 try {
-  const semanticSkillNames = ["strict-spec-propose", "strict-spec-propose-from-roadmap", "strict-spec-archive", "strict-spec-review", "strict-spec-auto", "strict-tech-sync"];
+  const semanticSkillNames = ["strict-spec-propose", "strict-spec-propose-from-roadmap", "strict-spec-archive", "strict-spec-review", "strict-spec-auto", "strict-spec-bugfix", "strict-tech-sync"];
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "scripts"), { recursive: true });
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "templates"), { recursive: true });
 
@@ -2736,6 +2754,49 @@ try {
   );
 
   writeFileSync(
+    path.join(invalidSemanticSkillRoot, "skills", "strict-spec-bugfix", "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-bugfix",
+      "description: Fix a known bug through a narrow strict YAML change.",
+      "metadata:",
+      "  skill_id: strict_spec_bugfix",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are fixing a known bug through a narrow strict YAML change under `.strict-spec-driven/`.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "propose: strict-spec-cli propose <change-name>",
+      "verify: strict-spec-cli verify <change-name>",
+      "archive: strict-spec-cli archive <change-name>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "The `.strict-spec-driven/` directory must exist at the project root.",
+      "",
+      "## Steps",
+      "",
+      "1. Reproduce before fixing the known bug and keep the minimal fix scoped to a failing regression.",
+      "2. Run the configured complete project regression command, then declare the lesson outcome and archive.",
+      "",
+      "## Harness Guidance",
+      "",
+      "Use harness-plan when reproduction needs declared components.",
+      "",
+      "## Rules",
+      "",
+      "- Archive only after direct review and regression evidence pass.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
     path.join(invalidSemanticSkillRoot, "skills", "strict-spec-auto", "SKILL.md"),
     [
       "---",
@@ -2891,18 +2952,25 @@ try {
     ),
     "auto skill missing optional ship handoff reports required snippet diagnostic",
   );
-  // The carve-out is what stops a delta-tech capture from costing a regression rerun. A skill that
-  // silently loses the sentence would send the agent back to the old rule, so each archive-time
-  // package is checked against a body that omits it rather than only against the shipped text.
-  for (const carveOutSkillName of ["strict-spec-archive", "strict-spec-auto", "strict-tech-sync"]) {
+  // The carve-out is what stops a delta-tech capture or a lesson from costing a regression rerun. A
+  // skill that silently loses the sentence would send the agent back to the old rule, so each
+  // governed package is checked against a body that omits it rather than only against the shipped
+  // text.
+  for (const carveOutSkillName of [
+    "strict-spec-archive",
+    "strict-spec-auto",
+    "strict-spec-bugfix",
+    "strict-spec-review",
+    "strict-tech-sync",
+  ]) {
     context.assert(
       invalidSemanticResult.diagnostics.some(
         (diagnostic) =>
           diagnostic.code === "skill.core.required_snippet.missing"
           && diagnostic.path === `skills/${carveOutSkillName}/SKILL.md`
-          && diagnostic.expected === "a delta-tech write does not invalidate passing complete project regression evidence",
+          && diagnostic.expected === REGRESSION_EVIDENCE_CARVE_OUT_WORDING,
       ),
-      `${carveOutSkillName} missing the delta-tech regression carve-out reports required snippet diagnostic`,
+      `${carveOutSkillName} missing the regression-evidence carve-out reports required snippet diagnostic`,
     );
   }
   context.assert(

@@ -275,9 +275,13 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
       && archivePrompt.includes("without absorbing unrelated repository drift")
       && archivePrompt.includes("operator-confirmed current-change delta-tech capture")
       && archivePrompt.includes("never defer a confirmed reusable convention until after archive")
-      && archivePrompt.includes("rerun strict verification plus invalidated complete regression evidence")
+      && archivePrompt.includes(
+        "a write the configured regression command neither compiles nor reads — currently a change-local"
+        + " delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence",
+      )
+      && archivePrompt.includes("rerun that command only for a write outside the carve-out")
       && archivePrompt.includes("raw archive command only as the deterministic mechanism"),
-    "MCP archive prompt preserves final current-change tech sync, evidence rerun, and deterministic archive boundaries",
+    "MCP archive prompt preserves final current-change tech sync, the regression-evidence carve-out, and deterministic archive boundaries",
   );
   const roadmapPrompt = promptsModule.renderStrictPrompt("strict_roadmap_recommend", {}).messages[0]?.content.text ?? "";
   context.assert(roadmapPrompt.includes("roadmap-recommend"), "MCP roadmap prompt renders scripted recommendation guidance");

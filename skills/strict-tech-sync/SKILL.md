@@ -189,9 +189,12 @@ run `init` from this skill.
 9. **Refresh supporting tech state** — after all edits are complete:
    - in active-change mode, run `verify <change-name>` and review every generated
      delta-tech operation against the confirmed finding before archive continues;
-     a delta-tech write does not invalidate passing complete project regression
-     evidence, so rerun the configured regression command only when this sync
-     also changed a file that is not a change-local delta-tech artifact
+     a write the configured regression command neither compiles nor reads —
+     currently a change-local delta-tech artifact or a lesson — does not
+     invalidate passing complete project regression evidence, so rerun the
+     configured regression command only when this sync also changed a file
+     outside that carve-out, which covers both the delta tech this sync wrote
+     and the lesson promotion that recorded it
    - in standalone mode, confirm `tech-edit` reported the reconciled tech index
    - run `tech-status` to confirm the standards read back correctly
 

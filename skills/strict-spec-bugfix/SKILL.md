@@ -351,6 +351,12 @@ run `init` from this skill.
     implementation unstarted or unarchived and record the blocker instead of
     claiming the bug is fixed. Then run the configured complete project-level
     regression command from `.strict-spec-driven/config.yaml` before archive.
+    That evidence survives the lesson declaration in step 12: a write the
+    configured regression command neither compiles nor reads — currently a
+    change-local delta-tech artifact or a lesson — does not invalidate passing
+    complete project regression evidence. Any other write after it, including a
+    delta-spec, a planning artifact, or a source or test file, forces a rerun
+    before archive.
 
 11. **Verify and review before archive** — run:
     ```bash

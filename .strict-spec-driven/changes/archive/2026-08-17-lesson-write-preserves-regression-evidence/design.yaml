@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: lesson-write-preserves-regression-evidence
+approach:
+  - 'The rule keeps its single-literal form so the existing enforcement path still works: one sentence declared in src/skills/model.ts, required verbatim in each governed skill package by validate-skills, and asserted in the suite. Only the sentence''s content changes, from naming delta-tech as the single exception to naming the criterion that makes it one, plus the two artifact kinds that currently satisfy that criterion.'
+  - 'The governed skill set is extended by what a skill''s steps actually do rather than by category: strict-spec-review and strict-spec-bugfix both collect complete regression evidence and then write a lesson before archive, so an agent following either one needs the carve-out at the point it decides whether to rerun. strict-spec-archive, strict-spec-auto, and strict-tech-sync keep the requirement they already carry.'
+  - The main spec requirement cli-archive-runs-current-change-tech-sync currently states the rule as delta-tech being the single non-invalidating write, so the delta spec restates it around the criterion and adds a scenario for a lesson write, keeping the existing scenario that proves a non-carve-out file still forces a rerun.
+decisions:
+  criterion-with-named-list:
+    decision: State the carve-out as a criterion — a change-local workflow record the configured regression command neither compiles nor reads — and name the artifact kinds that currently satisfy it (change-local delta-tech, lesson) inside the same sentence.
+    rationale: A bare enumeration gives an agent no way to judge an artifact kind nobody listed, and a bare criterion gives it no anchor in a downstream project whose suite may genuinely read lessons; carrying both makes the common cases decidable by lookup and the uncommon ones decidable by test.
+  extend-governed-skills-to-review-and-bugfix:
+    decision: Require the sentence in strict-spec-review and strict-spec-bugfix in addition to strict-spec-archive, strict-spec-auto, and strict-tech-sync.
+    rationale: Review and bugfix are the two skills whose step order puts a lesson write after the regression evidence they just collected, so they are where the wasted rerun is actually decided; the three existing packages govern archive-time delta-tech and would not have prevented the observed waste.
+  keep-single-literal-enforcement:
+    decision: Keep one declared literal in src/skills/model.ts that every governed package restates verbatim, rather than introducing a derived predicate over skill content.
+    rationale: The technical standard skill-packages-are-static-protocol-surfaces requires an automated check that fails when a mutation-capable skill omits the wording, and the existing literal-plus-negative-case mechanism already satisfies it; a content-derived predicate would add a fuzzy matcher without removing any hand-maintained entry.
+  update-mcp-archive-prompt:
+    decision: Update the archive prompt in src/mcp/prompts.ts so the MCP surface states the same rule as the skill packages.
+    rationale: The governing requirement names the strict archive MCP prompt as one of the surfaces that must carry the archive-time evidence rule, so leaving it on the old wording would make two shipped surfaces disagree about when a rerun is required.
+alternatives:
+  - option: Add lesson to the existing enumeration without stating a criterion
+    reason: Leaves the next comparable artifact kind — a debug-session record, a harness session file — undecidable, so the same question returns as another change.
+  - option: Keep the rule and require the lesson to be written before the final regression run
+    reason: Inverts the step order of review and bugfix, where the lesson's content depends on what the regression run exposed, so the lesson would have to be written before the evidence that justifies it exists.
+  - option: Derive the governed skill set from skill content instead of listing it
+    reason: The signals available are prose mentions of lesson-create and of the regression command, which appear in skills that do not gate archive, so the predicate would govern packages the rule does not apply to.
+risks:
+  - The wording is a substring match, so a skill that paraphrases it passes review but fails validate-skills; each edited package must be checked with the shipped validation rather than by reading.
+  - Lessons are outside the regression suite in this repository because test/suites/spec-tech-authoring.ts excludes them from its governed sweep; a future check that starts reading lesson content would silently falsify the criterion for this repository.
+  - Two skills gain a required snippet, so any downstream copy of strict-spec-review or strict-spec-bugfix that is not regenerated will report a missing-snippet diagnostic until it is updated.

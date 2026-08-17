@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: lesson-write-preserves-regression-evidence
+  status: proposed
+summary:
+  what:
+    - 'Replace the delta-tech-only regression-evidence carve-out with a criterion-based class: a change-local workflow record the configured regression command neither compiles nor reads — currently a change-local delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence'
+    - Carry the corrected sentence into every skill package whose steps write a lesson or delta-tech after regression evidence has passed, extending the required-snippet set from strict-spec-archive, strict-spec-auto, and strict-tech-sync to also cover strict-spec-review and strict-spec-bugfix
+    - Correct the strict-spec-auto enumeration that names a lesson as a write which still invalidates regression evidence, and the strict archive MCP prompt that restates the same rule
+  why:
+    - strict-spec-review collects complete regression evidence at step 8 and writes the lesson at step 10, so the current rule makes a lesson write cost a full rebuild, suite run, and coverage gate that cannot change any result; the last occurrence wasted exactly that rerun
+    - 'A lesson write cannot change what the regression command reports in this repository: lesson YAML is excluded from the governed sweep in test/suites/spec-tech-authoring.ts, is not compiled into dist/, and is imported by no suite'
+    - strict-spec-bugfix has the same step order — regression evidence, then lesson declaration, then archive — so the waste is not confined to one skill
+scope:
+  in:
+    - src/skills/model.ts required-snippet wording and the skills that must carry it
+    - skills/strict-spec-archive, strict-spec-auto, strict-tech-sync, strict-spec-review, and strict-spec-bugfix SKILL.md wording
+    - src/mcp/prompts.ts archive prompt wording for the same rule
+    - A delta spec modifying the cli-foundation requirement that currently calls delta-tech the single non-invalidating write
+    - Regression coverage in test/suites/entrypoint-and-skills.ts and test/suites/mcp-server.ts, including the negative case for each newly governed skill
+  out:
+    - The criteria that decide whether a lesson is recorded at all, and the point in each skill where the lesson is declared
+    - The step order of strict-spec-review and strict-spec-bugfix
+    - Widening the carve-out to delta-spec or planning artifacts, which the suite does read
+    - The coverage gate, its threshold, and the configured complete project regression command
+unchanged_behavior:
+  - Every artifact outside the carve-out — delta-spec, proposal, tasks, questions, config.yaml, and any source, test, script, or template file — still invalidates passing regression evidence and forces a rerun before archive
+  - Archive still requires strict verification, review evidence, and a passing complete project regression command for the final state
+  - 'Lesson authoring itself: lesson-create, lesson-edit, the lessons schema, and the categorized lesson store are untouched'

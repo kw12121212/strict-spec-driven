@@ -1,0 +1,62 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: lesson-write-preserves-regression-evidence
+sections:
+  Implementation:
+    rewrite-carve-out-literal:
+      text: Replace the POST_TECH_EDIT_EVIDENCE_SNIPPET literal in src/skills/model.ts with the criterion-based sentence naming change-local delta-tech and lesson as the writes that do not invalidate passing complete project regression evidence
+      status: complete
+    govern-review-and-bugfix-packages:
+      text: Add the carve-out sentence to the required-snippet sets of strict-spec-review and strict-spec-bugfix in src/skills/model.ts, keeping it required for strict-spec-archive, strict-spec-auto, and strict-tech-sync
+      status: complete
+    update-existing-three-skills:
+      text: Update the carve-out passage in skills/strict-spec-archive/SKILL.md, skills/strict-spec-auto/SKILL.md, and skills/strict-tech-sync/SKILL.md to the new sentence verbatim
+      status: complete
+    correct-auto-invalidation-enumeration:
+      text: Correct the strict-spec-auto passage that lists a lesson among the writes which still invalidate regression evidence, so the enumeration names delta-spec and planning artifacts as invalidating and lesson as carved out
+      status: complete
+    add-carve-out-to-review-and-bugfix:
+      text: Add the carve-out sentence to skills/strict-spec-review/SKILL.md at the regression-evidence step and to skills/strict-spec-bugfix/SKILL.md at its regression-evidence step, so each states the rule where the agent decides whether the lesson write forces a rerun
+      status: complete
+    update-mcp-archive-prompt:
+      text: Update the archive prompt line in src/mcp/prompts.ts so the MCP surface states the same criterion-based evidence rule as the skill packages
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output so the dist-based suite and the shipped CLI carry the edited skill model and MCP prompt
+      status: complete
+      command: bun run build
+  Testing:
+    extend-skill-snippet-assertions:
+      text: Extend test/suites/entrypoint-and-skills.ts so the shipped-package assertion and the missing-snippet negative case both cover strict-spec-review and strict-spec-bugfix alongside the three existing packages, and assert the new sentence rather than the delta-tech-only wording
+      status: complete
+      command: bun test/run.ts > /tmp/skills-suite.log 2>&1; echo EXIT=$?
+    update-mcp-prompt-assertion:
+      text: Update the archive-prompt assertion in test/suites/mcp-server.ts to the new evidence wording so the MCP surface is proven to carry the same rule
+      status: complete
+      command: bun test/run.ts > /tmp/mcp-suite.log 2>&1; echo EXIT=$?
+    run-validate-skills:
+      text: Run the shipped skill packaging validation and confirm every governed package carries the sentence verbatim with no missing-snippet diagnostic
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-complete-regression:
+      text: Run the configured complete project regression command and confirm it passes at the declared coverage threshold
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage-gate.log 2>&1; echo EXIT=$?
+  Verification:
+    run-ready:
+      text: Run the strict readiness check for this change and resolve any structural blocker it reports
+      status: complete
+      command: strict-spec-cli ready lesson-write-preserves-regression-evidence
+    run-verify:
+      text: Run strict verification for this change and confirm the delta spec and planning artifacts validate with no pending-task diagnostics left
+      status: complete
+      command: strict-spec-cli verify lesson-write-preserves-regression-evidence
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec merges cleanly into .strict-spec-driven/specs/cli/foundation.yaml on archive, so the merged requirement states the criterion-based rule rather than the delta-tech-only rule
+      status: complete
+      command: strict-spec-cli verify lesson-write-preserves-regression-evidence
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: extend-skill-snippet-assertions

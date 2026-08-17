@@ -97,8 +97,17 @@ const CURRENT_CHANGE_TECH_SYNC_SNIPPET = "final current-change tech sync";
 const CURRENT_CHANGE_SCOPE_SNIPPET = "attributable tracked and untracked files";
 const CURRENT_CHANGE_DELTA_TECH_SNIPPET = "current-change delta tech";
 const NO_POST_ARCHIVE_DEFERRAL_SNIPPET = "confirmed as reusable";
-const POST_TECH_EDIT_EVIDENCE_SNIPPET =
-  "a delta-tech write does not invalidate passing complete project regression evidence";
+/**
+ * The carve-out is stated as a criterion with the artifact kinds that currently satisfy it, rather
+ * than as a bare list. A list alone leaves an agent no way to judge an artifact kind nobody
+ * enumerated, and a criterion alone gives it no anchor in a project whose suite does read one of
+ * these files. Every package that directs such a write after the regression evidence step restates
+ * this sentence, so the rerun decision is made from the rule rather than from the agent's sense of
+ * whether a rerun could matter.
+ */
+const REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET =
+  "a write the configured regression command neither compiles nor reads — currently a change-local"
+  + " delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence";
 const SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 const SHARED_SCHEMA_FILE_LOOKUP_SNIPPET =
   "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
@@ -314,6 +323,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
     ],
     forbiddenSnippets: [
@@ -334,7 +344,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
       "explicitly classifies the pattern as not reusable",
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
-      POST_TECH_EDIT_EVIDENCE_SNIPPET,
+      REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
     ],
     forbiddenSnippets: [
       "any change to roadmap state caused by archive",
@@ -371,7 +381,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
       "explicitly classify the pattern as not reusable",
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
-      POST_TECH_EDIT_EVIDENCE_SNIPPET,
+      REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
@@ -408,6 +418,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "direct review",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
+      REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
       SAMPLE_SHOW_LOOKUP_SNIPPET,
@@ -435,7 +446,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "explicitly classified as not reusable",
       "may not be deferred until after its active change is archived",
       "never edit a live main standard directly",
-      POST_TECH_EDIT_EVIDENCE_SNIPPET,
+      REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
     ],
   },
   "strict-tech-edit": {

@@ -42888,7 +42888,7 @@ var MCP_PROMPT_DEFINITIONS = [
     `Use strict-spec-archive for change ${String(args.change)}.`,
     "Before final verification, run the mandatory current-change tech-sync checkpoint over the selected change artifacts, attributable files, and applicable standards without absorbing unrelated repository drift.",
     "Continue when existing standards or current delta tech cover the change; otherwise pause for operator-confirmed current-change delta-tech capture or explicit classification that the surfaced pattern is not reusable, and never defer a confirmed reusable convention until after archive.",
-    "After any delta-tech edit, review the artifact and rerun strict verification plus invalidated complete regression evidence. Archive only after verify passes and review evidence confirms the complete regression command passed for the final state.",
+    "After any delta-tech edit, review the artifact and rerun strict verification; a write the configured regression command neither compiles nor reads — currently a change-local delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence, so rerun that command only for a write outside the carve-out. Archive only after verify passes and review evidence confirms the complete regression command passed for the final state.",
     "Use the raw archive command only as the deterministic mechanism that merges delta specs and delta tech, regenerates indexes, reconciles roadmap state, and moves the change.",
     "Do not manually move change directories or bypass archive preconditions."
   ].join(`

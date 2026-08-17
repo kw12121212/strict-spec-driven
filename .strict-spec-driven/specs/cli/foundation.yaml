@@ -2028,7 +2028,7 @@ requirements:
         - AND: The skill does not edit the live YAML document directly
   cli-archive-runs-current-change-tech-sync:
     strength: MUST
-    statement: The system MUST require every supported AI-guided strict change archive surface, including strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt, to complete a final current-change-scoped tech sync before invoking the raw archive command; continue immediately when existing standards and delta-tech cover the change; pause unresolved reusable convention findings for confirmed delta-tech capture or explicit non-reusable classification; forbid post-archive deferral of a convention confirmed as reusable; and rerun strict verification and delta-tech review after archive-time delta-tech edits while treating a change-local delta-tech artifact as the single write that does not invalidate previously passed complete regression evidence, so any other implementation, test, strict artifact, or configuration file written after that evidence passed still requires a regression rerun before archive.
+    statement: The system MUST require every supported AI-guided strict change archive surface, including strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt, to complete a final current-change-scoped tech sync before invoking the raw archive command; continue immediately when existing standards and delta-tech cover the change; pause unresolved reusable convention findings for confirmed delta-tech capture or explicit non-reusable classification; forbid post-archive deferral of a convention confirmed as reusable; and rerun strict verification and delta-tech review after archive-time delta-tech edits while treating a change-local workflow record that the configured complete regression command neither compiles nor reads, currently a change-local delta-tech artifact or a lesson, as a write that does not invalidate previously passed complete regression evidence, so any other implementation, test, strict artifact, or configuration file written after that evidence passed, including a delta spec and a planning artifact, still requires a regression rerun before archive. Every AI-guided surface that directs a lesson or delta-tech write after complete regression evidence has passed, including strict-spec-review and strict-spec-bugfix, MUST state that evidence rule at the step where the rerun decision is made.
     scenarios:
       archive-continues-when-tech-state-is-covered:
         - GIVEN: a verified active change reaches final AI-guided archive preparation and its bounded scan finds no uncaptured reusable convention or confirms that existing delta-tech already covers each finding
@@ -2042,10 +2042,18 @@ requirements:
         - GIVEN: the operator confirms a reusable convention and archive preparation generates or updates current-change delta-tech, with complete regression evidence already passing for the change
         - WHEN: the delta-tech artifact is the only file written since that evidence passed
         - THEN: strict verification and delta-tech artifact review are rerun before archive, and the previously passed complete regression evidence stands without a rerun
+      lesson-write-preserves-regression-evidence:
+        - GIVEN: complete regression evidence has passed for a change and the agent then records the change's lesson through the lesson store
+        - WHEN: the surface evaluates its regression evidence before archive and the lesson is the only file written since that evidence passed
+        - THEN: the previously passed complete regression evidence stands and the configured regression command is not rerun for that write
       code-edit-still-invalidates-regression-evidence:
-        - GIVEN: archive preparation writes any file that is not a change-local delta-tech artifact after complete regression evidence passed
+        - GIVEN: archive preparation writes any file outside the carve-out after complete regression evidence passed, such as a source file, a test, a delta spec, a planning artifact, or the workflow config
         - WHEN: the archive surface evaluates its regression evidence before invoking archive
         - THEN: the configured complete project regression command is rerun and must pass before archive proceeds
+      lesson-writing-surfaces-state-the-evidence-rule:
+        - GIVEN: a bundled skill package whose steps direct a lesson write after the complete regression evidence step, such as strict-spec-review or strict-spec-bugfix
+        - WHEN: bundled skill packaging is validated and that package omits the evidence rule
+        - THEN: validation fails and the diagnostic names the package path and the missing statement
       raw-archive-remains-deterministic-merge-primitive:
         - GIVEN: the final sync checkpoint is complete under an AI-guided archive surface
         - WHEN: that surface invokes strict-spec-cli archive for the selected change

@@ -441,12 +441,15 @@ run `init` from this skill.
    command may satisfy the archive gate only when it exactly matches the
    configured complete project regression command and no implementation, test,
    strict artifact, or configuration files relevant to the change have changed
-   since that command passed. A change-local delta-tech artifact is the single
-   exception to that list: a delta-tech write does not invalidate passing
-   complete project regression evidence, because the artifact is not compiled,
-   not imported by the suite, and merges into a live standard only at archive.
-   Every other strict artifact, including a delta-spec, a lesson, and a planning
-   artifact, still invalidates it. When the config declares a coverage contract
+   since that command passed. One class of write is carved out of that list:
+   a write the configured regression command neither compiles nor reads —
+   currently a change-local delta-tech artifact or a lesson — does not
+   invalidate passing complete project regression evidence, because such a file
+   is not compiled, is not imported by the suite, and reaches live workflow
+   state only at archive. Decide an artifact kind neither list names by that
+   same criterion, and rerun when the suite does compile or read it. Every other
+   strict artifact, including a delta-spec and a planning artifact, still
+   invalidates the evidence. When the config declares a coverage contract
    under `review_evidence.project_regression.coverage`, the regression command
    is the coverage gate: a non-zero exit because measured coverage fell below
    the declared threshold blocks archive exactly like failing tests and is
@@ -466,10 +469,11 @@ run `init` from this skill.
    enforcement, or to explicitly classify the pattern as not reusable. A convention confirmed as reusable cannot be deferred until after
    archive and must be generated as current-change delta tech rather than by
    editing live standards. After any delta-tech edit, review the artifact and
-   rerun strict verification; a delta-tech write does not invalidate passing
-   complete project regression evidence, so the configured regression command is
-   rerun here only when this step also changed a file that is not a change-local
-   delta-tech artifact.
+   rerun strict verification; a write the configured regression command neither
+   compiles nor reads — currently a change-local delta-tech artifact or a lesson
+   — does not invalidate passing complete project regression evidence, so the
+   configured regression command is rerun here only when this step also changed
+   a file outside that carve-out.
 
 13. **Archive cleanly** — if the final current-change tech sync is resolved, the
    change verifies, reviews cleanly, and has passing complete project-level
