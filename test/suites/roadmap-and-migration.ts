@@ -224,7 +224,7 @@ try {
   );
   context.assert(
     roadmapStatusBeforeJson.milestones[0].declaredStatus === "blocked"
-      && roadmapStatusBeforeJson.milestones[0].derivedStatus === "active",
+      && roadmapStatusBeforeJson.milestones[0].derivedStatus === "proposed",
     "roadmap-status reports declared and derived milestone statuses",
   );
   context.assert(
@@ -349,7 +349,7 @@ try {
     status: string;
     planned_changes: Record<string, { status: string }>;
   }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "milestones", "0001-roadmap.yaml"));
-  context.assert(syncedMilestone.status === "active", "roadmap-sync rewrites milestone status to derived status");
+  context.assert(syncedMilestone.status === "proposed", "roadmap-sync rewrites milestone status to derived status");
   context.assert(
     Object.keys(syncedMilestone.planned_changes).length === 0,
     "roadmap-sync keeps milestone planned_changes empty for standalone-only roadmaps",
@@ -360,7 +360,7 @@ try {
   }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
   context.assert(
     Object.keys(syncedIndex.milestones).length === 1
-      && syncedIndex.milestones["0001-roadmap"]?.status === "active"
+      && syncedIndex.milestones["0001-roadmap"]?.status === "proposed"
       && syncedIndex.milestones["0001-roadmap"]?.path === "roadmap/milestones/0001-roadmap.yaml",
     "roadmap-sync regenerates canonical roadmap index entries from milestone state",
   );
@@ -1458,7 +1458,10 @@ try {
     id: "0002-active",
     title: "Active Milestone",
     goal: "Keep active roadmap work visible.",
-    status: "active",
+    // A milestone owning an in-progress planned change declares `proposed`: the
+    // milestone status set no longer distinguishes started from not-yet-started
+    // work. The in-progress signal lives on the planned change's own `state`.
+    status: "proposed",
     plannedChanges: [],
   });
   writeRoadmapMilestoneArtifact(roadmapArchiveDir, "0003-pending.yaml", {
@@ -1519,7 +1522,7 @@ try {
       id: "0002-active",
       title: "Active Milestone",
       path: "roadmap/milestones/0002-active.yaml",
-      status: "active",
+      status: "proposed",
     },
     {
       id: "0003-pending",
@@ -1761,7 +1764,7 @@ try {
     id: "0002-followup",
     title: "Followup Milestone",
     goal: "Depend on completed-and-archived base work.",
-    status: "active",
+    status: "proposed",
     plannedChanges: [],
   });
   writeStandalonePlannedChangeArtifact(roadmapArchiveDependencyDir, "planned-changes/0001-base-base-work.yaml", {
@@ -1791,7 +1794,7 @@ try {
       id: "0002-followup",
       title: "Followup Milestone",
       path: "roadmap/milestones/0002-followup.yaml",
-      status: "active",
+      status: "proposed",
     },
   ]);
 
@@ -2271,7 +2274,7 @@ try {
     id: "alpha",
     title: "Alpha",
     goal: "Own the work that later moves to another milestone.",
-    status: "active",
+    status: "proposed",
     plannedChanges: [],
     order: 100,
   });
@@ -2316,7 +2319,7 @@ try {
     depends_on: [],
   });
   writeRoadmapIndexArtifact(roadmapMoveDir, [
-    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "active" },
+    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "proposed" },
     { id: "beta", title: "Beta", path: "roadmap/milestones/beta.yaml", status: "proposed" },
   ]);
 
@@ -2556,7 +2559,7 @@ try {
     id: "alpha",
     title: "Alpha",
     goal: "Own planned changes that a restructuring removes.",
-    status: "active",
+    status: "proposed",
     plannedChanges: [],
     order: 100,
   });
@@ -2601,7 +2604,7 @@ try {
     depends_on: [],
   });
   writeRoadmapIndexArtifact(roadmapDeleteDir, [
-    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "active" },
+    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "proposed" },
   ]);
 
   const deleteStatusBefore = cli(["roadmap-status"], { cwd: roadmapDeleteDir });
@@ -3249,7 +3252,7 @@ try {
     id: "0001-no-candidate",
     title: "No Candidate",
     goal: "Report when roadmap work is blocked by dependencies.",
-    status: "active",
+    status: "proposed",
     plannedChanges: [],
   });
   writeStandalonePlannedChangeArtifact(roadmapNoCandidateDir, "planned-changes/0001-no-candidate-active-change.yaml", {
@@ -3274,7 +3277,7 @@ try {
       id: "0001-no-candidate",
       title: "No Candidate",
       path: "roadmap/milestones/0001-no-candidate.yaml",
-      status: "active",
+      status: "proposed",
     },
   ]);
 
@@ -3448,7 +3451,7 @@ try {
     planned_changes: Record<string, { status: string }>;
   }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "milestones", "0001-split.yaml"));
   context.assert(
-    materializedMilestone.status === "active" && Object.keys(materializedMilestone.planned_changes).length === 0,
+    materializedMilestone.status === "proposed" && Object.keys(materializedMilestone.planned_changes).length === 0,
     "roadmap-sync materialization removes converted inline planned changes from the milestone file and reconciles milestone status",
   );
 
@@ -3706,7 +3709,7 @@ try {
     id: "0001-details",
     title: "Details Preservation",
     goal: "Verify details survive sync.",
-    status: "active",
+    status: "proposed",
     plannedChanges: [],
     details: "This is long-form planning guidance that must survive sync.",
   });
@@ -3716,7 +3719,7 @@ try {
       id: "0001-details",
       title: "Details Preservation",
       path: "roadmap/milestones/0001-details.yaml",
-      status: "active",
+      status: "proposed",
     },
   ]);
 
@@ -3744,7 +3747,7 @@ try {
     id: "0001-no-details",
     title: "No Details",
     goal: "Verify details is absent when omitted.",
-    status: "active",
+    status: "proposed",
     plannedChanges: [],
   });
 
@@ -3753,7 +3756,7 @@ try {
       id: "0001-no-details",
       title: "No Details",
       path: "roadmap/milestones/0001-no-details.yaml",
-      status: "active",
+      status: "proposed",
     },
   ]);
 
@@ -3821,8 +3824,8 @@ try {
     "roadmap-status does not derive ambiguous duplicate change ids as complete",
   );
   context.assert(
-    ambiguousRoadmapJson.milestones[0].derivedStatus === "active",
-    "roadmap-status derives milestone status as active when a planned change is ambiguous",
+    ambiguousRoadmapJson.milestones[0].derivedStatus === "proposed",
+    "roadmap-status derives milestone status as proposed when a planned change is ambiguous",
   );
   context.assert(
     ambiguousRoadmapJson.milestones[0].plannedChanges[0].mismatches.some(
@@ -3837,7 +3840,7 @@ try {
     status: string;
     planned_changes: Record<string, { status: string }>;
   }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "milestones", "0001-ambiguous.yaml"));
-  context.assert(syncedAmbiguousMilestone.status === "active", "roadmap-sync rewrites ambiguous milestone status to active");
+  context.assert(syncedAmbiguousMilestone.status === "proposed", "roadmap-sync rewrites ambiguous milestone status to proposed");
   context.assert(
     Object.keys(syncedAmbiguousMilestone.planned_changes).length === 0,
     "roadmap-sync keeps milestone planned_changes empty for standalone ambiguous roadmap entries",
@@ -4580,16 +4583,16 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
       syncedIndexEntries.length === 1
         && syncedIndexEntries[0]?.[0] === "0001-core-todo-workflows"
         && syncedIndexEntries[0]?.[1].path === "roadmap/milestones/0001-core-todo-workflows.yaml"
-        && syncedIndexEntries[0]?.[1].status === "active",
-      "copied workspace roadmap-sync materialization rewrites migrated roadmap index status to the derived active value",
+        && syncedIndexEntries[0]?.[1].status === "proposed",
+      "copied workspace roadmap-sync materialization rewrites migrated roadmap index status to the derived proposed value",
     );
     const copiedSyncedRoadmapMilestone = yamlModule.parseYamlFile<{
       status: string;
       planned_changes: Record<string, { status: string; summary: string; details: string; depends_on: string[] }>;
     }>(copiedSyncedRoadmapMilestonePath);
     context.assert(
-      copiedSyncedRoadmapMilestone.status === "active",
-      "copied workspace roadmap-sync materialization rewrites the migrated milestone declared status to active",
+      copiedSyncedRoadmapMilestone.status === "proposed",
+      "copied workspace roadmap-sync materialization rewrites the migrated milestone declared status to proposed",
     );
     const syncedChangeEntries = Object.entries(copiedSyncedRoadmapMilestone.planned_changes);
     context.assert(
@@ -4610,9 +4613,9 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
     );
     context.assert(
       copiedRoadmapStatusMaterializedJson.milestones[0].path === "roadmap/milestones/0001-core-todo-workflows.yaml"
-        && copiedRoadmapStatusMaterializedJson.milestones[0].declaredStatus === "active"
-        && copiedRoadmapStatusMaterializedJson.milestones[0].derivedStatus === "active",
-      "copied workspace roadmap-status preserves migrated milestone path and reports active state after materialization",
+        && copiedRoadmapStatusMaterializedJson.milestones[0].declaredStatus === "proposed"
+        && copiedRoadmapStatusMaterializedJson.milestones[0].derivedStatus === "proposed",
+      "copied workspace roadmap-status preserves migrated milestone path and reports proposed state after materialization",
     );
     context.assert(
       copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges.length === 2
@@ -4898,7 +4901,7 @@ function runCopiedSplitRoadmapCliScenario(): {
       planned_changes: Record<string, unknown>;
     }>(milestonePath);
     context.assert(
-      materializedMilestone.status === "active" && Object.keys(materializedMilestone.planned_changes).length === 0,
+      materializedMilestone.status === "proposed" && Object.keys(materializedMilestone.planned_changes).length === 0,
       "copied project split roadmap materialization removes converted inline planned changes from the milestone and reconciles milestone status",
     );
     const materializedInline = yamlModule.parseYamlFile<{
@@ -6040,9 +6043,9 @@ try {
   context.assert(
     migratedIndexEntries.length === 1
       && migratedIndexEntries[0]?.[0] === "0001-demo"
-      && migratedIndexEntries[0]?.[1].status === "active"
+      && migratedIndexEntries[0]?.[1].status === "proposed"
       && migratedIndexEntries[0]?.[1].path === "roadmap/milestones/0001-demo.yaml",
-    "migrate preserves roadmap index milestone identity and status",
+    "migrate preserves roadmap index milestone identity and maps the retired active status to proposed",
   );
 
   const migratedRoadmapMilestone = yamlModule.parseYamlFile<{
@@ -6081,7 +6084,7 @@ try {
       && migratedRoadmapMilestone.planned_changes["demo-change"]?.status === "complete",
     "migrate preserves planned change entry fields including status",
   );
-  context.assert(migratedRoadmapMilestone.status === "active", "migrate preserves roadmap milestone declared status");
+  context.assert(migratedRoadmapMilestone.status === "proposed", "migrate maps a legacy milestone declaring the retired active status to proposed");
   context.assert(migratedRoadmapMilestone.notes.length === 1, "migrate preserves roadmap milestone notes");
   const migratedRoadmapStatus = cli(["roadmap-status"], { cwd: migrateHappyDir });
   context.assert(migratedRoadmapStatus.status !== 0, "roadmap-status rejects migrated inline roadmap state until explicit materialization");
@@ -7240,6 +7243,162 @@ try {
   );
 } finally {
   rmSync(roadmapDeferDir, { recursive: true, force: true });
+}
+
+const roadmapRetiredStatusDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-retired-status-"));
+try {
+  const milestoneFile = path.join(
+    roadmapRetiredStatusDir, ".strict-spec-driven", "roadmap", "milestones", "0001-retire.yaml",
+  );
+  const writeRetireFixture = (milestoneStatus: string): void => {
+    writeRoadmapMilestoneArtifact(roadmapRetiredStatusDir, "0001-retire.yaml", {
+      id: "0001-retire",
+      title: "Retire Milestone Status",
+      goal: "Own work that is under way while the milestone status stays stable.",
+      status: milestoneStatus,
+      plannedChanges: [],
+    });
+    writeRoadmapIndexArtifact(roadmapRetiredStatusDir, [
+      { id: "0001-retire", title: "Retire Milestone Status", path: "roadmap/milestones/0001-retire.yaml", status: milestoneStatus },
+    ]);
+  };
+
+  // The planned change has a strict change directory that is not archived, so
+  // this milestone is the exact shape that used to derive `active`.
+  mkdirSync(path.join(roadmapRetiredStatusDir, ".strict-spec-driven", "changes", "work-item"), { recursive: true });
+  writeStandalonePlannedChangeArtifact(roadmapRetiredStatusDir, "planned-changes/0001-retire-work-item.yaml", {
+    id: "work-item",
+    milestone: "0001-retire",
+    status: "planned",
+    summary: "Work that is already under way.",
+    details: "A strict change directory exists for this planned change and is not archived.",
+    depends_on: [],
+  });
+  writeRetireFixture("proposed");
+
+  const inProgressStatus = cli(["roadmap-status"], { cwd: roadmapRetiredStatusDir });
+  context.assert(inProgressStatus.status === 0, "roadmap-status exits zero for a milestone with in-progress work", inProgressStatus.stdout);
+  const inProgressJson = JSON.parse(inProgressStatus.stdout.trim());
+  context.assert(
+    inProgressJson.milestones[0].derivedStatus === "proposed"
+      && inProgressJson.milestones[0].declaredStatus === "proposed",
+    "a milestone whose planned change has an unarchived strict change derives proposed",
+    inProgressStatus.stdout,
+  );
+  // The in-progress signal must survive on the planned change, which is what
+  // roadmap-recommend reads; only the milestone-level value was retired.
+  context.assert(
+    inProgressJson.milestones[0].plannedChanges[0].state === "active",
+    "the planned change still reports its own active state",
+    inProgressStatus.stdout,
+  );
+  context.assert(
+    !inProgressJson.milestones.some((m: { declaredStatus: string; derivedStatus: string }) =>
+      m.declaredStatus === "active" || m.derivedStatus === "active"),
+    "no milestone reports a declared or derived active status",
+    inProgressStatus.stdout,
+  );
+
+  // The reported problem: sync used to rewrite the milestone to `active` here.
+  const milestoneBeforeSync = readFileSync(milestoneFile, "utf8");
+  const inProgressSync = cli(["roadmap-sync"], { cwd: roadmapRetiredStatusDir });
+  context.assert(inProgressSync.status === 0, "roadmap-sync exits zero while planned work is under way", inProgressSync.stdout);
+  context.assert(
+    readFileSync(milestoneFile, "utf8") === milestoneBeforeSync,
+    "roadmap-sync leaves the milestone file byte-identical when work starts",
+    inProgressSync.stdout,
+  );
+
+  // A roadmap written before the retirement still carries the value on disk.
+  writeRetireFixture("active");
+  const retiredStatus = cli(["roadmap-status"], { cwd: roadmapRetiredStatusDir });
+  const retiredJson = JSON.parse(retiredStatus.stdout.trim());
+  context.assert(retiredJson.valid === false, "roadmap-status reports a retired milestone status as invalid", retiredStatus.stdout);
+  const retiredDiagnostic = retiredJson.diagnostics.find((d: { artifactPath: string; fieldPath: string }) =>
+    d.artifactPath.endsWith("0001-retire.yaml") && d.fieldPath === "$.status");
+  context.assert(
+    retiredDiagnostic !== undefined
+      && retiredDiagnostic.actual === "active"
+      && retiredDiagnostic.message.includes("roadmap-sync")
+      && retiredDiagnostic.expected === "proposed, planned, blocked, complete",
+    "the retired-status diagnostic names the field, the retired value, the accepted set, and roadmap-sync as the repair",
+    retiredStatus.stdout,
+  );
+
+  const retiredSync = cli(["roadmap-sync"], { cwd: roadmapRetiredStatusDir });
+  context.assert(
+    retiredSync.status === 0,
+    "a plain roadmap-sync repairs a retired milestone status without an extra flag",
+    retiredSync.stdout,
+  );
+  const repairedMilestone = yamlModule.parseYamlFile<{ status: string }>(milestoneFile);
+  context.assert(repairedMilestone.status === "proposed", "roadmap-sync rewrites the retired status to proposed", retiredSync.stdout);
+  const afterRepairStatus = cli(["roadmap-status"], { cwd: roadmapRetiredStatusDir });
+  context.assert(
+    afterRepairStatus.status === 0 && JSON.parse(afterRepairStatus.stdout.trim()).valid === true,
+    "roadmap-status is valid after the retired status is repaired",
+    afterRepairStatus.stdout,
+  );
+
+  // The tolerance must not generalize: every other schema-invalid milestone
+  // still refuses the write, because it would be dropped from the index.
+  const stillRefused: Array<{ label: string; write: () => void }> = [
+    { label: "an unrecognized status that is not the retired literal", write: () => writeRetireFixture("in-flight") },
+    {
+      label: "a milestone missing a required field",
+      write: () => {
+        writeRetireFixture("proposed");
+        const parsed = yamlModule.parseYamlFile<Record<string, unknown>>(milestoneFile);
+        delete parsed.goal;
+        writeFileSync(milestoneFile, yamlModule.stringifyYamlDocument(parsed), "utf8");
+      },
+    },
+    {
+      label: "a milestone that fails to parse",
+      write: () => {
+        writeRetireFixture("proposed");
+        writeFileSync(milestoneFile, "status: [unclosed\n  nope: :\n", "utf8");
+      },
+    },
+  ];
+  const indexFile = path.join(roadmapRetiredStatusDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+  // Drop the standalone planned change first. While it exists, a milestone that
+  // fails to load also orphans it, and that reference-sourced diagnostic blocks
+  // the write on its own — which would make these cases pass no matter how wide
+  // the schema tolerance is, testing nothing.
+  rmSync(
+    path.join(roadmapRetiredStatusDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-retire-work-item.yaml"),
+    { force: true },
+  );
+  for (const { label, write } of stillRefused) {
+    write();
+    const milestoneBefore = readFileSync(milestoneFile, "utf8");
+    const indexBefore = readFileSync(indexFile, "utf8");
+    const refusedSync = cli(["roadmap-sync"], { cwd: roadmapRetiredStatusDir });
+    context.assert(
+      refusedSync.status !== 0,
+      `roadmap-sync still refuses ${label}`,
+      refusedSync.stdout,
+    );
+    // Asserting the milestone file alone is not enough to prove the refusal: a
+    // milestone that fails to load is simply dropped, leaving its own file
+    // untouched while the regenerated index silently loses the entry. The
+    // damage a too-wide tolerance causes is visible only here.
+    const refusedJson = JSON.parse(refusedSync.stdout.trim());
+    context.assert(
+      Array.isArray(refusedJson.updatedFiles) && refusedJson.updatedFiles.length === 0,
+      `roadmap-sync writes no file at all for ${label}`,
+      refusedSync.stdout,
+    );
+    context.assert(
+      readFileSync(milestoneFile, "utf8") === milestoneBefore
+        && readFileSync(indexFile, "utf8") === indexBefore,
+      `roadmap-sync leaves the milestone and the roadmap index byte-identical for ${label}`,
+      refusedSync.stdout,
+    );
+  }
+} finally {
+  rmSync(roadmapRetiredStatusDir, { recursive: true, force: true });
 }
 
 }

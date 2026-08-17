@@ -137,11 +137,15 @@ export function writeFileIfChanged(filePath: string, nextContent: string, update
  * - Otherwise fall back to the derived status when the declared value drifted.
  *
  * Milestone status is otherwise a function of structured planned-change state:
- * a milestone is `active` when it has an in-progress strict change, `proposed`
- * when it only has not-yet-started planned work, and `complete` once all its
- * planned changes are archived. A reopened milestone re-enters this derivation
- * (typically as `proposed`) because `roadmap-reopen` seeds a pending follow-up
- * planned change, not because any declared status is held sticky here.
+ * a milestone is `complete` once all its planned changes are archived and
+ * `proposed` while any planned work remains, whether or not that work has a
+ * strict change in progress. A reopened milestone re-enters this derivation
+ * (as `proposed`) because `roadmap-reopen` seeds a pending follow-up planned
+ * change, not because any declared status is held sticky here.
+ *
+ * A milestone whose file still declares the retired `active` value loads with
+ * its status read as `proposed`, so this rewrite persists `proposed` and clears
+ * the retired value from disk.
  */
 function resolveCanonicalMilestoneStatus(
   declared: RoadmapMilestoneArtifact["status"],

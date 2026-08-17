@@ -945,9 +945,11 @@ context.assert(
 const roadmapIndexMilestonesSchema = (roadmapIndexSchema.properties as Record<string, unknown>).milestones as Record<string, unknown>;
 const roadmapMilestoneIdPattern = "^(\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$";
 const roadmapIndexMilestonePatternSchema = (roadmapIndexMilestonesSchema.patternProperties as Record<string, unknown>)[roadmapMilestoneIdPattern] as Record<string, unknown>;
+const roadmapIndexStatusEnum =
+  ((roadmapIndexMilestonePatternSchema.properties as Record<string, unknown>).status as { enum: string[] }).enum;
 context.assert(
-  ((roadmapIndexMilestonePatternSchema.properties as Record<string, unknown>).status as { enum: string[] }).enum.length === 4,
-  "roadmap index schema keeps milestone status enums with four values",
+  JSON.stringify(roadmapIndexStatusEnum) === JSON.stringify(["proposed", "blocked", "complete"]),
+  `roadmap index schema declares exactly the derivable milestone statuses, got ${JSON.stringify(roadmapIndexStatusEnum)}`,
 );
 
 const roadmapMilestoneSchema = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/roadmap-milestone/v2") as Record<string, unknown>;

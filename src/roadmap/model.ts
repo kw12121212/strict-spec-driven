@@ -8,8 +8,33 @@ export const ROADMAP_ARCHIVE_DIR = `${ROADMAP_DIR}/archive`;
 export const ROADMAP_ARCHIVE_MILESTONES_DIR = `${ROADMAP_ARCHIVE_DIR}/milestones`;
 export const ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR = `${ROADMAP_ARCHIVE_DIR}/planned-changes`;
 
-export const DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "active", "blocked", "complete"] as const;
+export const DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "blocked", "complete"] as const;
 export const DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"] as const;
+
+/**
+ * Milestone status value retired from `DECLARED_ROADMAP_STATUSES`. It was only
+ * ever produced by status derivation — milestone authoring has no status
+ * argument — so writing it back into the milestone file on every propose and
+ * archive churned the artifact without recording anything the changes
+ * directory does not already show.
+ *
+ * The literal survives as a constant because roadmaps written before the
+ * retirement still carry it on disk. Such a milestone MUST keep loading, with
+ * its status read as `proposed`, so `roadmap-sync` can rewrite the file; a
+ * milestone that failed to load would instead be dropped from the regenerated
+ * index, losing recorded work. The accompanying diagnostic is what makes the
+ * roadmap report invalid until that rewrite happens.
+ */
+export const RETIRED_MILESTONE_STATUS = "active";
+
+/**
+ * Message of the diagnostic raised for a milestone status field still carrying
+ * `RETIRED_MILESTONE_STATUS`. Named because `isRepairableRoadmapDiagnostic` and
+ * `syncRoadmap` must recognize this exact diagnostic to tolerate it; see
+ * `isRetiredMilestoneStatusDiagnostic`.
+ */
+export const RETIRED_MILESTONE_STATUS_MESSAGE =
+  `milestone status '${RETIRED_MILESTONE_STATUS}' is retired and is read as 'proposed'; run strict-spec-cli roadmap-sync to rewrite it`;
 export const ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 export const ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 export const PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";

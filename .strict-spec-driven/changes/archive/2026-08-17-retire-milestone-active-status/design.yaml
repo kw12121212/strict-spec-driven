@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: retire-milestone-active-status
+approach:
+  - Narrow the milestone status vocabulary to the values the system can actually derive, and give existing artifacts carrying the retired value a CLI repair path through roadmap-sync rather than leaving them unrepairable.
+  - 'Work contract-first: the schema enums, the DECLARED_ROADMAP_STATUSES constant, and the derivation function are changed together with the delta spec, so no implementation code widens the workflow contract ahead of it.'
+decisions:
+  derive-in-progress-as-proposed:
+    decision: A milestone owning non-archived planned work derives 'proposed'; no replacement value is introduced.
+    rationale: The derived milestone status set becomes proposed, blocked, and complete. 'In progress' is already fully observable from the planned-change level state field and from the changes/ directory, so encoding it a second time in the milestone status is what produced the write churn in the first place.
+  hard-remove-not-alias:
+    decision: '''active'' is removed from the schema enums outright rather than kept as a deprecated alias normalizing to ''proposed'' the way ''planned'' does.'
+    rationale: Requested explicitly. An accepted-but-never-produced value stays in the vocabulary forever and has to be explained in every help surface; removing it makes the enum say exactly what the deriver can emit.
+  repair-via-tolerated-diagnostic:
+    decision: The retired value is repaired by adding its diagnostic to isRepairableRoadmapDiagnostic, so an ordinary roadmap-sync rewrites it to 'proposed', rather than by adding an explicit opt-in sync flag.
+    rationale: Requested explicitly after the conflicting requirement was raised. The alternative, a --fix-retired-status flag mirroring the existing --fix-names precedent, would have left roadmap-mutation-repairable-diagnostic-tolerance untouched; the tolerated-diagnostic route was chosen instead because it repairs existing roadmaps with no operator action, and the cost is amending that requirement explicitly rather than violating it silently.
+  narrow-tolerance-scope:
+    decision: The widened tolerance matches only a milestone status field whose value is the retired 'active', and no other schema-invalid state.
+    rationale: roadmap-mutation-repairable-diagnostic-tolerance requires that every other diagnostic kind keeps refusing every write. A broad schema-diagnostic tolerance would let a milestone file that fails to load be dropped from the regenerated index, losing recorded work. Matching one field and one retired literal keeps the rewrite-safety argument intact.
+  migration-maps-legacy-active:
+    decision: The migration converter maps a legacy Markdown milestone declaring 'active' to 'proposed' rather than failing the migration.
+    rationale: 'src/converters/roadmap.ts accepts ''active'' from a legacy ''- Declared: <status>'' line today. Emitting a value the strict schema no longer allows would produce invalid output, and failing the migration would strand legacy roadmaps; mapping to ''proposed'' matches what the deriver would produce on the first roadmap-sync anyway.'
+alternatives:
+  - option: Keep 'active' in the enum as a deprecated alias that normalizes to 'proposed', exactly as 'planned' is handled today.
+    reason: 'Rejected: leaves a permanently unused value in the vocabulary. The alias mechanism already exists for ''planned'', so the pattern was available and deliberately not reused.'
+  - option: Add an explicit roadmap-sync --fix-retired-status flag mirroring the --fix-names precedent in roadmap-planned-change-canonical-filename-contract, leaving the tolerance requirement untouched.
+    reason: Rejected in favor of automatic repair with no operator action, accepting the cost of amending roadmap-mutation-repairable-diagnostic-tolerance.
+  - option: Hard-remove with no repair path at all, so an existing roadmap declaring 'active' simply fails validation.
+    reason: 'Rejected: roadmap-sync refuses to write while a non-repairable diagnostic is present, so the only remedy would be hand-editing YAML, which the CLI-only authoring policy forbids.'
+risks:
+  - Widening isRepairableRoadmapDiagnostic is the first tolerance granted to a schema-shaped diagnostic. If the match is written loosely it could let a genuinely malformed milestone through, and a milestone that fails to load is dropped from the regenerated index. The match must be pinned to the milestone status field and the exact retired literal, and must be proven not to fire on any other schema-invalid milestone.
+  - The schemas are embedded assets. Editing templates/strict-spec-driven/schemas/*.yaml without rerunning bun scripts/gen-templates-bundle.ts leaves src/embedded-templates.ts serving the old enum, so validation behavior would differ between the working tree and an installed CLI.
+  - The roadmap test suite references 'active' extensively, but most references are the planned-change-level state value that this change must not touch. Updating them indiscriminately would silently change roadmap-recommend coverage.

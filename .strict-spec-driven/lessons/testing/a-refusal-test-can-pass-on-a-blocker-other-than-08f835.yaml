@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-refusal-test-can-pass-on-a-blocker-other-than-08f835
+  title: A refusal test can pass on a blocker other than the one under test
+category: testing
+status: active
+created_at: '2026-08-17T09:31:07.958Z'
+updated_at: '2026-08-17T09:31:07.958Z'
+context: Retiring a milestone status enum value and widening a diagnostic-tolerance predicate so a plain roadmap-sync could repair artifacts still carrying the retired value. The design flagged that a too-wide predicate would let a malformed milestone be dropped from the regenerated roadmap index, so the change carried negative tests asserting that every other schema-invalid milestone still refuses the write.
+observation: Deliberately broadening the predicate to source === 'schema' left all four narrowness assertions green, so the tests proved nothing. Two independent defects hid it. First, the fixture still contained a standalone planned change; when the milestone failed to load, that planned change was orphaned and raised a reference-sourced diagnostic which blocked the write no matter how wide the schema tolerance was. Second, the assertions checked only the milestone file, but a milestone that fails to load is simply dropped from the load set, so its own file is untouched while the regenerated index silently loses the entry, which is where the real damage lands. Only after deleting the planned change and asserting an empty updatedFiles list did the broadened predicate fail six assertions.
+takeaway: Run a refusal test against deliberately broken code and watch it fail before trusting it. Strip the fixture down to the single condition under test, because any other diagnostic source in the same fixture will refuse the write for free and make the test unfireable. Assert that nothing was written at all, through an empty updated-files list plus byte-identical sibling artifacts, rather than that the artifact the guard names is unchanged, because a guard that fails to hold usually damages a different artifact than the one it names.
+applies_when: Writing a regression test that proves a command refuses to write while some guard or invalid state is present, especially when the fixture contains other artifacts that can independently trigger a refusal, or when the assertion only checks the artifact the guard is named after rather than every artifact the command could write.
+occurrences:
+  - origin: retire-milestone-active-status
+    date: '2026-08-17'
+    evidence: test/suites/roadmap-and-migration.ts roadmapRetiredStatusDir block; broadening isRetiredMilestoneStatusDiagnostic in src/roadmap/shared.ts to 'return diagnostic.source === "schema";' left the narrowness assertions PASS until the orphaned planned change was removed and updatedFiles.length === 0 was asserted, after which the same mutation failed 6 assertions.

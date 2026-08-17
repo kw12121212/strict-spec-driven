@@ -1,0 +1,73 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+operations:
+  ADDED:
+    roadmap-milestone-active-status-retirement:
+      strength: MUST
+      statement: The system MUST NOT accept or produce the milestone status value 'active'. The declared milestone status enum in the roadmap milestone and roadmap index artifacts MUST NOT include it, and the derived milestone status set MUST be exactly proposed, blocked, and complete, so a milestone owning planned work that is not yet fully archived derives 'proposed' whether or not any of that work has a strict change in progress. A roadmap artifact still declaring the retired value MUST be reported as a blocking diagnostic naming roadmap-sync as the repair, and roadmap-sync MUST rewrite that value to 'proposed' without requiring an additional flag. Legacy migration input declaring 'active' MUST be converted to 'proposed' rather than failing the migration.
+      scenarios:
+        in-progress-milestone-derives-proposed:
+          - GIVEN: a milestone owns a standalone planned change whose strict change exists under .strict-spec-driven/changes/ and is not archived
+          - WHEN: strict-spec-cli roadmap-status runs
+          - THEN: the milestone reports derivedStatus 'proposed' and no milestone reports 'active' in either declared or derived status
+        sync-does-not-rewrite-a-milestone-when-work-starts:
+          - GIVEN: a valid roadmap whose milestone declares 'proposed' and owns a planned change whose strict change has just been created under .strict-spec-driven/changes/
+          - WHEN: strict-spec-cli roadmap-sync runs
+          - THEN: the command exits zero, reports the milestone as valid with no mismatch, and leaves the milestone artifact byte-identical
+        retired-status-blocks-and-is-repaired-by-sync:
+          - GIVEN: a milestone artifact declares the retired status value 'active'
+          - WHEN: strict-spec-cli roadmap-status runs and strict-spec-cli roadmap-sync then runs with no additional flag
+          - THEN: roadmap-status reports the roadmap invalid with a deterministic diagnostic naming the milestone status field, the retired value, and roadmap-sync as the repair; roadmap-sync rewrites the value to 'proposed', reports the updated file, and roadmap-status is valid afterward
+        milestone-authoring-rejects-the-retired-value:
+          - GIVEN: the roadmap milestone schema and the declared roadmap status set
+          - WHEN: a milestone artifact carrying status 'active' is validated
+          - THEN: the value is not a member of the declared milestone status enum in either the milestone artifact or the roadmap index entry
+        legacy-migration-maps-active-to-proposed:
+          - GIVEN: a legacy Markdown roadmap milestone whose Status section declares 'active'
+          - WHEN: strict-spec-cli migrate runs against that legacy workflow
+          - THEN: the converted strict milestone declares 'proposed', the migration succeeds, and the converted roadmap validates against the narrowed status enum
+  MODIFIED:
+    roadmap-mutation-repairable-diagnostic-tolerance:
+      strength: MUST
+      statement: The system MUST let roadmap mutation commands write while the roadmap already reports a dangling depends_on reference, or a milestone status field carrying the retired value 'active', because each is repairable through those same commands and neither can affect which milestones load or what the regenerated index records. The tolerated set MUST be captured before the mutation is staged, so a dangling reference the mutation itself introduces is still refused with no file writes. Tolerance of the retired status value MUST match only a milestone status field whose value is exactly that retired literal; every other schema-invalid milestone state, and every other diagnostic kind, MUST continue to refuse every write. A command that completed its write while a pre-existing repairable diagnostic remains MUST report its updated files and MUST report validity as false until the roadmap is repaired.
+      scenarios:
+        preexisting-dangling-reference-does-not-refuse-a-write:
+          - GIVEN: a roadmap planned change declares a depends_on entry naming a planned change that no roadmap source declares
+          - WHEN: strict-spec-cli roadmap-generate planned-change, roadmap-move-planned-change, or roadmap-delete-planned-change runs on any planned change
+          - THEN: the command applies its mutation, reports the updated files, and reports validity as false while the dangling reference remains
+        dangling-reference-remains-repairable-through-the-cli:
+          - GIVEN: a roadmap planned change declares a depends_on entry naming a planned change that no roadmap source declares
+          - WHEN: strict-spec-cli roadmap-generate planned-change runs for the dependent planned change with remove-depends-on naming that entry
+          - THEN: the command exits zero, removes the entry, and roadmap-status reports the roadmap as valid with no diagnostics
+        retired-milestone-status-is-tolerated-and-repaired:
+          - GIVEN: a milestone artifact declares the retired status value 'active' and is otherwise schema-valid
+          - WHEN: strict-spec-cli roadmap-sync runs with no additional flag
+          - THEN: the command applies its write, rewrites the status to 'proposed', reports the updated file, and roadmap-status reports the roadmap as valid afterward
+        other-schema-invalid-milestones-still-refuse:
+          - GIVEN: a roadmap is valid, or is invalid for a reason other than a tolerated diagnostic such as a milestone that fails to parse, a milestone whose status is an unrecognized value that is not the retired literal, a milestone missing a required field, or a self-dependency
+          - WHEN: strict-spec-cli roadmap-generate planned-change runs with a depends_on entry naming no declared planned change, or runs while that other diagnostic is present
+          - THEN: the command exits non-zero, writes no file, and leaves every roadmap artifact byte-identical
+    roadmap-reopen-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-reopen append a dated reopen note to a completed milestone, leave already-archived planned changes immutable, seed a pending follow-up standalone planned change linked to the milestone under the canonical milestone-prefixed filename convention, and rewrite the milestone to the status derived from its planned-change state (proposed when only not-yet-started follow-up work exists), which a subsequent roadmap-sync preserves because the seeded follow-up is pending non-archived work; roadmap-sync MUST re-derive a milestone whose planned changes are all archived back to complete rather than preserving a stale declared status.
+      scenarios:
+        reopen-seeds-pending-followup:
+          - GIVEN: a completed milestone whose only planned change is archived
+          - WHEN: strict-spec-cli roadmap-reopen runs for that milestone
+          - THEN: the command exits zero, the milestone file becomes proposed with a dated reopen note, the archived planned change is byte-identical, and a new pending follow-up standalone planned change linked to the milestone is created
+        reopened-milestone-survives-sync:
+          - GIVEN: a milestone reopened by roadmap-reopen with its seeded pending follow-up planned change present
+          - WHEN: strict-spec-cli roadmap-sync runs before any further edits
+          - THEN: the milestone stays proposed because it has pending non-archived planned work rather than reverting to complete
+        sync-rederives-complete-from-fully-archived:
+          - GIVEN: a milestone declared proposed whose planned changes are all archived and that has no pending planned work
+          - WHEN: strict-spec-cli roadmap-sync or archive-triggered sync runs
+          - THEN: the canonical milestone and index status are rewritten to complete
+        reopen-seeds-canonically-named-follow-up:
+          - GIVEN: a completed milestone whose only planned change is archived
+          - WHEN: roadmap-reopen runs for that milestone
+          - THEN: the seeded follow-up standalone planned-change file uses the canonical milestone-prefixed basename and roadmap-status is valid afterward
+  REMOVED: {}

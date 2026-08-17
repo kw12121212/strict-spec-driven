@@ -51,6 +51,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/asserting-the-absence-clause-leaves-the-presence-62d917.yaml
+    a-refusal-test-can-pass-on-a-blocker-other-than-08f835:
+      title: A refusal test can pass on a blocker other than the one under test
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-refusal-test-can-pass-on-a-blocker-other-than-08f835.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

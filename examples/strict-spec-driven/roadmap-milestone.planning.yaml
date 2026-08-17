@@ -51,7 +51,7 @@ dependencies:
   - 0001-foundation
 risks:
   - Roadmap behavior could drift from the schema contract if validation is incomplete.
-status: active
+status: proposed
 notes:
   - Roadmap skills should consume the same structured artifact contract as CLI validation.
 details: |

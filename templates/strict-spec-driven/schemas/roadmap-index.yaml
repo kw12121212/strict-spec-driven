@@ -6,7 +6,7 @@ artifact_name: roadmap-index
 description: Strict YAML roadmap index artifact (v2 — keyed milestone map).
 example_ref: ../../../examples/strict-spec-driven/roadmap-index.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   type: object
   additionalProperties: false
   required:
@@ -31,7 +31,7 @@ json_schema:
       type: object
       additionalProperties: false
       patternProperties:
-        "^(\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$":
+        ^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$:
           type: object
           additionalProperties: false
           required:
@@ -47,6 +47,5 @@ json_schema:
               type: string
               enum:
                 - proposed
-                - active
                 - blocked
                 - complete

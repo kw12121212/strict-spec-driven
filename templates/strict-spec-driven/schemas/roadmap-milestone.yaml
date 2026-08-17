@@ -141,7 +141,6 @@ json_schema:
       enum:
         - proposed
         - planned
-        - active
         - blocked
         - complete
     paused:

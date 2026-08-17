@@ -1,0 +1,54 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: retire-milestone-active-status
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: Write noise. 'active' is derived from whether .strict-spec-driven/changes/ holds a non-archived change directory, but roadmap-sync writes that transient value back into the milestone file. Every propose flips the milestone to 'active' and every archive flips it back, producing milestone-file diffs that carry no information a reader cannot get by listing changes/, and that mix into review diffs alongside real roadmap edits.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'A milestone owning non-archived planned work derives ''proposed'', and the derived milestone status set is exactly proposed, blocked, and complete. Observable check: after proposing a roadmap-backed change, roadmap-sync leaves the milestone file byte-identical (empty git diff); the milestone changes only once, to ''complete'', when its planned changes are all archived.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: Zero-migration-cost window. All four milestones are currently complete and none is 'active', so narrowing the enum converts no live data. Once the next milestone starts work there would be live 'active' artifacts to repair.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: The 'planned' alias stays valid and keeps normalizing to 'proposed'. paused and awaiting_refinement semantics are untouched. roadmap-recommend keeps identical observable behavior, including its skip codes. Archived roadmap artifacts are never rewritten. The planned-change-level state value 'active' and the workflow-state-active skip code stay as they are, as do the unrelated lesson and SOP 'active' status values.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: Milestone status only. The change touches the roadmap-milestone and roadmap-index schema status enums, DECLARED_ROADMAP_STATUSES, and deriveMilestoneStatus. It does not touch PlannedChangeState, which roadmap-recommend depends on to skip work already in progress. Repair of existing artifacts is by widening isRepairableRoadmapDiagnostic so an ordinary roadmap-sync rewrites the retired value, chosen over a --fix-names-style opt-in flag after the conflict with roadmap-mutation-repairable-diagnostic-tolerance was raised and the choice reaffirmed.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: migration-scenario-placement
+    question: Should the scenario covering legacy Markdown 'active' to 'proposed' migration mapping live on the new roadmap retirement requirement, or as a MODIFIED scenario on migrate-domain-behavior?
+    context: 'migrate-domain-behavior:23 states migration MUST preserve declared statuses. Once ''active'' is not a declared status, mapping it is the only valid behavior, which is arguably an exception to that requirement. Impact: decides whether this change touches one main spec or two, and whether a future reader looking up migration behavior finds this rule in the migrate domain where they would expect it. Recommendation: keep it on the new roadmap requirement, because it is one facet of retiring the value rather than a migration-specific rule; switch to a migrate-domain-behavior MODIFIED entry only if migration rules must be discoverable solely from that spec.'
+    answer: Keep it on the new roadmap requirement roadmap-milestone-active-status-retirement. The migration mapping is one facet of retiring the value rather than a migration-specific rule, so the whole retirement contract stays readable in one place. migrate-domain-behavior is not modified by this change.
+    status: resolved
+    answered_by: human
+  - id: retired-enum-value-tech-rule
+    question: Should this change add a technical standard rule covering how to retire an enum value, extending the existing retired-schema-fields-leave-a-tombstone rule?
+    context: 'yaml-first-artifacts currently carries retired-schema-fields-leave-a-tombstone, which governs retiring a schema field and says nothing about retiring one value from an enum. This change establishes a concrete pattern: hard-remove the value, raise a targeted diagnostic, and repair it through roadmap-sync. Impact: decides whether the change produces a delta-tech artifact and whether future enum retirements are bound by a MUST. Recommendation: defer. One instance is thin evidence for a MUST, and promoting a pattern to a rule makes every existing instance a violation; revisit after a second enum retirement.'
+    answer: Defer. No delta-tech artifact in this change. One instance is thin evidence for a MUST, and the recorded lesson promoting-a-repeated-fix-to-a-must-rule-makes-ev-0b557e warns that promoting a pattern to a MUST turns every existing instance into a violation. Revisit after a second enum retirement.
+    status: resolved
+    answered_by: human

@@ -33547,7 +33547,7 @@ artifact_name: roadmap-index
 description: Strict YAML roadmap index artifact (v2 — keyed milestone map).
 example_ref: ../../../examples/strict-spec-driven/roadmap-index.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   type: object
   additionalProperties: false
   required:
@@ -33572,7 +33572,7 @@ json_schema:
       type: object
       additionalProperties: false
       patternProperties:
-        "^(\\\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$":
+        ^(\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$:
           type: object
           additionalProperties: false
           required:
@@ -33588,7 +33588,6 @@ json_schema:
               type: string
               enum:
                 - proposed
-                - active
                 - blocked
                 - complete
 `,
@@ -33735,7 +33734,6 @@ json_schema:
       enum:
         - proposed
         - planned
-        - active
         - blocked
         - complete
     paused:
@@ -35463,7 +35461,7 @@ dependencies:
   - 0001-foundation
 risks:
   - Roadmap behavior could drift from the schema contract if validation is incomplete.
-status: active
+status: proposed
 notes:
   - Roadmap skills should consume the same structured artifact contract as CLI validation.
 details: |

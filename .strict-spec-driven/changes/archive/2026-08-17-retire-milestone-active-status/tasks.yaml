@@ -1,0 +1,86 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: retire-milestone-active-status
+sections:
+  Implementation:
+    remove-schema-enum-value:
+      text: Remove 'active' from the status enum in templates/strict-spec-driven/schemas/roadmap-milestone.yaml and templates/strict-spec-driven/schemas/roadmap-index.yaml.
+      status: complete
+    narrow-declared-status-constant:
+      text: Remove 'active' from DECLARED_ROADMAP_STATUSES in src/roadmap/model.ts and from the duplicate constant in src/converters/roadmap.ts, and fix every resulting type error.
+      status: complete
+    drop-active-derivation-branch:
+      text: Drop the active branch from deriveMilestoneStatus in src/roadmap/status.ts so a milestone with non-archived planned work derives 'proposed', and update the surrounding doc comments in status.ts and src/roadmap/sync.ts that describe the derived status set.
+      status: complete
+    raise-retired-status-diagnostic:
+      text: Raise a deterministic blocking diagnostic when a milestone status field carries the retired value 'active', naming the field path, the retired value, and roadmap-sync as the repair, per the blocking-diagnostics-name-how-to-apply-each-remedy standard.
+      status: complete
+    tolerate-retired-status-in-sync:
+      text: Extend isRepairableRoadmapDiagnostic in src/roadmap/shared.ts to tolerate exactly that diagnostic, matching only a milestone status field whose value is the retired literal, so roadmap-sync rewrites it to 'proposed' with no additional flag.
+      status: complete
+    map-legacy-active-in-migration:
+      text: 'Map a legacy Markdown milestone status of ''active'' to ''proposed'' in src/converters/roadmap.ts, keeping the legacy ''- Declared: <status>'' line accepted and its error text accurate.'
+      status: complete
+    update-bundled-example:
+      text: 'Update examples/strict-spec-driven/roadmap-milestone.planning.yaml, which declares status: active, to a status the narrowed enum allows.'
+      status: complete
+    regenerate-embedded-templates:
+      text: Confirm src/embedded-templates.ts already carries the narrowed enums, regenerated inside the schema-edit and sample-edit transactions rather than by a deferred step, per bundled-asset-writes-regenerate-derived-output.
+      status: complete
+      command: cp src/embedded-templates.ts /tmp/bundle-before.ts && bun scripts/gen-templates-bundle.ts && diff -q /tmp/bundle-before.ts src/embedded-templates.ts
+    rebuild-dist:
+      text: Rebuild compiled output before relying on dist/ behavior, per the rebuild-after-source-edits standard.
+      status: complete
+      command: bun run build
+  Testing:
+    test-in-progress-derives-proposed:
+      text: 'Regression test: a milestone owning a planned change whose strict change is present and unarchived reports derivedStatus ''proposed'', and roadmap-status reports ''active'' for no milestone.'
+      status: complete
+    test-sync-leaves-milestone-byte-identical:
+      text: 'Regression test proving the reported problem is fixed: with a milestone declaring ''proposed'' and a newly created strict change for one of its planned changes, roadmap-sync exits zero and leaves the milestone artifact byte-identical.'
+      status: complete
+    test-retired-status-blocks-then-syncs:
+      text: 'Regression test: a milestone declaring ''active'' makes roadmap-status invalid with a diagnostic naming the status field, the retired value, and roadmap-sync; a plain roadmap-sync then rewrites it to ''proposed'' and roadmap-status is valid afterward.'
+      status: complete
+    test-tolerance-stays-narrow:
+      text: 'Negative regression test for the widened tolerance: a milestone that fails to parse, one whose status is an unrecognized value other than the retired literal, and one missing a required field each still refuse every roadmap mutation write and leave all artifacts byte-identical.'
+      status: complete
+    test-migration-maps-legacy-active:
+      text: 'Regression test: migrating a legacy Markdown roadmap milestone declaring ''active'' produces a strict milestone declaring ''proposed'' and a roadmap that validates against the narrowed enum.'
+      status: complete
+    test-recommend-behavior-unchanged:
+      text: Confirm roadmap-recommend regression coverage still passes unchanged, proving the planned-change-level 'active' state and the workflow-state-active skip code were not touched.
+      status: complete
+    run-project-regression:
+      text: Run the complete project regression suite, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun test/run.ts > /tmp/retire-milestone-active-status.log 2>&1; echo "EXIT=$?"
+    run-coverage-gate:
+      text: Run the coverage gate and confirm src/** line coverage stays at or above the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-repo-roadmap-still-valid:
+      text: Confirm this repository's own roadmap still validates under the narrowed enum and that no milestone or index entry changed unexpectedly.
+      status: complete
+      command: strict-spec-cli roadmap-status
+    verify-yaml-mutation-inventory:
+      text: Confirm the YAML mutation surface inventory still passes after the schema and diagnostic changes, per the yaml-mutation-surfaces-stay-inventoried standard.
+      status: complete
+      command: strict-spec-cli yaml-surface-list
+    run-ready:
+      text: Run the strict readiness check for this change.
+      status: complete
+      command: strict-spec-cli ready retire-milestone-active-status
+    run-verify:
+      text: Run the strict schema and artifact-shape verification for this change.
+      status: complete
+      command: strict-spec-cli verify retire-milestone-active-status
+    check-archive-merge:
+      text: Confirm the delta spec merges cleanly into roadmap-domain-behavior at archive time, since two MODIFIED requirements rewrite existing statements and scenario sets.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: test-retired-status-blocks-then-syncs

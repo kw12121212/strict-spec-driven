@@ -1,7 +1,11 @@
 import {
+  DECLARED_ROADMAP_STATUSES,
   PLANNED_CHANGE_SCHEMA_ID,
+  RETIRED_MILESTONE_STATUS,
+  RETIRED_MILESTONE_STATUS_MESSAGE,
   ROADMAP_INDEX_SCHEMA_ID,
   ROADMAP_MILESTONE_SCHEMA_ID,
+  type DeclaredRoadmapStatus,
   type PlannedChangeEntry,
   type RoadmapDiagnostic,
   type RoadmapIndexArtifact,
@@ -25,6 +29,54 @@ import {
 
 const MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
 const QUESTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+const DECLARED_ROADMAP_STATUS_LIST = DECLARED_ROADMAP_STATUSES.join(", ");
+
+/**
+ * Resolve a declared milestone status into a value the caller can persist,
+ * recording a diagnostic when it is not one this version accepts.
+ *
+ * The retired value is handled apart from an outright unsupported one. An
+ * unsupported status yields `null`, which makes the caller abandon the artifact
+ * — the right outcome, since nothing can be inferred about a milestone whose
+ * status is unreadable. The retired value instead resolves to `proposed`, so
+ * the milestone still loads and `roadmap-sync` can rewrite the file. Failing to
+ * load it would drop the milestone from the regenerated roadmap index, which
+ * would delete recorded work in the course of repairing a status field.
+ */
+function resolveMilestoneStatusValue(
+  rawStatus: unknown,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): DeclaredRoadmapStatus | null {
+  if (isDeclaredRoadmapStatus(rawStatus)) {
+    return rawStatus;
+  }
+  if (rawStatus === RETIRED_MILESTONE_STATUS) {
+    diagnostics.push(
+      makeDiagnostic(
+        "schema",
+        artifactPath,
+        fieldPath,
+        RETIRED_MILESTONE_STATUS_MESSAGE,
+        DECLARED_ROADMAP_STATUS_LIST,
+        RETIRED_MILESTONE_STATUS,
+      ),
+    );
+    return "proposed";
+  }
+  diagnostics.push(
+    makeDiagnostic(
+      "schema",
+      artifactPath,
+      fieldPath,
+      "unsupported milestone status",
+      DECLARED_ROADMAP_STATUS_LIST,
+      String(rawStatus),
+    ),
+  );
+  return null;
+}
 
 function validateString(
   parent: Record<string, unknown>,
@@ -217,19 +269,12 @@ export function validateRoadmapIndexArtifact(
 
     const title = validateString(value, "title", artifactPath, `$.milestones.${key}.title`, diagnostics);
     const milestonePath = validateString(value, "path", artifactPath, `$.milestones.${key}.path`, diagnostics);
-    const statusValue = value.status;
-    if (!isDeclaredRoadmapStatus(statusValue)) {
-      diagnostics.push(
-        makeDiagnostic(
-          "schema",
-          artifactPath,
-          `$.milestones.${key}.status`,
-          "unsupported milestone status",
-          "proposed, planned, active, blocked, complete",
-          String(statusValue),
-        ),
-      );
-    }
+    const statusValue = resolveMilestoneStatusValue(
+      value.status,
+      artifactPath,
+      `$.milestones.${key}.status`,
+      diagnostics,
+    );
     if (milestonePath && !isRepoRelativePath(milestonePath)) {
       diagnostics.push(
         makeDiagnostic(
@@ -242,7 +287,7 @@ export function validateRoadmapIndexArtifact(
         ),
       );
     }
-    if (!title || !milestonePath || !isDeclaredRoadmapStatus(statusValue)) {
+    if (!title || !milestonePath || statusValue === null) {
       continue;
     }
     milestones.push({
@@ -692,19 +737,7 @@ export function validateMilestoneArtifact(
       })()
     : undefined;
 
-  const statusValue = artifact.status;
-  if (!isDeclaredRoadmapStatus(statusValue)) {
-    diagnostics.push(
-      makeDiagnostic(
-        "schema",
-        artifactPath,
-        "$.status",
-        "unsupported milestone status",
-        "proposed, planned, active, blocked, complete",
-        String(statusValue),
-      ),
-    );
-  }
+  const statusValue = resolveMilestoneStatusValue(artifact.status, artifactPath, "$.status", diagnostics);
 
   const pausedState = "paused" in artifact && artifact.paused !== undefined
     ? (() => {
@@ -874,7 +907,7 @@ export function validateMilestoneArtifact(
     visit(changeKey, []);
   }
 
-  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || !isDeclaredRoadmapStatus(statusValue)) {
+  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || statusValue === null) {
     return null;
   }
 

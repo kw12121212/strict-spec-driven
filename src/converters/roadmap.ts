@@ -1,11 +1,15 @@
-import { cloneDefaultMilestoneIntakeQuestions, type MilestoneIntakeQuestion } from "../roadmap/model.js";
+import {
+  cloneDefaultMilestoneIntakeQuestions,
+  RETIRED_MILESTONE_STATUS,
+  type MilestoneIntakeQuestion,
+} from "../roadmap/model.js";
 
 const ROADMAP_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-index.yaml";
 const ROADMAP_MILESTONE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-milestone.yaml";
 const SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-const DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "active", "blocked", "complete"] as const;
+const DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "blocked", "complete"] as const;
 type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 type DeclaredPlannedChangeStatus = "planned" | "complete";
 
@@ -149,8 +153,19 @@ function parseSectionText(sectionText: string): string {
   );
 }
 
+/**
+ * A legacy Markdown milestone may declare `active`, which the strict schema no
+ * longer accepts. It is mapped explicitly rather than left to the unrecognized
+ * fallback below, so migrating a legacy roadmap emits a valid strict status
+ * instead of failing or producing an artifact the narrowed enum rejects.
+ * `proposed` is the value the deriver would produce on the first roadmap-sync
+ * anyway, because that milestone's planned work is not yet fully archived.
+ */
 function normalizeDeclaredRoadmapStatus(raw: string): DeclaredRoadmapStatus {
   const normalized = raw.trim().toLowerCase();
+  if (normalized === RETIRED_MILESTONE_STATUS) {
+    return "proposed";
+  }
   if ((DECLARED_ROADMAP_STATUSES as readonly string[]).includes(normalized)) {
     return normalized as DeclaredRoadmapStatus;
   }

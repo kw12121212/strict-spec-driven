@@ -76,10 +76,16 @@ function derivePlannedChangeDeclaredStatus(state: PlannedChangeState): DeclaredP
   return state === "archived" ? "complete" : "planned";
 }
 
-function deriveMilestoneStatus(states: PlannedChangeState[]): "proposed" | "active" | "complete" {
+/**
+ * A milestone is `complete` once every planned change it owns is archived, and
+ * `proposed` otherwise. Work being in progress deliberately does not get its
+ * own value: it is a property of the planned change, already reported per entry
+ * as `state`, and deriving it here only made roadmap-sync rewrite the milestone
+ * file on every propose and again on every archive.
+ */
+function deriveMilestoneStatus(states: PlannedChangeState[]): "proposed" | "complete" {
   if (states.length === 0) return "proposed";
   if (states.every((state) => state === "archived")) return "complete";
-  if (states.some((state) => state === "active" || state === "ambiguous")) return "active";
   return "proposed";
 }
 
@@ -88,7 +94,7 @@ function deriveMilestoneStatus(states: PlannedChangeState[]): "proposed" | "acti
  * forces the derived status to `blocked` regardless of underlying
  * planned-change state, so the operator-applied pause survives canonical
  * rewrite and roadmap-recommend. Without a pause the derived status follows
- * structured planned-change state (proposed, active, or complete).
+ * structured planned-change state (proposed or complete).
  *
  * `awaiting_refinement` is deliberately NOT consulted here. A deferred
  * milestone is planned but not yet elaborated, which is not the same as

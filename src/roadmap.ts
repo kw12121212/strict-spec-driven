@@ -26,6 +26,7 @@ import {
 import {
   diagnosticKey,
   ensureTrailingNewline,
+  isRetiredMilestoneStatusDiagnostic,
   makeDiagnostic,
   normalizeRepoRelativePath,
   sortDiagnostics,
@@ -646,9 +647,16 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const tolerated = new Set((options.toleratedDiagnostics ?? []).map(diagnosticKey));
+  // A retired milestone status is tolerated by sync itself, not only by the
+  // mutation commands that stage a tolerated set: repairing it is precisely
+  // what sync is for, and requiring a caller to pass it in would mean a plain
+  // `roadmap-sync` could never clear the value it is the documented remedy for.
+  // The dangling-dependency diagnostic is deliberately not tolerated here,
+  // because only the commands that can repair it stage it as pre-existing.
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) =>
     diagnostic.artifactPath !== ROADMAP_INDEX_PATH
       && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic.artifactPath === ROADMAP_DIR)
+      && !isRetiredMilestoneStatusDiagnostic(diagnostic)
       && !tolerated.has(diagnosticKey(diagnostic)));
   if (blockingDiagnostics.length > 0) {
     return {

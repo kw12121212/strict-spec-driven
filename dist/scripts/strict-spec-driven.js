@@ -9318,7 +9318,7 @@ artifact_name: roadmap-index
 description: Strict YAML roadmap index artifact (v2 — keyed milestone map).
 example_ref: ../../../examples/strict-spec-driven/roadmap-index.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   type: object
   additionalProperties: false
   required:
@@ -9343,7 +9343,7 @@ json_schema:
       type: object
       additionalProperties: false
       patternProperties:
-        "^(\\\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$":
+        ^(\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$:
           type: object
           additionalProperties: false
           required:
@@ -9359,7 +9359,6 @@ json_schema:
               type: string
               enum:
                 - proposed
-                - active
                 - blocked
                 - complete
 `,
@@ -9506,7 +9505,6 @@ json_schema:
       enum:
         - proposed
         - planned
-        - active
         - blocked
         - complete
     paused:
@@ -11234,7 +11232,7 @@ dependencies:
   - 0001-foundation
 risks:
   - Roadmap behavior could drift from the schema contract if validation is incomplete.
-status: active
+status: proposed
 notes:
   - Roadmap skills should consume the same structured artifact contract as CLI validation.
 details: |
@@ -21566,8 +21564,10 @@ var ROADMAP_MILESTONES_DIR = `${ROADMAP_DIR}/milestones`;
 var ROADMAP_ARCHIVE_DIR = `${ROADMAP_DIR}/archive`;
 var ROADMAP_ARCHIVE_MILESTONES_DIR = `${ROADMAP_ARCHIVE_DIR}/milestones`;
 var ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR = `${ROADMAP_ARCHIVE_DIR}/planned-changes`;
-var DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "active", "blocked", "complete"];
+var DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "blocked", "complete"];
 var DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"];
+var RETIRED_MILESTONE_STATUS = "active";
+var RETIRED_MILESTONE_STATUS_MESSAGE = `milestone status '${RETIRED_MILESTONE_STATUS}' is retired and is read as 'proposed'; run strict-spec-cli roadmap-sync to rewrite it`;
 var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 var PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
@@ -21700,7 +21700,10 @@ function diagnosticKey(diagnostic2) {
   ].join("\x00");
 }
 function isRepairableRoadmapDiagnostic(diagnostic2) {
-  return diagnostic2.source === "reference" && diagnostic2.message === MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE;
+  return diagnostic2.source === "reference" && diagnostic2.message === MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE || isRetiredMilestoneStatusDiagnostic(diagnostic2);
+}
+function isRetiredMilestoneStatusDiagnostic(diagnostic2) {
+  return diagnostic2.source === "schema" && diagnostic2.message === RETIRED_MILESTONE_STATUS_MESSAGE && diagnostic2.actual === RETIRED_MILESTONE_STATUS;
 }
 function partitionRepairableDiagnostics(diagnostics) {
   const blocking = [];
@@ -21763,6 +21766,18 @@ import path11 from "path";
 // src/roadmap/validate.ts
 var MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
 var QUESTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+var DECLARED_ROADMAP_STATUS_LIST = DECLARED_ROADMAP_STATUSES.join(", ");
+function resolveMilestoneStatusValue(rawStatus, artifactPath, fieldPath, diagnostics) {
+  if (isDeclaredRoadmapStatus(rawStatus)) {
+    return rawStatus;
+  }
+  if (rawStatus === RETIRED_MILESTONE_STATUS) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, RETIRED_MILESTONE_STATUS_MESSAGE, DECLARED_ROADMAP_STATUS_LIST, RETIRED_MILESTONE_STATUS));
+    return "proposed";
+  }
+  diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "unsupported milestone status", DECLARED_ROADMAP_STATUS_LIST, String(rawStatus)));
+  return null;
+}
 function validateString(parent, key, artifactPath, fieldPath, diagnostics) {
   const value = parent[key];
   if (typeof value !== "string" || value.length === 0) {
@@ -21876,14 +21891,11 @@ function validateRoadmapIndexArtifact(artifact, artifactPath, diagnostics) {
     seenIds.add(key);
     const title = validateString(value, "title", artifactPath, `$.milestones.${key}.title`, diagnostics);
     const milestonePath = validateString(value, "path", artifactPath, `$.milestones.${key}.path`, diagnostics);
-    const statusValue = value.status;
-    if (!isDeclaredRoadmapStatus(statusValue)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}.status`, "unsupported milestone status", "proposed, planned, active, blocked, complete", String(statusValue)));
-    }
+    const statusValue = resolveMilestoneStatusValue(value.status, artifactPath, `$.milestones.${key}.status`, diagnostics);
     if (milestonePath && !isRepoRelativePath(milestonePath)) {
       diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}.path`, "milestone path must be repo-relative", "repo-relative path", milestonePath));
     }
-    if (!title || !milestonePath || !isDeclaredRoadmapStatus(statusValue)) {
+    if (!title || !milestonePath || statusValue === null) {
       continue;
     }
     milestones.push({
@@ -22162,10 +22174,7 @@ function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
     }
     return artifact.details;
   })() : undefined;
-  const statusValue = artifact.status;
-  if (!isDeclaredRoadmapStatus(statusValue)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.status", "unsupported milestone status", "proposed, planned, active, blocked, complete", String(statusValue)));
-  }
+  const statusValue = resolveMilestoneStatusValue(artifact.status, artifactPath, "$.status", diagnostics);
   const pausedState = "paused" in artifact && artifact.paused !== undefined ? (() => {
     if (artifact.paused === null) {
       diagnostics.push(makeDiagnostic("schema", artifactPath, "$.paused", "paused must be a mapping", "mapping", "null"));
@@ -22276,7 +22285,7 @@ function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
   for (const changeKey of plannedChangeKeys) {
     visit(changeKey, []);
   }
-  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || !isDeclaredRoadmapStatus(statusValue)) {
+  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || statusValue === null) {
     return null;
   }
   return {
@@ -22503,8 +22512,6 @@ function deriveMilestoneStatus(states) {
     return "proposed";
   if (states.every((state) => state === "archived"))
     return "complete";
-  if (states.some((state) => state === "active" || state === "ambiguous"))
-    return "active";
   return "proposed";
 }
 function deriveEffectiveMilestoneStatus(milestone, states) {
@@ -23428,7 +23435,7 @@ function syncRoadmap(rootDir, options = {}) {
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const tolerated = new Set((options.toleratedDiagnostics ?? []).map(diagnosticKey));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic2.artifactPath === ROADMAP_DIR) && !tolerated.has(diagnosticKey(diagnostic2)));
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic2.artifactPath === ROADMAP_DIR) && !isRetiredMilestoneStatusDiagnostic(diagnostic2) && !tolerated.has(diagnosticKey(diagnostic2)));
   if (blockingDiagnostics.length > 0) {
     return {
       valid: false,
@@ -32468,7 +32475,7 @@ var ROADMAP_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-in
 var ROADMAP_MILESTONE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-milestone.yaml";
 var SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
 var STRICT_WORKFLOW_DIR14 = ".strict-spec-driven";
-var DECLARED_ROADMAP_STATUSES2 = ["proposed", "planned", "active", "blocked", "complete"];
+var DECLARED_ROADMAP_STATUSES2 = ["proposed", "planned", "blocked", "complete"];
 function normalizeWhitespace2(value) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -32546,6 +32553,9 @@ function parseSectionText(sectionText) {
 }
 function normalizeDeclaredRoadmapStatus(raw) {
   const normalized = raw.trim().toLowerCase();
+  if (normalized === RETIRED_MILESTONE_STATUS) {
+    return "proposed";
+  }
   if (DECLARED_ROADMAP_STATUSES2.includes(normalized)) {
     return normalized;
   }

@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: retire-milestone-active-status
+  status: proposed
+summary:
+  what:
+    - 'Retire the milestone status value ''active'' from the strict roadmap: remove it from the roadmap-milestone and roadmap-index schema status enums, remove it from the derived milestone status set so a milestone owning non-archived planned work derives ''proposed'', and let roadmap-sync tolerate and repair a milestone artifact still declaring the retired value.'
+  why:
+    - 'Milestone ''active'' is a purely derived value with no authoring surface: roadmap-generate milestone accepts no --status flag and always writes ''proposed'', so ''active'' only ever appears because deriveMilestoneStatus produced it. roadmap-sync then writes that transient value back into the milestone file, so every propose flips the milestone to ''active'' and every archive flips it back. That churn produces milestone-file diffs that carry no information a reader cannot get from listing .strict-spec-driven/changes/, and it mixes into review diffs alongside real roadmap edits.'
+    - Every roadmap milestone is currently complete and none is 'active', so the enum can be narrowed with no live data to migrate. Once the next milestone starts work there would be live 'active' artifacts to convert.
+scope:
+  in:
+    - Remove 'active' from the status enum in templates/strict-spec-driven/schemas/roadmap-milestone.yaml and templates/strict-spec-driven/schemas/roadmap-index.yaml.
+    - Remove 'active' from DECLARED_ROADMAP_STATUSES in src/roadmap/model.ts and drop the active branch from deriveMilestoneStatus in src/roadmap/status.ts so a milestone with non-archived planned work derives 'proposed'.
+    - Widen isRepairableRoadmapDiagnostic in src/roadmap/shared.ts to tolerate exactly the diagnostic raised for a milestone status field still carrying the retired value 'active', so roadmap-sync rewrites it to 'proposed' instead of refusing every write.
+    - Map the legacy Markdown milestone status 'active' to 'proposed' in the migration converter src/converters/roadmap.ts, keeping legacy roadmaps convertible.
+    - 'Update examples/strict-spec-driven/roadmap-milestone.planning.yaml, which declares status: active, and regenerate src/embedded-templates.ts with bun scripts/gen-templates-bundle.ts because the schemas are embedded assets.'
+  out:
+    - Renaming or removing the planned-change-level PlannedChangeState value 'active' or the roadmap-recommend skip code workflow-state-active.
+    - Removing or altering the 'planned' milestone status alias.
+    - Changing the lesson or SOP artifact status value 'active', which is an unrelated vocabulary.
+    - Introducing a replacement milestone status for in-progress work.
+unchanged_behavior:
+  - The 'planned' milestone status stays a valid declared value and keeps normalizing to 'proposed'.
+  - paused.status forces the derived milestone status to 'blocked', and awaiting_refinement still does not affect derived status and only influences roadmap-recommend.
+  - 'roadmap-recommend keeps its current observable behavior: the same planned change is recommended, the same candidates are skipped, and the same skip codes are reported.'
+  - Archived roadmap artifacts under roadmap/archive/ are never rewritten by this change and are not blocked by the narrowed status enum.
+  - Milestone authoring keeps having no --status flag; milestone status remains entirely derived.
