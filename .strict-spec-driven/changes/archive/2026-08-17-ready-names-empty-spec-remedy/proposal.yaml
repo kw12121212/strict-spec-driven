@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: ready-names-empty-spec-remedy
+  status: proposed
+summary:
+  what:
+    - 'Rewrite the ready command''s missing-delta-spec proposal_readiness diagnostic so its message names both remedies with pasteable commands: authoring a delta spec, and recording an explicit empty-spec design decision.'
+    - Derive the accepted empty-spec decision ids named in that message from the same set the readiness check evaluates, so the guidance cannot drift from the set it describes.
+    - Add a second readiness suggestion carrying the generate design invocation that records an empty-spec decision.
+    - Raise the pattern to a binding engineering rule under the cli-command-metadata standard, so a blocking diagnostic that names a remedy must state how to apply it.
+    - 'Bring the two blocking diagnostics that already violate that rule into compliance: the requirement-intake attribution diagnostic and the harness-session archive-status diagnostic.'
+  why:
+    - The diagnostic's expected field already offers 'an explicit empty-spec decision' as an alternative to authoring a delta spec, but nothing in the ready output states what that decision is, which id it must carry, which artifact holds it, or which command writes it.
+    - The four accepted decision ids live only in the workflow-state source module. They appear in no command metadata, no skill guidance, and no user documentation, so the only way to discover the alternative is to read the CLI's source.
+    - Reading CLI source is unavailable to an agent working in an external project, where strict-spec-cli is installed globally and its source is outside the repository under work.
+    - Of 32 archived changes with an empty specs directory, only 6 recorded one of the accepted decision ids, so the undiscoverable alternative correlates with changes that never took it.
+scope:
+  in:
+    - Replace the proposal_readiness missing-delta-spec diagnostic message in src/workflow-state.ts with remediation text naming remedy A (author a delta spec) and remedy B (record an explicit empty-spec decision), each with a complete runnable command.
+    - Expose the message through an exported formatter that builds the accepted-id list from the EMPTY_SPEC_DECISION_IDS set rather than restating those ids as a literal.
+    - Add a readiness suggestion for the generate design invocation that records an empty-spec decision, alongside the existing delta-spec suggestion.
+    - Add a delta spec requirement on cli-foundation governing the remediation content this diagnostic must carry.
+    - Add regression coverage asserting the diagnostic names both remedies, both commands, and every accepted decision id, and asserting the id list is derived rather than restated.
+    - Add a delta-tech artifact adding a MUST rule to the cli-command-metadata standard requiring a blocking diagnostic to name how each remedy it offers is applied, and to derive any fixed set of accepted values from the declaration the check evaluates.
+    - Name the resolving command in the requirement-intake diagnostic that currently reports only 'answered_by human or roadmap', mirroring the compliant sibling diagnostic in the same module.
+    - Name the resolving command in the harness-session diagnostic that currently reports only 'resolved or blocked' before archive.
+  out:
+    - Add a new CLI flag or command for declaring an empty-spec decision; the existing generate design --decision path is the supported entry point and stays unchanged.
+    - Change which decision ids the readiness check accepts, or when the missing-delta-spec diagnostic is emitted.
+    - Rework the harness doctor cross-environment port warning, which reports a condition needing human judgement rather than blocking a workflow gate, and which the new rule records as a deliberate exception.
+    - Audit or reword non-blocking diagnostics, warnings, and informational output that do not gate a workflow step.
+    - Change the verify, archive, or next commands, none of which emit either diagnostic this change edits; the harness-session archive diagnostic is edited, and belongs to the separate harness-session command.
+unchanged_behavior:
+  - An empty specs directory remains a legitimate state for a technical-only change, and verify continues to emit no diagnostic for it.
+  - The set of accepted empty-spec decision ids and their semantics stay exactly as they are, so already-archived changes that recorded one remain valid.
+  - 'The ready command''s exit-code contract is unchanged: zero when ready, one when not ready or on usage error.'
+  - The condition that triggers the missing-delta-spec diagnostic is unchanged; only the text and suggestions it carries change.

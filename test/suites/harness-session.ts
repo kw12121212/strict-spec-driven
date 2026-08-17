@@ -41,11 +41,21 @@ export async function runHarnessSessionSuite(context: TestContext): Promise<void
 
     const activeArchive = cli(["harness-session", "archive", "checkout-cdp-target"], { cwd: workspace.workspaceRoot });
     context.assert(activeArchive.status !== 0, "harness-session archive rejects unresolved sessions");
-    const activeArchiveJson = JSON.parse(activeArchive.stdout.trim()) as { diagnostics: Array<{ fieldPath: string; expected?: string; actual?: string }> };
+    const activeArchiveJson = JSON.parse(activeArchive.stdout.trim()) as { diagnostics: Array<{ fieldPath: string; message: string; expected?: string; actual?: string }> };
     context.assert(
       activeArchiveJson.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.harness_session.status" && diagnostic.expected === "resolved or blocked" && diagnostic.actual === "proposed"),
       "harness-session archive reports deterministic unresolved status diagnostics",
       activeArchive.stdout.trim(),
+    );
+    const unresolvedStatusDiagnostic = activeArchiveJson.diagnostics.find(
+      (diagnostic) => diagnostic.fieldPath === "$.harness_session.status",
+    );
+    context.assert(
+      unresolvedStatusDiagnostic !== undefined
+        && unresolvedStatusDiagnostic.message.includes("strict-spec-cli harness-session edit checkout-cdp-target --status resolved")
+        && unresolvedStatusDiagnostic.message.includes("strict-spec-cli harness-session edit checkout-cdp-target --status blocked"),
+      "the unresolved-status diagnostic names the command that sets each accepted status rather than only the expected values",
+      unresolvedStatusDiagnostic?.message,
     );
 
     const sessionPath = path.join(workspace.workspaceRoot, ".strict-spec-driven", "harness-sessions", "checkout-cdp-target", "session.yaml");

@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-ready-names-empty-spec-remediation:
+      strength: MUST
+      statement: 'When the ready proposal-handoff command reports that a change has no delta spec files and no explicit empty-spec design decision, the resulting proposal_readiness diagnostic MUST carry remediation concrete enough to apply without consulting CLI source or external documentation: the repo-relative specs directory of the change, and two labeled remedies -- (A) author a delta spec, quoting the generate delta-spec command with the change name filled in and naming .strict-spec-driven/specs/INDEX.yaml as the source of valid target ids; (B) record an explicit empty-spec decision, quoting the generate design command with the change name and a decision id filled in, and naming every decision id the readiness check accepts as such evidence. The suggested-command list MUST offer both invocations. The accepted decision ids named by the diagnostic MUST be exactly the ids the readiness check treats as an explicit empty-spec decision.'
+      scenarios:
+        diagnostic-names-both-remedies-with-runnable-commands:
+          - GIVEN: a strict change has no delta spec files and records no design decision that the readiness check accepts as an explicit empty-spec decision
+          - WHEN: strict-spec-cli ready <change-name> is executed
+          - THEN: the proposal_readiness diagnostic names the change's repo-relative specs directory and states remedy A with the generate delta-spec command carrying the change name and .strict-spec-driven/specs/INDEX.yaml as the source of valid target ids
+          - THEN: the same diagnostic states remedy B with the generate design command carrying the change name and a decision id, and names every decision id the readiness check accepts as an explicit empty-spec decision
+        suggestions-offer-both-remedy-commands:
+          - GIVEN: the same change with no delta spec files and no accepted empty-spec decision
+          - WHEN: strict-spec-cli ready <change-name> is executed
+          - THEN: the returned suggestions include both the delta-spec authoring invocation and the design invocation that records an empty-spec decision
+        named-ids-match-the-ids-readiness-accepts:
+          - GIVEN: the set of decision ids the readiness check treats as an explicit empty-spec decision
+          - WHEN: the missing-delta-spec diagnostic is produced
+          - THEN: the decision ids named in the diagnostic are exactly that set, so an id the check accepts is never omitted from the guidance and an id it rejects is never advertised
+  MODIFIED: {}
+  REMOVED: {}

@@ -9,6 +9,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/architecture/shared-projections-can-widen-sibling-command-out-699fbe.yaml
+    promoting-a-repeated-fix-to-a-must-rule-makes-ev-0b557e:
+      title: Promoting a repeated fix to a MUST rule makes every existing instance a violation
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/architecture/promoting-a-repeated-fix-to-a-must-rule-makes-ev-0b557e.yaml
   documentation:
     adding-cli-mutation-guidance-to-a-document-enrol-18d554:
       title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
@@ -60,7 +65,7 @@ categories:
     apply-completes-the-next-task-in-list-order-not-268fb1:
       title: apply completes the next task in list order, not the task you just finished
       status: active
-      occurrences: 2
+      occurrences: 3
       path: .strict-spec-driven/lessons/tooling/apply-completes-the-next-task-in-list-order-not-268fb1.yaml
     a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2:
       title: A flag that skips reading an artifact hides a broken artifact

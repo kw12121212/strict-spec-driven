@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: promoting-a-repeated-fix-to-a-must-rule-makes-ev-0b557e
+  title: Promoting a repeated fix to a MUST rule makes every existing instance a violation
+category: architecture
+status: active
+created_at: '2026-08-17T02:58:15.068Z'
+updated_at: '2026-08-17T02:58:15.068Z'
+context: A diagnostic was fixed to name how to apply the remedy it offered, the second time that same defect had been fixed one diagnostic at a time; the operator then asked to raise the pattern to a MUST rule under an existing technical standard.
+observation: Writing the rule was the small part. Scanning for other blocking diagnostics that named an alternative without naming its command found two more, in requirement intake and in harness-session archive, and one advisory warning with no command to name at all. The change's proposal had explicitly listed rewording other diagnostics as out of scope, so the rule as requested would have merged while the repository violated it in two places and while its own proposal forbade fixing them. The rule binds the change that introduces it, so the violations could not be left as pre-existing debt.
+takeaway: 'Before agreeing to a rule strength, enumerate the existing instances of the pattern the rule will govern and decide each one''s disposition: fixed in this change, or recorded in the rule as a named exception. A MUST rule that ships with unlisted violations gives the next reviewer no way to tell a grandfathered case from a new one, which is the ambiguity MUST exists to remove. Expect the audit, the extra fixes, and the scope amendment to outweigh writing the rule itself.'
+applies_when: Asked to generalize a fix into a technical standard rule, or choosing MUST over SHOULD for a new rule, especially when the change's proposal already scopes out reworking similar existing code.
+occurrences:
+  - origin: ready-names-empty-spec-remedy
+    date: '2026-08-17'
+    evidence: Adding blocking-diagnostics-name-how-to-apply-each-remedy to cli-command-metadata required amending two out-of-scope proposal entries, adding two implementation tasks and one testing task for src/workflow-state.ts and src/harness.ts, and recording the harness doctor cross-environment port warning as a rule exception because its resolution is a human judgement with no command.

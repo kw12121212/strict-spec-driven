@@ -25479,7 +25479,7 @@ function checkRequirementIntakeEvidence(rootDir, changeName) {
           source: "requirement_intake",
           artifactPath,
           fieldPath: `$.resolved[?(@.id=='${canonical.id}')].answered_by`,
-          message: `requirement question '${canonical.id}' asks ${canonical.asks}, and its answer is ` + (isAssumption ? "attributed to an agent assumption rather than to the requester" : "missing an answered_by attribution naming where the answer came from"),
+          message: `requirement question '${canonical.id}' asks ${canonical.asks}, and its answer is ` + (isAssumption ? "attributed to an agent assumption rather than to the requester" : "missing an answered_by attribution naming where the answer came from") + `. Ask the requester, then re-record the answer with: strict-spec-cli generate ${changeName} ` + `questions --resolved ${canonical.id} --question "<question text>" --context "<why it is asked>" ` + `--answer "<the requester's answer>" --kind requirement --answered-by human. ` + "Use --answered-by roadmap instead only when the answer is replayed from roadmap planned-change or milestone detail.",
           expected: "answered_by human or roadmap",
           actual: isAssumption ? "answered_by assumption" : "no answered_by attribution"
         });
@@ -25567,6 +25567,16 @@ function getWorkflowState(rootDir, changeName) {
     suggestions: suggestionsForDiagnostics(rootDir, changeName, verification.diagnostics)
   };
 }
+function formatMissingDeltaSpecMessage(changeName) {
+  const acceptedIds = [...EMPTY_SPEC_DECISION_IDS];
+  const specsDir = `${STRICT_WORKFLOW_DIR8}/changes/${changeName}/specs/`;
+  const emptySpecDecisionCommand = formatEmptySpecDecisionCommand(changeName);
+  return `change '${changeName}' has no delta spec files in '${specsDir}' and records no design decision that ` + `counts as an explicit empty-spec decision, so proposal handoff is blocked. Fix one of the following: ` + `(A) If this change has strict spec impact, author a delta spec by running: ` + `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED ` + `--requirement <requirement-id> --strength MUST --statement "<observable behavior>", where <spec-id> is ` + `an existing spec id listed in ${STRICT_WORKFLOW_DIR8}/specs/INDEX.yaml. ` + `(B) If this change is technical-only and no main spec requirement changes, record that decision ` + `explicitly by running: ${emptySpecDecisionCommand}. ` + `The decision ids accepted as an explicit empty-spec decision are: ${acceptedIds.join(", ")}.`;
+}
+function formatEmptySpecDecisionCommand(changeName) {
+  const [firstAcceptedId] = [...EMPTY_SPEC_DECISION_IDS];
+  return `strict-spec-cli generate ${changeName} design --decision ${firstAcceptedId} ` + `--decision-text "<what was decided>" --rationale "<why no main spec requirement changes>"`;
+}
 function checkProposalReadiness(rootDir, changeName) {
   const verification = verifyChange(rootDir, changeName);
   const diagnostics = verification.diagnostics.filter((diagnostic2) => diagnostic2.source !== "task_completion" && diagnostic2.source !== "task_completeness");
@@ -25578,7 +25588,7 @@ function checkProposalReadiness(rootDir, changeName) {
       source: "proposal_readiness",
       artifactPath: `.strict-spec-driven/changes/${changeName}/specs/`,
       fieldPath: "$",
-      message: "change has no delta spec files for proposal handoff",
+      message: formatMissingDeltaSpecMessage(changeName),
       expected: "at least one delta spec file or an explicit empty-spec decision",
       actual: "no delta spec files"
     });
@@ -25593,6 +25603,10 @@ function checkProposalReadiness(rootDir, changeName) {
     suggestions.push({
       command: `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> ...`,
       reason: "Create a target-spec-scoped delta spec when the change has strict spec impact."
+    });
+    suggestions.push({
+      command: formatEmptySpecDecisionCommand(changeName),
+      reason: "Record an explicit empty-spec decision when the change is technical-only and no main spec requirement changes."
     });
   }
   return {
@@ -38843,7 +38857,8 @@ function archiveHarnessSession(rootDir, target) {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path54.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
+    const setStatus = `strict-spec-cli harness-session edit ${sessionId} --status`;
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", `harness-session must be resolved or blocked before archive. Record the outcome with: ${setStatus} resolved when the investigation reached a conclusion, or ${setStatus} blocked when it cannot proceed.`, { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
   }
   const boundaryValidation = commitHarnessSessionCandidate(rootDir, sessionId, artifact, "update");
   if (!boundaryValidation.valid) {

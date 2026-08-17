@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: ready-names-empty-spec-remedy
+open: []
+resolved:
+  - id: requirement-problem
+    question: When a change has no delta spec, what concretely goes wrong today, and for whom?
+    context: 'Distinguishes a defect in the readiness check from a gap in what it tells the reader. Impact: a problem statement naming a wrong verdict would change the fix to the check itself, while one naming missing guidance keeps the check untouched and changes only its output. A sufficient answer describes the behavior the person could not carry out, not the field they wanted added. Recommended reading: the diagnostic''s expected field offers an explicit empty-spec decision as an alternative, but the output never says what that decision is.'
+    answer: The ready command's missing-delta-spec diagnostic offers two ways forward but explains only one. Remedy A, authoring a delta spec, appears in the suggestions list. Remedy B, recording an explicit empty-spec decision, is named only in the expected field, with no statement of which artifact holds it, which id it must carry, or which command writes it. The four accepted ids exist solely in src/workflow-state.ts, absent from command metadata, skill guidance, and user documentation. The affected party is anyone blocked by the diagnostic on a technical-only change, which is the exact case remedy B was built for.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the missing guidance is fixed?
+    context: 'Fixes the acceptance target before implementation so the regression can assert it. Impact: an outcome stated as text in the diagnostic keeps the argument surface frozen; an outcome stated as a new command or flag expands it and changes the task list. A sufficient answer describes what appears in the command''s output, not which module changes. Options offered: put pasteable commands in the diagnostic, add a dedicated CLI entry point, or document the ids outside the CLI.'
+    answer: 'The ready output itself carries the fix. The diagnostic message states two labeled remedies, each with a command that can be pasted and run: remedy A the generate delta-spec invocation with the source of valid target ids, remedy B the generate design invocation that records an empty-spec decision, naming all four accepted ids. A reader acts on the blocker without consulting source or documentation.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: 'Why now: what forced this, and what happens if nothing is done?'
+    context: 'Tests whether the trigger is real and sets the weight of the fix. Impact: a trigger describing one person''s inconvenience justifies a text edit alone; a trigger describing wrong artifacts reaching the repository justifies regression coverage as a blocking gate. A sufficient answer reports the last concrete occurrence and what was actually done in response. Options offered: fabricated a delta spec to get past it, read the source to find the ids, ignored the failure, or stalled.'
+    answer: The requester reached the four accepted ids only by reading src/workflow-state.ts. That route does not exist for an agent working in an external project, where strict-spec-cli is installed globally and its source sits outside the repository under work, which is the situation the repository's own runtime-repository-evidence-is-embedded rule anticipates. Doing nothing leaves the remaining ways past the blocker as fabricating a delta spec, which corrupts the main specs archive merges into, or stalling. Of 32 archived changes with an empty specs directory, 6 recorded an accepted id.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change while this gap is closed?
+    context: 'Bounds the change so review can reject drift. Impact: leaving the accepted-id set or the trigger condition open to change would turn a text fix into a behavior change affecting already-archived changes that recorded one of those ids. A sufficient answer names behavior that stays identical, not work that is merely deferred. Derived from the requester''s explicit rejection of a dedicated CLI entry point and of a documentation-only fix.'
+    answer: 'No new CLI flag or command: generate design --decision stays the entry point. The accepted id set, its semantics, and the condition that triggers the diagnostic all stay identical, so archived changes carrying one of those ids remain valid. The ready exit-code contract is unchanged. verify, archive, and next are untouched. Other diagnostics sharing the same remediation-gap pattern are not reworded here.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Setting the spec can mean creating a delta spec or declaring that none is needed; which reading is intended?
+    context: 'The two readings lead to different work. Creating a delta spec is already named in the suggestions and would need only a fuller command line. Declaring that none is needed is undocumented everywhere and requires publishing a contract that currently exists only in source. Impact: choosing the wrong reading leaves the actual blocker in place. A sufficient answer picks the reading that matches where the requester was stuck.'
+    answer: Declaring that no spec is needed. The requester confirmed the blocker was not knowing how to record that a technical-only change intentionally has no delta spec, not how to author one. Remedy A is still stated in the new message for completeness, but remedy B is the gap this change exists to close.
+    status: resolved
+    kind: requirement
+    answered_by: human

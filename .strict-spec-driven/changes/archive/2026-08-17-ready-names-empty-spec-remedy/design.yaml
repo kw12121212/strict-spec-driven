@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: ready-names-empty-spec-remedy
+approach:
+  - 'Follow the remediation pattern already established by formatUnresolvableDeltaTargetMessage in src/verify.ts: a single exported formatter builds one self-contained diagnostic message that names the failing artifact path, states the two labeled remedies, and quotes a complete runnable command for each, so a reader never has to consult source or documentation to act on the blocker.'
+  - Build the accepted-id clause of that message by iterating EMPTY_SPEC_DECISION_IDS, the same set hasExplicitEmptySpecDecision evaluates, so the guidance and the check share one source and an id added or removed later cannot leave stale guidance behind.
+  - Extend suggestionsForDiagnostics output for this diagnostic with a second entry carrying the generate design invocation, keeping the machine-readable suggestions list aligned with the human-readable message.
+  - Carry the pattern as a delta-tech rule on the cli-command-metadata standard rather than leaving it as a per-diagnostic habit, and bring the two blocking diagnostics that already violate it into compliance in the same change, so the rule is enforceable at review time instead of arriving with known exceptions.
+decisions:
+  reuse-unresolvable-target-message-shape:
+    decision: Emit one single-paragraph message carrying labeled remedies A and B, matching the existing formatUnresolvableDeltaTargetMessage output shape rather than introducing multi-line diagnostic text.
+    rationale: The ready result is consumed as JSON, where an embedded newline becomes an escaped sequence that is harder to read than continuous prose, and a second diagnostic prose shape would force every consumer to handle two formats where one already works.
+  derive-accepted-ids-from-the-check-set:
+    decision: Construct the accepted-id list in the message from EMPTY_SPEC_DECISION_IDS at call time instead of restating the four ids as a string literal in the message.
+    rationale: 'A restated literal and the set it describes can disagree after a later edit, and that disagreement is silent: the guidance would name an id the check rejects, sending the reader to a command whose result still fails readiness.'
+  publish-all-four-accepted-ids:
+    decision: Name every id in EMPTY_SPEC_DECISION_IDS in the diagnostic rather than advertising only no-delta-spec as the single recommended id.
+    rationale: Naming one id would leave a reader who inherits a change already carrying no-spec-impact unable to recognize their existing decision as sufficient, reproducing on those changes the same discoverability failure this change exists to remove.
+  export-the-formatter-for-single-source-assertion:
+    decision: Export the message formatter from src/workflow-state.ts even though the production code has exactly one call site.
+    rationale: An exported formatter lets the regression assert the derived-id behavior against the function directly, which is the only way to prove the id list tracks the set rather than merely matching it once at the time the test was written.
+  generalize-the-pattern-as-a-must-rule:
+    decision: Add a MUST rule to cli-command-metadata requiring a diagnostic that blocks a workflow gate to state how each remedy it names is applied, and to derive any fixed set of accepted values from the declaration the check evaluates.
+    rationale: The same defect has now been fixed twice one diagnostic at a time, which is the signal that the reader-facing contract belongs in a standard rather than in the memory of whoever writes the next diagnostic.
+  fix-known-violations-in-the-same-change:
+    decision: Bring the requirement-intake attribution diagnostic and the harness-session archive-status diagnostic into compliance here rather than recording them as pre-existing exceptions.
+    rationale: A MUST rule that ships alongside violations it does not cover is unenforceable at review, because the first reviewer to apply it has to decide which violations were grandfathered and no artifact records that answer.
+  exempt-non-gating-warnings:
+    decision: Scope the rule to diagnostics that block a workflow gate, and record the harness doctor cross-environment port warning as a deliberate exception.
+    rationale: That warning reports a condition whose resolution is a human judgement about intent rather than an artifact edit, so there is no command to name and demanding one would force invented guidance.
+alternatives:
+  - option: Add a dedicated CLI entry point such as generate <change> design --no-spec-impact that writes a valid id on the caller's behalf.
+    reason: Rejected because it widens the argument surface to fix a text problem, and it leaves the diagnostic itself silent, so an agent that has not already read the new flag's help is no better off than today.
+  - option: Document the four accepted ids in the skill prompts, README, and ready command metadata while leaving the diagnostic text unchanged.
+    reason: Rejected because it reaches only readers who consult documentation before the failure; the person or agent staring at the blocker still gets an output that names an alternative it refuses to explain.
+  - option: Drop the empty-spec decision alternative entirely and require a delta spec for every change.
+    reason: Rejected because it would force technical-only changes to fabricate spec requirements, corrupting the main specs that archive merges into and contradicting the routing rule that a change may legitimately have no delta spec.
+  - option: Restrict the new rule to diagnostics written after it takes effect, leaving the two known violations in place.
+    reason: Rejected because a MUST rule carrying a grandfather clause gives a reviewer no way to tell an exempt diagnostic from a new violation, which is precisely the ambiguity a MUST strength exists to remove.
+  - option: Narrow the rule to the fixed-accepted-value case alone, covering id-set drift but not the runnable-command requirement.
+    reason: Rejected because the drift guard is the secondary concern; the reported failure was an unactionable remedy, which a fixed-value-only rule would still permit.
+risks:
+  - Naming all four accepted ids in user-facing output converts them from an internal set into a published contract, so retiring one later becomes a breaking change to documented guidance rather than an internal edit.
+  - Scoping the rule by the phrase 'blocks a workflow gate' leaves a judgement call at the boundary between a blocking diagnostic and an advisory warning, so a future diagnostic could be argued out of the rule; the recorded harness doctor exception is the reference point for where that line was drawn.

@@ -291,6 +291,57 @@ try {
     "ready reports missing deterministic question-gate evidence for proposal scope, unchanged behavior, and design decisions",
   );
 
+  const missingDeltaDiagnostic = readyJson.diagnostics.find((diagnostic: { artifactPath: string; fieldPath: string }) =>
+    diagnostic.artifactPath.endsWith(`/${changeName}/specs/`) && diagnostic.fieldPath === "$"
+  ) as { message: string } | undefined;
+  context.assert(
+    missingDeltaDiagnostic !== undefined
+      && missingDeltaDiagnostic.message.includes("(A)")
+      && missingDeltaDiagnostic.message.includes(`strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id>`)
+      && missingDeltaDiagnostic.message.includes(".strict-spec-driven/specs/INDEX.yaml"),
+    "missing-delta-spec diagnostic states remedy A with a runnable delta-spec command and the source of valid target ids",
+    missingDeltaDiagnostic?.message,
+  );
+  context.assert(
+    missingDeltaDiagnostic !== undefined
+      && missingDeltaDiagnostic.message.includes("(B)")
+      && missingDeltaDiagnostic.message.includes(`strict-spec-cli generate ${changeName} design --decision no-delta-spec`),
+    "missing-delta-spec diagnostic states remedy B with a runnable design command that records an empty-spec decision",
+    missingDeltaDiagnostic?.message,
+  );
+  context.assert(
+    readyJson.suggestions.some((suggestion: { command: string }) =>
+      suggestion.command.startsWith(`strict-spec-cli generate ${changeName} delta-spec`))
+      && readyJson.suggestions.some((suggestion: { command: string }) =>
+        suggestion.command.startsWith(`strict-spec-cli generate ${changeName} design --decision`)),
+    "ready suggests both the delta-spec and the empty-spec-decision remedy commands",
+    JSON.stringify(readyJson.suggestions),
+  );
+
+  const workflowStateModule = await loadDistModule<{
+    EMPTY_SPEC_DECISION_IDS: Set<string>;
+    formatMissingDeltaSpecMessage(changeName: string): string;
+  }>("workflow-state.js");
+  const acceptedEmptySpecIds = [...workflowStateModule.EMPTY_SPEC_DECISION_IDS];
+  context.assert(
+    acceptedEmptySpecIds.length > 0
+      && acceptedEmptySpecIds.every((acceptedId) => missingDeltaDiagnostic?.message.includes(acceptedId) === true),
+    "missing-delta-spec diagnostic names every decision id the readiness check accepts",
+    acceptedEmptySpecIds.join(", "),
+  );
+  // Proves the message is derived rather than restated: any id present in the message but absent
+  // from the accepted set would be guidance pointing at a command whose result still fails ready.
+  const advertisedEmptySpecIds = (/accepted as an explicit empty-spec decision are: ([^.]+)\./
+    .exec(workflowStateModule.formatMissingDeltaSpecMessage(changeName))?.[1] ?? "")
+    .split(", ")
+    .filter((candidate) => candidate.length > 0);
+  context.assert(
+    advertisedEmptySpecIds.length === acceptedEmptySpecIds.length
+      && advertisedEmptySpecIds.every((advertised) => workflowStateModule.EMPTY_SPEC_DECISION_IDS.has(advertised)),
+    "missing-delta-spec diagnostic advertises exactly the accepted decision ids, never an id the check rejects",
+    `advertised: ${advertisedEmptySpecIds.join(", ")}`,
+  );
+
   const nextResult = cli(["next", changeName], { cwd: workflowGuidanceDir });
   context.assert(nextResult.status === 0, "next exits zero while reporting workflow blockers");
   const nextJson = JSON.parse(nextResult.stdout.trim());
@@ -615,7 +666,10 @@ try {
     "ready emits no proposal_readiness diagnostics for complete deterministic question-gate evidence",
   );
 
-  const readyNoDeltaChangeName = "workflow-ready-no-delta";
+  // Every id the diagnostic advertises is exercised, so guidance can never name an id that leaves
+  // ready still blocked. The loop is driven by the accepted set rather than by a literal list.
+  for (const [index, emptySpecDecisionId] of acceptedEmptySpecIds.entries()) {
+  const readyNoDeltaChangeName = `workflow-ready-no-delta-${index}`;
   const readyNoDeltaChangeDir = path.join(workflowGuidanceDir, ".strict-spec-driven", "changes", readyNoDeltaChangeName);
   mkdirSync(path.join(readyNoDeltaChangeDir, "specs"), { recursive: true });
   writeFileSync(path.join(readyNoDeltaChangeDir, "proposal.yaml"), [
@@ -648,7 +702,7 @@ try {
     "approach:",
     "  - Test no-delta-spec readiness evidence",
     "decisions:",
-    "  no-delta-spec:",
+    `  ${emptySpecDecisionId}:`,
     "    decision: Leave specs empty because the change has no strict spec impact.",
     "    rationale: A stable decision id gives ready deterministic evidence without requiring prose interpretation.",
     "alternatives: []",
@@ -688,15 +742,20 @@ try {
     ...answeredRequirementQuestionLines(),
   ].join("\n") + "\n", "utf8");
   const readyNoDelta = cli(["ready", readyNoDeltaChangeName], { cwd: workflowGuidanceDir });
-  context.assert(readyNoDelta.status === 0, "ready exits zero for explicit no-delta-spec decision", readyNoDelta.stdout.trim());
+  context.assert(
+    readyNoDelta.status === 0,
+    `ready exits zero for the advertised empty-spec decision id '${emptySpecDecisionId}'`,
+    readyNoDelta.stdout.trim(),
+  );
   const readyNoDeltaJson = JSON.parse(readyNoDelta.stdout.trim());
   context.assert(
     readyNoDeltaJson.ready === true
       && !readyNoDeltaJson.diagnostics.some((diagnostic: { artifactPath: string; message: string }) =>
         diagnostic.artifactPath.endsWith("/specs/") && diagnostic.message.includes("no delta spec files")
       ),
-    "ready accepts explicit empty-spec decision without missing-delta-spec diagnostics",
+    `ready accepts '${emptySpecDecisionId}' as an explicit empty-spec decision without missing-delta-spec diagnostics`,
   );
+  }
 } finally {
   rmSync(workflowGuidanceDir, { recursive: true, force: true });
 }
@@ -4043,6 +4102,18 @@ try {
       ),
     "ready blocks a requirement answered by assumption and names it as an agent assumption",
     `stdout: ${readyWithAssumption.stdout.trim()}`,
+  );
+  const assumptionDiagnostic = assumptionJson.diagnostics.find(
+    (diagnostic: { source: string; message: string }) =>
+      diagnostic.source === "requirement_intake" && diagnostic.message.includes("agent assumption"),
+  ) as { message: string } | undefined;
+  context.assert(
+    assumptionDiagnostic !== undefined
+      && assumptionDiagnostic.message.includes(`strict-spec-cli generate ${changeName} questions --resolved requirement-outcome`)
+      && assumptionDiagnostic.message.includes("--answered-by human")
+      && assumptionDiagnostic.message.includes("--answered-by roadmap"),
+    "the assumption diagnostic names the resolving command and both accepted attributions rather than only the expected values",
+    assumptionDiagnostic?.message,
   );
 
   // So does an answer with no attribution at all.

@@ -1,0 +1,56 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: ready-names-empty-spec-remedy
+sections:
+  Implementation:
+    add-empty-spec-remedy-formatter:
+      text: Add an exported formatter in src/workflow-state.ts that builds the missing-delta-spec readiness message as one paragraph naming the change's specs directory, remedy A with a complete generate delta-spec command and .strict-spec-driven/specs/INDEX.yaml as the source of valid target ids, and remedy B with a complete generate design command, building the accepted decision id clause by iterating EMPTY_SPEC_DECISION_IDS rather than restating those ids as a literal.
+      status: complete
+    use-formatter-in-readiness-diagnostic:
+      text: Replace the literal missing-delta-spec message in checkProposalReadiness with a call to the new formatter, leaving the diagnostic's source, artifactPath, fieldPath, expected, actual fields and the condition that triggers it unchanged.
+      status: complete
+    add-empty-spec-decision-suggestion:
+      text: Add a second suggestion for the missing-delta-spec blocker in checkProposalReadiness carrying the generate design invocation that records an empty-spec decision, keeping the existing delta-spec suggestion and its reason unchanged.
+      status: complete
+    name-command-in-requirement-intake-diagnostic:
+      text: Extend the requirement-intake diagnostic in src/workflow-state.ts that reports an assumption-attributed or unattributed requirement answer so its message names the resolving command with the change name and canonical question id filled in, mirroring the compliant sibling diagnostic for a missing requirement question in the same module, and leaving its source, fieldPath, expected, and actual fields unchanged.
+      status: complete
+    name-command-in-harness-session-status-diagnostic:
+      text: Extend the harness-session archive diagnostic in src/harness.ts that reports a session status other than resolved or blocked so its message names the harness-session edit command with the session id and an accepted status filled in, leaving its fieldPath, expected, and actual fields unchanged.
+      status: complete
+  Testing:
+    build-project:
+      text: Rebuild TypeScript and bundled CLI output after source edits so all dist-based behavior uses the current readiness message.
+      status: complete
+      command: bun run build
+    assert-diagnostic-carries-both-remedies:
+      text: Extend the readiness coverage in test/suites/change-lifecycle.ts so a change with no delta spec and no empty-spec decision produces a diagnostic whose message names both remedies, quotes the generate delta-spec command with the change name, names .strict-spec-driven/specs/INDEX.yaml, quotes the generate design command with --decision, and names every accepted decision id; assert the suggestions list carries the generate design invocation alongside the delta-spec one.
+      status: complete
+    assert-accepted-ids-are-derived:
+      text: Assert against the exported formatter that its accepted-id clause is derived from EMPTY_SPEC_DECISION_IDS rather than restated, so the message tracks the set the readiness check evaluates instead of matching it only at the time the assertion was written.
+      status: complete
+    assert-gated-diagnostics-name-their-commands:
+      text: Assert that the requirement-intake assumption diagnostic names the questions resolve command with --answered-by, and that the harness-session archive-status diagnostic names the harness-session edit command with --status, so both diagnostics the new cli-command-metadata rule governs are covered by regression rather than by review alone.
+      status: complete
+    run-project-tests:
+      text: Run the complete repository test runner with output redirected to a file, read the runner's own exit status, and confirm the new readiness message coverage and all unchanged workflow behavior pass.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    ready-change:
+      text: Run the deterministic proposal handoff check after the planning artifacts and questions are complete.
+      status: complete
+      command: strict-spec-cli ready ready-names-empty-spec-remedy
+    verify-change:
+      text: Run strict verification after the implementation and testing tasks are complete.
+      status: complete
+      command: strict-spec-cli verify ready-names-empty-spec-remedy
+    coverage-gate:
+      text: Run the configured complete project regression and 78 percent src line coverage gate, preserving the full redirected log and checking the command exit status before archive.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+testing_gates:
+  validation_task: build-project
+  unit_test_task: run-project-tests

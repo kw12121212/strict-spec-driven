@@ -6,7 +6,10 @@ import { parseYamlDocument } from "./yaml.js";
 import { verifyChange, type VerifyDiagnostic } from "./verify.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
-const EMPTY_SPEC_DECISION_IDS = new Set([
+// Exported so a regression can assert that the ids the readiness message advertises are exactly the
+// ids this check accepts, in both directions. Without access to the declaration itself a test can
+// only confirm the message matches the set as it read at the time the test was written.
+export const EMPTY_SPEC_DECISION_IDS = new Set([
   "no-delta-spec",
   "no-spec-impact",
   "technical-only-no-spec",
@@ -176,7 +179,11 @@ function checkRequirementIntakeEvidence(rootDir: string, changeName: string): Ve
             `requirement question '${canonical.id}' asks ${canonical.asks}, and its answer is `
             + (isAssumption
               ? "attributed to an agent assumption rather than to the requester"
-              : "missing an answered_by attribution naming where the answer came from"),
+              : "missing an answered_by attribution naming where the answer came from")
+            + `. Ask the requester, then re-record the answer with: strict-spec-cli generate ${changeName} `
+            + `questions --resolved ${canonical.id} --question "<question text>" --context "<why it is asked>" `
+            + `--answer "<the requester's answer>" --kind requirement --answered-by human. `
+            + "Use --answered-by roadmap instead only when the answer is replayed from roadmap planned-change or milestone detail.",
           expected: "answered_by human or roadmap",
           actual: isAssumption ? "answered_by assumption" : "no answered_by attribution",
         });
@@ -306,6 +313,42 @@ export function getWorkflowState(rootDir: string, changeName: string): WorkflowS
   };
 }
 
+// Shared remediation message for a change that has no delta spec files and no
+// explicit empty-spec design decision. Readiness offers two ways forward, but
+// only one of them used to be discoverable: the accepted decision ids exist
+// nowhere outside this module, so naming the alternative without naming its ids
+// sent the reader to the CLI source, which is absent in an installed project.
+// The accepted-id clause is built from EMPTY_SPEC_DECISION_IDS rather than
+// restated, so the guidance can never advertise an id the check rejects or omit
+// one it accepts.
+export function formatMissingDeltaSpecMessage(changeName: string): string {
+  const acceptedIds = [...EMPTY_SPEC_DECISION_IDS];
+  const specsDir = `${STRICT_WORKFLOW_DIR}/changes/${changeName}/specs/`;
+  const emptySpecDecisionCommand = formatEmptySpecDecisionCommand(changeName);
+  return (
+    `change '${changeName}' has no delta spec files in '${specsDir}' and records no design decision that ` +
+    `counts as an explicit empty-spec decision, so proposal handoff is blocked. Fix one of the following: ` +
+    `(A) If this change has strict spec impact, author a delta spec by running: ` +
+    `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED ` +
+    `--requirement <requirement-id> --strength MUST --statement "<observable behavior>", where <spec-id> is ` +
+    `an existing spec id listed in ${STRICT_WORKFLOW_DIR}/specs/INDEX.yaml. ` +
+    `(B) If this change is technical-only and no main spec requirement changes, record that decision ` +
+    `explicitly by running: ${emptySpecDecisionCommand}. ` +
+    `The decision ids accepted as an explicit empty-spec decision are: ${acceptedIds.join(", ")}.`
+  );
+}
+
+// The generate design invocation that records an empty-spec decision, offered
+// alongside the delta-spec suggestion so the machine-readable suggestions list
+// carries both remedies the message describes.
+export function formatEmptySpecDecisionCommand(changeName: string): string {
+  const [firstAcceptedId] = [...EMPTY_SPEC_DECISION_IDS];
+  return (
+    `strict-spec-cli generate ${changeName} design --decision ${firstAcceptedId} `
+    + `--decision-text "<what was decided>" --rationale "<why no main spec requirement changes>"`
+  );
+}
+
 export function checkProposalReadiness(rootDir: string, changeName: string): ProposalReadinessResult {
   const verification = verifyChange(rootDir, changeName);
   // Pending tasks and not-yet-authored task detail are expected at proposal-handoff time; task
@@ -322,7 +365,7 @@ export function checkProposalReadiness(rootDir: string, changeName: string): Pro
       source: "proposal_readiness",
       artifactPath: `.strict-spec-driven/changes/${changeName}/specs/`,
       fieldPath: "$",
-      message: "change has no delta spec files for proposal handoff",
+      message: formatMissingDeltaSpecMessage(changeName),
       expected: "at least one delta spec file or an explicit empty-spec decision",
       actual: "no delta spec files",
     });
@@ -338,6 +381,10 @@ export function checkProposalReadiness(rootDir: string, changeName: string): Pro
     suggestions.push({
       command: `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> ...`,
       reason: "Create a target-spec-scoped delta spec when the change has strict spec impact.",
+    });
+    suggestions.push({
+      command: formatEmptySpecDecisionCommand(changeName),
+      reason: "Record an explicit empty-spec decision when the change is technical-only and no main spec requirement changes.",
     });
   }
 

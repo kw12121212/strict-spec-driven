@@ -1885,7 +1885,8 @@ export function archiveHarnessSession(rootDir: string, target: string): HarnessS
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
+    const setStatus = `strict-spec-cli harness-session edit ${sessionId} --status`;
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", `harness-session must be resolved or blocked before archive. Record the outcome with: ${setStatus} resolved when the investigation reached a conclusion, or ${setStatus} blocked when it cannot proceed.`, { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
   }
   const boundaryValidation = commitHarnessSessionCandidate(rootDir, sessionId, artifact as Record<string, unknown>, "update");
   if (!boundaryValidation.valid) {

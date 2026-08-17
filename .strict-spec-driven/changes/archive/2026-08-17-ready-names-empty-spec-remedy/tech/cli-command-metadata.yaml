@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED:
+    blocking-diagnostics-name-how-to-apply-each-remedy:
+      strength: MUST
+      statement: 'A diagnostic that blocks a workflow gate MUST state how to apply every remedy it names, not merely that the remedy exists: for each remedy, the artifact it writes and a runnable command with the target''s identifiers already filled in, plus the source to consult for any identifier the caller must still supply. When a remedy is accepted only for a fixed set of values, the diagnostic MUST name that set and MUST derive it from the same declaration the check evaluates, never from a surface-local literal. Naming an alternative remedy in an expected, actual, or suggestion field without naming its command does not satisfy this rule.'
+      rationale: An agent running the CLI in an installed project cannot read its source, so a remedy named without the means to apply it is not actionable there at all; the observed responses are to skip the gate or to fabricate the artifact the other remedy would have avoided, both of which corrupt state the gate exists to protect. Deriving a fixed accepted-value set from the check's own declaration keeps a later edit from leaving guidance that advertises a value the check rejects, a disagreement that is silent because both sides still validate.
+      enforcement:
+        method: review
+        detail: Reviewing a change that adds or edits a workflow-gating diagnostic, confirm each named remedy carries a runnable command and that any accepted-value set in the text is built from the constant the check reads rather than restated. Prose remedies are not mechanically decidable, so this is a review rule rather than an automated scan; the per-diagnostic regressions that assert message content are the supporting evidence.
+      examples:
+        good:
+          - The missing-delta-spec readiness diagnostic states remedy A with the generate delta-spec command and .strict-spec-driven/specs/INDEX.yaml as the source of valid target ids, states remedy B with the generate design command, and builds its accepted decision id list by iterating EMPTY_SPEC_DECISION_IDS.
+        bad:
+          - A diagnostic reporting expected 'answered_by human or roadmap' or expected 'resolved or blocked' while naming neither the command nor the flag that sets the field to an accepted value.
+      exceptions:
+        - A non-gating advisory warning whose resolution is a human judgement about intent rather than an artifact edit, such as the harness doctor cross-environment port warning, which asks for confirmation that a shared port is intentional and has no command to name.
+  MODIFIED: {}
+  REMOVED: {}
