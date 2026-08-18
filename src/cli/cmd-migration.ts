@@ -30,11 +30,12 @@ export function runMaintenanceCommand(argv: string[]): number {
   if (handleHelpRequest("maintenance", argv)) {
     return 0;
   }
-  if (argv.length > 0) {
+  const seed = argv.includes("--seed");
+  if (argv.length > (seed ? 1 : 0)) {
     writeUsage(getCommandUsage("maintenance"));
     return 1;
   }
-  const result = runMaintenance(process.cwd());
+  const result = runMaintenance(process.cwd(), { seed });
   writeJson(result);
   return result.valid ? 0 : 1;
 }

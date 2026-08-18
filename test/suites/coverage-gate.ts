@@ -263,7 +263,7 @@ export async function runCoverageGateSuite(context: TestContext): Promise<void> 
       ].join("\n"),
       "utf8",
     );
-    const maintenanceRun = cli(["maintenance"], { cwd: maintenanceWorkspace });
+    const maintenanceRun = cli(["maintenance", "--seed"], { cwd: maintenanceWorkspace });
     context.assert(maintenanceRun.status === 0, "maintenance run exits zero in the coverage workspace");
     const maintenanceJson = JSON.parse(maintenanceRun.stdout) as { generatedChange?: string | null };
     context.assert(

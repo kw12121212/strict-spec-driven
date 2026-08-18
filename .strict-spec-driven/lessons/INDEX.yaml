@@ -14,6 +14,11 @@ categories:
       status: active
       occurrences: 3
       path: .strict-spec-driven/lessons/architecture/promoting-a-repeated-fix-to-a-must-rule-makes-ev-0b557e.yaml
+    a-dispatcher-s-read-only-claim-is-only-as-true-a-72bf64:
+      title: A dispatcher's read-only claim is only as true as what it dispatches to
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/architecture/a-dispatcher-s-read-only-claim-is-only-as-true-a-72bf64.yaml
   documentation:
     adding-cli-mutation-guidance-to-a-document-enrol-18d554:
       title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
@@ -71,6 +76,16 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/a-cross-reference-integrity-check-makes-every-mi-2411bb.yaml
+    a-snippet-removal-probe-is-defeated-by-a-line-wr-32e95c:
+      title: A snippet-removal probe is defeated by a line-wrapped occurrence
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-snippet-removal-probe-is-defeated-by-a-line-wr-32e95c.yaml
+    reusing-a-check-s-registry-does-not-reuse-its-er-7ace0f:
+      title: Reusing a check's registry does not reuse its error handling
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/reusing-a-check-s-registry-does-not-reuse-its-er-7ace0f.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability
@@ -130,7 +145,7 @@ categories:
     a-command-named-like-a-check-can-be-a-writer-63db07:
       title: A command named like a check can be a writer
       status: active
-      occurrences: 4
+      occurrences: 5
       path: .strict-spec-driven/lessons/tooling/a-command-named-like-a-check-can-be-a-writer-63db07.yaml
     a-helper-that-returns-nothing-for-the-ambiguous-5c099f:
       title: A helper that returns nothing for the ambiguous case reads as 'nothing exists' to a new consumer
@@ -177,3 +192,8 @@ categories:
       status: active
       occurrences: 4
       path: .strict-spec-driven/lessons/tooling/a-non-zero-coverage-gate-is-not-always-a-coverag-204e92.yaml
+    a-green-suite-does-not-prove-module-initializati-6bdb53:
+      title: A green suite does not prove module initialization order
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-green-suite-does-not-prove-module-initializati-6bdb53.yaml

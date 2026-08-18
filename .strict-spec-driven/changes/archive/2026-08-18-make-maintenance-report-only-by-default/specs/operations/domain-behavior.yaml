@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: operations-domain-behavior
+operations:
+  ADDED: {}
+  MODIFIED:
+    operations-maintenance-contract:
+      strength: MUST
+      statement: The system MUST make maintenance run configured maintenance checks when present and report checksRun and findingsCount. It MUST create a maintenance change only when seeding is explicitly requested, findings exist, and fewer than two active changes are present; MUST skip seeding with generatedChange null and an explicit skipped-seeding explanation naming the seeding argument when seeding was not requested, and naming the active-change limit when two active changes already exist; and MUST return no generated change when no config or checks are configured. Seeding is the only write the command itself performs; an individual check may still apply its own documented correction, as roadmap-sync-check does.
+      scenarios:
+        maintenance-reports-without-seeding-by-default:
+          - GIVEN: maintenance checks produce findings and seeding was not requested
+          - WHEN: strict-spec-driven maintenance runs
+          - THEN: the command exits zero, reports checksRun and findingsCount, creates no change directory, returns generatedChange null, and explains that seeding was not requested and names the argument that requests it
+        maintenance-seeds-second-active-change:
+          - GIVEN: maintenance checks produce findings while exactly one active change exists under .strict-spec-driven/changes/ and seeding is requested
+          - WHEN: strict-spec-driven maintenance runs with the seeding argument
+          - THEN: the command exits zero, reports findings, and creates a second active generated maintenance change
+        maintenance-skips-seeding-at-two-active-changes:
+          - GIVEN: maintenance checks produce findings while two active changes already exist under .strict-spec-driven/changes/ and seeding is requested
+          - WHEN: strict-spec-driven maintenance runs with the seeding argument
+          - THEN: the command exits zero, still reports checksRun and findingsCount, returns generatedChange null, and explains that the two-change active limit has been reached
+  REMOVED: {}

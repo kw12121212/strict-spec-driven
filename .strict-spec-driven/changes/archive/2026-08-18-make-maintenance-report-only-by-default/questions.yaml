@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: make-maintenance-report-only-by-default
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong with strict-spec-cli maintenance today?
+    context: 'Decides whether the fix is behavioral or documentation-only. Impact: a documentation-only fix leaves the bare invocation writing.'
+    answer: The command is named like a check and takes no flags, but seeds a change from its findings. Callers run it to see the report and get a second active change they then have to cancel. The lesson store records five occurrences across four changes, the most recent during the change archived immediately before this one.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: 'Fixes the assertions. Impact: without a test on the bare invocation, the default could regress silently.'
+    answer: Running strict-spec-cli maintenance with findings present creates no change directory and reports generatedChange null with a reason naming --seed; running it with --seed creates exactly the change it creates today; and help states both the seeding behavior and all five supported check types.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now?
+    context: 'Tests whether the trigger is real. Impact: a weak trigger would argue for leaving the behavior and only fixing help.'
+    answer: The user directed the fix after the fifth recurrence, which happened during the immediately preceding change and required a cancel. Each earlier recurrence was recorded as a lesson and left the behavior alone, so the recurrence count is the evidence that recording it is not working.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Becomes the hard constraints. Impact: a behavior change to a writer command invites scope drift into what it writes.'
+    answer: No change to which checks run, what they report, the report key set, the seeded change's name format or artifacts, the two-active-change limit, or the exit codes. Only whether a bare invocation writes, and the flag that restores writing.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Should the safe behavior be the default, or should the writing default stay with a new read-only flag?
+    context: 'The repository already uses --check for read-only rendering, which argues for a --check flag here. Impact: a --check flag is backward compatible but leaves the bare invocation writing, and the bare invocation is the form that has been mistaken five times.'
+    answer: Report-only is the default and --seed restores writing. The bare invocation must be the safe one, because typing the command's name is what every mistaken caller did.
+    status: resolved
+    kind: requirement
+    answered_by: human

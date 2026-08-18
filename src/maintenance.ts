@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
+import { type MaintenanceCheckType } from "./maintenance-check-types.js";
 import { buildSeededRequirementQuestions } from "./requirement-questions.js";
 import { MAX_ACTIVE_CHANGE_COUNT, initializeStrictChangeScaffold, listActiveChangeNames } from "./scaffold.js";
 import { syncRoadmap } from "./roadmap.js";
@@ -370,7 +371,37 @@ function buildTasksYaml(changeName: string, findings: MaintenanceFinding[], regr
   };
 }
 
-export function runMaintenance(rootDir: string): MaintenanceResult {
+/**
+ * Every configurable check type, mapped to the function that runs it.
+ *
+ * This is the one place the supported set is stated: the dispatch reads it, and the command
+ * metadata's note is checked against it, so a check type cannot be implemented without being
+ * documented or documented without being implemented.
+ */
+const MAINTENANCE_CHECK_RUNNERS: Record<MaintenanceCheckType, (rootDir: string) => MaintenanceFinding[]> = {
+  "roadmap-sync-check": runRoadmapSyncCheck,
+  "specs-directory-structure-check": runSpecsDirectoryStructureCheck,
+  "generated-doc-check": runGeneratedDocCheck,
+  "lesson-staleness-check": runLessonStalenessCheck,
+  "cli-only-yaml-policy": runCliOnlyYamlPolicyCheck,
+};
+
+/**
+ * Options for a maintenance run.
+ *
+ * Seeding is opt-in. The command reads as a check, and every recorded invocation wanted the report,
+ * so the bare run reports and writes nothing; a caller that wants the change asks for it.
+ */
+export type MaintenanceOptions = {
+  seed?: boolean;
+};
+
+/** The reason reported when findings exist but the caller did not ask for a change to be written. */
+const SEEDING_NOT_REQUESTED_REASON =
+  "seeding skipped because it was not requested; rerun with --seed to create a maintenance change from these findings";
+
+export function runMaintenance(rootDir: string, options: MaintenanceOptions = {}): MaintenanceResult {
+  const seed = options.seed === true;
   const configPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml");
   if (!existsSync(configPath)) {
     return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
@@ -392,30 +423,24 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
   let checksRun = 0;
 
   for (const check of maintenanceCfg.checks) {
-    if (check.type === "roadmap-sync-check") {
-      findings.push(...runRoadmapSyncCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "specs-directory-structure-check") {
-      findings.push(...runSpecsDirectoryStructureCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "generated-doc-check") {
-      findings.push(...runGeneratedDocCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "lesson-staleness-check") {
-      findings.push(...runLessonStalenessCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "cli-only-yaml-policy") {
-      findings.push(...runCliOnlyYamlPolicyCheck(rootDir));
-      checksRun++;
-    }
+    const runCheck = MAINTENANCE_CHECK_RUNNERS[check.type as MaintenanceCheckType];
+    if (!runCheck) continue;
+    findings.push(...runCheck(rootDir));
+    checksRun++;
   }
 
   if (findings.length === 0) {
     return { valid: true, checksRun, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
+  }
+
+  if (!seed) {
+    return {
+      valid: true,
+      checksRun,
+      findingsCount: findings.length,
+      generatedChange: null,
+      seedingSkippedReason: SEEDING_NOT_REQUESTED_REASON,
+    };
   }
 
   const activeChanges = listActiveChangeNames(rootDir);

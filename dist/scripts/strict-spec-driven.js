@@ -15970,6 +15970,15 @@ function resolveYamlArtifactIdentifiers(artifactTypeOrSchemaId) {
   };
 }
 
+// src/maintenance-check-types.ts
+var MAINTENANCE_CHECK_TYPES = [
+  "roadmap-sync-check",
+  "specs-directory-structure-check",
+  "generated-doc-check",
+  "lesson-staleness-check",
+  "cli-only-yaml-policy"
+];
+
 // src/cli/command-metadata-entries.ts
 var CHANGE_NAME_ARG = {
   name: "change-name",
@@ -18517,11 +18526,17 @@ var COMMAND_METADATA_ENTRIES = {
   maintenance: {
     name: "maintenance",
     group: "migration",
-    summary: "Run the configured maintenance checks against strict workflow repository state.",
-    usage: `Usage: strict-spec-cli maintenance
+    summary: "Report the configured maintenance checks against strict workflow repository state, creating a change from the findings only with --seed.",
+    usage: `Usage: strict-spec-cli maintenance [--seed]
 `,
     arguments: [],
-    flags: [],
+    flags: [
+      {
+        name: "--seed",
+        arity: "boolean",
+        description: "Create a maintenance change from the findings. Without it the command reports only: it creates no change, returns generatedChange null, and names this flag in seedingSkippedReason. Individual checks still apply their own documented corrections either way."
+      }
+    ],
     output: {
       format: "json",
       keys: ["valid", "checksRun", "findingsCount", "generatedChange", "seedingSkippedReason"],
@@ -18529,10 +18544,10 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
-      "There are no flags: the checks that run come from the maintenance.checks list in .strict-spec-driven/config.yaml, and a project with no such list runs zero checks and produces zero findings.",
-      "Supported check types are roadmap-sync-check, specs-directory-structure-check, and generated-doc-check.",
-      "generated-doc-check is read-only for the documents it inspects: it reports a stale generated document and the command that re-renders it, and never writes one itself.",
-      "Seeding is skipped with generatedChange null and an explicit seedingSkippedReason when two active changes already exist."
+      "The checks that run come from the maintenance.checks list in .strict-spec-driven/config.yaml, and a project with no such list runs zero checks and produces zero findings.",
+      `Supported check types are ${MAINTENANCE_CHECK_TYPES.join(", ")}.`,
+      "generated-doc-check is read-only for the documents it inspects: it reports a stale generated document and the command that re-renders it, and never writes one itself. roadmap-sync-check is not read-only: it applies the sync and reports the files it wrote, on a seeding and a report-only run alike.",
+      "Seeding is skipped with generatedChange null and an explicit seedingSkippedReason when --seed was not passed, and when --seed was passed but two active changes already exist."
     ]
   },
   ship: {
@@ -31404,7 +31419,16 @@ function buildTasksYaml(changeName, findings, regressionCommand) {
     }
   };
 }
-function runMaintenance(rootDir) {
+var MAINTENANCE_CHECK_RUNNERS = {
+  "roadmap-sync-check": runRoadmapSyncCheck,
+  "specs-directory-structure-check": runSpecsDirectoryStructureCheck,
+  "generated-doc-check": runGeneratedDocCheck,
+  "lesson-staleness-check": runLessonStalenessCheck,
+  "cli-only-yaml-policy": runCliOnlyYamlPolicyCheck
+};
+var SEEDING_NOT_REQUESTED_REASON = "seeding skipped because it was not requested; rerun with --seed to create a maintenance change from these findings";
+function runMaintenance(rootDir, options = {}) {
+  const seed = options.seed === true;
   const configPath = path38.join(rootDir, STRICT_WORKFLOW_DIR12, "config.yaml");
   if (!existsSync35(configPath)) {
     return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
@@ -31422,29 +31446,23 @@ function runMaintenance(rootDir) {
   const findings = [];
   let checksRun = 0;
   for (const check of maintenanceCfg.checks) {
-    if (check.type === "roadmap-sync-check") {
-      findings.push(...runRoadmapSyncCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "specs-directory-structure-check") {
-      findings.push(...runSpecsDirectoryStructureCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "generated-doc-check") {
-      findings.push(...runGeneratedDocCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "lesson-staleness-check") {
-      findings.push(...runLessonStalenessCheck(rootDir));
-      checksRun++;
-    }
-    if (check.type === "cli-only-yaml-policy") {
-      findings.push(...runCliOnlyYamlPolicyCheck(rootDir));
-      checksRun++;
-    }
+    const runCheck = MAINTENANCE_CHECK_RUNNERS[check.type];
+    if (!runCheck)
+      continue;
+    findings.push(...runCheck(rootDir));
+    checksRun++;
   }
   if (findings.length === 0) {
     return { valid: true, checksRun, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
+  }
+  if (!seed) {
+    return {
+      valid: true,
+      checksRun,
+      findingsCount: findings.length,
+      generatedChange: null,
+      seedingSkippedReason: SEEDING_NOT_REQUESTED_REASON
+    };
   }
   const activeChanges = listActiveChangeNames(rootDir);
   if (activeChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
@@ -33189,11 +33207,12 @@ function runMaintenanceCommand(argv) {
   if (handleHelpRequest("maintenance", argv)) {
     return 0;
   }
-  if (argv.length > 0) {
+  const seed = argv.includes("--seed");
+  if (argv.length > (seed ? 1 : 0)) {
     writeUsage(getCommandUsage("maintenance"));
     return 1;
   }
-  const result2 = runMaintenance(process.cwd());
+  const result2 = runMaintenance(process.cwd(), { seed });
   writeJson(result2);
   return result2.valid ? 0 : 1;
 }

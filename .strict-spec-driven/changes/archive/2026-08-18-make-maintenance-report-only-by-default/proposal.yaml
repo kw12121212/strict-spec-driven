@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: make-maintenance-report-only-by-default
+  status: proposed
+summary:
+  what:
+    - 'Complete the maintenance command metadata: declare the --seed flag, name all five implemented check types instead of three, and state in the summary and usage that seeding creates a change.'
+    - Update the strict-spec-maintenance skill to pass --seed at the step where it intends to create a change, so the one workflow that wants seeding still gets it.
+    - 'Make strict-spec-cli maintenance stop creating a change unless asked: it runs the configured checks and returns the report, and seeding a maintenance change now requires an explicit --seed flag. Checks that apply their own corrections, such as roadmap-sync-check, keep doing so on either run.'
+  why:
+    - The command is named like a check, takes no flags, and writes. The lesson store records five separate occurrences of it being invoked for its report and then cancelled, across four different changes; the fifth was during the change that archived immediately before this one. A trap that has caught every caller five times is a defect in the command, not in the callers.
+    - 'The help metadata understates the command twice over: its summary says only that it runs checks, and its notes name three of the five implemented check types. An operator reading help to decide whether the command is safe to run is told neither that it writes nor what it actually checks.'
+scope:
+  in:
+    - Adding a --seed flag to the maintenance command and making runMaintenance seed a change only when it is passed, returning the same report shape otherwise.
+    - Reporting, when findings exist and --seed was not passed, an explicit reason in seedingSkippedReason that names --seed as the way to create the change, so the report says why nothing was written.
+    - 'Updating the maintenance entry in src/cli/command-metadata-entries.ts: the summary, the usage line, the flags list, and the notes, including all five supported check types.'
+    - Updating skills/strict-spec-maintenance/SKILL.md to invoke maintenance --seed where it intends to create a change, and to describe the report-only default.
+    - Delta spec against operations-domain-behavior for the changed maintenance contract, covering the report-only default, the --seed path, and the unchanged two-active-change limit.
+    - Updating the maintenance tests in test/suites/operations.ts and test/suites/coverage-gate.ts, including a test that a bare invocation with findings writes nothing.
+  out:
+    - Changing which checks run, what any check reports, or the content of a seeded change. Only whether a change is written, and on what flag, changes.
+    - Changing the two-active-change seeding limit, the maintenance-YYYY-MM-DD naming, or the artifacts a seeded change contains.
+    - Adding a --check flag as an alias for the new default; report-only is the default, so a flag naming it would be redundant.
+    - Re-rendering ARCHITECTURE.md or any other generated document, beyond what a source change in this change requires.
+unchanged_behavior:
+  - The set of configured check types, their findings, and the report keys valid, checksRun, findingsCount, generatedChange, and seedingSkippedReason.
+  - 'With --seed passed and fewer than two active changes present, the seeded change is byte-for-byte what maintenance seeds today: the same name format, the same proposal, tasks, and questions artifacts, and the same absent design.yaml.'
+  - The two-active-change limit still skips seeding with generatedChange null and its existing explanation.
+  - 'Exit codes: zero on a valid run regardless of findings, non-zero only when the report is invalid.'

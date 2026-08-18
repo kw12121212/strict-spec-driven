@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-green-suite-does-not-prove-module-initializati-6bdb53
+  title: A green suite does not prove module initialization order
+category: tooling
+status: active
+created_at: '2026-08-18T11:48:04.425Z'
+updated_at: '2026-08-18T11:48:04.425Z'
+context: To stop the maintenance command's check-type note from going stale, this change made the note render from a constant exported by src/maintenance.ts, so the documented list and the dispatch table could not diverge. The build succeeded, the CLI rendered the correct note, validate-skills passed, and the full 4251-test suite passed.
+observation: 'Importing dist/maintenance.js directly, the way a probe or another consumer would, threw ReferenceError: Cannot access SUPPORTED_MAINTENANCE_CHECK_TYPES before initialization. The metadata registry imports maintenance, maintenance reaches cli-only-yaml-policy, and that imports the metadata registry back, so whichever module is entered first reads the other''s uninitialized binding. Every green signal came from entry points that happened to load the cycle in the working order; nothing in the suite imports that module first.'
+takeaway: 'When wiring a constant from a domain module into a widely imported registry, check the import graph before trusting the build. A cycle fails only for the entry order nothing currently exercises, so tests, the CLI, and tsc can all pass over it. Put the shared constant in a leaf module that imports nothing, and prefer a typed relationship over a runtime one: keying the handler map by a union derived from the list makes a missing or extra entry a compile error in both directions, which no test has to cover.'
+applies_when: Importing a constant, type, or list from a domain module into a CLI metadata registry, plugin manifest, or any module the domain module can reach transitively, especially when the build and full suite pass immediately.
+occurrences:
+  - origin: make-maintenance-report-only-by-default
+    date: '2026-08-18'
+    evidence: src/cli/command-metadata-entries.ts imported SUPPORTED_MAINTENANCE_CHECK_TYPES from ../maintenance.js; bun -e importing dist/maintenance.js first threw ReferenceError at command-metadata-entries.js:2492 while bun run build, strict-spec-cli maintenance --help, and all 4251 tests passed. The cycle is command-metadata-entries to maintenance to cli-only-yaml-policy to command-metadata to command-metadata-entries. Resolved by adding the leaf module src/maintenance-check-types.ts and typing MAINTENANCE_CHECK_RUNNERS as Record<MaintenanceCheckType, ...>; both a missing runner and an invented one were observed failing tsc.

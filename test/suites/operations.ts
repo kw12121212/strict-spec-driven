@@ -292,7 +292,7 @@ try {
     "utf8",
   );
 
-  const mismatchResult = cli(["maintenance"], { cwd: maintMismatchDir });
+  const mismatchResult = cli(["maintenance", "--seed"], { cwd: maintMismatchDir });
   context.assert(mismatchResult.status === 0, "maintenance exits zero when roadmap has mismatches");
   const mismatchJson = JSON.parse(mismatchResult.stdout.trim()) as {
     valid: boolean;
@@ -389,7 +389,7 @@ try {
     "utf8",
   );
 
-  const seededSecondResult = cli(["maintenance"], { cwd: maintActiveChangeDir });
+  const seededSecondResult = cli(["maintenance", "--seed"], { cwd: maintActiveChangeDir });
   context.assert(seededSecondResult.status === 0, "maintenance exits zero when seeding a second active change");
   const seededSecondJson = JSON.parse(seededSecondResult.stdout.trim()) as {
     findingsCount: number;
@@ -404,7 +404,7 @@ try {
   const activeEntriesBeforeSkip = readdirSync(path.join(strictDir, "changes")).filter((name) => name !== "archive").sort();
   context.assert(activeEntriesBeforeSkip.length === 2, "maintenance seeding fills the two-active-change capacity");
 
-  const skippedResult = cli(["maintenance"], { cwd: maintActiveChangeDir });
+  const skippedResult = cli(["maintenance", "--seed"], { cwd: maintActiveChangeDir });
   context.assert(skippedResult.status === 0, "maintenance exits zero when seeding is skipped at two active changes");
   const skippedJson = JSON.parse(skippedResult.stdout.trim()) as {
     valid: boolean;
@@ -531,8 +531,8 @@ function createGeneratedDocCheckWorkspace(): string {
   return workspaceRoot;
 }
 
-function readMaintenanceReport(cwd: string): MaintenanceReport {
-  const result = cli(["maintenance"], { cwd });
+function readMaintenanceReport(cwd: string, options: { seed?: boolean } = {}): MaintenanceReport {
+  const result = cli(options.seed === true ? ["maintenance", "--seed"] : ["maintenance"], { cwd });
   return JSON.parse(result.stdout.trim()) as MaintenanceReport;
 }
 
@@ -639,7 +639,31 @@ try {
     "utf8",
   );
 
-  const report = readMaintenanceReport(docStaleDir);
+  // The bare invocation first. It is the form five recorded callers used when they wanted a report
+  // and got a change, and generated-doc-check is the check that writes nothing of its own, so the
+  // changes directory is the only thing that can differ between these two runs.
+  const changesDir = path.join(docStaleDir, ".strict-spec-driven", "changes");
+  // A freshly initialized workspace has no changes directory at all, and creating one is itself a
+  // write this run must not make, so absence is recorded rather than treated as an error.
+  const activeChangeEntries = (): string[] =>
+    existsSync(changesDir) ? readdirSync(changesDir).filter((name) => name !== "archive").sort() : [];
+  const changesBeforeReportOnly = activeChangeEntries();
+  const reportOnly = readMaintenanceReport(docStaleDir);
+  const changesAfterReportOnly = activeChangeEntries();
+  context.assert(reportOnly.findingsCount === 1, "a report-only run still reports the stale document", JSON.stringify(reportOnly));
+  context.assert(reportOnly.generatedChange === null, "a run without --seed seeds no change");
+  context.assert(
+    JSON.stringify(changesAfterReportOnly) === JSON.stringify(changesBeforeReportOnly),
+    "a run without --seed leaves the changes directory exactly as it found it",
+    `before: ${changesBeforeReportOnly.join(", ")}; after: ${changesAfterReportOnly.join(", ")}`,
+  );
+  context.assert(
+    (reportOnly.seedingSkippedReason ?? "").includes("--seed"),
+    "the report-only run explains that seeding was not requested and names the flag that requests it",
+    String(reportOnly.seedingSkippedReason),
+  );
+
+  const report = readMaintenanceReport(docStaleDir, { seed: true });
   context.assert(report.findingsCount === 1, "a stale generated document produces one finding", JSON.stringify(report));
   context.assert(typeof report.generatedChange === "string", "a stale generated document seeds a maintenance change");
   context.assert(
@@ -688,7 +712,7 @@ try {
     "utf8",
   );
 
-  const report = readMaintenanceReport(docBothDir);
+  const report = readMaintenanceReport(docBothDir, { seed: true });
   context.assert(
     report.findingsCount === 1,
     "the stale design document is reported while the current architecture document is not",
@@ -731,7 +755,7 @@ function makeLessonStalenessWorkspace(): string {
 }
 
 function runLessonStaleness(root: string): { checksRun: number; findingsCount: number; findings: string[] } {
-  const result = cli(["maintenance"], { cwd: root });
+  const result = cli(["maintenance", "--seed"], { cwd: root });
   const parsed = JSON.parse(result.stdout.trim()) as { checksRun: number; findingsCount: number; generatedChange: string | null };
   const findings: string[] = [];
   if (parsed.generatedChange) {
@@ -874,7 +898,7 @@ try {
       "utf8",
     );
 
-    const seededRun = cli(["maintenance"], { cwd: policyWorkspace });
+    const seededRun = cli(["maintenance", "--seed"], { cwd: policyWorkspace });
     context.assert(seededRun.status === 0, "maintenance exits zero while reporting policy findings");
     const seededJson = JSON.parse(seededRun.stdout) as { checksRun: number; findingsCount: number; generatedChange?: string | null };
     context.assert(seededJson.checksRun === 1, "the configured cli-only-yaml-policy check runs");

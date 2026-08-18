@@ -1,0 +1,53 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: make-maintenance-report-only-by-default
+sections:
+  Implementation:
+    add-seed-option-to-run-maintenance:
+      text: Give runMaintenance a seed option defaulting to false, and gate the scaffold and artifact writes behind it. When findings exist and seeding was not requested, return generatedChange null with a seedingSkippedReason that names the seeding argument as the way to create the change.
+      status: complete
+    accept-seed-flag-in-command:
+      text: Parse --seed in runMaintenanceCommand, keeping any other argument a usage error, and pass the parsed value through to runMaintenance.
+      status: complete
+    correct-command-metadata:
+      text: 'Correct the maintenance entry in src/cli/command-metadata-entries.ts: a summary and usage line that state seeding happens only with --seed, the --seed flag declared in the flags list, and notes naming all five implemented check types instead of three.'
+      status: complete
+    update-maintenance-skill:
+      text: Update skills/strict-spec-maintenance/SKILL.md to describe the report-only default and to invoke maintenance --seed at the step that intends to create a change, so its seed-complete-archive workflow still reaches a change.
+      status: complete
+  Testing:
+    test-bare-invocation-writes-nothing:
+      text: Add a test that runs maintenance with findings present and no --seed, asserting no change directory was created, generatedChange is null, and seedingSkippedReason names --seed; capture the change directory listing before and after so the absence of a write is observed rather than inferred from the report.
+      status: complete
+    update-existing-maintenance-tests:
+      text: Update the maintenance call sites in test/suites/operations.ts and test/suites/coverage-gate.ts so every test that asserts seeding passes --seed, and confirm the seeded change's artifacts are unchanged from what the tests asserted before.
+      status: complete
+    validate-skill-packaging:
+      text: Run strict skill packaging and content validation and confirm the updated maintenance skill still validates with no diagnostics.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-project-regression:
+      text: Run the complete project test suite against rebuilt dist output, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?
+  Verification:
+    confirm-seeded-change-unchanged:
+      text: Confirm that with --seed the command still produces the same change name format and the same proposal, tasks, and questions artifacts with design.yaml absent, so only the trigger changed and not what is written.
+      status: complete
+    confirm-help-matches-implementation:
+      text: Confirm the rendered help names the --seed flag and all five implemented check types, and that the check-type list in the metadata matches the branches in runMaintenance rather than a stale subset.
+      status: complete
+      command: strict-spec-cli maintenance --help --json
+    run-ready-and-verify:
+      text: Run the strict readiness gate and resolve any structural diagnostic it reports.
+      status: complete
+      command: strict-spec-cli ready make-maintenance-report-only-by-default
+    run-coverage-gate:
+      text: Run the declared project regression and coverage gate and confirm it passes at or above the declared threshold of 78 without the threshold being changed.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+testing_gates:
+  validation_task: validate-skill-packaging
+  unit_test_task: run-project-regression

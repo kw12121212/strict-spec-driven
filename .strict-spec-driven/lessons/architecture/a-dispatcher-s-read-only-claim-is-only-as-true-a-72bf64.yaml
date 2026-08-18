@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-dispatcher-s-read-only-claim-is-only-as-true-a-72bf64
+  title: A dispatcher's read-only claim is only as true as what it dispatches to
+category: architecture
+status: active
+created_at: '2026-08-18T11:47:46.033Z'
+updated_at: '2026-08-18T11:47:46.033Z'
+context: 'This change made strict-spec-cli maintenance stop seeding a change unless --seed is passed. The proposal, the delta spec statement, the command metadata, and the skill all described the new default as a run that writes nothing, which read as obviously true: the only write in runMaintenance''s own body is the seeding branch that was now gated.'
+observation: Six tests failed on the first run. roadmap-sync-check does not report drift, it calls syncRoadmap and reports the files it wrote, so the report-only run repaired the roadmap and the seeding run that followed found nothing left to seed. The command's own body had no write outside the gate, and the claim was still false, because the writes lived in the check functions the dispatch table points at. Fixing it meant correcting the statement in four places and moving the new test onto generated-doc-check, the one check that genuinely writes nothing.
+takeaway: Before describing a command as read-only, or gating its writes behind a flag, read every function it dispatches to and classify each one. A dispatcher's own body is not its write surface; the handler table is. State the narrower true claim — what the command itself no longer creates — rather than the broader one about writing, and put a test that asserts nothing was written on a handler proven not to write.
+applies_when: Making an existing command read-only, adding a check or dry-run mode, or writing a spec statement or help text that claims a command writes nothing, when the command dispatches to a table of handlers rather than doing the work inline.
+occurrences:
+  - origin: make-maintenance-report-only-by-default
+    date: '2026-08-18'
+    evidence: The delta spec statement, the --seed flag description, the maintenance skill, and one proposal what-item all claimed the bare run writes nothing. runRoadmapSyncCheck in src/maintenance.ts calls syncRoadmap, which writes; six tests in test/suites/operations.ts failed because a report-only run consumed the roadmap findings the seeding assertions needed. All four statements were narrowed to seeding, and the report-only test moved to the docStaleDir fixture.

@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: make-maintenance-report-only-by-default
+approach:
+  - Move the seeding decision from an implicit consequence of running the command to an explicit argument. runMaintenance gains a seed option that defaults to false; the check loop, the finding shape, and the seeded artifacts are untouched, so the change is entirely about which branch runs.
+  - Make the report say what it did not do. When findings exist and seeding was not requested, seedingSkippedReason names --seed, reusing the field that already exists for the two-active-change skip rather than adding a new signal.
+  - 'Fix the metadata in the same change, because the trap has two halves: the command writes without being asked, and help does not say so. Correcting one and leaving the other still lets the next reader conclude it is a check.'
+decisions:
+  seed-behind-a-flag:
+    decision: Default to report-only and require --seed to write, rather than keeping the write default and adding --check.
+    rationale: Every one of the five recorded invocations wanted the report, and none wanted the change. A --check flag leaves the bare invocation writing, which is exactly the form that has been mistaken five times; the safe behavior has to be the one you get by typing the command's name.
+  reuse-skipped-reason-field:
+    decision: Report the not-seeded case through the existing seedingSkippedReason field rather than a new key.
+    rationale: The field already carries the other reason seeding did not happen, and a caller checking why generatedChange is null should read one field, not two. Keeping the key set identical also means the report shape is unchanged for anything parsing it.
+  skill-passes-seed:
+    decision: Update strict-spec-maintenance to pass --seed at the step that intends to create a change.
+    rationale: That skill's whole workflow is seed then complete then archive, so it is the one caller that genuinely wants the write. Leaving it on the bare invocation would silently turn the skill into a reporter and break its next step.
+alternatives:
+  - option: Keep seeding on by default and add --check for a read-only run.
+    reason: 'Rejected: backward compatible but leaves the trap intact, since the bare invocation is the one that has been misused five times.'
+  - option: Keep the behavior and only correct help and the skill guidance.
+    reason: 'Rejected: five recurrences across four changes are evidence that reading help first is not what happens. The last occurrence was a task whose own text called it a check.'
+  - option: Split the command into maintenance-check and maintenance-seed.
+    reason: 'Rejected: it doubles the command surface for one boolean, and the repository has just spent a milestone reducing surface. A flag on the existing command carries the same distinction.'
+risks:
+  - Any caller relying on the bare invocation to seed silently stops seeding. The repository's own callers are the maintenance skill and the tests, both updated here, but an external project scripting maintenance in CI would see changes stop appearing rather than an error.
+  - 'The seedingSkippedReason text becomes load-bearing: it is the only place the report explains that --seed exists, so a vague message turns a deliberate refusal into an apparent no-op.'
+  - The metadata correction adds two check types to a note that has been wrong for some time. If the note is the only place the list is stated, it can go stale again the next time a check type is added.

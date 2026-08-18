@@ -39789,6 +39789,15 @@ function loadYamlMutationSurface() {
   return cachedSurface;
 }
 
+// src/maintenance-check-types.ts
+var MAINTENANCE_CHECK_TYPES = [
+  "roadmap-sync-check",
+  "specs-directory-structure-check",
+  "generated-doc-check",
+  "lesson-staleness-check",
+  "cli-only-yaml-policy"
+];
+
 // src/cli/command-metadata-entries.ts
 var CHANGE_NAME_ARG = {
   name: "change-name",
@@ -42336,11 +42345,17 @@ var COMMAND_METADATA_ENTRIES = {
   maintenance: {
     name: "maintenance",
     group: "migration",
-    summary: "Run the configured maintenance checks against strict workflow repository state.",
-    usage: `Usage: strict-spec-cli maintenance
+    summary: "Report the configured maintenance checks against strict workflow repository state, creating a change from the findings only with --seed.",
+    usage: `Usage: strict-spec-cli maintenance [--seed]
 `,
     arguments: [],
-    flags: [],
+    flags: [
+      {
+        name: "--seed",
+        arity: "boolean",
+        description: "Create a maintenance change from the findings. Without it the command reports only: it creates no change, returns generatedChange null, and names this flag in seedingSkippedReason. Individual checks still apply their own documented corrections either way."
+      }
+    ],
     output: {
       format: "json",
       keys: ["valid", "checksRun", "findingsCount", "generatedChange", "seedingSkippedReason"],
@@ -42348,10 +42363,10 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
-      "There are no flags: the checks that run come from the maintenance.checks list in .strict-spec-driven/config.yaml, and a project with no such list runs zero checks and produces zero findings.",
-      "Supported check types are roadmap-sync-check, specs-directory-structure-check, and generated-doc-check.",
-      "generated-doc-check is read-only for the documents it inspects: it reports a stale generated document and the command that re-renders it, and never writes one itself.",
-      "Seeding is skipped with generatedChange null and an explicit seedingSkippedReason when two active changes already exist."
+      "The checks that run come from the maintenance.checks list in .strict-spec-driven/config.yaml, and a project with no such list runs zero checks and produces zero findings.",
+      `Supported check types are ${MAINTENANCE_CHECK_TYPES.join(", ")}.`,
+      "generated-doc-check is read-only for the documents it inspects: it reports a stale generated document and the command that re-renders it, and never writes one itself. roadmap-sync-check is not read-only: it applies the sync and reports the files it wrote, on a seeding and a report-only run alike.",
+      "Seeding is skipped with generatedChange null and an explicit seedingSkippedReason when --seed was not passed, and when --seed was passed but two active changes already exist."
     ]
   },
   ship: {

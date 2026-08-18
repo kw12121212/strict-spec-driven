@@ -15,6 +15,7 @@ metadata:
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 run-maintenance: strict-spec-cli maintenance
+seed-maintenance-change: strict-spec-cli maintenance --seed
 list-changes: strict-spec-cli list
 verify-change: strict-spec-cli verify <change-name>
 archive-change: strict-spec-cli archive <change-name>
@@ -90,23 +91,34 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
-1. **Run maintenance checks** — execute:
+1. **Report the findings first** — execute:
     ```
     strict-spec-cli maintenance
    ```
-   Parse the JSON output. Fields: `valid`, `checksRun`, `findingsCount`, `generatedChange`.
+   This run creates no change. Parse the JSON output. Fields: `valid`, `checksRun`,
+   `findingsCount`, `generatedChange`, `seedingSkippedReason`.
 
-2. **If `generatedChange` is null** — no findings. No change was created. Report the clean state and stop.
+2. **If `findingsCount` is zero** — nothing to act on. Report the clean state and stop.
 
-3. **If `generatedChange` is set** — a maintenance change was created under `.strict-spec-driven/changes/<generatedChange>/`. The change contains:
+3. **Show the findings and seed the change** — report what the checks found, then create the
+   change from those same findings:
+    ```
+    strict-spec-cli maintenance --seed
+   ```
+   Only `--seed` writes; a bare run reports `generatedChange` null with a
+   `seedingSkippedReason` naming the flag. If `generatedChange` is still null after `--seed`,
+   read `seedingSkippedReason`: the two-active-change limit blocks seeding until a change is
+   archived or cancelled.
+
+4. **Inspect the seeded change** — it is created under `.strict-spec-driven/changes/<generatedChange>/` and contains:
    - `proposal.yaml`: scope listing each finding
    - `tasks.yaml`: one implementation task per finding, plus standard testing and verification tasks
    - `questions.yaml`: the requirement-interrogation set, seeded open for operator answers
    - `design.yaml`: not written; author it with `generate <change-name> design` before verify
 
-4. **Work through tasks** — use the standard `/strict-spec-apply <generatedChange>` workflow to complete all pending tasks. For `roadmap-sync-check` findings, the roadmap sync was already applied; implementation tasks are to review and confirm the changes were correct. For `generated-doc-check` findings, nothing was applied: run the re-render command named in the finding, and if the stale sources reveal that the source artifact itself is wrong, fix the artifact through its own skill before re-rendering.
+5. **Work through tasks** — use the standard `/strict-spec-apply <generatedChange>` workflow to complete all pending tasks. For `roadmap-sync-check` findings, the roadmap sync was already applied; implementation tasks are to review and confirm the changes were correct. For `generated-doc-check` findings, nothing was applied: run the re-render command named in the finding, and if the stale sources reveal that the source artifact itself is wrong, fix the artifact through its own skill before re-rendering.
 
-5. **Verify and archive** — once all tasks are complete:
+6. **Verify and archive** — once all tasks are complete:
    ```
    strict-spec-cli verify <generatedChange>
    strict-spec-cli archive <generatedChange>
@@ -114,5 +126,5 @@ run `init` from this skill.
 
 ## Notes
 
-- The `maintenance` command runs configured checks and applies automated corrections as a side effect (for example, updating roadmap sync state). The generated change is an auditable record of what was done. Not every check applies a correction; see the table above for which do.
+- A bare `maintenance` run only reports. With `--seed` it runs the configured checks, applies automated corrections as a side effect (for example, updating roadmap sync state), and writes the change. The generated change is an auditable record of what was done. Not every check applies a correction; see the table above for which do.
 - The maintenance change name uses the format `maintenance-YYYY-MM-DD` (with a numeric suffix if a collision exists).
