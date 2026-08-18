@@ -27,6 +27,42 @@ English | [中文](README.zh.md)
 
 This repository keeps a single active workflow directory, `.strict-spec-driven/`. A `.spec-driven/` directory is only relevant as migration *input* for other projects that still use the legacy Markdown workflow — see [Migration Boundaries](#migration-boundaries). This repository completed that migration and retains no root `.spec-driven/` directory.
 
+## Upgrading
+
+<!-- retired-skill-names -->
+
+The nine single-command roadmap skills were merged into one parameterized skill.
+`/strict-roadmap-pause`, `/strict-roadmap-resume`, `/strict-roadmap-defer`,
+`/strict-roadmap-refine`, `/strict-roadmap-reorder`, `/strict-roadmap-move`,
+`/strict-roadmap-reopen`, `/strict-roadmap-archive`, and `/strict-roadmap-sync`
+no longer exist as skill packages, and no alias package forwards them, so an
+invocation of one of those slash commands now fails rather than silently doing
+the right thing.
+
+Each is now an explicit operation of one skill:
+
+| Retired slash command | Replacement |
+|---|---|
+| `/strict-roadmap-pause` | `/strict-roadmap-transition pause` |
+| `/strict-roadmap-resume` | `/strict-roadmap-transition resume` |
+| `/strict-roadmap-defer` | `/strict-roadmap-transition defer` |
+| `/strict-roadmap-refine` | `/strict-roadmap-transition refine` |
+| `/strict-roadmap-reorder` | `/strict-roadmap-transition reorder` |
+| `/strict-roadmap-move` | `/strict-roadmap-transition move` |
+| `/strict-roadmap-reopen` | `/strict-roadmap-transition reopen` |
+| `/strict-roadmap-archive` | `/strict-roadmap-transition archive` |
+| `/strict-roadmap-sync` | `/strict-roadmap-transition sync` |
+
+The underlying CLI commands are unchanged: `roadmap-pause`, `roadmap-sync`, and
+the rest keep their names and arguments. Only the skill packaging changed.
+
+If you installed the skills before this change, reinstall them so the retired
+packages are removed from your skill directory and the merged one is present:
+
+```bash
+bun run install-strict-skills
+```
+
 ## Strict Command Surface
 
 ### CLI: `strict-spec-driven`

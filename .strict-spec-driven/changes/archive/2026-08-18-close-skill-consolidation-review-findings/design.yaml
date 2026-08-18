@@ -1,0 +1,51 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: close-skill-consolidation-review-findings
+approach:
+  - The dangling-skill-reference check moves into src/skills/ as a function that receives the bundled skill-name set validateStrictSkillPackaging already discovers by scanning skills/, so its scope comes from the filesystem rather than from the text it checks. validateStrictSkillPackaging passes that set into the per-skill content pass, and the new check reports one diagnostic per missing name carrying the SKILL.md path, the matched line, and the name, in the same shape the CLI-only policy diagnostics already use. The existing repository-wide regression scan stays, because it covers operator documentation and src/, which validate-skills cannot see from a consumer checkout; the two are complementary rather than duplicate.
+  - The restatement check stops treating Prerequisites as the privileged section. It splits a skill file into its level-two sections, excludes the declared commands block for the reason already recorded, and reports when the same shared-instruction sentence appears in two of the remaining sections. The match tokens stay the two prose sentences that only appear when the instruction is being given, because the recorded lesson shows that adding the command name back conflates a mention with a restatement.
+  - countProseSentences gains an abbreviation mask alongside its existing code-span mask, so the terminators inside a fixed set of prose abbreviations stop counting as sentence ends. The mask is a short explicit list rather than a general sentence splitter, matching the existing comment that deliberately declines to offer one.
+  - The skill-reference matcher drops the required prefix and matches the bare name, keeping the existing allowlist mechanism and its freshness assertion. Because widening a matcher can turn compliant prose into findings, the change first runs the wider matcher over the governed scope, then rewords the governed files it newly reports rather than allowlisting them.
+  - scripts/coverage-gate.ts sets an explicit max-old-space-size for the process that produces the coverage report, so the invocation recorded in the workflow config and in RTK.md completes without an ad hoc environment override. The threshold logic is untouched.
+  - README.md and README.zh.md gain a short Upgrading section that maps each retired slash command to its replacement operation. Both files are already registered operator-documentation mutation surfaces, so naming slash commands there adds no new surface.
+decisions:
+  ship-the-scan-through-validate-skills:
+    decision: The dangling-skill-reference check is implemented in src/ and surfaced by validate-skills, and is proven through a committed negative fixture driven through the shipped command, while the broader repository scan remains a regression test.
+    rationale: The technical rule policy-enforcement-proven-through-shipped-entry-point states that a module-level scan of inline text is supporting evidence only and MUST NOT be the sole proof for a policy that blocks a class of authored guidance; the current arrangement makes the regression test the sole proof, and a consumer running validate-skills observes nothing.
+  keep-the-repository-scan:
+    decision: The existing repository-wide regression scan over skills/, root operator documentation, and src/ is retained rather than replaced by the shipped check.
+    rationale: validate-skills sees only bundled skill packages, so retiring the repository scan would drop coverage of operator documentation and source diagnostic strings, which is where the original stale reference had already propagated into the contract.
+  compare-sections-pairwise:
+    decision: The restatement check compares level-two sections pairwise with the commands block excluded, instead of comparing a Prerequisites section against the rest of the file.
+    rationale: Both the spec requirement and the technical rule state the constraint as at most once per file and explicitly say it is about repetition rather than placement, so an implementation keyed to one section name enforces a narrower rule than the one recorded, and the four committed policy fixtures that state the instruction only under Prerequisites stay compliant under either form.
+  mask-abbreviations-not-general-splitting:
+    decision: countProseSentences masks a fixed list of prose abbreviations rather than adopting a general sentence-segmentation approach.
+    rationale: 'The function is documented as deliberately not a general-purpose sentence splitter, and a fixed list keeps the failure mode legible: an abbreviation that is not on the list produces a diagnostic a reader can act on, whereas a heuristic splitter would produce silent miscounts.'
+  bare-mentions-match-routing-surfaces-only:
+    decision: The widened bare-mention form of the skill-reference matcher applies to the routing surfaces — bundled skills and operator documentation — while source files continue to be matched only in the backticked, slash-command, and skills-path forms.
+    rationale: A bare name in a skill or an operator document reads as a live slash command a reader can type, which is the misdirection the rule exists to stop. A bare name in a source comment is prose about the code, and the standard already exempts files whose purpose is to state that a skill was deleted; the requester also set unchanged src/ comment wording as a non-goal, so widening there would force the change to edit text it is not allowed to edit.
+  per-skill-line-budget:
+    decision: The repository-wide bundled-skill line cap is replaced by a per-skill budget derived from a fresh measurement, rather than raising the existing total.
+    rationale: A single total couples every skill's headroom to every other skill's growth, so an unrelated addition fails a test that was measuring something else; a per-skill bound fails only the skill that actually grew, which is the file whose author can act on it.
+  adjust-the-check-not-the-text:
+    decision: When a widened or generalized check newly reports existing bundled guidance or existing source comments, the check is narrowed or its scope corrected; the reported text is not reworded, and no retired skill name is added to the allowlist.
+    rationale: The requester set unchanged skill guidance and unchanged src/ comment wording as explicit non-goals, and the recorded technical rule forbids allowlisting a banned name because an allowlist entry silences the real finding as well as the fixture; that leaves adjusting the check as the only available response, and it is also the honest one when a check reports compliant text.
+alternatives:
+  - option: Change the main spec scenario to name the regression suite instead of validate-skills, leaving the check where it is.
+    reason: It resolves the contradiction by weakening the contract rather than the implementation, and leaves every consuming project with no check, which is the concrete gap the review found.
+  - option: Replace the repository-wide regression scan with the shipped validate-skills check alone.
+    reason: validate-skills reads only bundled skill packages, so operator documentation and src/ diagnostic strings would lose their scan entirely, and those are exactly the files where the retired name had already reached the contract.
+  - option: Raise the V8 heap only in the CI invocation or in RTK.md guidance rather than inside the script.
+    reason: It leaves the documented command failing on an ordinary developer machine, so the blocking archive gate stays unrunnable as written and each caller has to rediscover the override.
+  - option: Widen the bare-mention matcher across src/ as well and reword the comments it reports.
+    reason: The requester recorded unchanged src/ comment wording as a non-goal, and a comment that names a deleted skill while explaining that it was deleted is a statement of fact rather than a routing instruction.
+  - option: Raise the repository-wide line cap to a higher number instead of replacing the metric.
+    reason: 'It postpones the same failure rather than removing it: the next unrelated skill addition still fails a repository-wide budget it did not cause to be exceeded.'
+risks:
+  - Widening the skill-reference matcher can report compliant prose that merely discusses a skill name, so the widened form must be run over the governed scope and its new findings inspected before the assertion is trusted.
+  - A repository-wide scan reports its own proof fixtures; the negative fixture for the shipped check must build any banned name at runtime rather than as a literal, as the recorded lesson describes.
+  - Generalizing the restatement check can newly report a bundled skill that states a shared instruction in two sections today, which would turn a documentation cleanup into an unplanned edit of skill guidance; the check must be run over the current skill set before the assertion is pinned.
+  - Setting an explicit heap size can mask a genuine memory regression in coverage collection later, so the chosen value should be recorded with the measurement that motivated it.
+  - Scoping the bare-mention form to routing surfaces means a bare mention inside a source diagnostic string is matched only in its prefixed forms; the diagnostic strings that route a reader to a skill must be checked to confirm they use a form the matcher still sees.

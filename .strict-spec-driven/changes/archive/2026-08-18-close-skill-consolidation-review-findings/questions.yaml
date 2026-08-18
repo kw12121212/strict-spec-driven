@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: close-skill-consolidation-review-findings
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: The requirement gate needs the problem stated as a behavior rather than as a solution. The requester reviewed the dev-to-main merge of the skill-surface consolidation and then directed that the enumerated review findings be turned into one strict change.
+    answer: 'The requester adopted the enumerated review findings as the problem statement: the shipped checks are weaker than the contracts that describe them, so a project consuming the packaged skills gets no diagnostic for a dangling skill reference, a duplicated shared instruction outside Prerequisites, or a bare prose mention of a deleted skill; and an operator hits a coverage gate that aborts as documented plus nine slash commands that vanished with no upgrade note.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: 'Which reading is intended: one change covering every review finding, or several narrower changes?'
+    context: 'The findings split into two families: shipped checks that under-enforce a recorded contract, and release and tooling hygiene. Either could be its own change, and the split affects how much scope one archive cycle carries.'
+    answer: One change covering the adopted findings. The requester asked for a single spec change built from the whole list rather than a split.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves this change worked?
+    context: 'The gate needs an outcome that can be checked from outside the system rather than a restatement of the tasks. Impact: the answer decides which assertions the change is allowed to call sufficient. Recommended answer: running validate-skills against a bundled skill that names a nonexistent skill exits non-zero with a diagnostic naming the file, the line, and the missing name, and the documented coverage-gate command completes on an ordinary developer machine. An alternative reading is that the outcome is simply that no shipped check contradicts a recorded MUST rule any more.'
+    answer: 'A project that consumes the packaged skills and runs only validate-skills observes the failure: guidance referencing a skill package that does not exist makes the command exit non-zero with a diagnostic naming the file, the line, and the missing name. Alongside that, the coverage-gate command recorded in the workflow config and RTK.md completes on an ordinary developer machine in its recorded form. The judgement standard is what an outside project can observe, not internal contract consistency.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced these findings into a change rather than leaving them as review notes?
+    context: 'The gate needs the trigger to test whether the work is real. Impact: a weak trigger means the change should be deferred rather than implemented now. Recommended answer: the merge to main just shipped the consolidation, so the gaps are freshly introduced and cheap to close before the next milestone builds on them. Alternative readings: an external project is about to consume the packaged skills and would get no checks, or the coverage gate is blocking an archive on a real machine today.'
+    answer: The skill-surface consolidation just merged to main, so these gaps are freshly introduced and cheapest to close now, before the next milestone builds on top of them.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'The gate needs the boundary stated by the requester rather than assumed. Impact: it decides whether the widened matchers and the generalized restatement check may cause edits to existing bundled skill guidance. Recommended answer: the guidance text of the 28 bundled skills stays as shipped, and the nine consolidated roadmap operations keep their current commands and behavior. An alternative reading permits rewording any skill or document the widened checks newly report.'
+    answer: The guidance text of the 28 bundled skills stays exactly as shipped; the nine roadmap transition operations keep their current owning commands and behavior; the coverage threshold 78 is untouched; and comment wording in src/ must not be reworded either. When a widened or generalized check newly reports existing text, the check is adjusted rather than the text.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: line-budget-headroom
+    question: How should the bundled-skill line budget be handled?
+    context: 'BUNDLED_SKILL_LINE_BUDGET is 5700 against a measured 5630 lines, leaving 70 lines for 28 skills, so the next skill addition or guidance improvement fails a test unrelated to it. Impact: this change either edits the constant, replaces the metric, or leaves it alone, and the proposal currently records it as out of scope pending this answer. Options: raise the cap to a new deliberate figure recorded with its measurement; replace the repository-wide cap with a per-skill average so one skill growing does not consume every other skill''s headroom; or leave it unchanged and accept that the next addition raises it deliberately.'
+    answer: Replace the repository-wide total-line cap with a per-skill budget, so one skill growing does not consume every other skill's headroom, and record the measurement the new budget is derived from. This brings the line budget into scope for this change.
+    status: resolved
+    kind: technical
+    answered_by: human

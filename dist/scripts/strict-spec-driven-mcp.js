@@ -36561,6 +36561,19 @@ mutation_surfaces:
     evidence:
       - test/fixtures/policy-skills/README.md
       - test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit/SKILL.md
+  guidance-fixture-guidance:
+    mechanism: agent-guidance
+    classification: read-only
+    path_patterns:
+      - test/fixtures/guidance-skills/*/SKILL.md
+      - test/fixtures/guidance-skills/README.md
+    operations:
+      - read
+    families:
+      - roadmap-state
+    evidence:
+      - test/fixtures/guidance-skills/README.md
+      - test/fixtures/guidance-skills/strict-spec-fixture-absent-skill-reference/SKILL.md
 `
 };
 function getEmbeddedTemplateKeys() {

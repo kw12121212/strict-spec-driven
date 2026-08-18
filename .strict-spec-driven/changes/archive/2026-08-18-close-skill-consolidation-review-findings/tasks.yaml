@@ -1,0 +1,105 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: close-skill-consolidation-review-findings
+sections:
+  Implementation:
+    extract-shared-skill-reference-matcher:
+      text: Move the skill-reference matcher, its non-skill identifier allowlist, and the dangling-name resolver out of test/suites/entrypoint-and-skills.ts into a shipped module under src/skills/ so the shipped command and the repository scan read one source; export the matcher and the allowlist so the suite imports them instead of redefining them.
+      status: complete
+    widen-matcher-to-bare-mentions:
+      text: Widen the extracted matcher so a bare prose mention of a strict skill name matches, not only a name preceded by a backtick, a slash, or skills/; run the widened matcher over the governed scope first and record what it newly reports before pinning any assertion, because a widened matcher can turn compliant prose into findings.
+      status: complete
+    scope-bare-mentions-to-routing-surfaces:
+      text: 'Give the extracted matcher two forms: the prefixed form used for source files, and a bare-mention form used for bundled skills and root operator documentation. Confirm by running both forms over the governed scope that the existing src/ comments naming deleted skills stay unreported and that no bundled skill or operator document is newly reported, adjusting the scoping rather than editing any reported text.'
+      status: complete
+    ship-absent-skill-reference-check:
+      text: Add a validateSkillReferences check in src/skills/content.ts that receives the discovered skill-name set, reports one diagnostic per reference to a name absent from that set with the SKILL.md path, the matched line, and the missing name, and pass the skillNames array validateStrictSkillPackaging already builds in src/skills.ts into the per-skill content pass so the check's scope comes from the filesystem rather than from the guidance text it reads.
+      status: complete
+    generalize-restatement-check:
+      text: Rewrite validateWorkflowStateGuidanceIsNotRestated so it splits a skill file into its level-two sections, excludes the declared commands section, and reports a diagnostic when a shared instruction appears in more than one of the remaining sections, instead of returning early when the file carries no Prerequisites section; keep STRICT_WORKFLOW_SHARED_ELEMENTS as the match tokens, because a command name conflates a mention with a restatement.
+      status: complete
+    confirm-generalized-check-reports-no-shipped-skill:
+      text: Run the generalized restatement check over the current 28 bundled skills before pinning any assertion and confirm none is newly reported; if one is, narrow the check rather than editing the skill, because unchanged bundled guidance is a recorded non-goal.
+      status: complete
+    harden-sentence-count:
+      text: Extend countProseSentences in src/skills/content.ts to mask a fixed list of ordinary prose abbreviations alongside its existing inline-code-span mask, so a terminator inside an abbreviation stops counting as a sentence end; keep it an explicit list rather than a general sentence splitter, matching the function's recorded intent.
+      status: complete
+    replace-line-budget-with-per-skill:
+      text: Replace BUNDLED_SKILL_LINE_BUDGET in test/suites/entrypoint-and-skills.ts with a per-skill line budget derived from a fresh measurement of the current 28 skills, so the assertion names the individual skill that exceeded its bound rather than a repository-wide total; record the measurement and the chosen headroom in the comment that justifies the number.
+      status: complete
+    set-coverage-gate-heap:
+      text: Set an explicit max-old-space-size for the process that produces the coverage report in scripts/coverage-gate.ts, sized from the measured peak of a full run and recorded in a comment with that measurement, so the invocation recorded in .strict-spec-driven/config.yaml and RTK.md completes without a caller-supplied NODE_OPTIONS override; leave the threshold logic untouched.
+      status: complete
+    add-upgrade-note:
+      text: Add a short Upgrading section to README.md mapping each of the nine retired roadmap slash commands to its strict-roadmap-transition operation, stating that no alias skills exist so an old invocation fails rather than forwarding, and telling a user of an earlier install to reinstall the skills.
+      status: complete
+    add-chinese-upgrade-note:
+      text: Add the matching Upgrading section to README.zh.md, keeping the Chinese wording accurate for the merged skill and the retired commands.
+      status: complete
+    rebuild-after-source-edits:
+      text: Rebuild compiled output so dist/ reflects the edited sources, because the installed CLI and every shipped-entry-point test read the compiled bundle and would otherwise exercise the pre-change code.
+      status: complete
+      command: bun run build
+  Testing:
+    fixture-absent-skill-reference:
+      text: Add a committed negative fixture skill package whose guidance names a strict skill package that does not exist, build the banned name at runtime rather than as a literal so the repository scan does not report the fixture file itself, drive the shipped validate-skills command against that fixture skill root, and assert it exits non-zero with a diagnostic carrying the fixture SKILL.md path, the reference line, and the missing name.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    fixture-absent-skill-reference-positive:
+      text: Assert the same shipped command reports no absent-skill diagnostic for a fixture whose guidance names only packaged skills and the allowlisted non-skill strict identifiers, so the negative fixture's failure is attributable to the reference rather than to the fixture being malformed.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    fixture-restatement-outside-prerequisites:
+      text: Add a committed negative fixture skill that carries no Prerequisites section and states the workflow-state precondition in two other sections, drive it through the shipped validate-skills command, and assert the restatement diagnostic names that fixture path; assert the four existing policy fixtures still report their seeded violation and nothing else, since they state the precondition only under Prerequisites.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    sentence-count-abbreviation-cases:
+      text: Assert that a Preferred Human Language section stated as one sentence containing an ordinary abbreviation reports no single-sentence diagnostic, and that a section carrying a genuine second sentence still reports it, so the abbreviation mask is proven to leave the check able to fire.
+      status: complete
+      command: bun test/run.ts
+    widened-matcher-fires-on-every-form:
+      text: Assert the widened matcher fires on the bare, backticked, slash-command, and skills-path reference forms, still accepts existing skill names and the allowlisted identifiers, and still fails when an allowlist entry outlives the reference that earned it; keep the probe names assembled at runtime.
+      status: complete
+      command: bun test/run.ts
+    governed-scan-stays-clean:
+      text: Assert the repository-wide scan over skills/, root operator documentation, and src/ reports no findings with the widened matcher in place, after the newly reported governed files have been reworded.
+      status: complete
+      command: bun test/run.ts
+    source-comments-stay-unreported:
+      text: Assert that the source-file form of the matcher leaves the existing src/ comments that name deleted skills unreported, and that a source diagnostic string routing a reader to a skill is still matched, so scoping the bare-mention form to routing surfaces is proven not to have silenced the source scan entirely.
+      status: complete
+      command: bun test/run.ts
+    per-skill-budget-fires:
+      text: Assert the per-skill line budget fires on a synthetic skill measurement that exceeds the bound and names that skill, and passes for the current 28 skills, so the replacement metric is proven able to fail rather than merely observed green.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-runs-as-recorded:
+      text: Assert the coverage-gate command recorded in .strict-spec-driven/config.yaml completes in its recorded form with no caller-supplied NODE_OPTIONS, so a gate that needs an undocumented override fails the suite rather than being repaired by the caller's shell.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    run-validation-commands:
+      text: Run validate-skills against the real bundled skill set and confirm it still reports 28 skills, 28 marketplace entries, and zero diagnostics, so the new absent-reference, restatement, and sentence checks are proven not to newly report a compliant skill.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    run-project-regression:
+      text: Run the complete project regression suite, redirecting output to a file and reading the runner's own exit status rather than a pipeline's, and confirm no test regressed.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    run-coverage-gate:
+      text: Run the coverage gate in its recorded form and confirm it passes against the declared threshold 78.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    run-ready-and-verify:
+      text: Run ready and verify for this change and confirm no open questions, no missing artifacts, and no schema or structure diagnostics remain.
+      status: complete
+      command: strict-spec-cli ready close-skill-consolidation-review-findings
+    confirm-archive-merge:
+      text: Confirm the delta spec and the two delta tech artifacts merge cleanly into cli-foundation, cli-command-metadata, and workflow-regression-coverage, including that the modified requirements carry forward every scenario the main spec holds today.
+      status: complete
+      command: strict-spec-cli verify close-skill-consolidation-review-findings
+testing_gates:
+  validation_task: run-validation-commands
+  unit_test_task: run-project-regression

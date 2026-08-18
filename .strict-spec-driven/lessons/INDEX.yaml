@@ -64,8 +64,13 @@ categories:
     a-repository-wide-content-scan-reports-its-own-f-1e5729:
       title: A repository-wide content scan reports its own fixtures and its siblings' absence assertions
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/testing/a-repository-wide-content-scan-reports-its-own-f-1e5729.yaml
+    a-cross-reference-integrity-check-makes-every-mi-2411bb:
+      title: A cross-reference integrity check makes every minimal fixture root an invalid set
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-cross-reference-integrity-check-makes-every-mi-2411bb.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

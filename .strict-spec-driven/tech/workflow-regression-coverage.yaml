@@ -35,11 +35,16 @@ rules:
       method: review
   static-content-checks-prove-a-negative-case:
     strength: MUST
-    statement: A static check over content that the same change generates or inserts MUST derive the set of files or entries it checks from a source independent of that generated content, MUST be proven by running a negative case in which the content is removed and the check is observed to fail, and MUST be proven by a positive case in which each matcher category is observed firing on realistic input, with any hand-enumerated set of governed files replaced by a scan. A green suite over generated content is not coverage evidence until both cases have been run at least once.
-    rationale: Independent scope derivation makes a check non-vacuous; it does not make its matcher able to fire. A pattern whose character classes exclude punctuation its targets contain, and a hardcoded file list that omits a file the repository actually has, both report zero findings — the same signal as full compliance — while never having been able to fail. Only observing each category fire on realistic input distinguishes a check that passes from one that cannot run.
+    statement: A static check over content that the same change generates or inserts MUST derive the set of files or entries it checks from a source independent of that generated content, MUST be proven by a negative case in which the content is removed and the check is observed to fail, and MUST be proven by a positive case in which each matcher category is observed firing on realistic input, with any hand-enumerated set of governed files replaced by a scan. That negative case MUST exercise the same function the passing assertion calls, with synthetic input added to the real input, rather than restating the check's predicate inside the probe. A green suite over generated content is not coverage evidence until both cases have been run at least once.
+    rationale: 'Independent scope derivation makes a check non-vacuous; it does not make its matcher able to fire. A pattern whose character classes exclude punctuation its targets contain, and a hardcoded file list that omits a file the repository actually has, both report zero findings — the same signal as full compliance — while never having been able to fail. Only observing each category fire on realistic input distinguishes a check that passes from one that cannot run. A probe that re-implements the comparison rather than calling it fails to make even that distinction: it observes its own copy firing while the real comparison could be inverted, read the wrong field, or measure the wrong file, and the suite stays green either way. The per-skill line budget added in this change was written that way first, and the restatement was caught in review rather than by the probe.'
     enforcement:
       method: test
-      detail: test/suites/entrypoint-and-skills.ts drives every CLI-only YAML policy category through a seeded violation and asserts each fires, then strips a skill's protocol section and asserts the package stays in scope; test/suites/operations.ts seeds one violation per governed maintenance surface and asserts findings, then asserts permitted surfaces produce none.
+      detail: test/suites/entrypoint-and-skills.ts drives every CLI-only YAML policy category through a seeded violation and asserts each fires, then strips a skill's protocol section and asserts the package stays in scope; the per-skill bundled-skill line budget calls one named selector for both the assertion over the real measurements and the probe that appends a synthetic over-budget entry and a synthetic entry exactly at the bound; test/suites/coverage-gate.ts names the heap predicate and asserts it rejects a report step with no heap flag; test/suites/operations.ts seeds one violation per governed maintenance surface and asserts findings, then asserts permitted surfaces produce none.
+    examples:
+      good:
+        - A named selector such as skillsOverBudget(counts) called once with the real measurements for the assertion and once with the real measurements plus a synthetic over-budget entry for the probe.
+      bad:
+        - A probe that filters its own array with the same comparison expression the assertion uses, which reports the synthetic entry even when the real comparison is inverted.
   policy-enforcement-proven-through-shipped-entry-point:
     strength: MUST
     statement: A repository policy that blocks a class of authored guidance MUST be proven by a committed negative fixture driven through the shipped command an operator or agent actually runs, with the observed failure naming the offending file path, line, and policy category; a module-level scan of inline text is supporting evidence only and MUST NOT be the sole proof.
@@ -90,3 +95,15 @@ rules:
         - 'Calling callMutatingTool with runner: (args, options) => cli(args, { cwd: options.cwd }) so the spawn inherits the suite''s redirected environment.'
       bad:
         - Calling callMutatingTool with only projectRoot, letting the default runner spawn the CLI with the developer's own HOME and schema cache.
+  blocking-gate-commands-run-as-recorded:
+    strength: MUST
+    statement: A command recorded as a blocking workflow gate — in the workflow config, in a technical standard, or in repository agent instructions — MUST succeed when run exactly as recorded on an ordinary developer machine, with no environment variable, flag, or resource override the recorded form omits. When the command needs a runtime resource beyond a default, the command or its script MUST supply it rather than relying on the caller to discover it.
+    rationale: A gate that only runs under an undocumented override is a gate that reports the caller's environment rather than the repository's state. The coverage gate recorded as bun scripts/coverage-gate.ts aborted with a V8 ineffective mark-compacts out-of-memory failure on a 7 GB machine, which is indistinguishable at the call site from a genuine tooling failure and pushes each caller to invent their own NODE_OPTIONS value; a per-caller override also means no two runs of the blocking gate are guaranteed comparable.
+    enforcement:
+      method: test
+      detail: test/suites/coverage-gate.ts asserts that the command recorded in review_evidence.project_regression carries no environment-variable prefix, that scripts/coverage-gate.ts supplies the report step's heap itself, and that the same predicate rejects a recorded command which reinstates the override. The gate cannot execute itself inside the suite it runs, so its executed proof is the run recorded as the change's own review evidence; the assertions above are what stop either half of that arrangement from drifting away alone.
+    examples:
+      good:
+        - scripts/coverage-gate.ts setting the heap size for the process that produces the coverage report, so the recorded invocation completes unchanged.
+      bad:
+        - Documenting NODE_OPTIONS=--max-old-space-size=5120 bun scripts/coverage-gate.ts in RTK.md while the workflow config still records the bare command as the gate.

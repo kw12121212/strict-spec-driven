@@ -12332,6 +12332,19 @@ mutation_surfaces:
     evidence:
       - test/fixtures/policy-skills/README.md
       - test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit/SKILL.md
+  guidance-fixture-guidance:
+    mechanism: agent-guidance
+    classification: read-only
+    path_patterns:
+      - test/fixtures/guidance-skills/*/SKILL.md
+      - test/fixtures/guidance-skills/README.md
+    operations:
+      - read
+    families:
+      - roadmap-state
+    evidence:
+      - test/fixtures/guidance-skills/README.md
+      - test/fixtures/guidance-skills/strict-spec-fixture-absent-skill-reference/SKILL.md
 `
 };
 function hasEmbeddedTemplate(key) {
@@ -33473,6 +33486,29 @@ import path49 from "path";
 import { existsSync as existsSync44, readdirSync as readdirSync15, readFileSync as readFileSync30, statSync as statSync27 } from "node:fs";
 import path47 from "node:path";
 
+// src/skills/references.ts
+var ROUTING_SKILL_REFERENCE_PATTERN = /(?<![A-Za-z0-9-])(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)/g;
+var NON_SKILL_STRICT_IDENTIFIERS = new Set([
+  "strict-spec-cli",
+  "strict-spec-driven",
+  "strict-spec-driven-mcp",
+  "strict-spec-schemas",
+  "strict-spec-fixture-direct-file-edit",
+  "strict-spec-fixture-absent-skill-reference"
+]);
+function findUnpackagedSkillReferences(text, packagedSkillNames, pattern = ROUTING_SKILL_REFERENCE_PATTERN) {
+  const packaged = packagedSkillNames instanceof Set ? packagedSkillNames : new Set(packagedSkillNames);
+  const found = new Map;
+  for (const match of text.matchAll(pattern)) {
+    const name = match[1];
+    if (NON_SKILL_STRICT_IDENTIFIERS.has(name) || packaged.has(name) || found.has(name))
+      continue;
+    found.set(name, text.slice(0, match.index).split(`
+`).length);
+  }
+  return [...found.entries()].map(([name, line]) => ({ name, line })).sort((left, right) => left.name.localeCompare(right.name));
+}
+
 // src/yaml-authoring-protocol.ts
 var YAML_AUTHORING_PROTOCOL_STEPS = [
   {
@@ -33705,7 +33741,6 @@ var AUTHORING_PROTOCOL_POINTER_COMMAND = `${COMMAND_PREFIX} yaml-authoring-proto
 var REQUIREMENT_INTERROGATION_HEADING = "## Requirement Interrogation";
 var PREFERRED_HUMAN_LANGUAGE_HEADING = "## Preferred Human Language";
 var SKILL_COMMANDS_HEADING = "## This Skill's Commands";
-var PREREQUISITES_HEADING = "## Prerequisites";
 var PREFERRED_HUMAN_LANGUAGE_SNIPPETS = [
   { snippet: "`.strict-spec-driven/config.yaml`", element: "the config file the language preference is read from" },
   { snippet: "`preferred_human_language`", element: "the config field name" },
@@ -34318,9 +34353,13 @@ function skillSection(content, heading) {
 function authoringProtocolSection(content) {
   return skillSection(content, AUTHORING_PROTOCOL_HEADING);
 }
+var PROSE_ABBREVIATIONS = ["e.g.", "i.e.", "etc.", "vs.", "cf."];
 function countProseSentences(text) {
-  const withoutCodeSpans = text.replace(/`[^`]*`/g, "CODE");
-  return (withoutCodeSpans.match(/[.!?](\s|$)/g) ?? []).length;
+  let masked = text.replace(/`[^`]*`/g, "CODE");
+  for (const abbreviation of PROSE_ABBREVIATIONS) {
+    masked = masked.split(abbreviation).join(abbreviation.replace(/\./g, ""));
+  }
+  return (masked.match(/[.!?](\s|$)/g) ?? []).length;
 }
 function validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics) {
   const section = skillSection(content, PREFERRED_HUMAN_LANGUAGE_HEADING);
@@ -34340,21 +34379,28 @@ function validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics)
     diagnostics.push(makeDiagnostic5("skill.preferred_human_language.not_single_sentence", skillPath, "preferred human language guidance must be stated as a single sentence, not a restated paragraph; fold any skill-specific rider into that sentence", "1 sentence", `${sentenceCount} sentences`));
   }
 }
+function skillSections(content) {
+  const sections = [];
+  const pattern = /^## .*$/gm;
+  const headings = [...content.matchAll(pattern)];
+  const preamble = content.slice(0, headings[0]?.index ?? content.length);
+  if (preamble.trim().length > 0)
+    sections.push({ heading: "the opening prose", body: preamble });
+  for (const [index, match] of headings.entries()) {
+    const start = match.index;
+    const end = index + 1 < headings.length ? headings[index + 1]?.index : content.length;
+    sections.push({ heading: match[0].trim(), body: content.slice(start, end) });
+  }
+  return sections;
+}
 function validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics) {
-  const prerequisites = skillSection(content, PREREQUISITES_HEADING);
-  if (prerequisites === undefined)
-    return;
-  const commandsSection = skillSection(content, SKILL_COMMANDS_HEADING) ?? "";
-  const elsewhere = content.replace(prerequisites, "").replace(commandsSection, "");
-  const normalizedPrerequisites = normalizeWhitespace3(prerequisites);
-  const normalizedElsewhere = normalizeWhitespace3(elsewhere);
+  const sections = skillSections(content).filter((section) => section.heading !== SKILL_COMMANDS_HEADING);
   for (const { snippet: snippet2, element } of STRICT_WORKFLOW_SHARED_ELEMENTS) {
     const normalizedSnippet = normalizeWhitespace3(snippet2);
-    if (!normalizedPrerequisites.includes(normalizedSnippet))
+    const statingSections = sections.filter((section) => normalizeWhitespace3(section.body).includes(normalizedSnippet)).map((section) => section.heading);
+    if (statingSections.length < 2)
       continue;
-    if (!normalizedElsewhere.includes(normalizedSnippet))
-      continue;
-    diagnostics.push(makeDiagnostic5("skill.strict_workflow.precondition.restated", skillPath, `the Prerequisites section restates ${element}, which another section of this skill already carries; delete the Prerequisites copy rather than shortening it, keeping the section only for a precondition specific to this skill`, `${element} stated once`, snippet2));
+    diagnostics.push(makeDiagnostic5("skill.strict_workflow.precondition.restated", skillPath, `${statingSections.join(" and ")} both state ${element}; delete every copy but one rather than shortening it, keeping a Prerequisites section only for a precondition specific to this skill`, `${element} stated once`, statingSections.join(", ")));
   }
 }
 function validateAuthoringProtocolPointer(skillName, content, commands, skillPath, diagnostics) {
@@ -34491,6 +34537,11 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateAuthoringProtocolPointer(skillName, content, normalizedCommands, skillPath, diagnostics);
+}
+function validateSkillReferences(content, packagedSkillNames, skillPath, diagnostics) {
+  for (const { name, line } of findUnpackagedSkillReferences(content, packagedSkillNames)) {
+    diagnostics.push(makeDiagnostic5("skill.reference.unpackaged", `${skillPath}:${line}`, `guidance names the skill '${name}', which has no package under skills/, so the slash command it routes to does not exist`, "a skill name with a package under skills/", name));
+  }
 }
 
 // src/skills/diagnostics.ts
@@ -34702,6 +34753,7 @@ function validateStrictSkillPackaging(rootDir) {
     }
     validateLegacyReferences(skillName, content, skillPath, diagnostics);
     validateCommandSection(skillName, content, skillPath, diagnostics);
+    validateSkillReferences(content, skillNames, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
   }
   const marketplaceCount = validateMarketplaceMetadata(rootDir, skillNames, diagnostics);

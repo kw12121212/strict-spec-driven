@@ -16,7 +16,7 @@
 //                                                         # check-only mode for tests
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, totalmem } from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -77,6 +77,32 @@ function parseArgs(argv: string[]): GateOptions {
     fail("--project-root requires a directory path", 2);
   }
   return options;
+}
+
+/**
+ * Heap ceiling for the coverage report step, in megabytes.
+ *
+ * The report aggregates one V8 coverage file per spawned subprocess across the whole suite, which
+ * on this project exceeds node's ~2 GB default and aborts with "Ineffective mark-compacts near heap
+ * limit". That failure is indistinguishable at the call site from a broken gate, and it pushed each
+ * caller to invent a NODE_OPTIONS override, so no two runs of a blocking gate were comparable. A
+ * full run completed at 5 GB against a 34,824-line src/** projection; this is that measurement.
+ */
+const COVERAGE_REPORT_HEAP_CEILING_MB = 5120;
+
+/** Never ask for more heap than the machine has; below this, node's own default is the better bet. */
+const COVERAGE_REPORT_HEAP_FLOOR_MB = 2048;
+
+/**
+ * The heap actually requested, clamped to a fraction of system memory.
+ *
+ * Asking for a ceiling larger than the machine does not fail at startup — V8 accepts the flag and
+ * grows until the kernel kills the process, which replaces one legible abort with a less legible
+ * one. Clamping keeps the gate's failure mode on a small machine the same V8 abort it always was.
+ */
+function coverageReportHeapMb(): number {
+  const affordable = Math.floor((totalmem() * 0.75) / (1024 * 1024));
+  return Math.max(COVERAGE_REPORT_HEAP_FLOOR_MB, Math.min(COVERAGE_REPORT_HEAP_CEILING_MB, affordable));
 }
 
 function runStep(label: string, command: string, args: string[], env?: NodeJS.ProcessEnv): void {
@@ -192,16 +218,21 @@ function main(): void {
       ...process.env,
       NODE_V8_COVERAGE: coverageDir,
     });
-    runStep("coverage report", "node", [
-      c8Binary,
-      "report",
-      "--temp-directory",
-      coverageDir,
-      "--reports-dir",
-      reportDir,
-      "--reporter",
-      "json-summary",
-    ]);
+    runStep(
+      "coverage report",
+      "node",
+      [
+        `--max-old-space-size=${coverageReportHeapMb()}`,
+        c8Binary,
+        "report",
+        "--temp-directory",
+        coverageDir,
+        "--reports-dir",
+        reportDir,
+        "--reporter",
+        "json-summary",
+      ],
+    );
     const summary = readSummary(path.join(reportDir, "coverage-summary.json"));
     enforceThreshold(collectSrcLineCounts(summary, projectRoot), options.threshold);
   } finally {

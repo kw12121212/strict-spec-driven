@@ -1,4 +1,14 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -857,6 +867,27 @@ context.assert(
 // reporting zero diagnostics above is the positive case; the negative cases that prove the check
 // is not passing vacuously run with the other fixture-driven probes below.
 
+/**
+ * Copies the bundled skill packages into a throwaway root and returns the marketplace entries that
+ * describe them, so a validation root is a realistic skill set rather than a single package.
+ *
+ * The entries come from the committed marketplace manifest rather than from a family guessed off
+ * the directory name, so a seeded root stays valid if the family taxonomy ever changes.
+ */
+function seedBundledSkillPackages(root: string): Array<{ name: string; family: string }> {
+  mkdirSync(path.join(root, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(root, "skills"), { recursive: true });
+  for (const name of strictSkillNames) {
+    const target = path.join(root, "skills", name);
+    mkdirSync(target, { recursive: true });
+    copyFileSync(path.join(ROOT, "skills", name, "SKILL.md"), path.join(target, "SKILL.md"));
+    symlinkSync("../../dist/scripts", path.join(target, "scripts"));
+  }
+  const manifest = JSON.parse(readFileSync(path.join(ROOT, "skills", "marketplace.json"), "utf8")) as {
+    skills: Array<{ name: string; family: string }>;
+  };
+  return manifest.skills.map((entry) => ({ ...entry }));
+}
 
 const roadmapGuideContent = readFileSync(path.join(ROOT, "ROADMAP_GUIDE.md"), "utf8");
 const normalizedRoadmapGuideContent = roadmapGuideContent.replace(/\s+/g, " ");
@@ -1370,7 +1401,12 @@ context.assert(
 const noTemplateSymlinkRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-no-template-symlink-"));
 try {
   const noTemplateSkillDir = path.join(noTemplateSymlinkRoot, "skills", "strict-spec-demo");
-  mkdirSync(path.join(noTemplateSymlinkRoot, "dist", "scripts"), { recursive: true });
+  // The demo package routes an operator to /strict-spec-init, as every valid strict skill must, so
+  // the bundled set is seeded alongside it; without it the root would be a set in which that
+  // routing points at nothing and the assertion below would fail on the seeding rather than on the
+  // templates symlink it is about.
+  const noTemplateMarketplace = seedBundledSkillPackages(noTemplateSymlinkRoot);
+  noTemplateMarketplace.push({ name: "strict-spec-demo", family: "strict-spec" });
   mkdirSync(noTemplateSkillDir, { recursive: true });
   symlinkSync("../../dist/scripts", path.join(noTemplateSkillDir, "scripts"));
 
@@ -1419,7 +1455,7 @@ try {
       {
         schema: "strict-spec-driven/skill-marketplace/v1",
         namespace: "strict-spec-driven",
-        skills: [{ name: "strict-spec-demo", family: "strict-spec" }],
+        skills: noTemplateMarketplace,
       },
       null,
       2,
@@ -3637,21 +3673,48 @@ context.assert(
   `skillCount: ${packageValidation.summary.skillCount}, marketplaceCount: ${packageValidation.summary.marketplaceCount}, diagnosticsCount: ${packageValidation.summary.diagnosticsCount}`,
 );
 
-// Measured at 5630 lines across 28 packages once the nine merged roadmap skills were deleted:
-// 6804 lines across 37 packages before, 1178 lines in the deleted nine, plus this change's own
-// edits to surviving skills. The bound is that measurement plus headroom, not a target skill
-// guidance was trimmed to reach, so raising it is a deliberate decision carrying a new
-// measurement rather than a silent drift upward.
-const BUNDLED_SKILL_LINE_BUDGET = 5700;
-const bundledSkillLineTotal = strictSkillNames.reduce(
-  (total, skillName) =>
-    total + readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8").split("\n").length - 1,
-  0,
-);
+// The budget is per skill rather than a repository-wide total. A single total couples every
+// skill's headroom to every other skill's growth: with 5630 lines measured against a 5700-line cap,
+// an unrelated skill addition failed a check that was measuring something else, and the file whose
+// author could act on it was never named. A per-skill bound fails only the skill that actually
+// grew.
+//
+// Measured across the 28 packages at 5630 lines total, largest strict-spec-auto at 515 and mean
+// 201. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
+// reach, so raising it is a deliberate decision carrying a new measurement rather than a silent
+// drift upward.
+const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 560;
+const bundledSkillLineCounts = strictSkillNames.map((skillName) => ({
+  skillName,
+  lines: readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8").split("\n").length - 1,
+}));
+// The selection is a named function so the probe below drives the same code the assertion does.
+// Re-filtering the list inline would restate the comparison instead of exercising it, and an
+// inverted or mis-measured real comparison would then still report a passing probe.
+const skillsOverBudget = (counts: Array<{ skillName: string; lines: number }>): string[] =>
+  counts
+    .filter((entry) => entry.lines > BUNDLED_SKILL_LINE_BUDGET_PER_SKILL)
+    .map((entry) => `${entry.skillName}: ${entry.lines}`);
+const oversizedSkills = skillsOverBudget(bundledSkillLineCounts);
 context.assert(
-  bundledSkillLineTotal <= BUNDLED_SKILL_LINE_BUDGET,
-  `bundled skill text stays within the measured ${BUNDLED_SKILL_LINE_BUDGET}-line budget`,
-  `measured: ${bundledSkillLineTotal}`,
+  oversizedSkills.length === 0,
+  `every bundled skill stays within the measured ${BUNDLED_SKILL_LINE_BUDGET_PER_SKILL}-line per-skill budget`,
+  oversizedSkills.join(", "),
+);
+// A budget observed only over compliant files has not been observed at all: the comparison could be
+// inverted, or the measurement could read the wrong file, and both report zero oversized skills.
+// The probe adds one synthetic over-budget entry and one synthetic entry exactly at the bound, so a
+// comparison that fired on neither, or on both, fails here.
+const probedOverBudget = skillsOverBudget([
+  ...bundledSkillLineCounts,
+  { skillName: "strict-spec-probe-at-bound", lines: BUNDLED_SKILL_LINE_BUDGET_PER_SKILL },
+  { skillName: "strict-spec-probe-oversized", lines: BUNDLED_SKILL_LINE_BUDGET_PER_SKILL + 1 },
+]);
+context.assert(
+  JSON.stringify(probedOverBudget)
+    === JSON.stringify([`strict-spec-probe-oversized: ${BUNDLED_SKILL_LINE_BUDGET_PER_SKILL + 1}`]),
+  "the per-skill budget names the one skill that exceeds it, and leaves the one sitting exactly at the bound alone",
+  probedOverBudget.join(", "),
 );
 
 // A skill name pointing at no skill directory fails nothing on its own: the slash command is
@@ -3659,32 +3722,43 @@ context.assert(
 // investigation skill for several milestones and no check noticed, which is the failure this scan
 // exists to make loud.
 //
+// The matcher, its allowlist, and the resolver are imported from the shipped module rather than
+// restated here, because a matcher that lives only in a suite proves the pattern fires and never
+// that the command an operator runs reports anything. The end-to-end proof through validate-skills
+// lives with the policy fixtures below; this scan covers the two surfaces that command cannot see.
+//
 // Governed scope is what ships and routes an agent or operator to a skill: bundled skills,
-// operator documentation, and source. Two neighbouring trees are deliberately outside it, because
-// naming a skill there is a statement of fact rather than a routing instruction.
-// .strict-spec-driven/ workflow state records which skills existed when a change was archived,
-// and test suites name deleted skills to assert their absence — spec-tech-authoring.ts owns the
-// matcher that forbids the deleted mapping-repair skill, so it must spell that name out.
-const SKILL_REFERENCE_PATTERN = /(?:`|\/|skills\/)(strict-(?:spec|roadmap|tech)-[a-z0-9-]+)/g;
-// Identifiers sharing the prefix that never denote a bundled skill package: the CLI entry points,
-// the product name, and the synthetic skill names the policy fixtures use. A skill that once
-// existed and was deleted does not belong here — that is exactly the finding this scan is for,
-// and the mapping-removal sweep separately forbids naming its own deleted skill at all.
-const NON_SKILL_STRICT_IDENTIFIERS = new Set([
-  "strict-spec-cli",
-  "strict-spec-driven",
-  "strict-spec-driven-mcp",
-  "strict-spec-fixture-direct-file-edit",
-]);
-const existingSkillDirectories = new Set(strictSkillNames);
-function danglingSkillNamesIn(text: string): string[] {
-  const found = new Set<string>();
-  for (const match of text.matchAll(SKILL_REFERENCE_PATTERN)) {
-    const name = match[1] as string;
-    if (!NON_SKILL_STRICT_IDENTIFIERS.has(name) && !existingSkillDirectories.has(name)) found.add(name);
-  }
-  return [...found].sort();
-}
+// operator documentation, and source. The routing surfaces are matched in the bare form as well,
+// because a name in a sentence is a command an operator will type whether or not it is backticked.
+// Source files are matched only in the prefixed forms: a comment naming a deleted skill while
+// explaining that it was deleted states a fact, and the same is true of the two neighbouring trees
+// left outside the scan entirely — .strict-spec-driven/ workflow state records which skills existed
+// when a change was archived, and test suites name deleted skills to assert their absence, so
+// spec-tech-authoring.ts must spell out the deleted mapping-repair skill it forbids.
+type SkillReferencesModule = {
+  ROUTING_SKILL_REFERENCE_PATTERN: RegExp;
+  SOURCE_SKILL_REFERENCE_PATTERN: RegExp;
+  NON_SKILL_STRICT_IDENTIFIERS: ReadonlySet<string>;
+  findUnpackagedSkillReferences: (
+    text: string,
+    packagedSkillNames: Iterable<string>,
+    pattern?: RegExp,
+  ) => Array<{ name: string; line: number }>;
+  withoutRetirementSections: (text: string) => string;
+  RETIRED_NAMES_MARKER: string;
+};
+const skillReferences = (await loadDistModule("skills/references.js")) as SkillReferencesModule;
+const {
+  ROUTING_SKILL_REFERENCE_PATTERN,
+  SOURCE_SKILL_REFERENCE_PATTERN,
+  NON_SKILL_STRICT_IDENTIFIERS,
+  findUnpackagedSkillReferences,
+  withoutRetirementSections,
+  RETIRED_NAMES_MARKER,
+} = skillReferences;
+
+const danglingSkillNamesIn = (text: string, pattern = ROUTING_SKILL_REFERENCE_PATTERN): string[] =>
+  findUnpackagedSkillReferences(text, strictSkillNames, pattern).map((reference) => reference.name);
 
 // Negative case first, on synthetic text rather than the tree: a scan reporting nothing over a
 // clean repository proves nothing until the same matcher has been observed firing. The probe
@@ -3693,6 +3767,7 @@ function danglingSkillNamesIn(text: string): string[] {
 const RETIRED_INVESTIGATION_SKILL = `strict-spec-${"debug"}-session`;
 const RETIRED_SYNC_SKILL = `strict-roadmap-${"sync"}`;
 const RETIRED_ARCHIVE_SKILL = `strict-roadmap-${"archive"}`;
+const RETIRED_REORDER_SKILL = `strict-roadmap-${"reorder"}`;
 context.assert(
   JSON.stringify(
     danglingSkillNamesIn(`route unclear investigations to \`${RETIRED_INVESTIGATION_SKILL}\` first`),
@@ -3706,13 +3781,48 @@ context.assert(
       === JSON.stringify([RETIRED_ARCHIVE_SKILL]),
   "the matcher fires on the slash-command and skills-path reference forms as well as the backticked one",
 );
+// The bare form is the half that used to escape. A sentence naming a retired skill with no
+// backtick and no slash reads to an operator exactly like the backticked one, and before this the
+// scan saw only the punctuation.
+context.assert(
+  JSON.stringify(danglingSkillNamesIn(`the deleted ${RETIRED_REORDER_SKILL} entry moved here`))
+    === JSON.stringify([RETIRED_REORDER_SKILL]),
+  "the routing matcher fires on a bare prose mention that carries no backtick or slash",
+);
+// The source form must not fire on that same bare sentence, or scoping it to the routing surfaces
+// would be a claim with nothing behind it; it must still fire on a diagnostic that routes a reader.
+context.assert(
+  danglingSkillNamesIn(
+    `the deleted ${RETIRED_REORDER_SKILL} entry moved here`,
+    SOURCE_SKILL_REFERENCE_PATTERN,
+  ).length === 0,
+  "the source matcher leaves a bare prose mention unreported, which is what keeps source commentary out of scope",
+);
+context.assert(
+  JSON.stringify(
+    danglingSkillNamesIn(`run the \`${RETIRED_SYNC_SKILL}\` skill`, SOURCE_SKILL_REFERENCE_PATTERN),
+  ) === JSON.stringify([RETIRED_SYNC_SKILL]),
+  "the source matcher still fires on a diagnostic message that routes a reader to a retired skill",
+);
 // Positive case: a live skill name and an allowlisted identifier must both pass, or the scan would
 // report every file in the repository and its clean result below would be meaningless.
 context.assert(
   danglingSkillNamesIn(
-    "run `/strict-spec-auto`, then `strict-spec-cli verify`, per skills/strict-spec-apply/SKILL.md",
+    "run `/strict-spec-auto`, then `strict-spec-cli verify`, per skills/strict-spec-apply/SKILL.md, "
+      + "resolving schemas beneath ~/.strict-spec-schemas/",
   ).length === 0,
   "the matcher accepts existing skill names and the non-skill identifiers on its allowlist",
+);
+
+// The marker is a scope carve-out, so it needs both halves proven: it must silence the section it
+// marks, and it must stop at the next heading rather than blinding the rest of the document.
+const markedDocument = `## Upgrading\n\n${RETIRED_NAMES_MARKER}\n\n| \`/${RETIRED_SYNC_SKILL}\` | gone |\n`
+  + `\n## Steps\n\nrun \`/${RETIRED_ARCHIVE_SKILL}\` next\n`;
+context.assert(
+  JSON.stringify(danglingSkillNamesIn(withoutRetirementSections(markedDocument)))
+    === JSON.stringify([RETIRED_ARCHIVE_SKILL]),
+  "the retirement marker silences its own section and nothing past the next heading",
+  danglingSkillNamesIn(withoutRetirementSections(markedDocument)).join(", "),
 );
 
 // The governed file set comes from walking the tree, not from a hand-maintained list and not from
@@ -3732,20 +3842,37 @@ function walkTextFiles(relativeDir: string, collected: string[]): string[] {
   }
   return collected;
 }
-const governedReferenceFiles = ["skills", "src"].reduce(
-  (collected, directory) => walkTextFiles(directory, collected),
-  readdirSync(ROOT, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && path.extname(entry.name) === ".md")
-    .map((entry) => entry.name),
-);
+const rootOperatorDocuments = readdirSync(ROOT, { withFileTypes: true })
+  .filter((entry) => entry.isFile() && path.extname(entry.name) === ".md")
+  .map((entry) => entry.name);
+const routingReferenceFiles = walkTextFiles("skills", [...rootOperatorDocuments]);
+const sourceReferenceFiles = walkTextFiles("src", []);
+const governedReferenceFiles: Array<{ relativePath: string; pattern: RegExp }> = [
+  ...routingReferenceFiles.map((relativePath) => ({ relativePath, pattern: ROUTING_SKILL_REFERENCE_PATTERN })),
+  ...sourceReferenceFiles.map((relativePath) => ({ relativePath, pattern: SOURCE_SKILL_REFERENCE_PATTERN })),
+];
 context.assert(
-  governedReferenceFiles.length > 0,
-  "the dangling-reference scan discovered files to check",
+  routingReferenceFiles.length > 0 && sourceReferenceFiles.length > 0,
+  "the dangling-reference scan discovered files to check on both governed surfaces",
 );
+// An upgrade note names the commands it retires, or it cannot tell a reader which invocation
+// stopped working. Those sections are marked in the document and removed here, which keeps the
+// carve-out local to the marked section instead of allowlisting a name everywhere it appears.
+//
+// The carve-out reaches operator documentation only. A bundled skill has no upgrade note to write,
+// and honouring the marker inside skills/ would hand guidance a way to exempt itself from the scan;
+// the shipped validate-skills check draws the same line for the same reason.
+const operatorDocumentPaths = new Set(rootOperatorDocuments);
+const scannedTextOf = (relativePath: string): string => {
+  const text = readFileSync(path.join(ROOT, relativePath), "utf8");
+  return operatorDocumentPaths.has(relativePath) ? withoutRetirementSections(text) : text;
+};
+
 const danglingReferences: string[] = [];
-for (const relativePath of governedReferenceFiles) {
-  for (const name of danglingSkillNamesIn(readFileSync(path.join(ROOT, relativePath), "utf8"))) {
-    danglingReferences.push(`${relativePath}: ${name}`);
+for (const { relativePath, pattern } of governedReferenceFiles) {
+  const text = scannedTextOf(relativePath);
+  for (const { name, line } of findUnpackagedSkillReferences(text, strictSkillNames, pattern)) {
+    danglingReferences.push(`${relativePath}:${line}: ${name}`);
   }
 }
 context.assert(
@@ -3755,13 +3882,17 @@ context.assert(
 );
 // An allowlist entry that outlives the reference it excused is how this check goes quiet: the
 // stale entry sits there until a real finding happens to match it. Every entry must still be
-// earned by a reference somewhere in the governed scope.
-const governedReferenceText = governedReferenceFiles
-  .map((relativePath) => readFileSync(path.join(ROOT, relativePath), "utf8"))
-  .join("\n");
+// earned by a reference somewhere in the governed scope, under whichever matcher governs its file.
+const allowlistEntriesSeen = new Set<string>();
+for (const { relativePath, pattern } of governedReferenceFiles) {
+  const text = scannedTextOf(relativePath);
+  for (const match of text.matchAll(pattern)) {
+    const name = match[1] as string;
+    if (NON_SKILL_STRICT_IDENTIFIERS.has(name)) allowlistEntriesSeen.add(name);
+  }
+}
 const unusedAllowlistEntries = [...NON_SKILL_STRICT_IDENTIFIERS].filter(
-  (identifier) =>
-    ![...governedReferenceText.matchAll(SKILL_REFERENCE_PATTERN)].some((match) => match[1] === identifier),
+  (identifier) => !allowlistEntriesSeen.has(identifier),
 );
 context.assert(
   unusedAllowlistEntries.length === 0,
@@ -3909,26 +4040,33 @@ context.assert(
 type SkillDiagnostic = { code?: string; path?: string; message?: string };
 
 /**
- * Runs the shipped validate-skills against a throwaway root holding exactly one skill package,
- * complete with the scripts symlink and marketplace entry a valid package needs. The packaging is
- * completed deliberately: with no other defect left, the exit status and the diagnostic list are
- * attributable to the guidance text alone, which is what makes the control run below meaningful.
+ * Runs the shipped validate-skills against a throwaway root holding the whole bundled skill set
+ * plus the package under test, complete with the scripts symlink and marketplace entry a valid
+ * package needs. The other packages are seeded rather than omitted because every valid strict skill
+ * routes an operator to `/strict-spec-init`, so a root holding one package is a set in which that
+ * routing is genuinely dead: the absent-reference check would report it, and the report would be
+ * about the fixture's isolation rather than about the guidance under test. With a realistic set and
+ * no other defect left, the exit status and the diagnostic list are attributable to the guidance
+ * text alone, which is what makes the control run below meaningful.
  */
 function validateSkillsOverPackage(pkg: string, skillText: string): { status: number; diagnostics: SkillDiagnostic[] } {
   const root = mkdtempSync(path.join(os.tmpdir(), "strict-policy-fixture-"));
   try {
+    const marketplaceEntries = seedBundledSkillPackages(root);
     const packageDir = path.join(root, "skills", pkg);
-    mkdirSync(packageDir, { recursive: true });
-    mkdirSync(path.join(root, "dist", "scripts"), { recursive: true });
+    if (!existsSync(packageDir)) {
+      mkdirSync(packageDir, { recursive: true });
+      symlinkSync("../../dist/scripts", path.join(packageDir, "scripts"));
+      marketplaceEntries.push({ name: pkg, family: "strict-spec" });
+    }
     writeFileSync(path.join(packageDir, "SKILL.md"), skillText, "utf8");
-    symlinkSync("../../dist/scripts", path.join(packageDir, "scripts"));
     writeFileSync(
       path.join(root, "skills", "marketplace.json"),
       JSON.stringify(
         {
           schema: "strict-spec-driven/skill-marketplace/v1",
           namespace: "strict-spec-driven",
-          skills: [{ name: pkg, family: "strict-spec" }],
+          skills: marketplaceEntries,
         },
         null,
         2,
@@ -3989,6 +4127,90 @@ for (const { pkg, category, violation } of NEGATIVE_FIXTURES) {
     `status ${compliant.status}; ${describeDiagnostics(compliant.diagnostics)}`,
   );
 }
+
+// --- Shipped guidance-check fixtures ---------------------------------------------------------
+// The two checks below govern text the bundled skills already satisfy, so the clean repository run
+// above is not evidence either one can fail. Each is driven through the shipped command over a
+// committed fixture carrying exactly one defect, with the paired control run attributing the
+// failure to that line rather than to anything else about the package.
+
+const GUIDANCE_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "guidance-skills");
+
+/** Each committed fixture package, the diagnostic code it must produce, and the line that produces it. */
+const GUIDANCE_FIXTURES: { pkg: string; code: string; violation: string }[] = [
+  {
+    pkg: "strict-spec-fixture-absent-skill-reference",
+    code: "skill.reference.unpackaged",
+    violation: "2. **Hand off** — when the roadmap needs reconciling, run",
+  },
+  {
+    pkg: "strict-spec-fixture-restated-precondition",
+    code: "skill.strict_workflow.precondition.restated",
+    violation: "- Restated here on purpose:",
+  },
+];
+
+// The manifest is hand-written, so it is checked against the directory rather than trusted: a
+// fixture added without an entry would otherwise sit on disk proving nothing.
+const guidanceFixturesOnDisk = readdirSync(GUIDANCE_FIXTURE_ROOT, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
+context.assert(
+  JSON.stringify(guidanceFixturesOnDisk) === JSON.stringify(GUIDANCE_FIXTURES.map((f) => f.pkg).sort()),
+  "every committed guidance fixture package is claimed by the guidance-fixture manifest",
+  `on disk: ${guidanceFixturesOnDisk.join(", ")}`,
+);
+
+for (const { pkg, code, violation } of GUIDANCE_FIXTURES) {
+  const fixtureText = readFileSync(path.join(GUIDANCE_FIXTURE_ROOT, pkg, "SKILL.md"), "utf8");
+  context.assert(
+    fixtureText.includes(violation),
+    `guidance fixture ${pkg} still contains the line the manifest claims`,
+  );
+
+  const violating = validateSkillsOverPackage(pkg, fixtureText);
+  context.assert(
+    violating.status !== 0,
+    `validate-skills exits non-zero for a package carrying a ${code} defect`,
+  );
+  context.assert(
+    violating.diagnostics.length > 0 && violating.diagnostics.every((diagnostic) => diagnostic.code === code),
+    `validate-skills reports ${code} for that package and nothing else`,
+    describeDiagnostics(violating.diagnostics),
+  );
+
+  // The control run is the same package with the one offending line removed. It must come back
+  // clean and exit zero, which attributes both the failure and its diagnostic to that line.
+  const compliantText = fixtureText.split("\n").filter((line) => !line.includes(violation)).join("\n");
+  const compliant = validateSkillsOverPackage(pkg, compliantText);
+  context.assert(
+    compliant.status === 0 && compliant.diagnostics.length === 0,
+    `removing the offending line makes the ${pkg} package validate cleanly`,
+    `status ${compliant.status}; ${describeDiagnostics(compliant.diagnostics)}`,
+  );
+}
+
+// The absent-reference diagnostic has to locate the reference, not just name the file: a skill names
+// many things, and a reader given only the path has to search for the one that no longer resolves.
+const absentReferenceText = readFileSync(
+  path.join(GUIDANCE_FIXTURE_ROOT, "strict-spec-fixture-absent-skill-reference", "SKILL.md"),
+  "utf8",
+);
+const absentReferenceLine = absentReferenceText
+  .split("\n")
+  .findIndex((line) => line.includes("when the roadmap needs reconciling")) + 1;
+const absentReferenceRun = validateSkillsOverPackage(
+  "strict-spec-fixture-absent-skill-reference",
+  absentReferenceText,
+);
+context.assert(
+  absentReferenceRun.diagnostics[0]?.path
+    === `skills/strict-spec-fixture-absent-skill-reference/SKILL.md:${absentReferenceLine}`
+    && (absentReferenceRun.diagnostics[0]?.message ?? "").includes("strict-roadmap-sync"),
+  "the absent-reference diagnostic carries the fixture path, the reference line, and the missing skill name",
+  `${absentReferenceRun.diagnostics[0]?.path}: ${absentReferenceRun.diagnostics[0]?.message}`,
+);
 
 // --- Collapsed shared-guidance checks --------------------------------------------------------
 // Both checks below govern text this same change rewrote across every bundled skill, so a green
@@ -4064,6 +4286,38 @@ context.assert(
   paragraphProbe.diagnostics.some((diagnostic) => diagnostic.code === "skill.preferred_human_language.not_single_sentence"),
   "expanding the preferred-human-language guidance past one sentence makes validate-skills report it",
   describeDiagnostics(paragraphProbe.diagnostics),
+);
+
+// An ordinary abbreviation inside that one sentence is not a second sentence. Before the mask, a
+// rider worded with `e.g.` would have been reported as two sentences, with a message naming the
+// paragraph shape rather than the punctuation that actually tripped it.
+const abbreviatedGuidance = probeSkillText.replace(
+  "the active user message asks otherwise.",
+  "the active user message asks otherwise, e.g. by naming another language.",
+);
+context.assert(
+  abbreviatedGuidance !== probeSkillText,
+  "the abbreviation probe found the preferred-human-language sentence to extend",
+);
+const abbreviatedProbe = validateSkillsOverPackage(PROBE_SKILL, abbreviatedGuidance);
+context.assert(
+  abbreviatedProbe.status === 0 && abbreviatedProbe.diagnostics.length === 0,
+  "an abbreviation inside the preferred-human-language sentence is not counted as a sentence end",
+  `status ${abbreviatedProbe.status}; ${describeDiagnostics(abbreviatedProbe.diagnostics)}`,
+);
+// The mask must not have disabled the count: a genuine second sentence in the same position, with
+// the same terminator, must still be reported.
+const secondSentenceGuidance = probeSkillText.replace(
+  "the active user message asks otherwise.",
+  "the active user message asks otherwise. Restate that rule in your own words first.",
+);
+const secondSentenceProbe = validateSkillsOverPackage(PROBE_SKILL, secondSentenceGuidance);
+context.assert(
+  secondSentenceProbe.diagnostics.some(
+    (diagnostic) => diagnostic.code === "skill.preferred_human_language.not_single_sentence",
+  ),
+  "a genuine second sentence is still reported after the abbreviation mask",
+  describeDiagnostics(secondSentenceProbe.diagnostics),
 );
 
 // The repetition check: reintroducing a Prerequisites section that restates guidance the Steps

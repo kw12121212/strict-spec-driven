@@ -27,6 +27,41 @@
 
 本仓库只保留一个活跃工作流目录 `.strict-spec-driven/`。`.spec-driven/` 仅作为仍使用旧版 Markdown 工作流的**其他项目**的迁移*输入*相关，详见[迁移边界](#迁移边界)。本仓库已完成该迁移，不再保留根级 `.spec-driven/` 目录。
 
+## 升级说明
+
+<!-- retired-skill-names -->
+
+九个单命令 roadmap 技能已合并为一个带参数的技能。
+`/strict-roadmap-pause`、`/strict-roadmap-resume`、`/strict-roadmap-defer`、
+`/strict-roadmap-refine`、`/strict-roadmap-reorder`、`/strict-roadmap-move`、
+`/strict-roadmap-reopen`、`/strict-roadmap-archive` 和 `/strict-roadmap-sync`
+已不再是技能包，也没有任何别名包做转发，因此调用这些斜杠命令现在会直接失败，
+而不是悄悄执行原来的行为。
+
+每一个都变成了同一个技能的一个显式操作：
+
+| 已退役的斜杠命令 | 替代写法 |
+|---|---|
+| `/strict-roadmap-pause` | `/strict-roadmap-transition pause` |
+| `/strict-roadmap-resume` | `/strict-roadmap-transition resume` |
+| `/strict-roadmap-defer` | `/strict-roadmap-transition defer` |
+| `/strict-roadmap-refine` | `/strict-roadmap-transition refine` |
+| `/strict-roadmap-reorder` | `/strict-roadmap-transition reorder` |
+| `/strict-roadmap-move` | `/strict-roadmap-transition move` |
+| `/strict-roadmap-reopen` | `/strict-roadmap-transition reopen` |
+| `/strict-roadmap-archive` | `/strict-roadmap-transition archive` |
+| `/strict-roadmap-sync` | `/strict-roadmap-transition sync` |
+
+底层 CLI 命令没有变化：`roadmap-pause`、`roadmap-sync` 等仍然保持原有名称和参数，
+改变的只是技能打包方式。
+
+如果你在此变更之前安装过这些技能，请重新安装，让已退役的技能包从技能目录中移除，
+并装上合并后的技能：
+
+```bash
+bun run install-strict-skills
+```
+
 ## 严格命令接口
 
 ### CLI：`strict-spec-driven`

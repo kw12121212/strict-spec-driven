@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: close-skill-consolidation-review-findings
+  status: proposed
+summary:
+  what:
+    - Promote the dangling-skill-reference scan from the regression suite into the shipped validate-skills command, so guidance naming a skill package that does not exist fails for any project that runs the command.
+    - Generalize the workflow-state restatement check from a Prerequisites-versus-elsewhere comparison into the once-per-file rule the spec and technical standard actually state.
+    - Make the single-sentence check for preferred-human-language guidance immune to prose abbreviations, so a sentence containing e.g. or i.e. is not reported as several sentences.
+    - Widen the skill-reference matcher so a bare prose mention of a skill name is scanned, not only a mention preceded by a backtick, a slash, or skills/.
+    - Make the coverage gate run its coverage report with a heap large enough to complete, so the documented command in RTK.md succeeds instead of aborting with a V8 out-of-memory error.
+    - Add an operator-facing upgrade note to README.md and README.zh.md naming the nine retired roadmap slash commands and the strict-roadmap-transition operation that replaces each.
+  why:
+    - The main spec scenario handoff-target-is-a-packaged-skill states that validate-skills inspects the bundled skill set and confirms the named handoff target exists, but the scan lives only in test/suites/entrypoint-and-skills.ts; appending a reference to a skill directory that does not exist to a bundled SKILL.md leaves validate-skills reporting valid true with zero diagnostics. A project consuming the packaged skills gets no check at all, which is the same failure mode the preferred-human-language guidance was in before it was collapsed.
+    - The technical standard policy-enforcement-proven-through-shipped-entry-point requires a policy that blocks a class of authored guidance to be proven through the shipped command an operator or agent actually runs, and states that a module-level scan is supporting evidence only; guidance-names-only-packaged-skills is currently proven by a regression test alone.
+    - The spec requirement cli-skills-state-workflow-state-precondition-once and the technical rule skill-guidance-states-each-shared-instruction-once both state that a shared instruction appears at most once per skill file regardless of placement, but validateWorkflowStateGuidanceIsNotRestated returns early when a skill carries no Prerequisites section, so a duplicate between any other pair of sections passes.
+    - countProseSentences masks inline code spans and then counts every terminator followed by whitespace, so a future Preferred Human Language sentence containing an ordinary abbreviation trips the single-sentence diagnostic with a message that points at the wrong cause.
+    - The skill-reference matcher requires a backtick, a slash, or skills/ before the name, so a bare prose mention escapes the scan; src/skills/model.ts already carries one such mention of a deleted skill that the scan does not report.
+    - The RTK.md documented command bun scripts/coverage-gate.ts aborts with an ineffective mark-compacts V8 out-of-memory failure on a 7 GB machine, so the blocking archive gate cannot be run as documented without an ad hoc NODE_OPTIONS override.
+    - Nine slash commands were deleted with no alias, so an existing invocation now fails, and no operator-facing document tells a user of an earlier install which command replaced the one they typed.
+scope:
+  in:
+    - A shipped validate-skills check that reports a diagnostic naming the offending SKILL.md path, its line, and the missing skill name when bundled skill guidance references a skill package absent from skills/.
+    - A committed negative fixture skill package driven through the shipped validate-skills command, proving the new diagnostic fires and the command exits non-zero.
+    - Generalizing validateWorkflowStateGuidanceIsNotRestated so it reports a restated shared instruction between any two sections of a skill file, keeping the commands block excluded and keeping the prose-sentence match tokens.
+    - Hardening countProseSentences against prose abbreviations, with a test proving a sentence containing an abbreviation is counted as one sentence and a genuine second sentence is still counted as two.
+    - Setting an explicit V8 heap size for the coverage report step inside scripts/coverage-gate.ts so the documented invocation completes.
+    - An Upgrading section in README.md and README.zh.md mapping each of the nine retired roadmap slash commands to its strict-roadmap-transition operation.
+    - Delta spec requirements for the new validate-skills diagnostic and the generalized restatement rule, and a delta tech update to the guidance-names-only-packaged-skills enforcement record.
+    - Widening the skill-reference matcher to bare prose mentions for the routing surfaces — bundled skills and operator documentation — while source files keep the prefixed-form matcher, so a source comment that deliberately names a deleted skill as a statement of fact is not reworded.
+    - Replacing the repository-wide bundled-skill line cap with a per-skill budget derived from a recorded measurement, so one skill growing does not consume every other skill's headroom.
+  out:
+    - The inlined-protocol-versus-pointer trade-off raised as review finding 4; the pointer form is a deliberate design decision of the archived change and is not reopened here.
+    - Restoring any of the nine deleted roadmap skills or adding alias skill packages for their retired slash commands.
+    - Bumping the package version or introducing a CHANGELOG file; the upgrade note is documentation only.
+    - Extending the shipped validate-skills scan beyond bundled skill packages to operator documentation and src/, which stay covered by the repository regression scan.
+    - Rewording existing bundled skill guidance or existing src/ comments to satisfy a widened or generalized check; when a check newly reports existing text, the check is adjusted instead.
+unchanged_behavior:
+  - validate-skills continues to report skillCount 28, marketplaceCount 28, and zero diagnostics for the current bundled skill set.
+  - Every currently compliant bundled skill keeps passing the preferred-human-language, restatement, and authoring-pointer checks without editing its guidance text.
+  - The nine roadmap transition operations and their owning CLI commands keep their current behavior; no roadmap command is added, removed, or re-signatured.
+  - The coverage gate keeps enforcing the declared threshold 78 and keeps exiting non-zero below it; only the heap available to the report step changes.
+  - No bundled SKILL.md is edited, and no existing src/ comment is reworded in order to satisfy a widened or generalized check; a rewritten function's own docstring changing with it is not that.

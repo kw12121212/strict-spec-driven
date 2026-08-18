@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-cross-reference-integrity-check-makes-every-mi-2411bb
+  title: A cross-reference integrity check makes every minimal fixture root an invalid set
+category: testing
+status: active
+created_at: '2026-08-18T07:20:48.630Z'
+updated_at: '2026-08-18T07:20:48.630Z'
+context: Promoting a dangling-skill-reference scan from the regression suite into the shipped validate-skills command, where the set of valid names is derived from the skill package directories the validator discovers in the root it is given. The suite drives that command over throwaway roots built by hand, each holding exactly one package so the run's diagnostics are attributable to the guidance text under test.
+observation: 'Ten tests failed across three unrelated roots. Every valid strict skill is required to route an operator to /strict-spec-init, so in a root holding one package that reference resolves to nothing and the new check reported it — correctly. The failures were not in the check or in the fixtures'' seeded defects but in the roots'' isolation, which had been a virtue for every previous check because those read one file at a time. The fix was to seed the whole bundled skill set into each throwaway root beside the package under test, which also strengthened the existing policy fixtures: their ''reports its seeded violation and nothing else'' assertion now holds inside a realistic set rather than an empty one.'
+takeaway: 'A check that reads relationships between artifacts changes what a fixture root has to contain. Before adding one, list the references every valid artifact is already obliged to make — the ones some other check requires — because those become dangling the moment the root holds fewer artifacts than the obligation spans. Seed the real set into the fixture root rather than exempting the check or trimming the obligation: the isolated root was only ever a stand-in for a real one, and the seeded version makes every neighbouring assertion stronger.'
+applies_when: Adding a validator check that resolves one artifact's references against the set of artifacts present — skill-to-skill routing, command-to-metadata, spec-to-mapping, plugin-to-manifest — while the existing tests drive that validator over minimal single-artifact fixture roots built to isolate one defect.
+occurrences:
+  - origin: close-skill-consolidation-review-findings
+    date: '2026-08-18'
+    evidence: 'Adding validateSkillReferences to src/skills.ts failed 10 tests: the four policy fixtures'' ''and nothing else'' and control-run pairs, the strict-spec-demo root asserting a valid package, and the probe-skill control, all reporting skill.reference.unpackaged for strict-spec-init at the fixture''s own Steps line. seedBundledSkillPackages() copying skills/ into each throwaway root, with marketplace entries read from the committed manifest, returned the suite to green at 4328 tests.'

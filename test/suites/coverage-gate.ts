@@ -212,6 +212,34 @@ export async function runCoverageGateSuite(context: TestContext): Promise<void> 
     "regression command threshold equals the declared coverage threshold",
   );
 
+  // A gate that only runs under an undocumented override reports the caller's environment rather
+  // than the repository's state, and no two runs of it are comparable. The recorded form is the
+  // only form callers use, so it must carry no environment prefix, and the resource the report step
+  // needs must come from the script instead. The gate is not executed here — it runs this suite —
+  // so the executed proof is the gate's own run in this change's verification evidence, and what is
+  // asserted here is that neither half of the arrangement can drift away alone.
+  context.assert(
+    !/\bNODE_OPTIONS\b|^\s*\w+=/.test(command),
+    "the recorded regression command carries no environment-variable override a caller has to supply",
+    command,
+  );
+  const coverageGateSource = readFileSync(path.join(ROOT, "scripts", "coverage-gate.ts"), "utf8");
+  const suppliesReportHeap = (source: string): boolean => /--max-old-space-size=/.test(source);
+  context.assert(
+    suppliesReportHeap(coverageGateSource),
+    "the coverage gate supplies the report step's heap itself rather than relying on the caller",
+  );
+  context.assert(
+    !suppliesReportHeap('runStep("coverage report", "node", [c8Binary, "report"]);'),
+    "the heap predicate rejects a report step that passes no heap flag",
+  );
+  // The pair is only a guard if either half failing is visible: a recorded command that reinstates
+  // the override must be rejected by the same predicate that accepts the current one.
+  context.assert(
+    /\bNODE_OPTIONS\b|^\s*\w+=/.test("NODE_OPTIONS=--max-old-space-size=5120 bun scripts/coverage-gate.ts --threshold 78"),
+    "the recorded-command predicate rejects a command that reinstates the environment override",
+  );
+
   context.section("[coverage-gate] coverage-consistent generated surfaces");
 
   const maintenanceWorkspace = mkdtempSync(path.join(os.tmpdir(), "strict-coverage-maint-"));

@@ -1,4 +1,5 @@
 import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument } from "../yaml.js";
+import { findUnpackagedSkillReferences } from "./references.js";
 import {
   AUTHORING_PROTOCOL_HEADING,
   findProseMutationFlags,
@@ -21,7 +22,6 @@ import {
   ROADMAP_STRICT_SKILL_EXPECTATIONS,
   PREFERRED_HUMAN_LANGUAGE_HEADING,
   PREFERRED_HUMAN_LANGUAGE_SNIPPETS,
-  PREREQUISITES_HEADING,
   REQUIREMENT_INTERROGATION_HEADING,
   REQUIREMENT_INTERROGATION_SKILLS,
   REQUIREMENT_INTERROGATION_SNIPPETS,
@@ -374,16 +374,29 @@ function authoringProtocolSection(content: string): string | undefined {
 }
 
 /**
- * Counts sentences in prose, ignoring the dots inside inline code spans.
+ * Abbreviations whose trailing period does not end a sentence.
+ *
+ * The list is explicit rather than a general segmentation heuristic, so an abbreviation it does not
+ * cover produces a diagnostic a reader can act on instead of a silent miscount. Adding to it is the
+ * intended response when a skill legitimately needs another one.
+ */
+const PROSE_ABBREVIATIONS = ["e.g.", "i.e.", "etc.", "vs.", "cf."];
+
+/**
+ * Counts sentences in prose, ignoring the dots inside inline code spans and prose abbreviations.
  *
  * The guidance names `.strict-spec-driven/config.yaml` and `preferred_human_language`, so a naive
- * split on periods reports four sentences for a one-sentence rule. Code spans are the only place a
- * period appears without ending a sentence in this text, so masking them is sufficient here and is
- * deliberately not offered as a general-purpose sentence splitter.
+ * split on periods reports four sentences for a one-sentence rule; an abbreviation such as `e.g.`
+ * inside that same sentence reports two, which would fail the single-sentence rule with a message
+ * pointing at the wrong cause. Masking both is sufficient here and is deliberately not offered as a
+ * general-purpose sentence splitter.
  */
 function countProseSentences(text: string): number {
-  const withoutCodeSpans = text.replace(/`[^`]*`/g, "CODE");
-  return (withoutCodeSpans.match(/[.!?](\s|$)/g) ?? []).length;
+  let masked = text.replace(/`[^`]*`/g, "CODE");
+  for (const abbreviation of PROSE_ABBREVIATIONS) {
+    masked = masked.split(abbreviation).join(abbreviation.replace(/\./g, ""));
+  }
+  return (masked.match(/[.!?](\s|$)/g) ?? []).length;
 }
 
 /**
@@ -442,39 +455,65 @@ function validatePreferredHumanLanguageGuidance(
 }
 
 /**
- * Rejects a Prerequisites section that restates workflow-state guidance the skill already carries.
+ * Splits a skill file into its level-two sections, keyed by heading line.
+ *
+ * The split is by heading rather than by a named lookup because the repetition rule is about any
+ * two sections, so the check cannot know in advance which pair holds the duplicate.
+ */
+function skillSections(content: string): Array<{ heading: string; body: string }> {
+  const sections: Array<{ heading: string; body: string }> = [];
+  const pattern = /^## .*$/gm;
+  const headings = [...content.matchAll(pattern)];
+  // The text before the first heading is a section for this purpose: an instruction stated once in
+  // the opening prose and once under a heading is stated twice, and a split that dropped the
+  // preamble would call that file compliant.
+  const preamble = content.slice(0, headings[0]?.index ?? content.length);
+  if (preamble.trim().length > 0) sections.push({ heading: "the opening prose", body: preamble });
+  for (const [index, match] of headings.entries()) {
+    const start = match.index as number;
+    const end = index + 1 < headings.length ? (headings[index + 1]?.index as number) : content.length;
+    sections.push({ heading: match[0].trim(), body: content.slice(start, end) });
+  }
+  return sections;
+}
+
+/**
+ * Rejects a skill that states shared workflow-state guidance in more than one of its sections.
  *
  * The rule is about repetition, not placement. A second copy of an instruction is a copy no check
  * reads, free to drift from the enforced one — which is the state 35 of 37 skills were in while
- * `validateStrictWorkflowStateGuidance` read only the Steps form. Stating the guidance once
- * satisfies this check whichever section holds it, so the committed policy fixtures that carry it
- * only under Prerequisites stay compliant. The commands block is excluded from the comparison
+ * `validateStrictWorkflowStateGuidance` read only the Steps form. Keying the comparison to a named
+ * Prerequisites section reproduced that defect one level up: it left a duplicate between any other
+ * pair of sections exactly as invisible as the original duplicate was, while the spec requirement
+ * and the technical rule both state the constraint as at most once per file. Stating the guidance
+ * once satisfies this check whichever section holds it, so the committed policy fixtures that carry
+ * it only under Prerequisites stay compliant. The commands block is excluded from the comparison
  * because it is the declared command source every skill keeps by design, not a restatement.
+ *
+ * The match tokens stay the two prose sentences of `STRICT_WORKFLOW_SHARED_ELEMENTS`: a command
+ * name occurs wherever a skill merely references that command, so matching on one would report a
+ * skill that states the instruction exactly once.
  */
 function validateWorkflowStateGuidanceIsNotRestated(
   content: string,
   skillPath: string,
   diagnostics: SkillPackagingDiagnostic[],
 ): void {
-  const prerequisites = skillSection(content, PREREQUISITES_HEADING);
-  if (prerequisites === undefined) return;
-
-  const commandsSection = skillSection(content, SKILL_COMMANDS_HEADING) ?? "";
-  const elsewhere = content.replace(prerequisites, "").replace(commandsSection, "");
-  const normalizedPrerequisites = normalizeWhitespace(prerequisites);
-  const normalizedElsewhere = normalizeWhitespace(elsewhere);
+  const sections = skillSections(content).filter((section) => section.heading !== SKILL_COMMANDS_HEADING);
 
   for (const { snippet, element } of STRICT_WORKFLOW_SHARED_ELEMENTS) {
     const normalizedSnippet = normalizeWhitespace(snippet);
-    if (!normalizedPrerequisites.includes(normalizedSnippet)) continue;
-    if (!normalizedElsewhere.includes(normalizedSnippet)) continue;
+    const statingSections = sections
+      .filter((section) => normalizeWhitespace(section.body).includes(normalizedSnippet))
+      .map((section) => section.heading);
+    if (statingSections.length < 2) continue;
     diagnostics.push(
       makeDiagnostic(
         "skill.strict_workflow.precondition.restated",
         skillPath,
-        `the Prerequisites section restates ${element}, which another section of this skill already carries; delete the Prerequisites copy rather than shortening it, keeping the section only for a precondition specific to this skill`,
+        `${statingSections.join(" and ")} both state ${element}; delete every copy but one rather than shortening it, keeping a Prerequisites section only for a precondition specific to this skill`,
         `${element} stated once`,
-        snippet,
+        statingSections.join(", "),
       ),
     );
   }
@@ -804,4 +843,37 @@ export function validateCommandSection(
   validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateAuthoringProtocolPointer(skillName, content, normalizedCommands, skillPath, diagnostics);
+}
+
+/**
+ * Rejects guidance that names a strict skill package absent from the validated skill set.
+ *
+ * The valid names are the package directories the packaging validator already discovered, so the
+ * scope of this check comes from the filesystem rather than from the guidance it reads: deleting a
+ * skill package makes every reference to it fail on the next run, with no list to keep in step. The
+ * path carries the line because a skill file names many things, and a reader given only the file has
+ * to search for the one that no longer resolves.
+ *
+ * The retirement-section carve-out that operator documentation uses is deliberately not applied
+ * here. It exists so an upgrade note can name the commands it retires; a bundled skill has no such
+ * text to write, and honouring the marker in a skill would turn it into a way for guidance to
+ * exempt itself from the check.
+ */
+export function validateSkillReferences(
+  content: string,
+  packagedSkillNames: Iterable<string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  for (const { name, line } of findUnpackagedSkillReferences(content, packagedSkillNames)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.reference.unpackaged",
+        `${skillPath}:${line}`,
+        `guidance names the skill '${name}', which has no package under skills/, so the slash command it routes to does not exist`,
+        "a skill name with a package under skills/",
+        name,
+      ),
+    );
+  }
 }
