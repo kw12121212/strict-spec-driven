@@ -57,7 +57,7 @@ function appendLegacyInlinePlannedChangeDiagnostic(
       "semantic",
       artifactPath,
       "$.planned_changes",
-      "inline milestone planned_changes are no longer supported; run the materialization form of the strict-roadmap-sync command from SKILL.md (repository equivalent: `node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes`) to convert them into standalone planned-change files",
+      "inline milestone planned_changes are no longer supported; run the materialization form of the strict-roadmap-transition skill's sync operation (repository equivalent: `node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes`) to convert them into standalone planned-change files",
       "empty mapping after materialization",
       plannedChangeIds.join(", "),
     ),

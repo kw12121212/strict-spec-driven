@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: collapse-prerequisite-and-language-boilerplate
+  milestone: skill-surface-consolidation
+status: complete
+summary: Collapse the repeated Prerequisites and Preferred Human Language sections across all 36 skills into one sentence each.
+details: 'Every skill repeats a Prerequisites section, 256 lines in total, and a Preferred Human Language section, 335 lines in total, with wording that varies only by skill name. Both restate facts the CLI can state once: check-workflow-state already reports whether .strict-spec-driven exists, and config.yaml already carries preferred_human_language. Reduce each to a single enforceable sentence per skill. The 14 literal Prerequisites assertions and the per-skill preferred_human_language assertion in test/suites/entrypoint-and-skills.ts, together with the requiredHeadings entries in src/skills/model.ts, move to the collapsed form in the same change. Sequenced after the protocol replacement so both edits land on the same rewritten section layout rather than conflicting over it.'
+depends_on:
+  - replace-inlined-protocol-with-cli-pointer

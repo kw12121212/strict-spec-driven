@@ -25,6 +25,29 @@ check-workflow-state: strict-spec-cli check-workflow-state
 config-edit: strict-spec-cli config-edit --context <text>
 ```
 
+## CLI-Only YAML Authoring Protocol
+
+Every mutation of repository-owned YAML in this skill goes through the strict
+CLI. This skill writes `spec-state`. Before the first mutation run
+`strict-spec-cli yaml-authoring-protocol spec-state`: that command reports the
+ordered authoring steps, the owning command for each operation, and the bundled
+schema and example keys with their cache-resolved paths, bound to the artifact
+kind and current where a copy would go stale. Validate the result with
+`strict-spec-cli verify <change-name>`.
+
+**Stop rather than edit YAML directly.** When a required command, argument, or
+artifact kind is unavailable, stop and report the missing capability. Editing
+the YAML directly, writing a raw payload, or scripting around the CLI is never
+an available fallback, and an unavailable command is a reason to stop rather
+than a reason to improvise.
+
+## Preferred Human Language
+
+Comply with `preferred_human_language` from `.strict-spec-driven/config.yaml` —
+the user's common human language, not a programming language — for all
+user-facing and generated operator-facing text, unless that file is absent or
+the active user message asks otherwise.
+
 ## Steps
 
 1. Look up the owning command for the artifact you intend to change.

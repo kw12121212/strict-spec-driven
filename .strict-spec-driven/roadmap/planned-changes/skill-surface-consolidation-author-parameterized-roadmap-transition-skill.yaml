@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: author-parameterized-roadmap-transition-skill
+  milestone: skill-surface-consolidation
+status: complete
+summary: Author one parameterized roadmap state-transition skill covering every operation the nine single-command skills perform.
+details: 'Write the replacement skill before deleting anything it replaces, so the two states can be compared directly. The skill takes an explicit operation that maps one to one onto its owning CLI command across pause, resume, defer, refine, reorder, move, reopen, archive, and sync, and stops for a human answer when the request names no operation. It must preserve the judgment the split skills carried rather than only their command names: the dependency-order confirmation before a reorder, the inverse-pair semantics of pause with resume and defer with refine, the archived-milestone immutability rule, and the canonical planned-change filename rule that forbids hand-picked filenames. Author it in the collapsed section layout that the two boilerplate changes establish, so no removed boilerplate is reintroduced. Register it in skills/marketplace.json under the strict-roadmap family. Its validate-skills expectations must cover all nine operations, not only the four that ROADMAP_STRICT_SKILL_EXPECTATIONS covers today: reorder, move, sync, and archive have expectation entries, while pause, resume, defer, refine, and reopen have none, so the merged expectation set closes a real gap instead of merely carrying the old one forward. The nine originals stay in place through this change, which keeps validate-skills at 37 skills for its duration and makes the deletion change solely responsible for reaching 28.'
+depends_on:
+  - replace-inlined-protocol-with-cli-pointer

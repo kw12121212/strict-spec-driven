@@ -69,8 +69,32 @@ const ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestone
 const ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
 const ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
 const ROADMAP_ORDER_SOURCE_SNIPPET = "Use `roadmap-status` or `roadmap-overview` order, never id-prefix order";
-const ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET = "Translate reorder intent into one CLI command";
-const ROADMAP_MOVE_SINGLE_COMMAND_SNIPPET = "Translate move intent into one CLI command";
+/**
+ * The merged roadmap state-transition skill replaces nine single-command skills, and only four of
+ * those — reorder, move, sync, and archive — ever had expectations. These snippets are chosen so
+ * that every one of the nine operations has at least one element of its own judgment asserted, not
+ * merely its command name, which the requiredCommands map already covers. A skill that dropped
+ * pause's recommendation effect or reopen's frozen-history rule would otherwise still validate.
+ */
+const ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET = "**The operation must be explicit.**";
+const ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET =
+  "stop and ask the user which of the nine is intended";
+const ROADMAP_TRANSITION_INVERSE_PAIRS_SNIPPET =
+  "`pause` and `resume` undo each other, `defer` and `refine` undo each other";
+const ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET =
+  "Archived milestones and archived planned changes are frozen history";
+const ROADMAP_TRANSITION_PAUSE_SKIP_REASON_SNIPPET = "milestone-paused";
+const ROADMAP_TRANSITION_RESUME_CLEARS_PAUSE_SNIPPET = "Resume deletes the `paused` field";
+const ROADMAP_TRANSITION_DEFER_IS_NOT_PAUSE_SNIPPET = "**Deferral is not a pause.**";
+const ROADMAP_TRANSITION_DEFER_SKIP_REASON_SNIPPET = "milestone-awaiting-refinement";
+const ROADMAP_TRANSITION_REFINE_ASKS_THE_HUMAN_SNIPPET =
+  "whether the recorded precondition is now true";
+const ROADMAP_TRANSITION_REOPEN_FROZEN_SNIPPET = "frozenPlannedChanges";
+const ROADMAP_TRANSITION_REOPEN_SEEDS_FOLLOW_UP_SNIPPET = "seededFollowUp";
+const ROADMAP_TRANSITION_SYNC_INVENTS_NOTHING_SNIPPET =
+  "Do not invent planned changes during a sync";
+const ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET =
+  "Perform exactly one operation per invocation, through its one owning command";
 const ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET = "--allow-complete";
 const ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET = "never writes under `.strict-spec-driven/changes/`";
 const ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
@@ -117,7 +141,7 @@ const BUGFIX_KNOWN_BUG_SNIPPET = "known bug";
 const BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
 const BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
 const BUGFIX_MINIMAL_FIX_SNIPPET = "minimal fix";
-const BUGFIX_DEBUG_SESSION_SNIPPET = "strict-spec-debug-session";
+const BUGFIX_INVESTIGATION_SESSION_SNIPPET = "strict-spec-harness-session";
 
 /**
  * Skills that start a change from a human request. Each must interrogate the need before the
@@ -131,7 +155,55 @@ export const REQUIREMENT_INTERROGATION_SKILLS = [
   "strict-spec-auto",
 ] as const;
 
+/**
+ * The command a mutation-capable skill points at instead of restating the protocol. The skill is
+ * static text loaded before any command runs, so the pointer is what turns a reader into a caller;
+ * a skill that omits it leaves the protocol unreachable from the only text the agent has read.
+ */
+export const AUTHORING_PROTOCOL_POINTER_COMMAND = `${COMMAND_PREFIX} yaml-authoring-protocol`;
+
 export const REQUIREMENT_INTERROGATION_HEADING = "## Requirement Interrogation";
+
+export const PREFERRED_HUMAN_LANGUAGE_HEADING = "## Preferred Human Language";
+export const SKILL_COMMANDS_HEADING = "## This Skill's Commands";
+export const PREREQUISITES_HEADING = "## Prerequisites";
+
+/**
+ * The elements the preferred-human-language guidance must name, checked per skill.
+ *
+ * The guidance was a nine-line paragraph copied into every skill and asserted only by this
+ * repository's test suite, so a project running validate-skills got no check at all even though the
+ * spec scenario claimed one. Collapsing it to a sentence is safe only because the elements move
+ * here: what an agent must know is which file, which field, that the field is not a programming
+ * language, that compliance is required, and what overrides it — none of which needs a paragraph.
+ */
+export const PREFERRED_HUMAN_LANGUAGE_SNIPPETS: ReadonlyArray<{ snippet: string; element: string }> = [
+  { snippet: "`.strict-spec-driven/config.yaml`", element: "the config file the language preference is read from" },
+  { snippet: "`preferred_human_language`", element: "the config field name" },
+  { snippet: "common human language", element: "the field's meaning as the user's common human language" },
+  { snippet: "not a programming language", element: "the distinction from a programming language" },
+  { snippet: "comply", element: "the requirement to comply with the configured language" },
+  { snippet: "the active user message", element: "the active-user-message override" },
+];
+
+/**
+ * The elements shared by both statements of the strict workflow state precondition.
+ *
+ * `STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET` cannot serve as the repetition signal: the Steps copy
+ * opens with "Before any other step" while the Prerequisites copy opened with "before any workflow
+ * work", so matching the enforced snippet alone would have found no duplicate in any of the 35
+ * skills that carried one. These two phrases appeared verbatim in both copies, which is what makes
+ * them the evidence that two sections are stating the same instruction.
+ *
+ * `CHECK_WORKFLOW_STATE_COMMAND` is deliberately excluded. A command name is a reference, not an
+ * instruction: skills name that command wherever they invoke it — one policy fixture names it as
+ * its artifact validation command inside the protocol section — so matching it reported repetition
+ * for a file that stated the precondition exactly once.
+ */
+export const STRICT_WORKFLOW_SHARED_ELEMENTS: ReadonlyArray<{ snippet: string; element: string }> = [
+  { snippet: STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET, element: "the init guidance" },
+  { snippet: STRICT_WORKFLOW_NO_INIT_SNIPPET, element: "the do-not-run-init statement" },
+];
 
 const TASK_GENERATOR_PATTERNS: readonly RegExp[] = [
   /generate\s+<change(?:-name)?>\s+tasks/,
@@ -412,7 +484,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET,
       BUGFIX_REGRESSION_TEST_SNIPPET,
       BUGFIX_MINIMAL_FIX_SNIPPET,
-      BUGFIX_DEBUG_SESSION_SNIPPET,
+      BUGFIX_INVESTIGATION_SESSION_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",
@@ -551,68 +623,62 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       "Never infer review order from the milestone id prefix",
     ],
   },
-  "strict-roadmap-reorder": {
+  /**
+   * One entry covering all nine transitions the merged skill performs. Every operation contributes
+   * both a command mapping and at least one content snippet, so the five that no expectation
+   * reached before this entry existed — pause, resume, defer, refine, and reopen — are enforced on
+   * the same terms as the four that did.
+   *
+   * This entry is the sole home of the assertions that the deleted strict-roadmap-reorder, move,
+   * sync, and archive entries carried. Their per-skill single-command and frozen-history literals
+   * are covered here by ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET and
+   * ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET, which assert the same guidance against the merged
+   * skill's own wording; every other snippet they required is listed below unchanged.
+   */
+  "strict-roadmap-transition": {
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
+      "roadmap-pause": `${COMMAND_PREFIX} roadmap-pause <milestone-id>`,
+      "roadmap-resume": `${COMMAND_PREFIX} roadmap-resume <milestone-id>`,
+      "roadmap-defer": `${COMMAND_PREFIX} roadmap-defer <milestone-id>`,
+      "roadmap-refine": `${COMMAND_PREFIX} roadmap-refine <milestone-id>`,
       "roadmap-reorder": `${COMMAND_PREFIX} roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)`,
       "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
-      "optional integer `order` field",
-      "roadmap-reorder",
-      "roadmap-renumber",
-      ROADMAP_ORDER_SOURCE_SNIPPET,
-      ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET,
-      "dependency-order concern",
-      "Archived milestones are frozen history",
-    ],
-  },
-  "strict-roadmap-move": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
       "roadmap-move-planned-change":
         `${COMMAND_PREFIX} roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
-      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
-      ROADMAP_CANONICAL_FILENAME_SNIPPET,
-      ROADMAP_MOVE_SINGLE_COMMAND_SNIPPET,
-      ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET,
-      ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET,
-      "dependency-order concern",
-      "Archived milestones and archived planned changes are frozen history",
-    ],
-  },
-  "strict-roadmap-sync": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-reopen": `${COMMAND_PREFIX} roadmap-reopen <milestone-id>`,
+      "roadmap-archive": `${COMMAND_PREFIX} roadmap-archive [milestone-id]`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
       "roadmap-sync-fix-names": `${COMMAND_PREFIX} roadmap-sync --fix-names`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
       ROADMAP_CANONICAL_FILENAME_SNIPPET,
       ROADMAP_FIX_NAMES_SNIPPET,
-    ],
-  },
-  "strict-roadmap-archive": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-archive": `${COMMAND_PREFIX} roadmap-archive [milestone-id]`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
+      ROADMAP_ORDER_SOURCE_SNIPPET,
+      "optional integer `order` field",
+      ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET,
+      ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET,
+      ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET,
+      ROADMAP_TRANSITION_INVERSE_PAIRS_SNIPPET,
+      ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET,
+      ROADMAP_TRANSITION_PAUSE_SKIP_REASON_SNIPPET,
+      ROADMAP_TRANSITION_RESUME_CLEARS_PAUSE_SNIPPET,
+      ROADMAP_TRANSITION_DEFER_IS_NOT_PAUSE_SNIPPET,
+      ROADMAP_TRANSITION_DEFER_SKIP_REASON_SNIPPET,
+      ROADMAP_TRANSITION_REFINE_ASKS_THE_HUMAN_SNIPPET,
+      "dependency-order concern",
+      ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET,
+      ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET,
+      ROADMAP_TRANSITION_REOPEN_FROZEN_SNIPPET,
+      ROADMAP_TRANSITION_REOPEN_SEEDS_FOLLOW_UP_SNIPPET,
       ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET,
       ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET,
       ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_TRANSITION_SYNC_INVENTS_NOTHING_SNIPPET,
     ],
   },
 };

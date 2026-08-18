@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: author-parameterized-roadmap-transition-skill
+  status: proposed
+summary:
+  what:
+    - Author one new bundled skill, strict-roadmap-transition, that performs any of the nine strict roadmap state transitions — pause, resume, defer, refine, reorder, move, reopen, archive, and sync — through an explicit operation argument that maps one to one onto the owning strict CLI command, and stops for a human answer when the request names no operation.
+    - 'Carry forward the judgment the nine split skills hold rather than only their command names: the dependency-order confirmation before a reorder or move, the inverse-pair semantics of pause with resume and defer with refine, the archived-milestone and archived-planned-change immutability rule, and the canonical <milestone-id>-<planned-change-id>.yaml filename rule that forbids hand-picked filenames.'
+    - Register the new skill in skills/marketplace.json under the strict-roadmap family and add its SKILL.md path to the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml through the inventory-edit command.
+    - Add a validate-skills expectation for strict-roadmap-transition in ROADMAP_STRICT_SKILL_EXPECTATIONS covering all nine operations, closing the existing gap in which pause, resume, defer, refine, and reopen carry no validate-skills expectations at all.
+    - Extend the pinned mutation-capable skill list and the roadmap skill assertions in test/suites/entrypoint-and-skills.ts so the new skill is classified and content-checked rather than silently escaping both.
+  why:
+    - The nine roadmap state-transition skills total 1394 lines and differ only in which single CLI command each selects, which is the duplication the skill-surface-consolidation milestone exists to remove.
+    - ROADMAP_STRICT_SKILL_EXPECTATIONS covers only four of the nine skills — reorder, move, sync, and archive — so pause, resume, defer, refine, and reopen have no validate-skills content enforcement today, and the merged expectation set closes that gap rather than only carrying the old one forward.
+    - Writing the replacement before deleting anything it replaces lets the two states be compared directly, keeps validate-skills passing throughout, and leaves the separate deletion change solely responsible for reaching 28 skills.
+scope:
+  in:
+    - A new skills/strict-roadmap-transition/ package containing SKILL.md and the standard scripts symlink to ../../dist/scripts that every bundled skill carries.
+    - The new skill's This Skill's Commands block naming every strict CLI command the nine operations invoke, plus the section layout current in the repository when it lands, including the roadmap-state authoring pointer and the verbatim no-fallback boundary statement.
+    - A strict-roadmap-transition entry in skills/marketplace.json under the strict-roadmap family.
+    - A strict-roadmap-transition entry in ROADMAP_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts asserting the required commands, headings, and content snippets for all nine operations.
+    - Adding skills/strict-roadmap-transition/SKILL.md to the bundled-skill-guidance path_patterns in inventory/yaml-mutation-surfaces.yaml through strict-spec-cli inventory-edit, and regenerating src/embedded-templates.ts through the build.
+    - Adding strict-roadmap-transition to PINNED_MUTATION_CAPABLE_SKILLS and asserting the new skill's content in test/suites/entrypoint-and-skills.ts.
+    - A delta spec against cli-foundation requiring that roadmap state-transition skill content validation cover every roadmap transition operation rather than an arbitrary subset.
+  out:
+    - Deleting the nine existing roadmap state-transition skills, their marketplace entries, or their expectations, which is the separate remove-merged-roadmap-skills-and-prove-reduction planned change; the nine stay in place and validate-skills reports 37 skills for this change's duration.
+    - Alias or shim skills preserving the nine slash-command names, which the milestone rejects because any alias reinstates the count it exists to reduce.
+    - Collapsing the repeated Prerequisites and Preferred Human Language sections, which is the separate collapse-prerequisite-and-language-boilerplate planned change.
+    - Any change to strict CLI command names, arguments, output, or behavior; every command the merged skill invokes already exists and is already exercised by the nine skills it will replace.
+    - README, ROADMAP_GUIDE, and ROADMAP_QUICKSTART skill-name references in both languages, which change when the nine skills are removed.
+    - Removing or weakening the four existing expectation entries for strict-roadmap-reorder, strict-roadmap-move, strict-roadmap-sync, and strict-roadmap-archive.
+unchanged_behavior:
+  - The nine existing roadmap state-transition skills keep their SKILL.md files, marketplace entries, validate-skills expectations, and per-skill assertions.
+  - validate-skills reports valid with zero diagnostics at skillCount 37 and marketplaceCount 37 once the new skill is registered, because this change adds a skill and deletes none.
+  - isMutationCapableSkill classifies every pre-existing bundled skill exactly as it did before; only the newly added skill joins the mutation-capable set.
+  - Every strict CLI roadmap command name, argument, output shape, and behavior, including roadmap-pause, roadmap-resume, roadmap-defer, roadmap-refine, roadmap-reorder, roadmap-move-planned-change, roadmap-reopen, roadmap-archive, and roadmap-sync.
+  - The cli-only-yaml-policy maintenance check reports no violations, including for the newly added skill.
+roadmap:
+  milestone: skill-surface-consolidation
+  planned_change: author-parameterized-roadmap-transition-skill

@@ -1,0 +1,54 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: author-parameterized-roadmap-transition-skill
+open: []
+resolved:
+  - id: merged-skill-operation-shape
+    question: Does the merged roadmap skill take an explicit operation argument, or infer the operation from the request?
+    context: 'The nine skills differ only in which single CLI command they select, and four of them form two strict inverse pairs, pause with resume and defer with refine. Impact: this decides the merged skill''s invocation contract and therefore what validate-skills can assert about it, so it affects proposal scope, the delta spec scenarios, the skill text, and the expectation entry in src/skills/model.ts. Options were an explicit operation argument or inference from the request text.'
+    answer: Require an explicit operation that maps one to one onto the owning CLI command, and have the skill stop and ask when the request does not name one. Recorded as the design decision explicit-operation-argument and as a delta spec scenario, so the stop-and-ask behavior is asserted rather than assumed.
+    status: resolved
+    answered_by: roadmap
+  - id: slash-command-compatibility
+    question: When the nine roadmap state-transition skills are deleted, must their slash commands keep working through alias skills, or is the break accepted?
+    context: 'Each of the nine is an installed slash command, and external checkouts install the package globally through install.sh. Impact: for this change the answer only fixes what must not be built — an alias skill would be created here if aliases were required — so it affects proposal out-of-scope rather than implementation files or tests. The deletion itself belongs to the separate remove-merged-roadmap-skills-and-prove-reduction planned change.'
+    answer: Delete outright, with no alias or shim skills, and name the replacement operation in the release notes. Any alias reinstates the skill count the milestone exists to reduce, so this change adds the merged skill and no aliases, and the nine originals stay in place until the deletion change removes them.
+    status: resolved
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'From the roadmap: the nine strict-roadmap state-transition skills — pause, resume, defer, refine, reorder, move, reopen, archive, and sync — total 1394 lines and each exists solely to select one CLI command, averaging roughly 100 unique lines against 60 lines of boilerplate. Two groups suffer it. A maintainer changing a shared roadmap rule, such as the archived-milestone immutability rule or the canonical planned-change filename rule, edits it in nine places, and the roadmap already records what that produces elsewhere in the skill set: a stale copy in strict-spec-bugfix still routes readers to a skill that does not exist here. An agent invoking one of the nine gets no better guidance for its trouble, and for five of them — pause, resume, defer, refine, and reopen — nothing checks the guidance at all, because ROADMAP_STRICT_SKILL_EXPECTATIONS covers only reorder, move, sync, and archive.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Checkable from outside without reading the code: one bundled skill package, strict-roadmap-transition, exists and performs any of the nine transitions when given an explicit operation; validate-skills reports valid with zero diagnostics at skillCount 37 and marketplaceCount 37; the new expectation entry fails validation if the command mapping or guidance for any one of the nine operations is removed, including the five that have no expectations today; the pinned mutation-capable classification set gains exactly the new skill and no other entry moves; and the cli-only-yaml-policy maintenance check reports no violations for it. The 28-skill count and the sub-5600-line skills total are the deletion change''s outcome, not this one''s.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'From the roadmap: the skill-surface-consolidation milestone was opened on measured evidence that 36 skills total 7275 lines of which 2174 are four repeated sections, and this planned change is now the first eligible item in it because its only dependency, replace-inlined-protocol-with-cli-pointer, is complete. The planned change explicitly requires the replacement to be written before anything it replaces is deleted, so the sequencing is what forces this change now rather than a deadline: the deletion change is blocked on it, and the two states can only be compared directly while both exist.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'From the milestone out-of-scope list and this change''s own boundary: the nine existing skills keep their files, marketplace entries, expectations, and per-skill assertions, so validate-skills stays green at 37 skills; no alias or shim skill is created for any of the nine slash-command names; the four existing expectation entries for reorder, move, sync, and archive are neither removed nor weakened; no strict CLI roadmap command name, argument, output, or behavior changes; the Prerequisites and Preferred Human Language sections belong to a different planned change and are untouched; the README, ROADMAP_GUIDE, and ROADMAP_QUICKSTART skill-name references change when the nine are removed, not here; and isMutationCapableSkill must classify every pre-existing skill exactly as before, with only the new skill added to the set.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'From the planned-change details: the intended reading is addition, not substitution. This change authors the replacement skill and leaves the nine originals in place, so the bundled surface temporarily grows to 37 and the deletion change alone is accountable for reaching 28. Two further readings are fixed here. First, preserving the nine skills means preserving their judgment, not only their command names, so the dependency-order confirmation before reorder and move, the inverse-pair semantics of pause with resume and defer with refine, the archived-artifact immutability rule, and the canonical <milestone-id>-<planned-change-id>.yaml filename rule are all carried into the merged skill as operation-scoped preconditions. Second, the merged expectation set covers all nine operations rather than the four that have expectations today, so the merge closes an existing enforcement gap instead of carrying it forward.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

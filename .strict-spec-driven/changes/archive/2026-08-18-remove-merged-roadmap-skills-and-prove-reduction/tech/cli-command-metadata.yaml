@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED:
+    guidance-names-only-packaged-skills:
+      strength: MUST
+      statement: Guidance that ships to an agent or operator — a bundled skill, operator documentation, or a source-level diagnostic message — MUST NOT name a skill package that does not exist under skills/, and an automated check MUST scan that shipped scope and fail naming both the offending file and the missing skill. A file whose purpose is to assert a deleted skill's absence, such as a removal sweep test, is outside the scanned scope rather than an exception inside it, and the banned name MUST NOT be added to the check's allowlist, because an allowlist entry silences the real finding as well as the fixture.
+      rationale: 'A skill name that resolves to nothing fails no check on its own: the slash command is simply missing when someone types it, so the reference rots silently. strict-spec-bugfix routed unclear issues to strict-spec-debug-session across several milestones, and a main spec MUST requirement and a validate-skills expectation both pinned that retired name, so the stale reference had propagated into the contract before anything noticed. Deleting or renaming a skill is routine, and without a standing check every such deletion reopens the same failure mode.'
+      enforcement:
+        method: test
+        detail: A regression test walks skills/, root-level operator documentation, and src/, matching a skill name preceded by a backtick, a slash, or 'skills/', and compares each match against the skill directories discovered on disk and a short allowlist of non-skill identifiers that share the prefix. The check proves a negative case on synthetic input before trusting a clean scan, and asserts that no allowlist entry has outlived the reference that earned it.
+      examples:
+        good:
+          - skills/strict-roadmap-plan/SKILL.md routing a reader to `/strict-roadmap-transition` with the `reorder` operation, a skill package that exists under skills/.
+        bad:
+          - skills/strict-spec-bugfix/SKILL.md routing unclear investigations to `strict-spec-debug-session`, a skill package that does not exist in this repository.
+      exceptions:
+        - Test suites that assert a deleted skill's absence, and .strict-spec-driven/ workflow state recording which skills existed when a change was archived, both name retired skills as statements of fact rather than routing instructions and are outside the scanned scope.
+  MODIFIED: {}
+  REMOVED: {}

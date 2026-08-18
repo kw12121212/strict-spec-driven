@@ -169,6 +169,10 @@ export type PolicyRegistry = {
    * as unregistered.
    */
   registeredWriterPaths: Set<string>;
+  /** Every artifact kind the inventory registers, so guidance can be checked against real kinds. */
+  artifactKinds: Set<string>;
+  /** The validation command each artifact kind declares, without the CLI prefix. */
+  validationCommandByKind: Map<string, string>;
   /** Every flag the command metadata registry declares, as `--flag`. */
   declaredFlags: Set<string>;
   /** Flags declared per command, so a prose flag is checked against the command it names. */
@@ -188,12 +192,19 @@ export function loadPolicyRegistry(): PolicyRegistry {
   const inventory = readYamlMutationInventoryDocument();
   const families = (inventory.artifact_families ?? {}) as Record<
     string,
-    { operations?: Record<string, string>; cli_owners?: string[]; direct_write_paths?: string[] }
+    {
+      operations?: Record<string, string>;
+      cli_owners?: string[];
+      direct_write_paths?: string[];
+      validation_command?: string;
+    }
   >;
 
   const mutatingOwnerCommands = new Set<string>();
   const registeredWriterPaths = new Set<string>();
-  for (const family of Object.values(families)) {
+  const artifactKinds = new Set(Object.keys(families));
+  const validationCommandByKind = new Map<string, string>();
+  for (const [kind, family] of Object.entries(families)) {
     const operations = family.operations ?? {};
     const hasCliOwnedOperation = ["create", "update", "named_remove", "delete"].some(
       (operation) => operations[operation] === "cli-owned",
@@ -201,6 +212,7 @@ export function loadPolicyRegistry(): PolicyRegistry {
     for (const writerPath of family.direct_write_paths ?? []) {
       registeredWriterPaths.add(writerPath);
     }
+    if (family.validation_command) validationCommandByKind.set(kind, family.validation_command);
     if (!hasCliOwnedOperation) continue;
     for (const owner of family.cli_owners ?? []) {
       if (!INVENTORY_INSPECTOR_COMMANDS.has(owner)) mutatingOwnerCommands.add(owner);
@@ -225,7 +237,14 @@ export function loadPolicyRegistry(): PolicyRegistry {
     declaredFlagsByCommand.set(metadata.name, perCommand);
   }
 
-  cachedRegistry = { mutatingOwnerCommands, registeredWriterPaths, declaredFlags, declaredFlagsByCommand };
+  cachedRegistry = {
+    mutatingOwnerCommands,
+    registeredWriterPaths,
+    artifactKinds,
+    validationCommandByKind,
+    declaredFlags,
+    declaredFlagsByCommand,
+  };
   return cachedRegistry;
 }
 
@@ -234,7 +253,8 @@ export function resetPolicyRegistryCache(): void {
   cachedRegistry = undefined;
 }
 
-const PROTOCOL_HEADING = "## CLI-Only YAML Authoring Protocol";
+/** The heading that delimits a skill's authoring-protocol section, shared by every check on it. */
+export const AUTHORING_PROTOCOL_HEADING = "## CLI-Only YAML Authoring Protocol";
 
 /**
  * The protocol section names owning commands, so classifying from the whole file would be
@@ -242,9 +262,9 @@ const PROTOCOL_HEADING = "## CLI-Only YAML Authoring Protocol";
  * read-only. Membership is decided from the body with the section removed.
  */
 export function bodyWithoutProtocolSection(skillText: string): string {
-  const start = skillText.indexOf(PROTOCOL_HEADING);
+  const start = skillText.indexOf(AUTHORING_PROTOCOL_HEADING);
   if (start === -1) return skillText;
-  const next = skillText.indexOf("\n## ", start + PROTOCOL_HEADING.length);
+  const next = skillText.indexOf("\n## ", start + AUTHORING_PROTOCOL_HEADING.length);
   return skillText.slice(0, start) + (next === -1 ? "" : skillText.slice(next + 1));
 }
 

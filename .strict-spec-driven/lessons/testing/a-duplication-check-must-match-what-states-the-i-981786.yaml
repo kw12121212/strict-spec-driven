@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-duplication-check-must-match-what-states-the-i-981786
+  title: A duplication check must match what states the instruction, not what merely names it
+category: testing
+status: active
+created_at: '2026-08-17T17:54:28.881Z'
+updated_at: '2026-08-17T17:54:28.881Z'
+context: 'Collapsing the repeated Prerequisites section required a check that fires when a skill states the workflow-state precondition twice. The signal was a list of three phrases shared by both copies: the check-workflow-state command name, the init guidance sentence, and the do-not-run-init sentence.'
+observation: 'The command name was the wrong kind of token. It appears wherever a skill invokes or references that command, not only where the precondition is stated, so one committed policy fixture that states the precondition exactly once — under Prerequisites, with no second copy — was reported as a duplicate because its protocol section named the same command as its artifact validation command. The two prose sentences had no such problem: they only ever appear when the instruction is being given. Dropping the command name left detection unchanged at every one of the 35 genuinely duplicated skills, because those carried all three phrases anyway, so the loose token bought no coverage and only produced the false positive.'
+takeaway: When a check detects that something is stated twice, choose match tokens that occur only when the thing is being stated. An identifier — a command name, a flag, a path, a field — also occurs wherever it is merely referenced, so it conflates a restatement with a mention and flags compliant files. Prefer the distinctive prose of the instruction, and confirm the narrower signal still fires on every real instance before trusting it; if it does, the broader token was never carrying detection, only risk.
+applies_when: Writing a check that detects repeated or duplicated guidance across sections of a file, and choosing which strings signal the repetition — especially when a candidate token is a command, flag, path, or field name that the governed text also references for unrelated reasons.
+occurrences:
+  - origin: collapse-prerequisite-and-language-boilerplate
+    date: '2026-08-17'
+    evidence: src/skills/model.ts STRICT_WORKFLOW_SHARED_ELEMENTS initially included CHECK_WORKFLOW_STATE_COMMAND alongside the init-guidance and do-not-run-init sentences. The full suite reported skill.strict_workflow.precondition.restated for test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit, whose Prerequisites section is its only statement of the precondition and whose protocol section names 'strict-spec-cli check-workflow-state' as its validation command. Removing the command from the element list left the pre-change detection count at 35 skills — every genuine duplicate — and cleared the false positive.

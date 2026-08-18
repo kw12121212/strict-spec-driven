@@ -1,0 +1,28 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-non-zero-coverage-gate-is-not-always-a-coverag-204e92
+  title: A non-zero coverage gate is not always a coverage failure
+category: tooling
+status: active
+created_at: '2026-08-17T12:50:22.136Z'
+updated_at: '2026-08-18T03:09:17.074Z'
+context: The declared archive gate is 'bun scripts/coverage-gate.ts --threshold 78', and a non-zero exit from it is a blocking workflow failure that no agent may second-guess or measure around.
+observation: 'The gate exited non-zero after all 4418 tests passed. The failure was not the threshold: the c8 report step ran out of the default ~2GB V8 heap on this machine and printed ''FATAL ERROR: Ineffective mark-compacts near heap limit'', after which the script reported ''coverage report failed with exit status unknown''. Read as a coverage failure it would have looked like the change had cratered coverage, when rerunning the identical command with NODE_OPTIONS=--max-old-space-size=5120 reported 85.41% against the 78% threshold. The measured value was never in question; the reporter could not finish computing it.'
+takeaway: 'When the coverage gate exits non-zero, read which step failed before concluding anything about coverage. The rule that a failing gate blocks archive stands either way, but the two failures need opposite responses: a threshold failure is the change''s problem and is fixed with tests, while a reporter that cannot run is an environment capacity problem and is fixed by giving it the memory it needs and rerunning the same command. Raising the heap for a run is not measuring coverage yourself and is not tuning the threshold, because the threshold and the command are unchanged.'
+applies_when: The configured project regression or coverage command exits non-zero on a memory-constrained machine, especially when the test suite itself reported all tests passing, or when a coverage number is missing rather than low.
+occurrences:
+  - origin: replace-inlined-protocol-with-cli-pointer
+    date: '2026-08-17'
+    evidence: 'bun scripts/coverage-gate.ts --threshold 78 exited non-zero with ''FATAL ERROR: Ineffective mark-compacts near heap limit'' inside ''node node_modules/c8/bin/c8.js report'' on a host with 7GB total and ~4GB available; the same command under NODE_OPTIONS=--max-old-space-size=5120 printed ''coverage-gate: PASS - measured src/** line coverage 85.41% (29444/34475 lines) meets the required threshold 78%''.'
+  - origin: author-parameterized-roadmap-transition-skill
+    date: '2026-08-17'
+    evidence: 'Second occurrence on the same host, one change later: ''bun scripts/coverage-gate.ts --threshold 78'' exited 1 after all 4489 tests passed, with ''FATAL ERROR: Ineffective mark-compacts near heap limit'' at 2048MB and ''coverage-gate: coverage report failed with exit status unknown''. Rerunning the identical command under NODE_OPTIONS=--max-old-space-size=5120 printed ''coverage-gate: PASS - measured src/** line coverage 85.44% (29521/34552 lines) meets the required threshold 78%''. The reread trap is the wrapper''s status: the background shell reported ''[exited with code 0]'' for its own exit while the gate itself had exited 1, so the gate''s status must be read from its own EXIT= line rather than the wrapper''s.'
+  - origin: collapse-prerequisite-and-language-boilerplate
+    date: '2026-08-17'
+    evidence: 'Third occurrence on the same host, one change later. ''bun scripts/coverage-gate.ts --threshold 78'' exited 1 after all 4472 tests passed, with ''FATAL ERROR: Ineffective mark-compacts near heap limit'' at 2048MB and ''coverage-gate: coverage report failed with exit status unknown''. The background wrapper again printed ''[exited with code 0]'' for its own exit while the gate''s own EXIT= line read 1, so the wrapper status stayed misleading for the third time; reading the gate''s own status is what identified this as the reporter step rather than the threshold. The recorded remedy applied unchanged.'
+  - origin: remove-merged-roadmap-skills-and-prove-reduction
+    date: '2026-08-18'
+    evidence: 'Fourth occurrence on the same host, one change later. ''bun scripts/coverage-gate.ts --threshold 78'' exited 1 after all 4325 tests passed, with ''FATAL ERROR: Ineffective mark-compacts near heap limit'' at 2048MB and ''coverage-gate: coverage report failed with exit status unknown''. The background wrapper again reported its own exit as 0 while the gate''s captured EXIT= line read 1, so the wrapper status was misleading for the fourth time. Rerunning the identical command under NODE_OPTIONS=--max-old-space-size=5120 printed ''coverage-gate: PASS - measured src/** line coverage 85.48% (29622/34653 lines) meets the required threshold 78%''.'

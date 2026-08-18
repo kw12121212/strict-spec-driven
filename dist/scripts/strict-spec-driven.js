@@ -12194,16 +12194,9 @@ mutation_surfaces:
       - src/mcp/inventory.ts
   bundled-skill-guidance:
     path_patterns:
-      - skills/strict-roadmap-archive/SKILL.md
-      - skills/strict-roadmap-move/SKILL.md
-      - skills/strict-roadmap-pause/SKILL.md
       - skills/strict-roadmap-plan/SKILL.md
       - skills/strict-roadmap-recommend/SKILL.md
-      - skills/strict-roadmap-reopen/SKILL.md
-      - skills/strict-roadmap-reorder/SKILL.md
-      - skills/strict-roadmap-resume/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
-      - skills/strict-roadmap-sync/SKILL.md
       - skills/strict-spec-apply/SKILL.md
       - skills/strict-spec-architecture/SKILL.md
       - skills/strict-spec-archive/SKILL.md
@@ -12226,8 +12219,7 @@ mutation_surfaces:
       - skills/strict-spec-sync-specs/SKILL.md
       - skills/strict-tech-edit/SKILL.md
       - skills/strict-tech-sync/SKILL.md
-      - skills/strict-roadmap-defer/SKILL.md
-      - skills/strict-roadmap-refine/SKILL.md
+      - skills/strict-roadmap-transition/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -12254,7 +12246,7 @@ mutation_surfaces:
     evidence:
       - skills/strict-spec-auto/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
-      - skills/strict-roadmap-defer/SKILL.md
+      - skills/strict-roadmap-transition/SKILL.md
   operator-documentation-guidance:
     path_patterns:
       - README.md
@@ -22327,7 +22319,7 @@ function listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, 
   });
 }
 function appendLegacyInlinePlannedChangeDiagnostic(artifactPath, plannedChangeIds, diagnostics) {
-  diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_changes", "inline milestone planned_changes are no longer supported; run the materialization form of the strict-roadmap-sync command from SKILL.md (repository equivalent: `node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes`) to convert them into standalone planned-change files", "empty mapping after materialization", plannedChangeIds.join(", ")));
+  diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_changes", "inline milestone planned_changes are no longer supported; run the materialization form of the strict-roadmap-transition skill's sync operation (repository equivalent: `node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes`) to convert them into standalone planned-change files", "empty mapping after materialization", plannedChangeIds.join(", ")));
 }
 function loadRoadmap(rootDir, options = {}) {
   const warnings = [];
@@ -30967,12 +30959,16 @@ function loadPolicyRegistry() {
   const families = inventory.artifact_families ?? {};
   const mutatingOwnerCommands = new Set;
   const registeredWriterPaths = new Set;
-  for (const family of Object.values(families)) {
+  const artifactKinds = new Set(Object.keys(families));
+  const validationCommandByKind = new Map;
+  for (const [kind, family] of Object.entries(families)) {
     const operations = family.operations ?? {};
     const hasCliOwnedOperation = ["create", "update", "named_remove", "delete"].some((operation) => operations[operation] === "cli-owned");
     for (const writerPath of family.direct_write_paths ?? []) {
       registeredWriterPaths.add(writerPath);
     }
+    if (family.validation_command)
+      validationCommandByKind.set(kind, family.validation_command);
     if (!hasCliOwnedOperation)
       continue;
     for (const owner of family.cli_owners ?? []) {
@@ -30996,16 +30992,23 @@ function loadPolicyRegistry() {
     }
     declaredFlagsByCommand.set(metadata.name, perCommand);
   }
-  cachedRegistry = { mutatingOwnerCommands, registeredWriterPaths, declaredFlags, declaredFlagsByCommand };
+  cachedRegistry = {
+    mutatingOwnerCommands,
+    registeredWriterPaths,
+    artifactKinds,
+    validationCommandByKind,
+    declaredFlags,
+    declaredFlagsByCommand
+  };
   return cachedRegistry;
 }
-var PROTOCOL_HEADING = "## CLI-Only YAML Authoring Protocol";
+var AUTHORING_PROTOCOL_HEADING = "## CLI-Only YAML Authoring Protocol";
 function bodyWithoutProtocolSection(skillText) {
-  const start = skillText.indexOf(PROTOCOL_HEADING);
+  const start = skillText.indexOf(AUTHORING_PROTOCOL_HEADING);
   if (start === -1)
     return skillText;
   const next = skillText.indexOf(`
-## `, start + PROTOCOL_HEADING.length);
+## `, start + AUTHORING_PROTOCOL_HEADING.length);
   return skillText.slice(0, start) + (next === -1 ? "" : skillText.slice(next + 1));
 }
 var MUTATION_CAPABLE_EXCEPTIONS = new Set(["strict-spec-migrate"]);
@@ -33470,6 +33473,155 @@ import path49 from "path";
 import { existsSync as existsSync44, readdirSync as readdirSync15, readFileSync as readFileSync30, statSync as statSync27 } from "node:fs";
 import path47 from "node:path";
 
+// src/yaml-authoring-protocol.ts
+var YAML_AUTHORING_PROTOCOL_STEPS = [
+  {
+    order: 1,
+    id: "read-command-help",
+    title: "Read the owning command's machine-readable help",
+    intent: "Learn the command that owns the operation and its documented named arguments, output keys, and exit codes before shaping any input. Help is the contract; a remembered flag is not.",
+    commands: ["<owning-command> --help --json"]
+  },
+  {
+    order: 2,
+    id: "resolve-schema",
+    title: "Resolve the target artifact's schema",
+    intent: "Confirm the artifact's required fields, enums, and relationships from its registered schema rather than inferring them from a similar artifact.",
+    commands: ["schema-list", "schema-show <schema-key>"]
+  },
+  {
+    order: 3,
+    id: "inspect-example",
+    title: "Inspect the registered minimal example",
+    intent: "See one known-valid document of this artifact type, which resolves shape questions the schema states abstractly. The example is read-only reference; it is never copied into place as a starting file.",
+    commands: ["sample-list", "sample-show <example-key>"]
+  },
+  {
+    order: 4,
+    id: "translate-to-named-arguments",
+    title: "Translate confirmed facts into documented named arguments",
+    intent: "Express the intended change as the command's own semantic arguments. Every value must trace to something confirmed in the request, the schema, or repository evidence — an unconfirmed field is an open question, not a default.",
+    commands: []
+  },
+  {
+    order: 5,
+    id: "execute-owning-command",
+    title: "Execute the owning command with those arguments",
+    intent: "Perform the mutation through the command that owns it. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.",
+    commands: ["<owning-command> --<named-args>"]
+  },
+  {
+    order: 6,
+    id: "inspect-structured-result",
+    title: "Inspect the structured result and changed paths",
+    intent: "Read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.",
+    commands: []
+  },
+  {
+    order: 7,
+    id: "validate-artifact",
+    title: "Run the artifact's validation command",
+    intent: "Confirm the artifact and the state it participates in are valid after the write, which catches cross-file consequences a single mutation's own result cannot report.",
+    commands: ["<validation-command>"]
+  }
+];
+var YAML_AUTHORING_PROTOCOL_BOUNDARY = {
+  id: "no-direct-edit-fallback",
+  title: "Stop rather than edit YAML directly",
+  statement: "When a required command, argument, or artifact kind is unavailable, stop and report the missing capability. Editing the YAML directly, writing a raw payload, or scripting around the CLI is never an available fallback, and an unavailable command is a reason to stop rather than a reason to improvise.",
+  reportContains: [
+    "the operation that could not be completed",
+    "the artifact kind and target artifact it would have written",
+    "the command or argument that is missing",
+    "the discovery commands already consulted"
+  ]
+};
+function getYamlAuthoringProtocol() {
+  return {
+    steps: YAML_AUTHORING_PROTOCOL_STEPS,
+    boundary: YAML_AUTHORING_PROTOCOL_BOUNDARY
+  };
+}
+function unique(values3) {
+  return [...new Set(values3)];
+}
+function assetStep(step, listCommand, showCommandPrefix, artifactTypes, keyOf, cachedPathOf, assetLabel) {
+  const withKey = artifactTypes.filter((entry) => keyOf(entry) !== undefined);
+  const showCommands = unique(withKey.flatMap((entry) => entry.inspectWith.filter((command) => command.startsWith(showCommandPrefix))));
+  if (withKey.length === 0 || showCommands.length === 0) {
+    return {
+      ...step,
+      commands: [listCommand],
+      unavailable: `no registered ${assetLabel} covers this artifact kind`
+    };
+  }
+  const uncached = withKey.filter((entry) => cachedPathOf(entry) === undefined);
+  return {
+    ...step,
+    commands: showCommands,
+    ...uncached.length === 0 ? {} : {
+      unavailable: `the shared schema cache does not hold the ${assetLabel} for ${uncached.map((entry) => entry.artifactType).join(", ")}; use the bundled key`
+    }
+  };
+}
+function bindYamlAuthoringProtocol(family) {
+  const mutatingCommands = family.cliOwners;
+  const artifactTypes = family.artifactTypes.map((entry) => ({
+    artifactType: entry.artifactType,
+    ...entry.schemaId !== undefined ? { schemaId: entry.schemaId } : {},
+    ...entry.schemaKey !== undefined ? { schemaKey: entry.schemaKey } : {},
+    ...entry.schemaFilePath !== undefined ? { schemaFilePath: entry.schemaFilePath } : {},
+    ...entry.exampleKey !== undefined ? { exampleKey: entry.exampleKey } : {},
+    ...entry.exampleFilePath !== undefined ? { exampleFilePath: entry.exampleFilePath } : {},
+    inspectWith: entry.inspectWith
+  }));
+  const steps = YAML_AUTHORING_PROTOCOL_STEPS.map((step) => {
+    switch (step.id) {
+      case "read-command-help":
+      case "execute-owning-command":
+        return mutatingCommands.length === 0 ? {
+          ...step,
+          commands: [],
+          unavailable: "the inventory records no CLI owner for this artifact kind"
+        } : {
+          ...step,
+          commands: mutatingCommands.map((command) => step.id === "read-command-help" ? `${command} --help --json` : `${command} --<named-args>`)
+        };
+      case "resolve-schema":
+        return assetStep(step, "schema-list", "schema-show ", artifactTypes, (entry) => entry.schemaKey, (entry) => entry.schemaFilePath, "schema");
+      case "inspect-example":
+        return assetStep(step, "sample-list", "sample-show ", artifactTypes, (entry) => entry.exampleKey, (entry) => entry.exampleFilePath, "example");
+      case "validate-artifact":
+        return family.validationCommand === undefined ? {
+          ...step,
+          commands: [],
+          unavailable: "the inventory records no validation command for this artifact kind"
+        } : { ...step, commands: [family.validationCommand] };
+      default:
+        return { ...step };
+    }
+  });
+  return {
+    artifactKind: family.kind,
+    ownership: family.ownership,
+    artifactTypes,
+    pathPatterns: family.pathPatterns,
+    ...family.schemaKey !== undefined ? { schemaKey: family.schemaKey } : {},
+    ...family.schemaFilePath !== undefined ? { schemaFilePath: family.schemaFilePath } : {},
+    ...family.exampleKey !== undefined ? { exampleKey: family.exampleKey } : {},
+    ...family.exampleFilePath !== undefined ? { exampleFilePath: family.exampleFilePath } : {},
+    ...family.validationCommand !== undefined ? { validationCommand: family.validationCommand } : {},
+    operations: YAML_SURFACE_OPERATIONS.map((operation) => ({
+      operation,
+      state: family.operations[operation].state,
+      cliOwned: family.operations[operation].cliOwned,
+      commands: family.operations[operation].commands
+    })),
+    steps,
+    boundary: YAML_AUTHORING_PROTOCOL_BOUNDARY
+  };
+}
+
 // src/skills/model.ts
 var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
 var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
@@ -33498,8 +33650,19 @@ var ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestones"
 var ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
 var ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
 var ROADMAP_ORDER_SOURCE_SNIPPET = "Use `roadmap-status` or `roadmap-overview` order, never id-prefix order";
-var ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET = "Translate reorder intent into one CLI command";
-var ROADMAP_MOVE_SINGLE_COMMAND_SNIPPET = "Translate move intent into one CLI command";
+var ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET = "**The operation must be explicit.**";
+var ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET = "stop and ask the user which of the nine is intended";
+var ROADMAP_TRANSITION_INVERSE_PAIRS_SNIPPET = "`pause` and `resume` undo each other, `defer` and `refine` undo each other";
+var ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET = "Archived milestones and archived planned changes are frozen history";
+var ROADMAP_TRANSITION_PAUSE_SKIP_REASON_SNIPPET = "milestone-paused";
+var ROADMAP_TRANSITION_RESUME_CLEARS_PAUSE_SNIPPET = "Resume deletes the `paused` field";
+var ROADMAP_TRANSITION_DEFER_IS_NOT_PAUSE_SNIPPET = "**Deferral is not a pause.**";
+var ROADMAP_TRANSITION_DEFER_SKIP_REASON_SNIPPET = "milestone-awaiting-refinement";
+var ROADMAP_TRANSITION_REFINE_ASKS_THE_HUMAN_SNIPPET = "whether the recorded precondition is now true";
+var ROADMAP_TRANSITION_REOPEN_FROZEN_SNIPPET = "frozenPlannedChanges";
+var ROADMAP_TRANSITION_REOPEN_SEEDS_FOLLOW_UP_SNIPPET = "seededFollowUp";
+var ROADMAP_TRANSITION_SYNC_INVENTS_NOTHING_SNIPPET = "Do not invent planned changes during a sync";
+var ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET = "Perform exactly one operation per invocation, through its one owning command";
 var ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET = "--allow-complete";
 var ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET = "never writes under `.strict-spec-driven/changes/`";
 var ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
@@ -33531,14 +33694,30 @@ var BUGFIX_KNOWN_BUG_SNIPPET = "known bug";
 var BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
 var BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
 var BUGFIX_MINIMAL_FIX_SNIPPET = "minimal fix";
-var BUGFIX_DEBUG_SESSION_SNIPPET = "strict-spec-debug-session";
+var BUGFIX_INVESTIGATION_SESSION_SNIPPET = "strict-spec-harness-session";
 var REQUIREMENT_INTERROGATION_SKILLS = [
   "strict-spec-brainstorm",
   "strict-spec-propose",
   "strict-spec-bugfix",
   "strict-spec-auto"
 ];
+var AUTHORING_PROTOCOL_POINTER_COMMAND = `${COMMAND_PREFIX} yaml-authoring-protocol`;
 var REQUIREMENT_INTERROGATION_HEADING = "## Requirement Interrogation";
+var PREFERRED_HUMAN_LANGUAGE_HEADING = "## Preferred Human Language";
+var SKILL_COMMANDS_HEADING = "## This Skill's Commands";
+var PREREQUISITES_HEADING = "## Prerequisites";
+var PREFERRED_HUMAN_LANGUAGE_SNIPPETS = [
+  { snippet: "`.strict-spec-driven/config.yaml`", element: "the config file the language preference is read from" },
+  { snippet: "`preferred_human_language`", element: "the config field name" },
+  { snippet: "common human language", element: "the field's meaning as the user's common human language" },
+  { snippet: "not a programming language", element: "the distinction from a programming language" },
+  { snippet: "comply", element: "the requirement to comply with the configured language" },
+  { snippet: "the active user message", element: "the active-user-message override" }
+];
+var STRICT_WORKFLOW_SHARED_ELEMENTS = [
+  { snippet: STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET, element: "the init guidance" },
+  { snippet: STRICT_WORKFLOW_NO_INIT_SNIPPET, element: "the do-not-run-init statement" }
+];
 var TASK_GENERATOR_PATTERNS = [
   /generate\s+<change(?:-name)?>\s+tasks/,
   /tasks\s+--section\s+</
@@ -33791,7 +33970,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET,
       BUGFIX_REGRESSION_TEST_SNIPPET,
       BUGFIX_MINIMAL_FIX_SNIPPET,
-      BUGFIX_DEBUG_SESSION_SNIPPET,
+      BUGFIX_INVESTIGATION_SESSION_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",
@@ -33928,67 +34107,49 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       "Never infer review order from the milestone id prefix"
     ]
   },
-  "strict-roadmap-reorder": {
+  "strict-roadmap-transition": {
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
+      "roadmap-pause": `${COMMAND_PREFIX} roadmap-pause <milestone-id>`,
+      "roadmap-resume": `${COMMAND_PREFIX} roadmap-resume <milestone-id>`,
+      "roadmap-defer": `${COMMAND_PREFIX} roadmap-defer <milestone-id>`,
+      "roadmap-refine": `${COMMAND_PREFIX} roadmap-refine <milestone-id>`,
       "roadmap-reorder": `${COMMAND_PREFIX} roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)`,
-      "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
-      "optional integer `order` field",
-      "roadmap-reorder",
-      "roadmap-renumber",
-      ROADMAP_ORDER_SOURCE_SNIPPET,
-      ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET,
-      "dependency-order concern",
-      "Archived milestones are frozen history"
-    ]
-  },
-  "strict-roadmap-move": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
-      "roadmap-move-planned-change": `${COMMAND_PREFIX} roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]`
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
-      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
-      ROADMAP_CANONICAL_FILENAME_SNIPPET,
-      ROADMAP_MOVE_SINGLE_COMMAND_SNIPPET,
-      ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET,
-      ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET,
-      "dependency-order concern",
-      "Archived milestones and archived planned changes are frozen history"
-    ]
-  },
-  "strict-roadmap-sync": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`,
+      "roadmap-move-planned-change": `${COMMAND_PREFIX} roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]`,
+      "roadmap-reopen": `${COMMAND_PREFIX} roadmap-reopen <milestone-id>`,
+      "roadmap-archive": `${COMMAND_PREFIX} roadmap-archive [milestone-id]`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
       "roadmap-sync-fix-names": `${COMMAND_PREFIX} roadmap-sync --fix-names`
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
       ROADMAP_CANONICAL_FILENAME_SNIPPET,
-      ROADMAP_FIX_NAMES_SNIPPET
-    ]
-  },
-  "strict-roadmap-archive": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-archive": `${COMMAND_PREFIX} roadmap-archive [milestone-id]`
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
+      ROADMAP_FIX_NAMES_SNIPPET,
+      ROADMAP_ORDER_SOURCE_SNIPPET,
+      "optional integer `order` field",
+      ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET,
+      ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET,
+      ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET,
+      ROADMAP_TRANSITION_INVERSE_PAIRS_SNIPPET,
+      ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET,
+      ROADMAP_TRANSITION_PAUSE_SKIP_REASON_SNIPPET,
+      ROADMAP_TRANSITION_RESUME_CLEARS_PAUSE_SNIPPET,
+      ROADMAP_TRANSITION_DEFER_IS_NOT_PAUSE_SNIPPET,
+      ROADMAP_TRANSITION_DEFER_SKIP_REASON_SNIPPET,
+      ROADMAP_TRANSITION_REFINE_ASKS_THE_HUMAN_SNIPPET,
+      "dependency-order concern",
+      ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET,
+      ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET,
+      ROADMAP_TRANSITION_REOPEN_FROZEN_SNIPPET,
+      ROADMAP_TRANSITION_REOPEN_SEEDS_FOLLOW_UP_SNIPPET,
       ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET,
       ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET,
-      ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET
+      ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_TRANSITION_SYNC_INVENTS_NOTHING_SNIPPET
     ]
   }
 };
@@ -34145,6 +34306,95 @@ function validatePlanningSkillContent(skillName, content, commands, skillPath, d
 function validateMigrationSkillContent(skillName, content, commands, skillPath, diagnostics) {
   validateSkillContentAgainstExpectation(skillName, content, commands, skillPath, diagnostics, MIGRATION_STRICT_SKILL_EXPECTATIONS, "skill.migration", "strict migration skill");
 }
+var normalizeWhitespace3 = (text) => text.replace(/\s+/g, " ");
+function skillSection(content, heading) {
+  const start = content.indexOf(heading);
+  if (start === -1)
+    return;
+  const next = content.indexOf(`
+## `, start + heading.length);
+  return next === -1 ? content.slice(start) : content.slice(start, next);
+}
+function authoringProtocolSection(content) {
+  return skillSection(content, AUTHORING_PROTOCOL_HEADING);
+}
+function countProseSentences(text) {
+  const withoutCodeSpans = text.replace(/`[^`]*`/g, "CODE");
+  return (withoutCodeSpans.match(/[.!?](\s|$)/g) ?? []).length;
+}
+function validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics) {
+  const section = skillSection(content, PREFERRED_HUMAN_LANGUAGE_HEADING);
+  if (section === undefined) {
+    diagnostics.push(makeDiagnostic5("skill.preferred_human_language.section.missing", skillPath, "every bundled strict skill must carry a preferred human language section", PREFERRED_HUMAN_LANGUAGE_HEADING));
+    return;
+  }
+  const normalizedSection = normalizeWhitespace3(section).toLowerCase();
+  for (const { snippet: snippet2, element } of PREFERRED_HUMAN_LANGUAGE_SNIPPETS) {
+    if (normalizedSection.includes(normalizeWhitespace3(snippet2).toLowerCase()))
+      continue;
+    diagnostics.push(makeDiagnostic5("skill.preferred_human_language.element.missing", skillPath, `preferred human language guidance must name ${element}`, snippet2));
+  }
+  const body = section.slice(PREFERRED_HUMAN_LANGUAGE_HEADING.length);
+  const sentenceCount = countProseSentences(body);
+  if (sentenceCount > 1) {
+    diagnostics.push(makeDiagnostic5("skill.preferred_human_language.not_single_sentence", skillPath, "preferred human language guidance must be stated as a single sentence, not a restated paragraph; fold any skill-specific rider into that sentence", "1 sentence", `${sentenceCount} sentences`));
+  }
+}
+function validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics) {
+  const prerequisites = skillSection(content, PREREQUISITES_HEADING);
+  if (prerequisites === undefined)
+    return;
+  const commandsSection = skillSection(content, SKILL_COMMANDS_HEADING) ?? "";
+  const elsewhere = content.replace(prerequisites, "").replace(commandsSection, "");
+  const normalizedPrerequisites = normalizeWhitespace3(prerequisites);
+  const normalizedElsewhere = normalizeWhitespace3(elsewhere);
+  for (const { snippet: snippet2, element } of STRICT_WORKFLOW_SHARED_ELEMENTS) {
+    const normalizedSnippet = normalizeWhitespace3(snippet2);
+    if (!normalizedPrerequisites.includes(normalizedSnippet))
+      continue;
+    if (!normalizedElsewhere.includes(normalizedSnippet))
+      continue;
+    diagnostics.push(makeDiagnostic5("skill.strict_workflow.precondition.restated", skillPath, `the Prerequisites section restates ${element}, which another section of this skill already carries; delete the Prerequisites copy rather than shortening it, keeping the section only for a precondition specific to this skill`, `${element} stated once`, snippet2));
+  }
+}
+function validateAuthoringProtocolPointer(skillName, content, commands, skillPath, diagnostics) {
+  if (!isMutationCapableSkill(skillName, content))
+    return;
+  const section = authoringProtocolSection(content);
+  if (section === undefined) {
+    diagnostics.push(makeDiagnostic5("skill.authoring_protocol.section.missing", skillPath, "mutation-capable skill must carry a CLI-only YAML authoring pointer section", AUTHORING_PROTOCOL_HEADING));
+    return;
+  }
+  const normalized = normalizeWhitespace3(section);
+  if (!normalized.includes(AUTHORING_PROTOCOL_POINTER_COMMAND)) {
+    diagnostics.push(makeDiagnostic5("skill.authoring_protocol.pointer.missing", skillPath, "mutation-capable skill must name the command that renders the live authoring protocol", `${AUTHORING_PROTOCOL_POINTER_COMMAND} <artifact-kind>`));
+  }
+  const { artifactKinds, validationCommandByKind, mutatingOwnerCommands } = loadPolicyRegistry();
+  const namedKinds = [...artifactKinds].filter((kind) => normalized.includes(`\`${kind}\``));
+  if (namedKinds.length === 0) {
+    diagnostics.push(makeDiagnostic5("skill.authoring_protocol.artifact_kind.missing", skillPath, "mutation-capable skill must name the artifact kinds it writes, so the pointer command can be run for them", "an artifact kind registered in inventory/yaml-mutation-surfaces.yaml"));
+  } else {
+    const declaredValidationCommands = Object.values(commands).map(commandNameOf).filter((name) => name !== undefined && !mutatingOwnerCommands.has(name));
+    const acceptedCommands = new Set(declaredValidationCommands);
+    for (const kind of namedKinds) {
+      const command = validationCommandByKind.get(kind);
+      if (command !== undefined)
+        acceptedCommands.add(command);
+    }
+    const namesAValidationCommand = [...acceptedCommands].some((command) => normalized.includes(`${COMMAND_PREFIX} ${command}`));
+    if (!namesAValidationCommand) {
+      diagnostics.push(makeDiagnostic5("skill.authoring_protocol.validation_command.missing", skillPath, "mutation-capable skill must name the validation command it runs after writing an artifact kind it names", [...acceptedCommands].map((command) => `${COMMAND_PREFIX} ${command}`).join(" or ")));
+    }
+  }
+  if (!normalized.includes(normalizeWhitespace3(YAML_AUTHORING_PROTOCOL_BOUNDARY.statement))) {
+    diagnostics.push(makeDiagnostic5("skill.authoring_protocol.boundary.missing", skillPath, "mutation-capable skill must restate the no-fallback boundary verbatim, because it is the one instruction that must be read before any command runs", YAML_AUTHORING_PROTOCOL_BOUNDARY.statement));
+  }
+  for (const step of YAML_AUTHORING_PROTOCOL_STEPS) {
+    if (!normalized.includes(normalizeWhitespace3(step.title)))
+      continue;
+    diagnostics.push(makeDiagnostic5("skill.authoring_protocol.step.restated", skillPath, `mutation-capable skill must not restate protocol step '${step.id}', which the pointer command renders bound to the artifact kind`, `${AUTHORING_PROTOCOL_POINTER_COMMAND} <artifact-kind>`, step.title));
+  }
+}
 function validateCliOnlyYamlPolicy(skillName, content, commands, skillPath, diagnostics) {
   if (!isMutationCapableSkill(skillName, content))
     return;
@@ -34235,9 +34485,12 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics);
+  validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics);
   validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
   validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateAuthoringProtocolPointer(skillName, content, normalizedCommands, skillPath, diagnostics);
 }
 
 // src/skills/diagnostics.ts
@@ -35424,155 +35677,6 @@ function runSampleShow(argv) {
     return 1;
   }
   return showKey(normalizeSampleKey(name), usage2);
-}
-
-// src/yaml-authoring-protocol.ts
-var YAML_AUTHORING_PROTOCOL_STEPS = [
-  {
-    order: 1,
-    id: "read-command-help",
-    title: "Read the owning command's machine-readable help",
-    intent: "Learn the command that owns the operation and its documented named arguments, output keys, and exit codes before shaping any input. Help is the contract; a remembered flag is not.",
-    commands: ["<owning-command> --help --json"]
-  },
-  {
-    order: 2,
-    id: "resolve-schema",
-    title: "Resolve the target artifact's schema",
-    intent: "Confirm the artifact's required fields, enums, and relationships from its registered schema rather than inferring them from a similar artifact.",
-    commands: ["schema-list", "schema-show <schema-key>"]
-  },
-  {
-    order: 3,
-    id: "inspect-example",
-    title: "Inspect the registered minimal example",
-    intent: "See one known-valid document of this artifact type, which resolves shape questions the schema states abstractly. The example is read-only reference; it is never copied into place as a starting file.",
-    commands: ["sample-list", "sample-show <example-key>"]
-  },
-  {
-    order: 4,
-    id: "translate-to-named-arguments",
-    title: "Translate confirmed facts into documented named arguments",
-    intent: "Express the intended change as the command's own semantic arguments. Every value must trace to something confirmed in the request, the schema, or repository evidence — an unconfirmed field is an open question, not a default.",
-    commands: []
-  },
-  {
-    order: 5,
-    id: "execute-owning-command",
-    title: "Execute the owning command with those arguments",
-    intent: "Perform the mutation through the command that owns it. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.",
-    commands: ["<owning-command> --<named-args>"]
-  },
-  {
-    order: 6,
-    id: "inspect-structured-result",
-    title: "Inspect the structured result and changed paths",
-    intent: "Read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.",
-    commands: []
-  },
-  {
-    order: 7,
-    id: "validate-artifact",
-    title: "Run the artifact's validation command",
-    intent: "Confirm the artifact and the state it participates in are valid after the write, which catches cross-file consequences a single mutation's own result cannot report.",
-    commands: ["<validation-command>"]
-  }
-];
-var YAML_AUTHORING_PROTOCOL_BOUNDARY = {
-  id: "no-direct-edit-fallback",
-  title: "Stop rather than edit YAML directly",
-  statement: "When a required command, argument, or artifact kind is unavailable, stop and report the missing capability. Editing the YAML directly, writing a raw payload, or scripting around the CLI is never an available fallback, and an unavailable command is a reason to stop rather than a reason to improvise.",
-  reportContains: [
-    "the operation that could not be completed",
-    "the artifact kind and target artifact it would have written",
-    "the command or argument that is missing",
-    "the discovery commands already consulted"
-  ]
-};
-function getYamlAuthoringProtocol() {
-  return {
-    steps: YAML_AUTHORING_PROTOCOL_STEPS,
-    boundary: YAML_AUTHORING_PROTOCOL_BOUNDARY
-  };
-}
-function unique(values3) {
-  return [...new Set(values3)];
-}
-function assetStep(step, listCommand, showCommandPrefix, artifactTypes, keyOf, cachedPathOf, assetLabel) {
-  const withKey = artifactTypes.filter((entry) => keyOf(entry) !== undefined);
-  const showCommands = unique(withKey.flatMap((entry) => entry.inspectWith.filter((command) => command.startsWith(showCommandPrefix))));
-  if (withKey.length === 0 || showCommands.length === 0) {
-    return {
-      ...step,
-      commands: [listCommand],
-      unavailable: `no registered ${assetLabel} covers this artifact kind`
-    };
-  }
-  const uncached = withKey.filter((entry) => cachedPathOf(entry) === undefined);
-  return {
-    ...step,
-    commands: showCommands,
-    ...uncached.length === 0 ? {} : {
-      unavailable: `the shared schema cache does not hold the ${assetLabel} for ${uncached.map((entry) => entry.artifactType).join(", ")}; use the bundled key`
-    }
-  };
-}
-function bindYamlAuthoringProtocol(family) {
-  const mutatingCommands = family.cliOwners;
-  const artifactTypes = family.artifactTypes.map((entry) => ({
-    artifactType: entry.artifactType,
-    ...entry.schemaId !== undefined ? { schemaId: entry.schemaId } : {},
-    ...entry.schemaKey !== undefined ? { schemaKey: entry.schemaKey } : {},
-    ...entry.schemaFilePath !== undefined ? { schemaFilePath: entry.schemaFilePath } : {},
-    ...entry.exampleKey !== undefined ? { exampleKey: entry.exampleKey } : {},
-    ...entry.exampleFilePath !== undefined ? { exampleFilePath: entry.exampleFilePath } : {},
-    inspectWith: entry.inspectWith
-  }));
-  const steps = YAML_AUTHORING_PROTOCOL_STEPS.map((step) => {
-    switch (step.id) {
-      case "read-command-help":
-      case "execute-owning-command":
-        return mutatingCommands.length === 0 ? {
-          ...step,
-          commands: [],
-          unavailable: "the inventory records no CLI owner for this artifact kind"
-        } : {
-          ...step,
-          commands: mutatingCommands.map((command) => step.id === "read-command-help" ? `${command} --help --json` : `${command} --<named-args>`)
-        };
-      case "resolve-schema":
-        return assetStep(step, "schema-list", "schema-show ", artifactTypes, (entry) => entry.schemaKey, (entry) => entry.schemaFilePath, "schema");
-      case "inspect-example":
-        return assetStep(step, "sample-list", "sample-show ", artifactTypes, (entry) => entry.exampleKey, (entry) => entry.exampleFilePath, "example");
-      case "validate-artifact":
-        return family.validationCommand === undefined ? {
-          ...step,
-          commands: [],
-          unavailable: "the inventory records no validation command for this artifact kind"
-        } : { ...step, commands: [family.validationCommand] };
-      default:
-        return { ...step };
-    }
-  });
-  return {
-    artifactKind: family.kind,
-    ownership: family.ownership,
-    artifactTypes,
-    pathPatterns: family.pathPatterns,
-    ...family.schemaKey !== undefined ? { schemaKey: family.schemaKey } : {},
-    ...family.schemaFilePath !== undefined ? { schemaFilePath: family.schemaFilePath } : {},
-    ...family.exampleKey !== undefined ? { exampleKey: family.exampleKey } : {},
-    ...family.exampleFilePath !== undefined ? { exampleFilePath: family.exampleFilePath } : {},
-    ...family.validationCommand !== undefined ? { validationCommand: family.validationCommand } : {},
-    operations: YAML_SURFACE_OPERATIONS.map((operation) => ({
-      operation,
-      state: family.operations[operation].state,
-      cliOwned: family.operations[operation].cliOwned,
-      commands: family.operations[operation].commands
-    })),
-    steps,
-    boundary: YAML_AUTHORING_PROTOCOL_BOUNDARY
-  };
 }
 
 // src/cli/cmd-yaml-authoring-protocol.ts

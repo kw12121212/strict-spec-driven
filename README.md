@@ -109,7 +109,7 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-roadmap-recommend` | Recommend the next planned change from the roadmap |
 | `/strict-roadmap-review` | Review one incomplete roadmap milestone and apply fixes |
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
-| `/strict-roadmap-sync` | Reconcile roadmap milestone and change state |
+| `/strict-roadmap-transition` | Perform one roadmap state transition: `pause`, `resume`, `defer`, `refine`, `reorder`, `move`, `reopen`, `archive`, or `sync` |
 
 The roadmap docs describe the preferred split-file collaboration model: keep milestone files and `INDEX.yaml` low churn, store day-to-day roadmap work in `.strict-spec-driven/roadmap/planned-changes/`, rerun `roadmap-sync` after merges or archive handoff, and treat external tracker references as optional context rather than required source of truth.
 

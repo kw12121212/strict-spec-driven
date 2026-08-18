@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: author-parameterized-roadmap-transition-skill
+approach:
+  - Add one new bundled skill package, skills/strict-roadmap-transition/, alongside the nine it will eventually replace. The skill opens with an operation table mapping each of the nine operation names — pause, resume, defer, refine, reorder, move, reopen, archive, sync — onto exactly one owning strict CLI command, so operation selection is a lookup rather than an inference. Its This Skill's Commands block declares every one of those commands plus the shared read-only roadmap-status and roadmap-overview lookups, which is the block both the cli-only-yaml-policy classifier and the agent read.
+  - Judgment that lives in the nine skills today is preserved as operation-scoped preconditions rather than dropped with their prose. Reorder and move both carry the dependency-order confirmation and the roadmap-status or roadmap-overview order source rule; pause and resume, and defer and refine, are each documented as a reversible inverse pair naming its partner as the undo path; every operation restates that archived milestones and archived planned changes are frozen history; and move and sync both restate the canonical <milestone-id>-<planned-change-id>.yaml filename rule and roadmap-sync --fix-names as the only sanctioned rename path.
+  - Enforcement is added in the same change as the skill. A single strict-roadmap-transition entry in ROADMAP_STRICT_SKILL_EXPECTATIONS declares the required command mappings for all nine operations and the content snippets that prove the preserved judgment is present, which makes the merged skill the first place pause, resume, defer, refine, and reopen content is checked at all. The pinned mutation-capable list in the entrypoint-and-skills suite gains the new skill so classification stays an assertion rather than an inspection, and the bundled-skill-guidance path patterns in the mutation inventory gain its SKILL.md path through inventory-edit so the policy check sees it.
+decisions:
+  merged-skill-name:
+    decision: Name the merged skill strict-roadmap-transition, with skill_id strict_roadmap_transition.
+    rationale: The roadmap artifacts specify the skill's behavior but never name it. strict-roadmap-transition keeps the strict-roadmap family prefix that marketplace.json and the validate-skills family routing both key on, and names what every one of the nine operations does — move roadmap state from one condition to another — without privileging any single operation the way reusing an existing name such as strict-roadmap-sync would.
+  explicit-operation-argument:
+    decision: The skill requires an explicit operation naming one of the nine transitions, and stops to ask the human when the request names none, rather than inferring the operation from the request.
+    rationale: 'The milestone intake question merged-skill-operation-shape recommends exactly this, and the shape is what makes the merge testable: an explicit operation keeps each invocation a deterministic one-to-one lookup onto its owning CLI command, while inference would concentrate routing judgment that nine separate skill descriptions previously carried into one file with no assertable contract.'
+  expectation-covers-all-nine-operations:
+    decision: The new validate-skills expectation entry requires the command mapping and content evidence for all nine operations, not only the four that have expectations today.
+    rationale: ROADMAP_STRICT_SKILL_EXPECTATIONS covers only reorder, move, sync, and archive, so carrying the old expectation set forward unchanged would leave the merged skill free to drop pause, resume, defer, refine, and reopen guidance and still pass. Requiring all nine converts an existing enforcement gap into a checked contract in the same change that creates the surface it guards.
+  nine-originals-stay-in-place:
+    decision: The nine existing roadmap state-transition skills, their marketplace entries, their expectations, and their per-skill assertions are left untouched, so this change ends at 37 bundled skills.
+    rationale: The planned change requires the replacement to be written before anything it replaces is deleted, so the two states can be compared directly. Keeping the originals also keeps validate-skills and the marketplace parity check green throughout, and leaves the separate deletion change solely accountable for the 28-skill target the milestone measures.
+  inventory-registered-through-inventory-edit:
+    decision: Register the new SKILL.md path in inventory/yaml-mutation-surfaces.yaml through strict-spec-cli inventory-edit and regenerate src/embedded-templates.ts with the build, rather than editing either file by hand.
+    rationale: The mutation inventory is itself a repository-owned CLI-owned artifact under the yaml-mutation-inventory family, and src/embedded-templates.ts is generated output of scripts/gen-templates-bundle.ts. Editing either directly would violate the CLI-only authoring policy this milestone is relocating enforcement for, in the very change that adds a skill governed by it.
+alternatives:
+  - option: Infer the transition operation from the natural-language request instead of requiring an explicit operation argument.
+    reason: It makes one file responsible for routing that nine separate skill descriptions previously carried, and gives validate-skills nothing assertable to check, so a misrouted pause-versus-resume request would fail silently at runtime rather than at validation.
+  - option: Merge the nine skills and delete the originals in this single change.
+    reason: It removes the ability to compare the replacement against what it replaces, and it would make one change accountable for both the new skill's correctness and the 28-skill count reduction, so a regression in either could not be attributed to the other.
+  - option: Keep the existing four-skill expectation set and add no expectations for pause, resume, defer, refine, and reopen.
+    reason: It carries an enforcement gap forward into the surface that replaces nine skills, leaving five operations' worth of guidance removable without any check failing.
+risks:
+  - Concentrating nine command families into one SKILL.md may trip prose-mutation-flag heuristics in the cli-only-yaml-policy classifier that the split skills never triggered individually, because the merged file names many more mutation commands in one document.
+  - A single expectation entry covering nine operations is long, and a snippet chosen too literally would pin wording rather than behavior, making later edits to the merged skill fail validation for reasons unrelated to the guidance it must carry.
+  - The change raises the bundled skill count to 37 while the milestone's done criterion names 28, so the intermediate state is correct only as long as the deletion change follows; an interruption here leaves the surface temporarily larger than before the milestone started.

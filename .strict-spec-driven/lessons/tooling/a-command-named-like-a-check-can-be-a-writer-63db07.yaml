@@ -8,7 +8,7 @@ lesson:
 category: tooling
 status: active
 created_at: '2026-08-06T10:05:34.293Z'
-updated_at: '2026-08-16T14:33:18.624Z'
+updated_at: '2026-08-18T03:09:17.444Z'
 context: Verifying that a change had not introduced repository drift, by running strict-spec-cli maintenance expecting it to report findings the way verify-spec-mappings and check-yaml-mutation-inventory do.
 observation: The command exited zero reporting {"valid":true,"checksRun":2,"findingsCount":1,"generatedChange":"maintenance-2026-08-06"} — it had seeded a second active change directory from a pre-existing ARCHITECTURE.md drift finding. There is no read-only mode and no confirmation step, and with two active changes already the change limit would have blocked the next propose. Cancelling the generated change restored the prior state, but only because nothing had been authored into it yet.
 takeaway: 'Before running a strict CLI command for its report, confirm from the root help groups or the command''s own --help whether it writes: names drawn from inspection vocabulary — maintenance, sync, doctor, status — do not partition into readers and writers, and a writer invoked for its output leaves state behind that the caller then has to undo.'
@@ -20,3 +20,9 @@ occurrences:
   - origin: milestone-awaiting-refinement
     date: '2026-08-16'
     evidence: A Verification task whose command was 'strict-spec-cli maintenance' created .strict-spec-driven/changes/maintenance-2026-08-16/ with proposal, questions, and tasks artifacts while the change was being verified; strict-spec-cli cancel maintenance-2026-08-16 was needed to undo it. The finding it seeded (stale ARCHITECTURE.md) was pre-existing drift from commit b92c457, unrelated to the change under verification.
+  - origin: author-parameterized-roadmap-transition-skill
+    date: '2026-08-17'
+    evidence: A Testing task whose command was 'strict-spec-cli maintenance' created .strict-spec-driven/changes/maintenance-2026-08-17/ while the change was being tested; the task existed only to confirm the cli-only-yaml-policy check reported no violation for the newly added skill, and strict-spec-cli cancel maintenance-2026-08-17 was needed to undo it. The seeded finding was the same pre-existing stale ARCHITECTURE.md drift, unrelated to this change. Third occurrence, and the first where the writer was invoked by a task command this same change had authored, so the task text was reworded to name the seeding and the cancel command.
+  - origin: remove-merged-roadmap-skills-and-prove-reduction
+    date: '2026-08-18'
+    evidence: Fourth occurrence. A Testing task existing only to confirm the cli-only-yaml-policy check reported no violation ran 'strict-spec-cli maintenance', which seeded .strict-spec-driven/changes/maintenance-2026-08-18 from the same pre-existing stale ARCHITECTURE.md generated-doc-check finding; 'strict-spec-cli cancel maintenance-2026-08-18' undid it. The task's originally authored command was the nonexistent 'maintenance-check', so the writing behavior was met only after correcting the command against root help. Reading the policy result without seeding was possible by importing scanTextForPolicyViolations from dist/cli-only-yaml-policy.js directly, which reported 0 violations across all 28 skills.

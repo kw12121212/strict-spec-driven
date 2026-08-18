@@ -1,0 +1,11 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: replace-inlined-protocol-with-cli-pointer
+  milestone: skill-surface-consolidation
+status: complete
+summary: Replace the inlined CLI-only YAML authoring protocol in 34 skills with a pointer to the command that renders it.
+details: 'Each of the 34 mutation-capable skills carries a hand-copied rendering of the seven protocol steps, the stop-rather-than-edit boundary, and the per-artifact schema and sample commands, totalling 1088 lines. strict-spec-cli yaml-authoring-protocol already returns all of it bound to the artifact kind, including cache-resolved schema and example paths that the copies cannot keep current. Replace each section with a short block that names the artifact kind the skill writes, the pointer command to run, and the artifact validation command, and leave the This Skill''s Commands lookup block untouched. Relocate the enforcement in the same change: the validate-skills expectations in src/skills/model.ts and the per-skill assertions in test/suites/entrypoint-and-skills.ts must assert the pointer form, never merely stop asserting the removed text. isMutationCapableSkill in src/cli-only-yaml-policy.ts already strips the protocol section before classifying, so removal is classification-neutral by construction; add a test that pins that equivalence rather than asserting it in review.'
+depends_on: []

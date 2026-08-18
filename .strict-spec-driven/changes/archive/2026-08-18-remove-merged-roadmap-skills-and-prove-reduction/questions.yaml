@@ -1,0 +1,48 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: remove-merged-roadmap-skills-and-prove-reduction
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'The bundled skill surface carries nine roadmap skills that each exist only to select one CLI command, together 1178 lines whose unique content is command selection rather than judgment. The milestone records that five of the nine, pause, resume, defer, refine, and reopen, have no validate-skills expectations at all, so their guidance is unenforced. Separately, static skill names drift: strict-spec-bugfix has routed readers to strict-spec-debug-session, a skill that does not exist in this repository, and nothing failed. This affects operators reading duplicated guidance and maintainers editing nine files where one would do.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'The two prerequisite planned changes are archived: author-parameterized-roadmap-transition-skill produced skills/strict-roadmap-transition covering all nine operations, and collapse-prerequisite-and-language-boilerplate finished the boilerplate reduction. The merged skill and the nine it replaces now coexist at 37 packages, which is the state this change closes. It is the final planned change of the skill-surface-consolidation milestone.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: validate-skills reports valid with skillCount 28, marketplaceCount 28, and zero diagnostics; no skills/strict-roadmap-{pause,resume,defer,refine,reorder,move,reopen,archive,sync} directory or marketplace entry remains; a test pins total bundled skill text under skills/ to a measured upper bound; a test fails when a live repository file names a nonexistent skill directory, and that test flags the pre-fix strict-spec-debug-session reference; README, ROADMAP_GUIDE, and ROADMAP_QUICKSTART in both languages name only skills that exist; and the complete project regression command passes with the coverage gate satisfied at threshold 78.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No alias or shim skill preserves any of the nine deleted slash-command names. No strict roadmap CLI command changes name, arguments, output, or exit codes. strict-roadmap-plan, strict-roadmap-recommend, and strict-roadmap-review remain independent skills. The thin non-roadmap skills harness-init, harness-session, maintenance, and migrate are not folded in; the milestone re-measures them separately after the boilerplate collapse. Archived strict changes and archived roadmap records that name the deleted skills are historical record and are not edited. isMutationCapableSkill classification and the cli-only-yaml-policy check results stay unchanged. The declared coverage threshold stays at 78 unless the final measured value forces a change.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The request is the roadmap planned change remove-merged-roadmap-skills-and-prove-reduction as written: delete the nine merged roadmap skills, sweep every live artifact that names them, fix the stale strict-spec-debug-session reference in the same pass, and prove the reduction with machine checks rather than assertion. The planned change enumerates the reference surface, and this change follows that enumeration plus one site it did not list, the inline-planned-changes diagnostic in src/roadmap/load.ts, which names the deleted strict-roadmap-sync skill. It is not a broader skill-consolidation pass and not a CLI behavior change.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: bundled-skill-line-budget
+    question: The milestone's done criteria require bundled skill text under skills/ to total fewer than 5600 lines, but the measured total after deleting the nine skills is 5626. Should the pinned test bound be set to the measured value and the milestone criterion updated, or should 26 lines of guidance be trimmed to reach 5600?
+    context: 'Measured today: 37 skill packages totalling 6804 lines of SKILL.md text; the nine skills this change deletes total 1178 lines, leaving 5626. The 5600 figure was set when the milestone was written, before the boilerplate collapse landed and before strict-roadmap-transition was authored at 341 lines, so it is an estimate that the finished work missed by 26 lines rather than a measurement. Impact: this affects the assert-skill-line-budget Testing task and the milestone''s done criteria, not the proposal scope, the delta spec, or any implementation file other than the test that carries the pin. Recommendation: pin the test at the measured value with the measurement recorded as its justification, and record the criterion change, following the same rule the milestone states for the coverage threshold, which is to adjust only when the measured value forces it rather than tuning content to make a gate pass. The alternative, trimming 26 lines of surviving skill guidance, changes real instructions for no reason other than a number and is not recommended.'
+    answer: 'Pin the test bound to the value actually measured after deletion, with modest headroom, and record the measurement alongside the pin as its justification. Do not trim surviving skill guidance to reach 5600 and do not drop the check. The milestone''s done criterion is updated to the measured value with the measurement recorded as the reason, applying the same rule the milestone already states for the coverage threshold: adjust only when the measured value forces it, rather than tuning content to make a gate pass. Measured basis: 6804 lines across 37 skill packages before deletion, 1178 lines in the nine deleted skills, 5626 lines remaining across 28 packages.'
+    status: resolved
+    answered_by: human

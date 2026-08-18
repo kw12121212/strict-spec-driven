@@ -160,7 +160,7 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 
 - 每个计划变更一个文件。
 - 将团队元数据视为协调参考提示，而非独占声明。
-- 合并后重新运行 `/strict-roadmap-sync` 或 `strict-spec-cli roadmap-sync`。
+- 合并后重新运行 `/strict-roadmap-transition sync` 或 `strict-spec-cli roadmap-sync`。
 - 归档路线图支持的严格变更后，重新运行 `roadmap-sync`，使计划变更和里程碑状态与工作流状态保持一致。
 - 外部跟踪器引用仅作为可选的辅助上下文。GitHub Issues、Jira、Linear 及类似工具不是严格路线图的必需数据来源。
 
@@ -211,9 +211,9 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 
 创建或重构路线图。适合需要添加、重排或重写里程碑的场景。
 
-### `/strict-roadmap-sync`
+### `/strict-roadmap-transition sync`
 
-将路线图状态与严格工作流状态协调。
+将路线图状态与严格工作流状态协调。`sync` 是 `/strict-roadmap-transition` 执行的九个操作之一，其余为 `pause`、`resume`、`defer`、`refine`、`reorder`、`move`、`reopen` 和 `archive`，每次调用都必须明确指定其中一个。
 
 它会：
 
@@ -225,7 +225,7 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 合并后和归档路线图支持的工作后运行此命令：
 
 ```text
-/strict-roadmap-sync
+/strict-roadmap-transition sync
 ```
 
 CLI 形式：
@@ -242,7 +242,7 @@ strict-spec-cli roadmap-sync
 2. 在 `.strict-spec-driven/roadmap/planned-changes/` 下新建一个独立文件。
 3. 设置 `planned_change.id`、`planned_change.milestone`、`status`、`summary`、`details` 和 `depends_on`。
 4. 如果有助于协调，添加可选的 `team` 元数据。
-5. 运行 `/strict-roadmap-sync` 验证路线图并刷新派生状态。
+5. 运行 `/strict-roadmap-transition sync` 验证路线图并刷新派生状态。
 
 示例：
 
@@ -268,7 +268,7 @@ depends_on: []
 1. 使用 `/strict-roadmap-recommend` 搭建变更。
 2. 使用 `/strict-spec-auto` 或手动严格生命周期命令实现变更。
 3. 归档严格变更。
-4. 运行 `/strict-roadmap-sync`。
+4. 运行 `/strict-roadmap-transition sync`。
 5. 确认 `roadmap-status` 显示你期望的计划变更和里程碑状态。
 
 不要在实现后手动编辑路线图完成状态。让严格工作流归档加上 `roadmap-sync` 更新路线图制品。

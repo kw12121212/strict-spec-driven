@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED:
+    skill-guidance-states-each-shared-instruction-once:
+      strength: MUST
+      statement: 'An instruction that every bundled skill must carry MUST appear at most once per skill file and MUST NOT be restated in a second section of the same file; when one of the copies is the section a shipped check reads, that copy is the one retained and the other MUST be removed rather than shortened, and an automated check MUST fail naming the offending skill when a skill restates it. The rule constrains repetition, not placement: a skill stating the instruction in exactly one section complies regardless of which section that is.'
+      rationale: 'A second copy of an instruction in the same file is not redundancy that costs only lines: it is a copy no check reads, which is the state the workflow-state precondition was in across 35 of 37 skills while validateStrictWorkflowStateGuidance enforced only the Steps form. An unenforced copy can drift from the enforced one without failing anything, and a reader who trusts the wrong copy gets the stale instruction, the same failure mode that left strict-spec-bugfix pointing at a skill that does not exist. Shortening a duplicate preserves that failure mode at a discount, so the rule requires removal. Placement is deliberately left unconstrained: the four committed policy fixtures under test/fixtures/policy-skills/ state the precondition only under Prerequisites and are driven through the shipped validate-skills asserting their seeded violation and nothing else, so a rule mandating the Steps section would put compliant single-copy files in violation and force unrelated fixture rewrites to satisfy a constraint the defect never required.'
+      enforcement:
+        method: test
+        detail: src/skills/content.ts derives the governed set from a scan of skills/ rather than a hand-enumerated list and reports one diagnostic per skill that restates an instruction another section of the same file already carries; test/suites/entrypoint-and-skills.ts drives the shipped validate-skills command through a committed negative fixture that reintroduces the duplicate and observes the failure naming the offending skill path, through a positive fixture carrying a skill-specific precondition that must pass, and through the four existing policy fixtures to confirm each still reports its seeded violation and nothing else.
+  MODIFIED: {}
+  REMOVED: {}

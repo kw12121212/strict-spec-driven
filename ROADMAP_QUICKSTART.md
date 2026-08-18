@@ -114,7 +114,7 @@ strict-spec-cli roadmap-status
 After changing milestone or planned-change artifacts through `roadmap-generate`, sync the roadmap:
 
 ```text
-/strict-roadmap-sync
+/strict-roadmap-transition sync
 ```
 
 If you merge branches or archive roadmap-backed work, run `roadmap-sync` again so derived status is reconciled from workflow state.
@@ -150,7 +150,7 @@ Or use the manual flow:
 After archive, refresh the roadmap:
 
 ```text
-/strict-roadmap-sync
+/strict-roadmap-transition sync
 ```
 
 This updates derived planned-change and milestone state. Do not hand-edit roadmap completion status after implementation.
@@ -162,7 +162,7 @@ This updates derived planned-change and milestone state. Do not hand-edit roadma
   ↓
 /strict-spec-auto                  ← implement end to end
   ↓
-/strict-roadmap-sync               ← reconcile roadmap after archive or merge
+/strict-roadmap-transition sync    ← reconcile roadmap after archive or merge
   ↓
 repeat until the milestone is complete
 ```
@@ -183,6 +183,6 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 | `/strict-roadmap-review` | Review one incomplete milestone and apply fixes |
 | `/strict-spec-propose-from-roadmap` | Propose the next roadmap-recommended change without implementing |
 | `/strict-roadmap-recommend` | Get a recommendation for the next change |
-| `/strict-roadmap-sync` | Reconcile roadmap state with workflow |
+| `/strict-roadmap-transition` | One roadmap state transition: `pause`, `resume`, `defer`, `refine`, `reorder`, `move`, `reopen`, `archive`, `sync` |
 
 For the full reference, including field definitions and legacy materialization guidance, see [ROADMAP_GUIDE.md](ROADMAP_GUIDE.md).

@@ -1,11 +1,17 @@
 import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument } from "../yaml.js";
 import {
+  AUTHORING_PROTOCOL_HEADING,
   findProseMutationFlags,
   isMutationCapableSkill,
   loadPolicyRegistry,
   scanTextForPolicyViolations,
 } from "../cli-only-yaml-policy.js";
 import {
+  YAML_AUTHORING_PROTOCOL_BOUNDARY,
+  YAML_AUTHORING_PROTOCOL_STEPS,
+} from "../yaml-authoring-protocol.js";
+import {
+  AUTHORING_PROTOCOL_POINTER_COMMAND,
   COMMAND_PREFIX,
   CORE_STRICT_SKILL_EXPECTATIONS,
   CHECK_WORKFLOW_STATE_COMMAND,
@@ -13,9 +19,14 @@ import {
   MIGRATION_STRICT_SKILL_EXPECTATIONS,
   PLANNING_STRICT_SKILL_EXPECTATIONS,
   ROADMAP_STRICT_SKILL_EXPECTATIONS,
+  PREFERRED_HUMAN_LANGUAGE_HEADING,
+  PREFERRED_HUMAN_LANGUAGE_SNIPPETS,
+  PREREQUISITES_HEADING,
   REQUIREMENT_INTERROGATION_HEADING,
   REQUIREMENT_INTERROGATION_SKILLS,
   REQUIREMENT_INTERROGATION_SNIPPETS,
+  SKILL_COMMANDS_HEADING,
+  STRICT_WORKFLOW_SHARED_ELEMENTS,
   directsTaskListAuthoring,
   TASK_ORDER_APPLY_SKILL,
   TASK_ORDER_APPLY_SNIPPETS,
@@ -347,6 +358,239 @@ function validateMigrationSkillContent(
   );
 }
 
+const normalizeWhitespace = (text: string): string => text.replace(/\s+/g, " ");
+
+/** The section a heading opens, heading included, or undefined when the skill carries none. */
+function skillSection(content: string, heading: string): string | undefined {
+  const start = content.indexOf(heading);
+  if (start === -1) return undefined;
+  const next = content.indexOf("\n## ", start + heading.length);
+  return next === -1 ? content.slice(start) : content.slice(start, next);
+}
+
+/** The authoring-protocol section of a skill, or undefined when the skill carries none. */
+function authoringProtocolSection(content: string): string | undefined {
+  return skillSection(content, AUTHORING_PROTOCOL_HEADING);
+}
+
+/**
+ * Counts sentences in prose, ignoring the dots inside inline code spans.
+ *
+ * The guidance names `.strict-spec-driven/config.yaml` and `preferred_human_language`, so a naive
+ * split on periods reports four sentences for a one-sentence rule. Code spans are the only place a
+ * period appears without ending a sentence in this text, so masking them is sufficient here and is
+ * deliberately not offered as a general-purpose sentence splitter.
+ */
+function countProseSentences(text: string): number {
+  const withoutCodeSpans = text.replace(/`[^`]*`/g, "CODE");
+  return (withoutCodeSpans.match(/[.!?](\s|$)/g) ?? []).length;
+}
+
+/**
+ * Requires every bundled skill to carry the preferred-human-language guidance as one sentence.
+ *
+ * The elements come from the typed model rather than from the guidance text, so a skill cannot
+ * satisfy the check with the very paragraph it governs, and the sentence bound is what stops the
+ * collapsed form from growing back into the nine-line copy this check replaced.
+ */
+function validatePreferredHumanLanguageGuidance(
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  const section = skillSection(content, PREFERRED_HUMAN_LANGUAGE_HEADING);
+  if (section === undefined) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.preferred_human_language.section.missing",
+        skillPath,
+        "every bundled strict skill must carry a preferred human language section",
+        PREFERRED_HUMAN_LANGUAGE_HEADING,
+      ),
+    );
+    return;
+  }
+
+  // Matched case-insensitively because these elements are phrases rather than identifiers, and
+  // whether one opens a sentence is a wording choice the skill is free to make.
+  const normalizedSection = normalizeWhitespace(section).toLowerCase();
+  for (const { snippet, element } of PREFERRED_HUMAN_LANGUAGE_SNIPPETS) {
+    if (normalizedSection.includes(normalizeWhitespace(snippet).toLowerCase())) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.preferred_human_language.element.missing",
+        skillPath,
+        `preferred human language guidance must name ${element}`,
+        snippet,
+      ),
+    );
+  }
+
+  const body = section.slice(PREFERRED_HUMAN_LANGUAGE_HEADING.length);
+  const sentenceCount = countProseSentences(body);
+  if (sentenceCount > 1) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.preferred_human_language.not_single_sentence",
+        skillPath,
+        "preferred human language guidance must be stated as a single sentence, not a restated paragraph; fold any skill-specific rider into that sentence",
+        "1 sentence",
+        `${sentenceCount} sentences`,
+      ),
+    );
+  }
+}
+
+/**
+ * Rejects a Prerequisites section that restates workflow-state guidance the skill already carries.
+ *
+ * The rule is about repetition, not placement. A second copy of an instruction is a copy no check
+ * reads, free to drift from the enforced one — which is the state 35 of 37 skills were in while
+ * `validateStrictWorkflowStateGuidance` read only the Steps form. Stating the guidance once
+ * satisfies this check whichever section holds it, so the committed policy fixtures that carry it
+ * only under Prerequisites stay compliant. The commands block is excluded from the comparison
+ * because it is the declared command source every skill keeps by design, not a restatement.
+ */
+function validateWorkflowStateGuidanceIsNotRestated(
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  const prerequisites = skillSection(content, PREREQUISITES_HEADING);
+  if (prerequisites === undefined) return;
+
+  const commandsSection = skillSection(content, SKILL_COMMANDS_HEADING) ?? "";
+  const elsewhere = content.replace(prerequisites, "").replace(commandsSection, "");
+  const normalizedPrerequisites = normalizeWhitespace(prerequisites);
+  const normalizedElsewhere = normalizeWhitespace(elsewhere);
+
+  for (const { snippet, element } of STRICT_WORKFLOW_SHARED_ELEMENTS) {
+    const normalizedSnippet = normalizeWhitespace(snippet);
+    if (!normalizedPrerequisites.includes(normalizedSnippet)) continue;
+    if (!normalizedElsewhere.includes(normalizedSnippet)) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.strict_workflow.precondition.restated",
+        skillPath,
+        `the Prerequisites section restates ${element}, which another section of this skill already carries; delete the Prerequisites copy rather than shortening it, keeping the section only for a precondition specific to this skill`,
+        `${element} stated once`,
+        snippet,
+      ),
+    );
+  }
+}
+
+/**
+ * Requires a mutation-capable skill to point at the protocol rather than restate it.
+ *
+ * A skill is static text an agent reads before it runs anything, so the pointer command and the
+ * no-fallback boundary are what make the protocol reachable at all; the ordered steps are not
+ * restated because the pointed-at command renders them bound to the artifact kind, current in a way
+ * a copy cannot be. Scope and the expected values both come from sources independent of the
+ * guidance text — the mutation inventory and the typed protocol module — so this check cannot be
+ * satisfied by the very text it governs, and rewording a step in the module cannot silently make a
+ * skill non-compliant.
+ */
+function validateAuthoringProtocolPointer(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  if (!isMutationCapableSkill(skillName, content)) return;
+
+  const section = authoringProtocolSection(content);
+  if (section === undefined) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.authoring_protocol.section.missing",
+        skillPath,
+        "mutation-capable skill must carry a CLI-only YAML authoring pointer section",
+        AUTHORING_PROTOCOL_HEADING,
+      ),
+    );
+    return;
+  }
+
+  const normalized = normalizeWhitespace(section);
+
+  if (!normalized.includes(AUTHORING_PROTOCOL_POINTER_COMMAND)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.authoring_protocol.pointer.missing",
+        skillPath,
+        "mutation-capable skill must name the command that renders the live authoring protocol",
+        `${AUTHORING_PROTOCOL_POINTER_COMMAND} <artifact-kind>`,
+      ),
+    );
+  }
+
+  const { artifactKinds, validationCommandByKind, mutatingOwnerCommands } = loadPolicyRegistry();
+  const namedKinds = [...artifactKinds].filter((kind) => normalized.includes(`\`${kind}\``));
+  if (namedKinds.length === 0) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.authoring_protocol.artifact_kind.missing",
+        skillPath,
+        "mutation-capable skill must name the artifact kinds it writes, so the pointer command can be run for them",
+        "an artifact kind registered in inventory/yaml-mutation-surfaces.yaml",
+      ),
+    );
+  } else {
+    // A skill may write several kinds whose declared validation commands differ, so one per kind is
+    // not required. The family default is accepted, and so is a non-mutating command the skill
+    // itself declares: a family records one validation command, but a skill that edits an artifact
+    // outside a change validates it differently from one that edits it inside a change, and the
+    // skill's own command mapping is the accurate source for which of the two it is.
+    const declaredValidationCommands = Object.values(commands)
+      .map(commandNameOf)
+      .filter((name): name is string => name !== undefined && !mutatingOwnerCommands.has(name));
+    const acceptedCommands = new Set<string>(declaredValidationCommands);
+    for (const kind of namedKinds) {
+      const command = validationCommandByKind.get(kind);
+      if (command !== undefined) acceptedCommands.add(command);
+    }
+    const namesAValidationCommand = [...acceptedCommands].some((command) =>
+      normalized.includes(`${COMMAND_PREFIX} ${command}`),
+    );
+    if (!namesAValidationCommand) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.authoring_protocol.validation_command.missing",
+          skillPath,
+          "mutation-capable skill must name the validation command it runs after writing an artifact kind it names",
+          [...acceptedCommands].map((command) => `${COMMAND_PREFIX} ${command}`).join(" or "),
+        ),
+      );
+    }
+  }
+
+  if (!normalized.includes(normalizeWhitespace(YAML_AUTHORING_PROTOCOL_BOUNDARY.statement))) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.authoring_protocol.boundary.missing",
+        skillPath,
+        "mutation-capable skill must restate the no-fallback boundary verbatim, because it is the one instruction that must be read before any command runs",
+        YAML_AUTHORING_PROTOCOL_BOUNDARY.statement,
+      ),
+    );
+  }
+
+  for (const step of YAML_AUTHORING_PROTOCOL_STEPS) {
+    if (!normalized.includes(normalizeWhitespace(step.title))) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.authoring_protocol.step.restated",
+        skillPath,
+        `mutation-capable skill must not restate protocol step '${step.id}', which the pointer command renders bound to the artifact kind`,
+        `${AUTHORING_PROTOCOL_POINTER_COMMAND} <artifact-kind>`,
+        step.title,
+      ),
+    );
+  }
+}
+
 /**
  * Rejects guidance that tells an agent to mutate repository-owned YAML outside the CLI. Only
  * mutation-capable packages are checked, and membership comes from the mutation inventory rather
@@ -554,7 +798,10 @@ export function validateCommandSection(
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics);
+  validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics);
   validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
   validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateAuthoringProtocolPointer(skillName, content, normalizedCommands, skillPath, diagnostics);
 }

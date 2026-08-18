@@ -109,7 +109,7 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-roadmap-recommend` | 从路线图推荐下一个计划变更 |
 | `/strict-roadmap-review` | 审查未完成的路线图里程碑并直接修复 |
 | `/strict-roadmap-plan` | 创建或重构路线图 |
-| `/strict-roadmap-sync` | 协调路线图里程碑和变更状态 |
+| `/strict-roadmap-transition` | 执行一次路线图状态迁移：`pause`、`resume`、`defer`、`refine`、`reorder`、`move`、`reopen`、`archive` 或 `sync` |
 
 路线图文档描述了首选的拆分文件协作模型：保持里程碑文件和 `INDEX.yaml` 低变动率，将日常路线图工作存储在 `.strict-spec-driven/roadmap/planned-changes/` 中，在合并或归档交接后重新运行 `roadmap-sync`，并将外部跟踪器引用视为可选上下文而非必需的真实来源。
 

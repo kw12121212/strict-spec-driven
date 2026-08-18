@@ -36423,16 +36423,9 @@ mutation_surfaces:
       - src/mcp/inventory.ts
   bundled-skill-guidance:
     path_patterns:
-      - skills/strict-roadmap-archive/SKILL.md
-      - skills/strict-roadmap-move/SKILL.md
-      - skills/strict-roadmap-pause/SKILL.md
       - skills/strict-roadmap-plan/SKILL.md
       - skills/strict-roadmap-recommend/SKILL.md
-      - skills/strict-roadmap-reopen/SKILL.md
-      - skills/strict-roadmap-reorder/SKILL.md
-      - skills/strict-roadmap-resume/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
-      - skills/strict-roadmap-sync/SKILL.md
       - skills/strict-spec-apply/SKILL.md
       - skills/strict-spec-architecture/SKILL.md
       - skills/strict-spec-archive/SKILL.md
@@ -36455,8 +36448,7 @@ mutation_surfaces:
       - skills/strict-spec-sync-specs/SKILL.md
       - skills/strict-tech-edit/SKILL.md
       - skills/strict-tech-sync/SKILL.md
-      - skills/strict-roadmap-defer/SKILL.md
-      - skills/strict-roadmap-refine/SKILL.md
+      - skills/strict-roadmap-transition/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -36483,7 +36475,7 @@ mutation_surfaces:
     evidence:
       - skills/strict-spec-auto/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
-      - skills/strict-roadmap-defer/SKILL.md
+      - skills/strict-roadmap-transition/SKILL.md
   operator-documentation-guidance:
     path_patterns:
       - README.md

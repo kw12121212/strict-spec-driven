@@ -8,7 +8,7 @@ lesson:
 category: architecture
 status: active
 created_at: '2026-08-17T02:58:15.068Z'
-updated_at: '2026-08-17T02:58:15.068Z'
+updated_at: '2026-08-17T17:54:39.637Z'
 context: A diagnostic was fixed to name how to apply the remedy it offered, the second time that same defect had been fixed one diagnostic at a time; the operator then asked to raise the pattern to a MUST rule under an existing technical standard.
 observation: Writing the rule was the small part. Scanning for other blocking diagnostics that named an alternative without naming its command found two more, in requirement intake and in harness-session archive, and one advisory warning with no command to name at all. The change's proposal had explicitly listed rewording other diagnostics as out of scope, so the rule as requested would have merged while the repository violated it in two places and while its own proposal forbade fixing them. The rule binds the change that introduces it, so the violations could not be left as pre-existing debt.
 takeaway: 'Before agreeing to a rule strength, enumerate the existing instances of the pattern the rule will govern and decide each one''s disposition: fixed in this change, or recorded in the rule as a named exception. A MUST rule that ships with unlisted violations gives the next reviewer no way to tell a grandfathered case from a new one, which is the ambiguity MUST exists to remove. Expect the audit, the extra fixes, and the scope amendment to outweigh writing the rule itself.'
@@ -17,3 +17,9 @@ occurrences:
   - origin: ready-names-empty-spec-remedy
     date: '2026-08-17'
     evidence: Adding blocking-diagnostics-name-how-to-apply-each-remedy to cli-command-metadata required amending two out-of-scope proposal entries, adding two implementation tasks and one testing task for src/workflow-state.ts and src/harness.ts, and recording the harness doctor cross-environment port warning as a rule exception because its resolution is a human judgement with no command.
+  - origin: replace-inlined-protocol-with-cli-pointer
+    date: '2026-08-17'
+    evidence: Tightening skill-packages-are-static-protocol-surfaces into a pointer requirement added a per-skill validate-skills check whose scope is derived from the mutation inventory, which put the four committed negative fixtures under test/fixtures/policy-skills/ in violation. Those fixtures assert their seeded violation 'and nothing else', so the suite failed with eight failures naming skill.authoring_protocol.section.missing rather than the seeded category, and the fix was to bring every fixture up to the new baseline in the same change. The audit was never run; the suite performed it.
+  - origin: collapse-prerequisite-and-language-boilerplate
+    date: '2026-08-17'
+    evidence: 'Third occurrence. Adding skill-guidance-states-each-shared-instruction-once to cli-command-metadata, together with the cli-foundation requirements it enforces, was first drafted to require the precondition in the Steps section. That placement mandate would have made the four committed policy fixtures under test/fixtures/policy-skills/ violations even though each states the guidance exactly once, and their suite asserts the seeded violation ''and nothing else''. The audit ran before implementation this time, prompted by this lesson, and the disposition was to narrow the rule to repetition rather than placement rather than to rewrite four unrelated fixtures. The preferred_human_language half of the same change had the opposite disposition: the fixtures genuinely lacked the required section, so all four plus two synthetic in-suite fixtures were brought up to the new baseline in this change. Both dispositions were recorded in the rule''s own rationale.'

@@ -1,0 +1,49 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-merged-roadmap-skills-and-prove-reduction
+  status: proposed
+summary:
+  what:
+    - Delete the nine merged roadmap skill packages strict-roadmap-pause, resume, defer, refine, reorder, move, reopen, archive, and sync from skills/, leaving strict-roadmap-transition as the single parameterized state-transition skill.
+    - 'Update every live artifact that names a deleted skill: skills/marketplace.json, the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml and their embedded copy in src/embedded-templates.ts, the four ROADMAP_STRICT_SKILL_EXPECTATIONS entries in src/skills/model.ts, the strict-roadmap-archive assertions and the nine-name skill list in test/suites/entrypoint-and-skills.ts, the inline-planned-changes diagnostic in src/roadmap/load.ts, the twenty documentation references across README, ROADMAP_GUIDE, and ROADMAP_QUICKSTART in both languages, and the seven cross-references in the surviving skills strict-roadmap-plan, strict-roadmap-recommend, strict-roadmap-review, and strict-spec-propose-from-roadmap.'
+    - Relocate the strict-roadmap-archive skill-packaging clause of the main spec requirement cli-roadmap-archive-command-and-skill onto the merged transition skill, keeping the roadmap-archive CLI command clause intact.
+    - Fix the pre-existing stale strict-spec-debug-session references in skills/strict-spec-bugfix/SKILL.md, which name a skill directory that does not exist in this repository.
+    - 'Prove the surface reduction with tests rather than assertion: validate-skills reporting valid with skillCount 28, marketplaceCount 28, and zero diagnostics; a pinned upper bound on total bundled skill text under skills/; and a test that fails when any live repository file names a skill directory that does not exist.'
+  why:
+    - The milestone exists to cut the bundled skill surface from 36 skills to 28, and this is the deletion that realizes the reduction; the parameterized strict-roadmap-transition skill already covers all nine operations, so the nine single-command skills are now duplicated command selection.
+    - Deleting a skill package without sweeping its references leaves dangling slash-command names in documentation, marketplace metadata, policy path patterns, and validate-skills expectations, each of which fails silently because a name that points at nothing raises no error today.
+    - The stale strict-spec-debug-session reference in strict-spec-bugfix is live evidence that dangling skill names survive unnoticed, so the sweep is only durable when a test enforces it.
+scope:
+  in:
+    - Deleting the nine skill directories skills/strict-roadmap-{pause,resume,defer,refine,reorder,move,reopen,archive,sync}/ together with their scripts symlinks.
+    - Removing the nine corresponding entries from skills/marketplace.json so validate-skills reports marketplace parity at 28.
+    - Rewriting the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml and the embedded copy in src/embedded-templates.ts to name skills/strict-roadmap-transition/SKILL.md in place of the deleted paths.
+    - Relocating the four ROADMAP_STRICT_SKILL_EXPECTATIONS entries for reorder, move, sync, and archive in src/skills/model.ts onto the merged skill's existing expectation rather than deleting the checks they carried.
+    - 'Updating test/suites/entrypoint-and-skills.ts: the strict-roadmap-archive file read and its default-all completed milestone assertion, and the nine deleted names in the bundled skill name list.'
+    - Rewriting the inline-planned-changes diagnostic in src/roadmap/load.ts so it names the transition skill's sync operation instead of the deleted strict-roadmap-sync skill.
+    - Rewriting the twenty /strict-roadmap-sync references in README.md, README.zh.md, ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, ROADMAP_QUICKSTART.md, and ROADMAP_QUICKSTART.zh.md to the transition skill invoked with the sync operation.
+    - Rewriting the seven /strict-roadmap-refine, /strict-roadmap-pause, and /strict-roadmap-reorder cross-references in skills/strict-roadmap-plan, strict-roadmap-recommend, strict-roadmap-review, and strict-spec-propose-from-roadmap.
+    - Modifying the main spec requirement cli-roadmap-archive-command-and-skill so its skill clause names the merged transition skill.
+    - Correcting the three strict-spec-debug-session references in skills/strict-spec-bugfix/SKILL.md.
+    - Adding tests that pin skillCount 28 with marketplace parity, pin total bundled skill text under skills/ to a measured upper bound, and fail when a live repository file names a nonexistent skill directory.
+    - Correcting the skill-surface-consolidation milestone's bundled-skill-line done criterion from the estimated fewer-than-5600 to the measured value, through roadmap-generate milestone, with the measurement recorded as its justification.
+    - Recording the guidance-names-only-packaged-skills rule as delta tech against the cli-command-metadata standard, so the dangling-reference check is a standing engineering rule rather than a one-off proof.
+  out:
+    - Alias or shim skills preserving the nine deleted slash-command names. The approved target is 28 bundled skills and an alias reinstates the count this milestone exists to reduce.
+    - Any change to CLI command names, arguments, or behavior. Every command the merged skill invokes already exists.
+    - The surviving roadmap judgment skills strict-roadmap-plan, strict-roadmap-recommend, and strict-roadmap-review, which are merged out of scope by the milestone.
+    - Editing archived strict change artifacts under .strict-spec-driven/changes/archive/ or archived roadmap records that name the deleted skills. They are historical record and the dangling-reference test must exclude them.
+    - Folding the thin non-roadmap skills harness-init, harness-session, maintenance, and migrate into the merged skill. The milestone holds the merge criterion to the roadmap nine and re-measures the rest afterwards.
+    - Raising or lowering the declared coverage threshold of 78 unless the final measured value forces it.
+unchanged_behavior:
+  - Every strict roadmap CLI command keeps its name, arguments, output, and exit codes; roadmap-pause, roadmap-resume, roadmap-defer, roadmap-refine, roadmap-reorder, roadmap-move-planned-change, roadmap-reopen, roadmap-archive, and roadmap-sync all behave exactly as before.
+  - isMutationCapableSkill classifies the same set of skill packages as mutation-capable before and after the deletion, allowing for the nine files that no longer exist.
+  - The cli-only-yaml-policy maintenance check reports no new violations.
+  - The strict-roadmap-transition skill's own content, which the preceding planned change authored and this change only references.
+  - roadmap-archive remains a canonical strict CLI subcommand with help and usage handling.
+roadmap:
+  milestone: skill-surface-consolidation
+  planned_change: remove-merged-roadmap-skills-and-prove-reduction

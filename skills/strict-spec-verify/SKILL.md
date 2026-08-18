@@ -21,20 +21,12 @@ modify: strict-spec-cli modify [change-name|archive-dir]
 verify: strict-spec-cli verify <change-name>
 ```
 
-## Prerequisites
-
-Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
-missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
-run `init` from this skill.
-
 ## Preferred Human Language
 
-Before user-facing work, read `.strict-spec-driven/config.yaml` when it exists.
-Use the `preferred_human_language` field as the user's common human
-language for natural-language responses, questions, summaries, and generated
-operator-facing text. This field is a human-language preference, not a
-programming language. Comply with that configured common human language unless
-the active user message explicitly asks for a different language.
+Comply with `preferred_human_language` from `.strict-spec-driven/config.yaml` —
+the user's common human language, not a programming language — for all
+user-facing and generated operator-facing text, unless that file is absent or
+the active user message asks otherwise.
 
 ## Steps
 

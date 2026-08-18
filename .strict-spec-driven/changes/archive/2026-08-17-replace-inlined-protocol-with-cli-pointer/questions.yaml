@@ -1,0 +1,54 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: replace-inlined-protocol-with-cli-pointer
+open: []
+resolved:
+  - id: protocol-pointer-enforceability
+    question: What replaces the removed protocol text as the enforceable artifact in validate-skills?
+    context: 'The current expectations assert literal snippets of the inlined protocol, so deleting the text without replacing the assertion silently drops the check. Impact: this affects the test suite and src/skills/model.ts rather than proposal scope, and an unreplaced assertion would let a future skill omit protocol guidance entirely and still pass both validate-skills and the cli-only-yaml-policy maintenance check.'
+    answer: Assert that every mutation-capable skill names its artifact kind and the strict-spec-cli yaml-authoring-protocol command, so enforcement relocates from copied prose to a required pointer rather than disappearing. This change extends the roadmap answer by also keeping the verbatim no-fallback boundary statement as an asserted element, because a skill is read as static text before any command runs.
+    status: resolved
+    answered_by: roadmap
+  - id: coverage-after-expectation-removal
+    question: Does the declared coverage threshold of 78 hold after the skill expectations and their assertions are relocated?
+    context: 'The review gate runs bun scripts/coverage-gate.ts with threshold 78 over src, and this change relocates expectation data in src/skills/model.ts together with the assertions that exercise it. Impact: this affects the testing tasks and the archive gate, not the proposal scope or the spec delta, and an unexamined threshold either blocks the change on an artifact of the edit or silently lowers the real quality bar.'
+    answer: Keep the threshold at 78 and adjust only if the final measured value forces it, recording the measurement as the justification rather than tuning the threshold to make the gate pass.
+    status: resolved
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'From the roadmap: 29 percent of all bundled skill text is duplicated guidance, and the largest block is the CLI-only YAML authoring protocol, hand-copied into 34 of 36 skills for 1088 of 7275 total lines. Two groups suffer it. An agent loading a skill reads a copy that cannot carry the cache-resolved schema and example paths the live command reports, so it works from a less complete protocol than the one RTK.md declares canonical. A maintainer changing the protocol must edit 34 files instead of one typed module, and the roadmap records the drift that already produced: strict-spec-bugfix still routes readers to strict-spec-debug-session, a skill that does not exist in this repository.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'From the milestone done criteria: no bundled skill contains an inlined copy of the seven protocol steps, and every skill that mutates repository-owned YAML instead names its artifact kind and points at strict-spec-cli yaml-authoring-protocol. Checkable from outside: validate-skills passes against expectations that assert the pointer form with no expectation still requiring removed text, the cli-only-yaml-policy maintenance check reports no new violations for the rewritten skills, and the measured skills/ line total falls by roughly the 1088 lines the protocol sections occupied.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'From the roadmap: the skill-surface-consolidation milestone was opened on measured evidence that 36 skills total 7275 lines of which 2174 are four repeated sections, and this planned change is the first eligible item in it. The concrete driver is observed drift rather than a deadline: a stale copy in strict-spec-bugfix already points at a skill that does not exist, which is the failure mode a hand-copied rendering produces once the surface it mirrors moves.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'From the milestone out-of-scope list and this change''s own boundary: the This Skill''s Commands lookup block stays in every skill, because it is the command source both the policy classifier and the agent read; no CLI command name, argument, or behavior changes, including the yaml-authoring-protocol command itself; strict-spec-ship and strict-spec-verify carry no protocol section today and stay read-only; the Prerequisites and Preferred Human Language sections belong to a different planned change and are untouched here; and the mutation-capable classification produced by isMutationCapableSkill must come out identical, which this change pins with a test rather than an argument.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'From the planned-change details: the intended reading is replacement, not deletion. Each section becomes a short block naming the artifact kind the skill writes, the pointer command to run, and the artifact validation command, rather than disappearing and leaving the skill silent about YAML authoring. This change fixes two further readings the roadmap left open: the block keeps the existing section heading, so the classifier''s protocol-section stripping locates the same region, and it keeps the verbatim no-fallback boundary, so the one instruction that must be known before any command runs stays in static text.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

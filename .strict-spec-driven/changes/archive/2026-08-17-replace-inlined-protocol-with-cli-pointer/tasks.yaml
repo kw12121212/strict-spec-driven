@@ -1,0 +1,65 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: replace-inlined-protocol-with-cli-pointer
+sections:
+  Implementation:
+    fix-pointer-block-form:
+      text: 'Fix the exact pointer block text: under the unchanged ''## CLI-Only YAML Authoring Protocol'' heading, name the artifact kinds the skill writes, direct the agent to run strict-spec-cli yaml-authoring-protocol <artifact-kind> for the ordered steps and bound commands, name the skill''s artifact validation command, and restate the no-fallback boundary verbatim from YAML_AUTHORING_PROTOCOL_BOUNDARY. Confirm the wording against one skill before applying it to the rest.'
+      status: complete
+    rewrite-skill-protocol-sections:
+      text: Replace the inlined protocol section with the fixed pointer block in each of the 34 skills that carry it, leaving the This Skill's Commands block, the Prerequisites section, and the Preferred Human Language section untouched. Confirm the count of rewritten files is 34 and that strict-spec-ship and strict-spec-verify remain without a protocol section.
+      status: complete
+    relocate-validate-skills-expectations:
+      text: Update the per-skill expectations in src/skills/model.ts so every mutation-capable skill is required to name the yaml-authoring-protocol pointer command and its artifact kind, replacing any required snippet that only the removed protocol prose satisfied. No expectation may be deleted without a pointer-form replacement.
+      status: complete
+    relocate-suite-protocol-assertions:
+      text: 'Update the expectedProtocolSkills loop in test/suites/entrypoint-and-skills.ts to assert the pointer form: the yaml-authoring-protocol command, a named artifact kind the inventory registers, the skill''s validation command, and the verbatim boundary statement from the typed module. Remove the step-title and stop-report assertions only where a pointer-form assertion replaces them.'
+      status: complete
+    pin-classification-equivalence:
+      text: Add a regression test asserting that isMutationCapableSkill classifies exactly the expected set of bundled skills as mutation-capable after the rewrite, including the strict-spec-migrate exception and the strict-spec-ship and strict-spec-verify read-only pair, so a rewrite that reclassifies a skill fails instead of passing vacuously.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild compiled dist/ output after the src/skills/model.ts edit, because the suite and the installed skills run against dist/ rather than src/.
+      status: complete
+      command: bun run build
+  Testing:
+    run-validate-skills:
+      text: Run bundled skill packaging validation and confirm it reports valid with skillCount 36, marketplaceCount 36, and zero diagnostics, proving the pointer form satisfies the relocated expectations and that no skill was deleted by this change.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-cli-only-yaml-maintenance:
+      text: Run the configured maintenance checks and confirm the cli-only-yaml-policy check reports no new violations for the rewritten skills.
+      status: complete
+      command: strict-spec-cli maintenance
+    run-project-regression:
+      text: Run the complete project regression suite against compiled output, redirecting to a file and reading the runner's own exit status rather than a pipeline's, then grep the log for FAIL.
+      status: complete
+      command: bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?
+    run-coverage-gate:
+      text: Run the declared review-evidence coverage gate at threshold 78 and record the measured src/** line coverage. If the measurement forces a threshold change, record the measurement as the justification rather than tuning the threshold to make the gate pass.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-line-reduction:
+      text: Measure bundled skill text under skills/ and confirm the protocol rewrite removed the expected volume, recording the before count of 7275 lines and the after count as the milestone's measurement evidence for this planned change.
+      status: complete
+      command: find skills -name SKILL.md | xargs wc -l | tail -1
+    confirm-no-assertion-dropped:
+      text: Review the diff of src/skills/model.ts and test/suites/entrypoint-and-skills.ts and confirm every removed protocol assertion has a named pointer-form replacement, so no check was weakened to make the mechanical edit pass.
+      status: complete
+    run-ready:
+      text: Run the strict readiness check for deterministic handoff blockers.
+      status: complete
+      command: strict-spec-cli ready replace-inlined-protocol-with-cli-pointer
+    run-verify:
+      text: Run the strict verification command and confirm artifact structure, task completion, open questions, and unchanged behavior all pass before archive.
+      status: complete
+      command: strict-spec-cli verify replace-inlined-protocol-with-cli-pointer
+    confirm-archive-merge:
+      text: Confirm the delta spec against cli-foundation and the delta tech against cli-command-metadata merge cleanly on archive, so the modified requirement and the modified standard rule land in the main spec and standard rather than being dropped.
+      status: complete
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-project-regression

@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: replace-inlined-protocol-with-cli-pointer
+  status: proposed
+summary:
+  what:
+    - Replace the inlined seven-step CLI-only YAML authoring protocol section in the 34 mutation-capable bundled skills with a short pointer block that names the artifact kinds the skill writes, the strict-spec-cli yaml-authoring-protocol <artifact-kind> command that renders the live protocol, the skill's artifact validation command, and the verbatim no-fallback boundary statement.
+    - 'Relocate the enforcement that guarded the removed text: the validate-skills expectations in src/skills/model.ts and the per-skill protocol assertions in test/suites/entrypoint-and-skills.ts assert the pointer form instead of the restated step titles and per-artifact schema-show and sample-show enumerations.'
+    - Modify the cli-command-metadata technical standard rule skill-packages-are-static-protocol-surfaces, which currently requires the step-title restatement this change removes and names a pointer-without-boundary skill as its bad example.
+    - Modify the cli-foundation requirement cli-mutation-capable-skills-carry-authoring-protocol so it requires the pointer form rather than the ordered authoring steps and per-kind lookups.
+    - Add a regression test that pins isMutationCapableSkill classifying the same set of bundled skills as mutation-capable before and after the rewrite, rather than asserting that equivalence in review.
+  why:
+    - The protocol section is a hand-copied rendering of output that strict-spec-cli yaml-authoring-protocol already returns bound to the artifact kind, including cache-resolved schema and example paths that a static copy cannot keep current, and RTK.md already names that command the canonical statement of the protocol.
+    - The copies total 1088 lines across 34 skills, the largest single block of the 2174 duplicated lines that make up 29 percent of the bundled skill text this milestone exists to reduce.
+    - 'Static copies drift from the surface they mirror: strict-spec-bugfix still routes readers to strict-spec-debug-session, a skill that does not exist in this repository.'
+scope:
+  in:
+    - Rewriting the CLI-Only YAML Authoring Protocol section in each of the 34 skills that carry it, keeping the section heading so the existing protocol-section stripping in src/cli-only-yaml-policy.ts and the test suite continues to identify the same region.
+    - Updating the protocol expectations and per-skill assertions in src/skills/model.ts and test/suites/entrypoint-and-skills.ts to require the pointer form, the artifact kind, the validation command, and the boundary statement.
+    - A delta spec against cli-foundation modifying cli-mutation-capable-skills-carry-authoring-protocol and adding the classification-equivalence coverage requirement.
+    - A delta tech against cli-command-metadata modifying skill-packages-are-static-protocol-surfaces so the standard requires the pointer form it currently forbids.
+    - A regression test pinning the mutation-capable classification set across the rewrite.
+  out:
+    - Collapsing the repeated Prerequisites and Preferred Human Language sections, which is the separate collapse-prerequisite-and-language-boilerplate planned change.
+    - Merging the nine roadmap state-transition skills, which is the separate author-parameterized-roadmap-transition-skill planned change.
+    - The This Skill's Commands lookup block, which stays intact in every skill because it is the command source both the policy classifier and the agent read.
+    - Any change to CLI command names, arguments, or behavior, including the yaml-authoring-protocol command itself, which already renders everything the pointer defers to.
+    - The two skills that carry no protocol section today, strict-spec-ship and strict-spec-verify, whose read-only status is unchanged.
+unchanged_behavior:
+  - isMutationCapableSkill classifies exactly the same set of bundled skills as mutation-capable before and after the rewrite.
+  - The cli-only-yaml-policy maintenance check and validate-skills continue to report no violations for the rewritten skills, and validate-skills still reports skillCount 36 and marketplaceCount 36 because this change deletes no skill.
+  - strict-spec-ship and strict-spec-verify remain read-only skills carrying no protocol section.
+  - Every skill keeps its This Skill's Commands mapping and its declared command and flag references, so no skill loses a command mapping the policy registry checks.
+  - The strict-spec-cli yaml-authoring-protocol command's output, ordered steps, and boundary statement are untouched.
+roadmap:
+  milestone: skill-surface-consolidation
+  planned_change: replace-inlined-protocol-with-cli-pointer

@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: collapse-prerequisite-and-language-boilerplate
+approach:
+  - 'The two sections are treated differently because their duplication is of different kinds. The Prerequisites section duplicates text inside the same file: 35 of 37 skills state the strict workflow state check under ## Prerequisites and again as the ## Steps opening line, and only the Steps form is enforced by validateStrictWorkflowStateGuidance in src/skills/content.ts. Deleting the unenforced copy therefore removes a restatement, not an instruction. The Preferred Human Language section duplicates text across files: every skill carries the same nine-line paragraph, which no shipped check reads, so it is collapsed to one sentence and that sentence becomes the thing validate-skills checks.'
+  - 'Enforcement moves before the text is removed rather than after. src/skills/content.ts gains two checks that derive their governed set from a scan of skills/ and report one diagnostic per offending skill: one requires the collapsed preferred_human_language sentence''s four elements, and one rejects a ## Prerequisites section whose content restates the workflow-state existence guidance. Each check is proven by a committed negative fixture in which the text is removed or reintroduced and the shipped validate-skills command is observed to fail naming the offending skill path.'
+  - 'The four skills with a real precondition keep a ## Prerequisites section carrying only that precondition. strict-spec-maintenance''s section is 43 lines of which the check-type reference table is the substance, so the table moves to its own ## Maintenance Check Types section before the boilerplate paragraph is trimmed, which keeps the reference content out of a section the new check now constrains.'
+decisions:
+  delete-rather-than-shorten-duplicated-prerequisites:
+    decision: 'Where the ## Prerequisites section restates only the workflow-state check, delete the whole section rather than shorten it to one sentence.'
+    rationale: Shortening leaves the same instruction stated twice in one file and saves at most two lines per skill, so it pays the reader for the duplication without removing it. The Steps opening line is the copy that validateStrictWorkflowStateGuidance enforces and the one an agent reads first, so it is the copy that survives; keeping a shortened second copy would preserve exactly the drift surface this milestone exists to close.
+  keep-preferred-human-language-heading:
+    decision: 'Collapse the Preferred Human Language section to one sentence but keep its ## Preferred Human Language heading in all 37 skills.'
+    rationale: The heading is the region identifier that the existing per-skill sweep and the new validate-skills check both use to locate the guidance, so removing it would force the check to match loose prose anywhere in the file and would weaken the assertion rather than relocate it. Unlike the Prerequisites text, this sentence is not stated anywhere else in the skill, so the instruction has no surviving copy to defer to.
+  enforce-in-validate-skills-not-only-in-tests:
+    decision: Move the per-skill preferred_human_language assertion out of test/suites/entrypoint-and-skills.ts into src/skills/content.ts so validate-skills itself reports the diagnostic, and add the new Prerequisites duplication check in the same module.
+    rationale: The cli-foundation scenario every-skill-names-file-and-field already asserts that skill packaging validation inspects each SKILL.md, which is not what happens today, so an external project running validate-skills gets no check at all. Placing both checks in the shipped command makes the existing requirement true and gives the collapsed sentence an enforcement surface that survives outside this repository's test suite.
+  relocate-maintenance-check-table-first:
+    decision: 'Move strict-spec-maintenance''s check-type table into a new ## Maintenance Check Types section as a separate step before trimming its ## Prerequisites section.'
+    rationale: That table is 37 of the section's 43 lines and is reference content rather than a precondition, so leaving it in a section the new duplication check now constrains would either trip the check or force the check to carve out an exception for one skill. Moving it first keeps the check uniform across all 37 skills.
+  keep-skill-count-at-37:
+    decision: Delete no skill and change no entry in skills/marketplace.json.
+    rationale: The milestone's skillCount 28 target belongs to remove-merged-roadmap-skills-and-prove-reduction, which is sequenced after this change precisely so the line-count reduction can be measured against a stable skill set. Deleting skills here would confound the two measurements the final planned change has to report separately.
+alternatives: []
+risks: []

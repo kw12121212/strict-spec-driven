@@ -1,0 +1,45 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-roadmap-archive-command-and-skill:
+      strength: MUST
+      statement: The system MUST expose roadmap-archive as a canonical strict CLI subcommand with help and usage handling, and MUST package the roadmap state-transition skill's archive operation with a documented command mapping that matches the bundled CLI command.
+      scenarios:
+        cli-lists-roadmap-archive:
+          - GIVEN: the strict CLI command table is inspected or root help is rendered
+          - WHEN: available commands are listed
+          - THEN: roadmap-archive is included as a canonical command
+        roadmap-archive-help-and-usage:
+          - GIVEN: the roadmap-archive command is invoked with --help or invalid extra arguments
+          - WHEN: the command router handles the invocation
+          - THEN: help exits zero with command usage and invalid arguments exit non-zero with usage
+        transition-skill-documents-roadmap-archive:
+          - GIVEN: skill packaging validation reads bundled strict skills
+          - WHEN: validate-skills runs
+          - THEN: the bundled roadmap state-transition skill is validated with a roadmap-archive command mapping and the required roadmap archive guidance
+        no-standalone-archive-skill-is-required:
+          - GIVEN: the bundled skill set contains no skill package named strict-roadmap-archive
+          - WHEN: validate-skills runs
+          - THEN: validation reports no diagnostic about a missing strict-roadmap-archive package, because the archive operation's mapping and guidance are carried by the roadmap state-transition skill
+    cli-bugfix-skill-packaging-validation:
+      strength: MUST
+      statement: The system MUST package a strict-spec-bugfix skill and validate that its guidance is limited to known bugs with reproduction evidence, regression coverage, minimal fixes, strict verification, direct review, and handoff to strict-spec-harness-session when an issue is unclear or unreproduced.
+      scenarios:
+        validate-skills-requires-bugfix-boundaries:
+          - GIVEN: validate-skills inspects the bundled strict-spec-bugfix skill
+          - WHEN: the skill omits known-bug, reproduce-before-fixing, failing-regression, minimal-fix, or investigation-session handoff guidance
+          - THEN: validate-skills reports deterministic diagnostics for the missing bugfix guidance
+        bugfix-skill-documents-narrow-fix-workflow:
+          - GIVEN: an agent follows the strict-spec-bugfix skill for a known defect
+          - WHEN: the workflow creates or resumes a strict change
+          - THEN: the skill requires narrow strict artifacts, a regression-oriented task flow, strict verification, direct review, and complete regression evidence before archive
+        handoff-target-is-a-packaged-skill:
+          - GIVEN: the strict-spec-bugfix skill names the skill it hands an unclear or unreproduced issue to
+          - WHEN: validate-skills inspects the bundled skill set
+          - THEN: the named handoff target is a skill package that exists under skills/, so the routing guidance cannot name a retired workflow
+  REMOVED: {}

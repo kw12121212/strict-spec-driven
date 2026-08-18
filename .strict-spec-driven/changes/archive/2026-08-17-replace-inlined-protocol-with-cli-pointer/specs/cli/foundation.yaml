@@ -1,0 +1,45 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-mutation-capable-skill-classification-regression:
+      strength: MUST
+      statement: The regression suite MUST assert the exact set of bundled skills classified as mutation-capable, so a change to bundled skill guidance that reclassifies a skill fails the suite rather than passing because the classification was checked only by inspection, and MUST prove the classifier still distinguishes the two cases rather than trusting a pinned list that a broken classifier would also satisfy.
+      scenarios:
+        classification-set-is-pinned-by-a-test:
+          - GIVEN: the bundled skill packages and the mutation inventory
+          - WHEN: the regression suite runs
+          - THEN: the suite asserts the named set of mutation-capable skills and the named read-only skills, and asserts that the two named sets together account for every skill package on disk
+        classifier-distinguishes-both-cases:
+          - GIVEN: guidance naming an inventory-registered mutation command and guidance naming only inspection commands
+          - WHEN: the regression suite runs
+          - THEN: the first is classified mutation-capable and the second is not, so a classifier that answered the same way for every input would fail the suite
+  MODIFIED:
+    cli-mutation-capable-skills-carry-authoring-protocol:
+      strength: MUST
+      statement: Every bundled skill that directs a CLI-owned create, update, named removal, or deletion of a repository-owned YAML artifact MUST present a CLI-only YAML authoring pointer that names the artifact kinds the skill writes, names the command that renders the live artifact-bound authoring protocol, names the artifact family's validation command, and states the terminal boundary forbidding any fallback to editing YAML directly; the skill MUST NOT be required to restate the ordered authoring steps, the owning command's help lookup, or its per-artifact schema and example lookups, because the named command reports all of them bound to the artifact kind.
+      scenarios:
+        mutation-skill-presents-protocol-pointer:
+          - GIVEN: a bundled skill that directs a CLI-owned mutation for an inventoried YAML artifact family
+          - WHEN: the skill package is validated
+          - THEN: the skill content names its artifact kinds, the command that renders the live authoring protocol, and its validation command
+        mutation-skill-states-no-fallback-boundary:
+          - GIVEN: a bundled mutation-capable skill and an authoring step that cannot be completed because a required command, schema, or example is unavailable
+          - WHEN: the skill's authoring instructions are read
+          - THEN: they direct the agent to stop and report the missing capability rather than write the YAML artifact by any other means
+        restated-protocol-steps-are-not-required:
+          - GIVEN: a bundled mutation-capable skill that carries the pointer, its artifact kinds, its validation command, and the boundary but restates no ordered protocol step
+          - WHEN: the skill package is validated
+          - THEN: validation reports no diagnostic for the absent step restatement
+        read-only-skill-exempt:
+          - GIVEN: a bundled skill whose CLI usage is limited to inspection and validation commands
+          - WHEN: the skill package is validated
+          - THEN: the skill is not required to present the authoring pointer and its existing instructions are unchanged
+        no-direct-write-instruction-remains:
+          - GIVEN: a bundled mutation-capable skill
+          - WHEN: its instructions for mutating a repository-owned YAML path are read
+          - THEN: no instruction directs writing that path through direct text editing, shell redirection, a heredoc, a constructed payload file, or an ad hoc writer script
+  REMOVED: {}

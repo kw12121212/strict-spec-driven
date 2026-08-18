@@ -161,7 +161,7 @@ Recommended habits:
 
 - Prefer one planned change per file.
 - Treat team metadata as advisory coordination hints, not exclusive claims.
-- After merges, rerun `/strict-roadmap-sync` or `strict-spec-cli roadmap-sync`.
+- After merges, rerun `/strict-roadmap-transition sync` or `strict-spec-cli roadmap-sync`.
 - After archiving a roadmap-backed strict change, rerun `roadmap-sync` so planned-change and milestone status are reconciled from workflow state.
 - Use external tracker references only as optional supporting context. GitHub Issues, Jira, Linear, and similar tools are not required sources of truth for the strict roadmap.
 
@@ -238,9 +238,9 @@ Reviews one incomplete milestone's goal, scope, done criteria, dependencies, ris
 
 Creates or restructures the roadmap when you need to add, reorder, or rewrite milestones.
 
-### `/strict-roadmap-sync`
+### `/strict-roadmap-transition sync`
 
-Reconciles roadmap state against strict workflow state.
+Reconciles roadmap state against strict workflow state. `sync` is one of the nine operations `/strict-roadmap-transition` performs; the others are `pause`, `resume`, `defer`, `refine`, `reorder`, `move`, `reopen`, and `archive`, each selected by naming it explicitly.
 
 It:
 
@@ -252,7 +252,7 @@ It:
 Run this after merges and after archiving roadmap-backed work:
 
 ```text
-/strict-roadmap-sync
+/strict-roadmap-transition sync
 ```
 
 CLI form:
@@ -268,7 +268,7 @@ Preferred path:
 1. Open the owning milestone file under `.strict-spec-driven/roadmap/milestones/` and confirm its goal, scope, and done criteria still describe the work area correctly.
 2. Run `strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..."` — the CLI creates the file at its canonical `<milestone-id>-<planned-change-id>.yaml` name under `.strict-spec-driven/roadmap/planned-changes/`.
 3. Add `--depends-on <planned-change-id>` arguments and optional `team` metadata if they help coordination.
-4. Run `/strict-roadmap-sync` to validate the roadmap and refresh derived state.
+4. Run `/strict-roadmap-transition sync` to validate the roadmap and refresh derived state.
 
 Example:
 
@@ -294,7 +294,7 @@ Planned-change completion is derived from archived strict workflow state.
 1. Scaffold the change with `/strict-roadmap-recommend`.
 2. Implement it with `/strict-spec-auto` or the manual strict lifecycle commands.
 3. Archive the strict change.
-4. Run `/strict-roadmap-sync`.
+4. Run `/strict-roadmap-transition sync`.
 5. Confirm `roadmap-status` shows the planned change and milestone state you expect.
 
 Do not hand-edit roadmap completion state after implementation. Let the strict workflow archive plus `roadmap-sync` update the roadmap artifacts.

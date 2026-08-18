@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-roadmap-transition-skill-covers-every-transition-operation:
+      strength: MUST
+      statement: The system MUST provide a bundled roadmap state-transition skill that selects its transition from an explicit operation naming exactly one of pause, resume, defer, refine, reorder, move, reopen, archive, and sync, and MUST make strict skill content validation require, for that skill, the owning CLI command mapping and the guidance content of every one of those nine operations rather than an arbitrary subset.
+      scenarios:
+        transition-skill-declares-every-operation-command:
+          - GIVEN: the bundled roadmap state-transition skill package declares one owning strict roadmap CLI command for each of its nine operations and carries the guidance for each
+          - WHEN: strict skill content validation is executed
+          - THEN: the roadmap skill content checks pass
+        missing-operation-guidance-is-rejected:
+          - GIVEN: the bundled roadmap state-transition skill package omits the command mapping or the guidance content for any one of the nine operations
+          - WHEN: strict skill content validation is executed
+          - THEN: the roadmap skill content checks fail and the diagnostics identify the failing skill package deterministically
+        unnamed-operation-stops-for-a-human-answer:
+          - GIVEN: a roadmap state-transition request that names none of the nine operations
+          - WHEN: the bundled roadmap state-transition skill's instructions are read
+          - THEN: they direct the agent to stop and ask which operation is intended rather than infer one from the request
+  MODIFIED: {}
+  REMOVED: {}

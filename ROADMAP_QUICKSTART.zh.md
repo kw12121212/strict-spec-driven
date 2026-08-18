@@ -113,7 +113,7 @@ strict-spec-cli roadmap-status
 通过 `roadmap-generate` 修改里程碑或计划变更制品后，同步路线图：
 
 ```text
-/strict-roadmap-sync
+/strict-roadmap-transition sync
 ```
 
 如果你合并了分支或归档了路线图相关的工作，请再次运行 `roadmap-sync`，以便从工作流状态重新计算派生状态。
@@ -149,7 +149,7 @@ strict-spec-cli roadmap-status
 归档后，刷新路线图：
 
 ```text
-/strict-roadmap-sync
+/strict-roadmap-transition sync
 ```
 
 这会更新派生的计划变更和里程碑状态。实施完成后不要手动编辑路线图的完成状态。
@@ -161,7 +161,7 @@ strict-spec-cli roadmap-status
   ↓
 /strict-spec-auto                  ← 端到端执行
   ↓
-/strict-roadmap-sync               ← 归档或合并后重新同步路线图
+/strict-roadmap-transition sync    ← 归档或合并后重新同步路线图
   ↓
 重复直到里程碑完成
 ```
@@ -181,6 +181,6 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 | `/strict-roadmap-plan` | 创建或重构路线图 |
 | `/strict-roadmap-review` | 审查单个未完成里程碑并直接修复 |
 | `/strict-roadmap-recommend` | 获取下一个变更的推荐 |
-| `/strict-roadmap-sync` | 将路线图状态与工作流同步 |
+| `/strict-roadmap-transition` | 一次路线图状态迁移：`pause`、`resume`、`defer`、`refine`、`reorder`、`move`、`reopen`、`archive`、`sync` |
 
 完整的 YAML 模式和字段定义参考，请参阅 [ROADMAP_GUIDE.zh.md](ROADMAP_GUIDE.zh.md)。

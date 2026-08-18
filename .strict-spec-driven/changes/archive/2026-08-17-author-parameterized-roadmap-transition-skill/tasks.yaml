@@ -1,0 +1,66 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: author-parameterized-roadmap-transition-skill
+sections:
+  Implementation:
+    create-transition-skill-package:
+      text: Create skills/strict-roadmap-transition/ with SKILL.md and the scripts symlink to ../../dist/scripts that every bundled skill carries, matching the frontmatter shape of the existing roadmap skills with name strict-roadmap-transition, skill_id strict_roadmap_transition, author strict-spec-driven, type agent_skill, and version 1.0.0.
+      status: complete
+    declare-nine-operation-command-mappings:
+      text: Write the skill's This Skill's Commands block declaring one owning strict CLI command per operation — roadmap-pause, roadmap-resume, roadmap-defer, roadmap-refine, roadmap-reorder, roadmap-move-planned-change, roadmap-reopen, roadmap-archive, and roadmap-sync — plus the read-only roadmap-status, roadmap-overview, and check-workflow-state lookups, and an operation table mapping each of the nine operation names onto exactly one of those commands.
+      status: complete
+    require-explicit-operation:
+      text: Write the skill's operation-selection step so it requires an explicit operation naming one of the nine transitions and stops to ask the human which is intended when the request names none, rather than inferring the operation from the request text.
+      status: complete
+    preserve-split-skill-judgment:
+      text: 'Carry the judgment the nine split skills hold into the merged skill as operation-scoped preconditions: the dependency-order confirmation and the roadmap-status or roadmap-overview order source for reorder and move, the reversible inverse pairing of pause with resume and defer with refine, the rule that archived milestones and archived planned changes are frozen history, and the canonical <milestone-id>-<planned-change-id>.yaml filename rule with roadmap-sync --fix-names as the only sanctioned rename path.'
+      status: complete
+    add-roadmap-state-authoring-pointer:
+      text: Give the merged skill the roadmap-state CLI-only YAML authoring pointer in the form the current skills use — the artifact kind it writes, the strict-spec-cli yaml-authoring-protocol roadmap-state command, roadmap-status as the validation command, and the verbatim no-fallback boundary statement — plus the Steps and Rules headings validate-skills requires.
+      status: complete
+    register-in-marketplace:
+      text: Add a strict-roadmap-transition entry under the strict-roadmap family in skills/marketplace.json so marketplaceCount matches skillCount at 37.
+      status: complete
+    register-in-mutation-inventory:
+      text: Add skills/strict-roadmap-transition/SKILL.md to the bundled-skill-guidance path_patterns in inventory/yaml-mutation-surfaces.yaml through strict-spec-cli inventory-edit, reading its --help --json first, then regenerate src/embedded-templates.ts by running the build rather than editing the generated file.
+      status: complete
+      command: strict-spec-cli inventory-edit --help --json
+    add-validate-skills-expectation:
+      text: Add a strict-roadmap-transition entry to ROADMAP_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts declaring the required command mapping and required content snippets for all nine operations, plus the Steps and Rules headings, without removing or weakening the existing entries for strict-roadmap-reorder, strict-roadmap-move, strict-roadmap-sync, and strict-roadmap-archive.
+      status: complete
+    pin-new-skill-classification:
+      text: Add strict-roadmap-transition to PINNED_MUTATION_CAPABLE_SKILLS in test/suites/entrypoint-and-skills.ts so the new skill is classified by isMutationCapableSkill rather than escaping the pinned set, leaving PINNED_READ_ONLY_SKILLS unchanged.
+      status: complete
+  Testing:
+    add-merged-skill-content-regression:
+      text: Add a regression in test/suites/entrypoint-and-skills.ts that fails when the merged skill drops the command mapping or the guidance content for any one of the nine operations, including the five — pause, resume, defer, refine, and reopen — that no expectation covers today.
+      status: complete
+    run-validate-skills:
+      text: Run validate-skills and confirm it reports valid with zero diagnostics at skillCount 37 and marketplaceCount 37.
+      status: complete
+      command: bun run validate-skills
+    run-cli-only-yaml-policy-check:
+      text: 'Run the configured maintenance checks and confirm the cli-only-yaml-policy check reports no violation for the newly added skill. The maintenance command is a writer, not a read-only check: it seeds a change from whatever it finds, so cancel any seeded change whose findings are out of scope for this one with strict-spec-cli cancel <change-name>.'
+      status: complete
+      command: strict-spec-cli maintenance
+    run-project-regression:
+      text: Run the complete project regression suite with the coverage gate at the declared threshold of 78, redirecting output to a file and reading the command's own exit status.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage.log 2>&1; echo "EXIT=$?"
+  Verification:
+    run-ready-and-verify:
+      text: Run ready and verify for the change and confirm both pass with no open questions and no incomplete tasks.
+      status: complete
+      command: strict-spec-cli verify author-parameterized-roadmap-transition-skill
+    confirm-nine-originals-untouched:
+      text: Confirm the nine existing roadmap state-transition skills, their marketplace entries, their expectation entries, and their per-skill assertions are unmodified, and that no alias or shim skill was created for any of their slash-command names.
+      status: complete
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec against cli-foundation merges cleanly on archive and that the roadmap planned change author-parameterized-roadmap-transition-skill reconciles to complete without disturbing the milestone's remaining planned changes.
+      status: complete
+      command: strict-spec-cli roadmap-status
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-project-regression

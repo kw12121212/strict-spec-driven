@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-merged-roadmap-skills-and-prove-reduction
+approach:
+  - 'Delete the nine skill directories outright and sweep their references in one change, so that no interval exists in which a name points at a deleted package. The sweep is driven by an enumerated reference list rather than a search-and-replace, because the reference kinds are heterogeneous: marketplace entries, policy path patterns, validate-skills expectation data, test fixtures, a runtime diagnostic string, documentation tables, and skill-to-skill cross-references each need a different replacement form.'
+  - Preserve enforcement rather than delete it. The four ROADMAP_STRICT_SKILL_EXPECTATIONS entries for reorder, move, sync, and archive assert guidance content, not merely package existence; their assertions move onto the merged skill's expectation so the same guidance is still required. The main spec requirement cli-roadmap-archive-command-and-skill is modified, not removed, because its roadmap-archive CLI clause remains true and only its skill-packaging clause changes subject.
+  - 'Close the loop with three machine checks so the reduction is proven and stays proven: validate-skills reporting skillCount 28 with marketplaceCount 28 and zero diagnostics, a pinned upper bound on total bundled skill text under skills/, and a dangling-skill-reference test that scans live repository files for names matching a bundled skill directory that does not exist. The third check is what would have caught the strict-spec-debug-session reference that has been stale in strict-spec-bugfix since before this milestone.'
+decisions:
+  delete-without-aliases:
+    decision: Delete the nine skill packages outright with no alias or shim skills preserving their slash-command names, and name strict-roadmap-transition with its operation argument as the replacement in the change record.
+    rationale: An alias is itself a bundled skill package, so nine aliases would hold skillCount at 37 and defeat the only measurable outcome the milestone declares. A missing slash command produces an immediate visible error that points the operator at the replacement, whereas a shim would keep the surface it was meant to remove; the milestone records the same reasoning from the remove-artifact-file-mappings precedent.
+  relocate-archive-spec-clause:
+    decision: Carry cli-roadmap-archive-command-and-skill as a MODIFIED delta-spec requirement whose statement keeps the roadmap-archive CLI command clause and replaces the strict-roadmap-archive skill clause with the merged transition skill, rather than issuing a REMOVED operation.
+    rationale: Only one of the requirement's two clauses stops being true. Removing the whole requirement would drop the still-binding guarantee that roadmap-archive is a canonical subcommand with help and usage handling, which nothing else in the spec asserts, so a REMOVED operation would silently widen the change into a spec regression.
+  relocate-expectations-not-delete:
+    decision: Move the guidance assertions carried by the four deleted ROADMAP_STRICT_SKILL_EXPECTATIONS entries onto the merged skill's expectation instead of deleting those entries, and reject any edit that weakens an assertion to make it pass.
+    rationale: 'The milestone records this as its sharpest risk: a mechanical edit across a 3587-line suite of literal expectations invites weakening an assertion rather than relocating it. The merged skill already carries every operation''s guidance, so the assertions have a real subject to move to, and the milestone notes that five of the nine operations had no expectations at all, meaning relocation closes a gap rather than only preserving one.'
+  exclude-history-from-dangling-check:
+    decision: Scope the dangling-skill-reference test to live repository files and exclude archived strict changes under .strict-spec-driven/changes/archive/ and archived roadmap records.
+    rationale: Archived change artifacts legitimately name skills that existed when the change was made; several archived proposals and task lists name strict-roadmap-archive today. Including them would force either editing historical record, which the workflow forbids, or an ever-growing exclusion list, so the boundary is drawn once at the archive root.
+  pin-line-budget-to-measurement:
+    decision: Pin the bundled-skill-text upper bound to the value actually measured after deletion, recorded together with the measurement, rather than trimming skill content to reach the milestone's declared 5600.
+    rationale: The measured post-deletion total is 5626 lines against a criterion of fewer than 5600, a 26-line gap. Trimming 26 lines of real guidance to satisfy a number is tuning content to fit a gate, the same failure the milestone explicitly rejects for the coverage threshold. The gap is recorded as an open question so a human decides whether the criterion or the measurement moves.
+alternatives:
+  - option: Keep nine alias skills that forward to strict-roadmap-transition so existing slash commands and any operator scripts continue to work.
+    reason: Each alias is a bundled skill package counted by validate-skills, so nine aliases hold skillCount at 37 and make the milestone's single measurable outcome unreachable.
+  - option: Issue a REMOVED delta-spec operation for cli-roadmap-archive-command-and-skill and add a fresh requirement for the merged skill.
+    reason: It would drop the still-binding roadmap-archive canonical-subcommand and help/usage guarantee during the archive merge, since no other requirement asserts it.
+  - option: Trim 26 lines of guidance from the surviving skills so the total lands under the milestone's declared 5600-line criterion.
+    reason: It changes skill guidance for no reason other than to satisfy a number, which makes the line budget drive content instead of measuring it.
+  - option: Perform the reference sweep with a repository-wide search and replace of the nine names.
+    reason: It would rewrite archived change artifacts and roadmap history, and it cannot produce the different replacement forms that marketplace entries, expectation data, path patterns, and prose cross-references each require.
+risks:
+  - Deleting nine installed slash commands leaves dangling copies in external checkouts until reinstall, the same packaging hazard recorded for remove-artifact-file-mappings; the milestone accepts this and expects the replacement operation named in the change record.
+  - The merged skill concentrates nine command families into one file and may trip prose-mutation-flag heuristics that the split skills never triggered, so the cli-only-yaml-policy check must be run and its output read rather than assumed clean.
+  - The dangling-skill-reference test is new and scans the whole live tree; it may surface stale skill names beyond strict-spec-debug-session that are unrelated to this change, which would need triage as either in-scope corrections or recorded findings rather than silent exclusions.
+  - Relocating expectation data touches validate-skills behavior that this change also relies on to prove skillCount 28, so a mistake there could make the proof and the thing it proves fail together.

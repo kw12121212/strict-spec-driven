@@ -1,0 +1,77 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  skill-surface-consolidation:
+    title: Consolidate the bundled skill surface
+order: 500
+goal: Cut the bundled skill surface from 36 skills and 7275 lines to 28 skills by replacing per-skill copies of the CLI-only YAML authoring protocol and its neighbouring boilerplate with pointers to the command that already serves that content, and by merging the nine single-command roadmap state-transition skills into one parameterized skill, because 29 percent of all bundled skill text is duplicated guidance that a live CLI command already renders more completely and artifact-bound.
+scope:
+  in:
+    - Replacing the inlined CLI-Only YAML Authoring Protocol section in 34 skills, totalling 1088 lines, with a pointer to strict-spec-cli yaml-authoring-protocol for the artifact kind each skill writes.
+    - Collapsing the repeated Prerequisites section, 256 lines, and Preferred Human Language section, 335 lines, present in all 36 skills into a single-sentence form each.
+    - Merging the nine strict-roadmap state-transition skills pause, resume, defer, refine, reorder, move, reopen, archive, and sync, totalling 1394 lines, into one parameterized roadmap state-transition skill.
+    - Relocating the corresponding validate-skills expectations in src/skills/model.ts and the per-skill assertions in test/suites/entrypoint-and-skills.ts from the removed literal text to the pointer form and the merged skill.
+    - Updating skills/marketplace.json, the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml together with their embedded copy in src/embedded-templates.ts, and the twenty skill-name references across README, ROADMAP_GUIDE, and ROADMAP_QUICKSTART in both languages.
+  out:
+    - strict-roadmap-plan, strict-roadmap-recommend, and strict-roadmap-review, which carry roadmap judgment rather than single-command selection and remain independent skills.
+    - The proposal-family skills propose, propose-from-roadmap, brainstorm, bugfix, and auto. Their pairwise text overlap of 126 to 159 lines is real, but their unique content is the routing judgment that merging would degrade.
+    - Any change to CLI command names, arguments, or behavior. Every command the merged skill invokes already exists and is already exercised by the nine skills it replaces.
+    - The This Skill's Commands lookup block, which stays in every skill because it is the command source that both the policy classifier and the agent read.
+    - Alias or shim skills that preserve the nine deleted slash-command names. The approved target is 28 bundled skills, and any alias reinstates the count this milestone exists to reduce.
+    - The thin non-roadmap skills harness-init, harness-session, maintenance, and migrate. They carry 32 to 56 unique lines each today, but that ratio is measured against boilerplate this milestone removes, so they are re-measured as a separate decision after the collapse rather than folded in mid-flight.
+done_criteria:
+  - No bundled skill contains an inlined copy of the seven protocol steps, and every skill that mutates repository-owned YAML instead names its artifact kind and points at strict-spec-cli yaml-authoring-protocol.
+  - The nine roadmap state-transition skills are absent from skills/ and from skills/marketplace.json, and one parameterized roadmap state-transition skill covers every operation they performed.
+  - validate-skills passes against expectations that assert the pointer form and the merged skill, and no expectation still requires text that the milestone removed.
+  - isMutationCapableSkill classifies the same set of skills as mutation-capable before and after the change, proven by a test rather than by inspection.
+  - The cli-only-yaml-policy maintenance check reports no new violations for the rewritten skills.
+  - README, ROADMAP_GUIDE, and ROADMAP_QUICKSTART in both languages name only skills that exist in skills/.
+  - The complete project regression command passes for the final state with the coverage gate satisfied.
+  - The declared coverage threshold stays at 78 unless the final measured value forces a change, and any change to it is recorded together with the measurement that justified it rather than tuned to make the gate pass.
+  - 'validate-skills reports valid with skillCount 28 and marketplaceCount 28 and zero diagnostics, and bundled skill text under skills/ totals no more than 5700 lines. This bound replaces the milestone''s original estimate of fewer than 5600, which the finished work missed. Measurement: 6804 lines across 37 skill packages before the deletion, 1178 lines in the nine deleted skills, leaving 5626, plus the reference sweep''s own edits to surviving skills for a final measured total of 5630 across 28 packages. The bound records the measurement rather than forcing skill guidance to be trimmed to fit an estimate, following the same rule this milestone states for the coverage threshold.'
+intake_questions:
+  - id: slash-command-compatibility
+    question: When the nine roadmap state-transition skills are deleted, must their slash commands keep working through alias skills, or is the break accepted?
+    context: Each deleted skill is an installed slash command, and external checkouts install the package globally through install.sh.
+    impact: Alias skills preserve invocation but reinstate the skill count this milestone exists to reduce, while outright deletion breaks muscle memory and any script naming those commands.
+    recommendation: Delete outright and name the replacement operation in the release notes, following the precedent set by remove-artifact-file-mappings, which rejected no-op shims as a worse failure mode than a clear error.
+  - id: merged-skill-operation-shape
+    question: Does the merged roadmap skill take an explicit operation argument, or infer the operation from the request?
+    context: The nine skills differ only in which single CLI command they select, and four of them form two strict inverse pairs, pause with resume and defer with refine.
+    impact: An explicit operation keeps invocation deterministic and testable, while inference makes one skill responsible for routing that nine separate descriptions previously carried.
+    recommendation: Require an explicit operation that maps one to one onto the owning CLI command, and have the skill stop and ask when the request does not name one.
+  - id: protocol-pointer-enforceability
+    question: What replaces the removed protocol text as the enforceable artifact in validate-skills?
+    context: The current expectations assert literal snippets of the inlined protocol, so deleting the text without replacing the assertion silently drops the check.
+    impact: If no assertion replaces it, a future skill can omit protocol guidance entirely and still pass both validate-skills and the cli-only-yaml-policy maintenance check.
+    recommendation: Assert that every mutation-capable skill names its artifact kind and the yaml-authoring-protocol command, so enforcement relocates from copied prose to a required pointer rather than disappearing.
+  - id: coverage-after-expectation-removal
+    question: Does the declared coverage threshold of 78 hold after the skill expectations and their assertions are relocated?
+    context: The review gate runs bun scripts/coverage-gate.ts with threshold 78 over src, and this milestone removes expectation data together with the code paths that assert it.
+    impact: An unexamined threshold either blocks the milestone on an artifact of the edit or silently lowers the real quality bar.
+    recommendation: Keep 78 and adjust only if the final measured value forces it, recording the measurement as the justification rather than tuning the threshold to make the gate pass.
+  - id: merge-boundary-criterion
+    question: Is the merge criterion strictly single-CLI-command selection, or should other thin skills such as harness-init, harness-session, maintenance, and migrate be folded in as well?
+    context: Those four skills carry 32 to 56 unique lines each against 57 to 95 boilerplate lines, so they look as thin as the roadmap nine until the boilerplate is removed.
+    impact: Widening the criterion mid-milestone would reopen scope after the boilerplate work has already changed the numbers those skills are judged by.
+    recommendation: Hold the criterion to the roadmap nine for this milestone and re-measure the remaining skills after the boilerplate collapse, because a skill of 42 unique lines against 58 boilerplate lines is a different candidate once the boilerplate is gone.
+planned_changes: {}
+dependencies:
+  - ai-cli-only-yaml-enforcement must remain complete. This milestone edits the guidance that milestone installed and must relocate its enforcement rather than weaken it.
+risks:
+  - The protocol pointer moves guidance from text that is always present to a command the agent must choose to run. If a skill omits the pointer or the agent skips it, CLI-only enforcement degrades silently, because absent guidance fails nothing.
+  - Deleting nine skills deletes nine installed slash commands. Installed copies in external checkouts dangle after upgrade until reinstall, the same packaging hazard recorded in remove-artifact-file-mappings.
+  - isMutationCapableSkill already excludes the protocol section when classifying, so its removal is classification-neutral by construction. The merged skill nonetheless concentrates nine command families into one file and may trip prose-mutation-flag heuristics that the split skills never triggered.
+  - The per-skill assertions live in a 3587-line test suite of literal expectations. A mechanical edit across 36 skills risks weakening an assertion to make it pass rather than relocating it to the pointer form.
+status: complete
+notes:
+  - 'Measurement evidence: 36 skills totalling 7275 lines; the four repeated sections total 2174 lines, or 29 percent; the protocol section alone is 1088 lines across 34 skills.'
+  - 'Duplication evidence: strict-spec-cli yaml-authoring-protocol for an artifact kind already returns the seven steps, the boundary statement, the owning commands, and the cache-resolved schema and example paths, and RTK.md already names that command the canonical statement of the protocol.'
+  - 'Stale-copy evidence: strict-spec-bugfix routes readers to strict-spec-debug-session, a skill that does not exist in this repository, which is the drift mode that static copies produce.'
+  - 'Merge-criterion evidence: the nine merged skills average roughly 100 unique lines against 60 boilerplate lines each, and their unique content is command selection rather than judgment.'
+  - 'Enforcement-gap evidence: src/skills/model.ts ROADMAP_STRICT_SKILL_EXPECTATIONS covers only four of the nine merged skills, namely reorder, move, sync, and archive. Pause, resume, defer, refine, and reopen have no validate-skills expectations at all, so the merged skill closes an existing gap rather than only preserving coverage.'
+  - 'Baseline evidence: validate-skills currently reports valid with skillCount 36, marketplaceCount 36, and zero diagnostics, so the skill count and marketplace parity are both machine-checkable before and after the milestone.'
+  - 'Protocol-coverage evidence: exactly two skills, strict-spec-ship and strict-spec-verify, carry no protocol section today, which is why the inlined-protocol work covers 34 skills rather than all 36.'
+details: 'The bundled skill set repeats itself. Four sections appear in every skill, and the largest of them, the CLI-only YAML authoring protocol, is a hand-copied rendering of output that strict-spec-cli yaml-authoring-protocol already produces on demand, artifact-bound and more complete than any copy. RTK.md already declares that command canonical, so the copies are not the contract, only a stale mirror of it. Separately, nine roadmap skills exist solely to select one CLI command each, two of them strict inverse pairs, and their combined 1394 lines carry less judgment than any single proposal-family skill. This milestone removes both kinds of duplication without changing any CLI behavior: guidance moves from copied prose to a command call, and nine command selectors become one parameterized skill. The enforcement surface is the delicate part. validate-skills and the entrypoint-and-skills suite currently assert the literal copied text, so this work is only safe when those assertions are relocated to the pointer form in the same change that removes the text they guard.'

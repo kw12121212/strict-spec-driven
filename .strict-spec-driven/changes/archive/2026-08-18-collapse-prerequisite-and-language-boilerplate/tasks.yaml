@@ -1,0 +1,78 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: collapse-prerequisite-and-language-boilerplate
+sections:
+  Implementation:
+    record-baseline-line-counts:
+      text: 'Record the pre-change baseline: total line count of skills/*/SKILL.md, the per-section line totals for ## Prerequisites and ## Preferred Human Language, and the validate-skills summary, so the reduction is measured rather than asserted.'
+      status: complete
+      command: bash -c 'cat skills/*/SKILL.md | wc -l'
+    add-preferred-language-validate-skills-check:
+      text: 'Add a validate-skills check in src/skills/content.ts that scans every bundled skill under skills/ and reports one diagnostic per skill whose ## Preferred Human Language section does not name .strict-spec-driven/config.yaml, the preferred_human_language field, the human-language-rather-than-programming-language distinction, and the active-user-message override.'
+      status: complete
+    add-prerequisite-duplication-check:
+      text: 'Add a validate-skills check in src/skills/content.ts that reports a diagnostic when a bundled skill''s ## Prerequisites section restates the strict workflow state existence guidance that the skill''s ## Steps section already carries, deriving the governed set from a scan of skills/ rather than a hand-enumerated list.'
+      status: complete
+    relocate-maintenance-check-table:
+      text: 'Move the maintenance check-type reference table out of strict-spec-maintenance''s ## Prerequisites section into a new ## Maintenance Check Types section, leaving the configured-check requirement as the only prerequisite text.'
+      status: complete
+    collapse-preferred-human-language-sections:
+      text: 'Rewrite the ## Preferred Human Language section to a single sentence in all 37 skills, keeping the heading and folding the per-skill riders in strict-spec-architecture, strict-spec-design, strict-spec-design-sync, and strict-spec-sop into that sentence.'
+      status: complete
+    delete-duplicated-prerequisite-sections:
+      text: 'Delete the ## Prerequisites section from the 33 skills whose content only restates the workflow-state check, and reduce it to the skill-specific precondition alone in strict-spec-init, strict-spec-migrate, strict-spec-ship, and strict-spec-maintenance.'
+      status: complete
+    update-synthetic-skill-fixtures:
+      text: 'Update the synthetic skill fixtures in test/suites/entrypoint-and-skills.ts and test/suites/roadmap-and-migration.ts that carry both a duplicated ## Prerequisites section and the Steps workflow-state line, so they satisfy the new checks without weakening any existing assertion.'
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild dist/ from src/ so the dist-based test suite and the shipped validate-skills command exercise the new checks.
+      status: complete
+      command: bun run build
+  Testing:
+    relocate-preferred-language-assertion:
+      text: Replace the per-skill preferred_human_language loop in test/suites/entrypoint-and-skills.ts with an assertion that drives the relocated validate-skills check, so the check is exercised through the shipped command rather than by re-reading each SKILL.md in the suite.
+      status: complete
+    prove-preferred-language-check-negative-case:
+      text: 'Prove the collapsed preferred_human_language check with a negative case: remove each required element from a fixture skill in turn, run the shipped validate-skills command, and assert it fails naming the offending skill path and the missing element.'
+      status: complete
+    prove-prerequisite-duplication-check-negative-case:
+      text: 'Prove the Prerequisites duplication check with a committed negative fixture that reintroduces a ## Prerequisites section restating the workflow-state guidance, run the shipped validate-skills command, and assert it fails naming that skill path; pair it with a positive fixture carrying a skill-specific precondition that must pass.'
+      status: complete
+    confirm-policy-fixtures-report-only-seeded-violation:
+      text: Drive the four committed policy fixtures under test/fixtures/policy-skills/ through the shipped validate-skills command and confirm each still reports exactly its seeded violation and nothing else, so the new repetition check is proven not to put a compliant single-copy file in violation.
+      status: complete
+    pin-mutation-capable-classification:
+      text: Assert that isMutationCapableSkill classifies the same set of bundled skills as mutation-capable after the rewrite as before, so the section removals are proven classification-neutral rather than inspected.
+      status: complete
+    assert-skill-count-and-workflow-guidance-unchanged:
+      text: 'Assert that validate-skills still reports skillCount 37, marketplaceCount 37, and zero diagnostics, and that every non-init strict skill still opens its ## Steps section with the workflow-state check, the init guidance, and the do-not-run-init statement.'
+      status: complete
+    run-validation-command:
+      text: Run the strict skill validation surface over the rewritten skills. validate-skills also runs the cli-only-yaml-policy content check per skill, so it covers the policy evidence this change needs; the maintenance command is deliberately not used here because it seeds a change from findings and one change is already active.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-project-regression-and-coverage-gate:
+      text: Run the complete project regression suite with the coverage gate, redirecting output to a file and reading the command's own exit status.
+      status: complete
+      command: bash -c 'bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage-gate.log 2>&1; echo EXIT=$?'
+  Verification:
+    report-measured-reduction:
+      text: Report the post-change skills/ line total against the recorded baseline, and confirm the reduction is attributable to the two collapsed sections rather than to any deleted skill.
+      status: complete
+      command: bash -c 'cat skills/*/SKILL.md | wc -l'
+    confirm-coverage-threshold-holds:
+      text: Confirm the declared coverage threshold of 78 still holds after the test assertions relocate into src/skills/content.ts, and record the measured value as the justification if the threshold has to move.
+      status: complete
+    run-ready-and-verify:
+      text: Run the strict change readiness and verification gates for this change.
+      status: complete
+      command: bash -c 'strict-spec-cli ready collapse-prerequisite-and-language-boilerplate && strict-spec-cli verify collapse-prerequisite-and-language-boilerplate'
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec against cli-foundation and the delta tech against cli-command-metadata merge cleanly on archive, and that the roadmap planned change collapse-prerequisite-and-language-boilerplate reconciles to complete.
+      status: complete
+testing_gates:
+  validation_task: run-validation-command
+  unit_test_task: run-project-regression-and-coverage-gate

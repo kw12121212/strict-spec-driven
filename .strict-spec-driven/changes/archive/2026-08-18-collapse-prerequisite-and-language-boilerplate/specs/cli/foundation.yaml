@@ -1,0 +1,45 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-skills-state-workflow-state-precondition-once:
+      strength: MUST
+      statement: 'A bundled strict skill MUST state the `check-workflow-state` precondition, the init guidance, and the do-not-run-init statement at most once per skill file; when the skill''s Steps section already carries them, a Prerequisites section MUST NOT restate them, and skill packaging validation MUST report a diagnostic naming the offending skill. The requirement constrains repetition, not placement: a skill that states the guidance in exactly one section satisfies it regardless of which section that is, and a Prerequisites section carrying a skill-specific precondition remains valid.'
+      scenarios:
+        validation-rejects-a-restated-precondition:
+          - GIVEN: a bundled strict skill whose Steps section carries the check-workflow-state precondition and whose Prerequisites section restates it
+          - WHEN: the strict skill validation command runs
+          - THEN: the command exits non-zero and reports a diagnostic naming that skill path
+        validation-accepts-guidance-stated-in-one-section:
+          - GIVEN: a bundled strict skill that states the check-workflow-state precondition, the init guidance, and the do-not-run-init statement in exactly one section, whether that is Steps or Prerequisites
+          - WHEN: the strict skill validation command runs
+          - THEN: the command reports no repetition diagnostic for that skill
+        validation-accepts-a-skill-specific-precondition:
+          - GIVEN: a bundled strict skill whose Prerequisites section states only a precondition specific to that skill, such as an already-archived change or an existing legacy workflow directory
+          - WHEN: the strict skill validation command runs
+          - THEN: the command reports no diagnostic for that skill
+        existing-workflow-state-guidance-check-is-unaffected:
+          - GIVEN: a bundled strict skill that requires existing strict workflow state and carries no Prerequisites section
+          - WHEN: the strict skill validation command runs
+          - THEN: the existing workflow-state guidance check still passes because the Steps section carries the precondition, the init guidance, and the do-not-run-init statement
+  MODIFIED:
+    all-skills-preferred-human-language-guidance:
+      strength: MUST
+      statement: Every bundled strict skill MUST carry a Preferred Human Language section whose guidance names `.strict-spec-driven/config.yaml`, the `preferred_human_language` field, the fact that it records the user's common human language rather than a programming language, and the requirement to comply with it for user-facing natural-language interaction unless the active user instruction says otherwise; that guidance MUST be stated once as a single sentence rather than a restated paragraph, and skill packaging validation MUST report a diagnostic naming the offending skill when any of those elements is absent.
+      scenarios:
+        every-skill-states-the-guidance-in-one-sentence:
+          - GIVEN: the bundled strict skill directory
+          - WHEN: skill packaging validation inspects each SKILL.md
+          - THEN: every skill's Preferred Human Language section names .strict-spec-driven/config.yaml, preferred_human_language, the human-language rather than programming-language distinction, and the compliance requirement, in a single sentence
+        validation-reports-a-skill-missing-an-element:
+          - GIVEN: a bundled strict skill whose Preferred Human Language section omits one of the required elements
+          - WHEN: the strict skill validation command runs
+          - THEN: the command exits non-zero and reports a diagnostic naming the offending skill path and the missing element
+        every-skill-requires-compliance:
+          - GIVEN: an agent follows any bundled strict skill
+          - WHEN: the skill describes preferred human language handling
+          - THEN: the guidance requires complying with the configured common human language and distinguishes it from programming languages
+  REMOVED: {}

@@ -1,0 +1,89 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-merged-roadmap-skills-and-prove-reduction
+sections:
+  Implementation:
+    delete-nine-skill-directories:
+      text: Delete skills/strict-roadmap-pause, resume, defer, refine, reorder, move, reopen, archive, and sync, including each directory's scripts symlink, then stage the deletions with git add so checks that enumerate files through git ls-files stop reporting the removed paths.
+      status: complete
+    remove-marketplace-entries:
+      text: Remove the nine deleted skills from skills/marketplace.json so marketplace entries and skill directories both total 28.
+      status: complete
+    rewrite-inventory-path-patterns:
+      text: Rewrite the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml through strict-spec-cli inventory-edit so the deleted skill paths are replaced by skills/strict-roadmap-transition/SKILL.md and the surviving roadmap skill paths stay intact; the command regenerates src/embedded-templates.ts inside the same transaction, so do not hand-edit the generated module.
+      status: complete
+      command: strict-spec-cli inventory-edit
+    relocate-skill-expectations:
+      text: Relocate the ROADMAP_STRICT_SKILL_EXPECTATIONS entries for strict-roadmap-reorder, move, sync, and archive in src/skills/model.ts onto the merged strict-roadmap-transition expectation, preserving every guidance assertion they carried rather than dropping or weakening it.
+      status: complete
+    update-load-diagnostic:
+      text: Rewrite the inline-planned-changes diagnostic in src/roadmap/load.ts so it names the strict-roadmap-transition skill's sync operation instead of the deleted strict-roadmap-sync skill, leaving the repository-equivalent CLI invocation it already prints unchanged.
+      status: complete
+    rewrite-surviving-skill-crossrefs:
+      text: Rewrite the seven cross-references to deleted skills in skills/strict-roadmap-plan, strict-roadmap-recommend, strict-roadmap-review, and strict-spec-propose-from-roadmap so each names strict-roadmap-transition with its explicit operation.
+      status: complete
+    fix-stale-debug-session-refs:
+      text: Correct the three strict-spec-debug-session references in skills/strict-spec-bugfix/SKILL.md, in its front-matter description and its two Steps mentions, so the skill routes to a skill that exists.
+      status: complete
+    update-english-docs:
+      text: Rewrite the ten /strict-roadmap-sync references in README.md, ROADMAP_GUIDE.md, and ROADMAP_QUICKSTART.md to the transition skill with its sync operation, including the skill tables and the numbered workflow steps.
+      status: complete
+    update-chinese-docs:
+      text: Rewrite the ten /strict-roadmap-sync references in README.zh.md, ROADMAP_GUIDE.zh.md, and ROADMAP_QUICKSTART.zh.md to match the English edits, keeping the Chinese descriptions accurate for the merged skill.
+      status: complete
+    rebuild-after-source-edits:
+      text: Rebuild compiled output so dist/ reflects the edited sources and the regenerated embedded asset, because the installed CLI reads bundled assets from the compiled module and a read-back command reports stale values until the build runs.
+      status: complete
+      command: bun run build
+    correct-milestone-line-criterion:
+      text: Replace the skill-surface-consolidation milestone's fewer-than-5600-lines done criterion with the measured post-deletion total, recording the measurement as its justification, using roadmap-generate milestone with --remove-done and --done rather than editing the milestone YAML.
+      status: complete
+      command: strict-spec-cli roadmap-generate milestone --id skill-surface-consolidation
+  Testing:
+    update-entrypoint-skill-tests:
+      text: 'Update test/suites/entrypoint-and-skills.ts: replace the strict-roadmap-archive file read and its default-all completed milestone assertion with the equivalent assertion against strict-roadmap-transition, and remove the nine deleted names from the bundled skill name list.'
+      status: complete
+    assert-skill-count-and-parity:
+      text: Add a test to the already spec-mapped suite test/suites/entrypoint-and-skills.ts asserting validate-skills reports valid with skillCount 28, marketplaceCount 28, and zero diagnostics, rather than creating a standalone suite that verify-spec-mappings would reject as unmapped.
+      status: complete
+    assert-skill-line-budget:
+      text: Add a test to test/suites/entrypoint-and-skills.ts pinning total bundled skill text under skills/ to a measured upper bound, with the measured value recorded alongside the pin as its justification.
+      status: complete
+    assert-no-dangling-skill-references:
+      text: Add a test to test/suites/entrypoint-and-skills.ts that fails when a live repository file names a bundled skill directory that does not exist, excluding archived strict changes and archived roadmap records. Derive the scanned file set and the set of existing skill directories from a filesystem scan rather than a hand-enumerated list, prove the negative case by observing the check fail against the pre-fix strict-spec-debug-session reference, and prove the positive case by observing the matcher fire on a realistic reference form.
+      status: complete
+    assert-mutation-classification-unchanged:
+      text: Extend test/suites/entrypoint-and-skills.ts to prove isMutationCapableSkill classifies the same skill packages as mutation-capable after the deletion as before, so the unchanged-behavior claim is machine-checked rather than inspected.
+      status: complete
+    run-validation-commands:
+      text: Run the build and the skill packaging validation command; keep strict verify out of this command because verify reports every pending task, including this one, so a Testing task that invokes it can never pass at its own runtime.
+      status: complete
+      command: bun run build && strict-spec-cli validate-skills
+    run-project-regression:
+      text: Run the complete project regression suite with the coverage gate, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage-gate.log 2>&1; echo EXIT=$?
+    run-cli-only-yaml-policy:
+      text: 'Run the maintenance checks and confirm the cli-only-yaml-policy check reports no violation for the rewritten and deleted skills. The command is a writer despite its name: it seeds a change from any finding, including the pre-existing stale ARCHITECTURE.md drift, so cancel the seeded change with strict-spec-cli cancel <generated-change> once the report has been read.'
+      status: complete
+      command: strict-spec-cli maintenance
+  Verification:
+    confirm-ready:
+      text: Run the strict readiness check for the change.
+      status: complete
+      command: strict-spec-cli ready remove-merged-roadmap-skills-and-prove-reduction
+    confirm-verify:
+      text: Run the strict verification check for the change.
+      status: complete
+      command: strict-spec-cli verify remove-merged-roadmap-skills-and-prove-reduction
+    confirm-delta-spec-merges:
+      text: Confirm the delta spec merges cleanly into .strict-spec-driven/specs/cli/foundation.yaml, so the modified cli-roadmap-archive-command-and-skill requirement keeps the roadmap-archive CLI clause and names the merged transition skill.
+      status: complete
+    confirm-milestone-criteria:
+      text: Check the change result against the skill-surface-consolidation done criteria, reporting the measured skill count, marketplace count, and bundled skill line total, and naming any criterion the measurement does not meet.
+      status: complete
+testing_gates:
+  validation_task: run-validation-commands
+  unit_test_task: run-project-regression

@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: remove-merged-roadmap-skills-and-prove-reduction
+  milestone: skill-surface-consolidation
+status: complete
+summary: Delete the nine merged roadmap skills, update every artifact that names them, and prove the surface reduction.
+details: 'Remove skills/strict-roadmap-pause, resume, defer, refine, reorder, move, reopen, archive, and sync once the parameterized skill covers them. The reference surface is known and must all be updated: skills/marketplace.json, the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml together with the embedded copy in src/embedded-templates.ts, the four roadmap skill entries in src/skills/model.ts ROADMAP_STRICT_SKILL_EXPECTATIONS for reorder, move, sync, and archive, the two references in test/suites/entrypoint-and-skills.ts, and the twenty documentation references across README, ROADMAP_GUIDE, and ROADMAP_QUICKSTART in both languages. Note that README already lists only four roadmap skills, so the documentation edit is smaller than the deletion count suggests and must not be assumed symmetric. Fix the pre-existing stale reference to strict-spec-debug-session in strict-spec-bugfix while the same sweep is running. Prove the outcome rather than asserting it: validate-skills must report valid with skillCount 28, marketplaceCount 28, and zero diagnostics, a test must pin bundled skill text under 5600 lines, and a test must assert that no repository file names a skill directory that does not exist, which is the check that would have caught the strict-spec-debug-session reference. Close with the complete project regression command and the coverage gate.'
+depends_on:
+  - author-parameterized-roadmap-transition-skill
+  - collapse-prerequisite-and-language-boilerplate

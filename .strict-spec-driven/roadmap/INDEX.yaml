@@ -19,3 +19,7 @@ milestones:
     title: Remove spec and standard file mappings
     path: roadmap/milestones/remove-artifact-file-mappings.yaml
     status: complete
+  skill-surface-consolidation:
+    title: Consolidate the bundled skill surface
+    path: roadmap/milestones/skill-surface-consolidation.yaml
+    status: complete

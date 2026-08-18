@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: collapse-prerequisite-and-language-boilerplate
+  status: proposed
+summary:
+  what:
+    - 'Delete the ## Prerequisites section from the 33 bundled skills whose only content restates the strict workflow state check that the same file''s ## Steps opening line already carries verbatim, keeping a one-sentence ## Prerequisites section only in the four skills with a skill-specific precondition: strict-spec-init, strict-spec-migrate, strict-spec-ship, and strict-spec-maintenance.'
+    - 'Move the 37-line maintenance check-type reference table out of strict-spec-maintenance''s ## Prerequisites section into its own ## Maintenance Check Types section, so the retained prerequisite is the configured-check requirement alone.'
+    - 'Collapse the ## Preferred Human Language section in all 37 skills from a nine-to-twelve-line paragraph to one sentence that still names .strict-spec-driven/config.yaml, the preferred_human_language field, the human-language-rather-than-programming-language distinction, and the active-user-message override, folding the per-skill riders in strict-spec-architecture, strict-spec-design, strict-spec-design-sync, and strict-spec-sop into that same sentence.'
+    - 'Relocate the enforcement that guarded the removed text: move the per-skill preferred_human_language assertion from test/suites/entrypoint-and-skills.ts into src/skills/content.ts as a real validate-skills check that scans every bundled skill, and add a validate-skills check that fails when a skill''s ## Prerequisites section restates the workflow-state existence guidance the ## Steps section carries.'
+    - 'Update the synthetic skill fixtures in test/suites/entrypoint-and-skills.ts and test/suites/roadmap-and-migration.ts that carry both a duplicated ## Prerequisites section and the Steps workflow-state line, so each new check is proven by a negative case that fails and a positive case that passes.'
+    - Modify the cli-foundation requirement all-skills-preferred-human-language-guidance so it requires the collapsed single-sentence form and is enforced by skill packaging validation rather than by a test assertion alone, and add a requirement that a skill states the workflow-state precondition exactly once.
+    - Add a cli-command-metadata rule requiring bundled skill guidance to state each shared instruction once per skill, so the deleted duplication cannot regrow unchecked.
+  why:
+    - The two sections total 606 lines across 37 skills, 262 for Prerequisites and 344 for Preferred Human Language, and are the second-largest block of the 2174 duplicated lines that make up 29 percent of the bundled skill text this milestone exists to reduce.
+    - '35 of the 37 skills state the strict workflow state check twice in the same file, once under ## Prerequisites and once as the first ## Steps line, and validateStrictWorkflowStateGuidance in src/skills/content.ts enforces only the Steps form, so the Prerequisites copy is unenforced duplication that no check would notice going stale.'
+    - The cli-foundation scenario every-skill-names-file-and-field already states that skill packaging validation inspects each SKILL.md for the preferred_human_language guidance, but the only check is a test assertion, so moving it into validate-skills makes the requirement true rather than aspirational.
+    - The milestone done criterion requires bundled skill text under skills/ to total fewer than 5600 lines, and the remaining planned change remove-merged-roadmap-skills-and-prove-reduction is dependency-blocked on this collapse.
+scope:
+  in:
+    - 'Deleting the duplicated ## Prerequisites section in the 33 skills where its content is only the workflow-state restatement, and reducing it to the skill-specific precondition alone in strict-spec-init, strict-spec-migrate, strict-spec-ship, and strict-spec-maintenance.'
+    - Relocating strict-spec-maintenance's check-type table to its own section so the trimmed prerequisite does not take the reference content with it.
+    - 'Rewriting the ## Preferred Human Language section to a single sentence in all 37 skills, keeping the section heading so the existing per-skill sweep continues to identify the same region.'
+    - A delta spec against cli-foundation modifying all-skills-preferred-human-language-guidance and adding a single-statement requirement for the workflow-state precondition.
+    - A delta tech against cli-command-metadata adding the rule that bundled skill guidance states each shared instruction once.
+    - 'Adding two validate-skills checks in src/skills/content.ts, one requiring the collapsed preferred_human_language sentence in every bundled skill and one rejecting a ## Prerequisites section that restates workflow-state existence guidance the same skill''s ## Steps section already carries, both deriving their governed set from a scan of skills/ rather than a hand-enumerated list, and both constraining repetition rather than placement so a skill stating the guidance in exactly one section stays compliant.'
+    - 'Bringing the committed fixtures up to the new baseline in the same change: the four policy-skill fixtures under test/fixtures/policy-skills/ gain the collapsed preferred_human_language sentence they previously lacked, and any synthetic skill fixture in test/suites/ that would otherwise trip a new check is updated, with each new check driven through a negative case in which the required text is removed and the shipped validate-skills command is observed to fail.'
+  out:
+    - Merging the nine roadmap state-transition skills or deleting them from skills/ and skills/marketplace.json, which is the separate remove-merged-roadmap-skills-and-prove-reduction planned change; this change deletes no skill and leaves skillCount at 37.
+    - The CLI-Only YAML Authoring Protocol section, already rewritten to the pointer form by the archived replace-inlined-protocol-with-cli-pointer change.
+    - The This Skill's Commands lookup block, which stays intact in every skill because it is the command source both the policy classifier and the agent read.
+    - Any change to CLI command names, arguments, or behavior, including making check-workflow-state report preferred_human_language; the collapse is a prose change enforced by validation, not a new CLI capability.
+    - The README, ROADMAP_GUIDE, and QUICKSTART references to preferred_human_language, which describe the config field rather than the skill section shape and stay valid unchanged.
+unchanged_behavior:
+  - validate-skills continues to report skillCount 37 and marketplaceCount 37 with zero diagnostics, because this change deletes and adds no skill.
+  - isMutationCapableSkill classifies exactly the same set of bundled skills as mutation-capable before and after the rewrite.
+  - 'Every non-init strict skill still opens its ## Steps section with the strict workflow state check, the init guidance, and the do-not-run-init statement, so validateStrictWorkflowStateGuidance reports no new diagnostics.'
+  - The cli-only-yaml-policy maintenance check reports no new violations for the rewritten skills, and every skill keeps its This Skill's Commands mapping.
+  - Every bundled skill still instructs agents to read .strict-spec-driven/config.yaml, use preferred_human_language, distinguish it from a programming language, and comply unless the active user message says otherwise.
+  - The four committed policy fixtures under test/fixtures/policy-skills/ each still report exactly their seeded violation and nothing else when driven through the shipped validate-skills command, because the new repetition check constrains repetition rather than placement and those fixtures state the workflow-state guidance in one section only.
+roadmap:
+  milestone: skill-surface-consolidation
+  planned_change: collapse-prerequisite-and-language-boilerplate

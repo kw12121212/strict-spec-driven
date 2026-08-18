@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED: {}
+  MODIFIED:
+    skill-packages-are-static-protocol-surfaces:
+      strength: MUST
+      statement: A bundled skill package that directs a CLI-owned YAML mutation is an AI-facing protocol surface that cannot render the protocol module at load time, so it MUST name the artifact kinds it writes, the 'strict-spec-cli yaml-authoring-protocol <artifact-kind>' command that renders the ordered steps and the bound owning, schema, example, and validation commands, its own artifact validation command, and the verbatim no-fallback boundary statement; it MUST NOT restate the ordered step titles or its per-artifact schema-show and sample-show lookups, and an automated check MUST fail when a mutation-capable skill omits the pointer command, its artifact kind, its validation command, or the boundary statement, or restates a step title.
+      rationale: 'The previous form required each skill to restate the seven step titles and its per-kind lookups, which put 1088 lines of hand-copied rendering across 34 skills and made the typed module authoritative only in name: the copies could not carry the cache-resolved schema and example paths the command reports, and a stale copy in strict-spec-bugfix already pointed at a skill that does not exist. Restatement is retained only for the boundary, because that is the one instruction an agent must have before it decides whether to run any command at all; the steps matter only once mutation has begun, which is exactly when the command is available to render them. The drift check therefore moves from step-title equality to pointer presence, which is enforceable against a skill that carries no copy.'
+      enforcement:
+        method: test
+        detail: src/skills/content.ts derives the governed set from the mutation inventory rather than from the guidance text and reports one diagnostic per missing element, with the expected artifact kinds read from inventory/yaml-mutation-surfaces.yaml and the boundary and step titles read from the typed protocol module in src/yaml-authoring-protocol.ts; test/suites/entrypoint-and-skills.ts asserts the pointer form for every mutation-capable skill, sweeps every bundled skill for a surviving step title, and drives each diagnostic through a realistic negative case so a check that has stopped firing fails rather than passing silently.
+  REMOVED: {}
