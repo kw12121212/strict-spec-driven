@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: refresh-stale-architecture-document
+sections:
+  Implementation:
+    read-render-diff:
+      text: Render ARCHITECTURE.md in check mode, capture the difference against the file on disk, and confirm every difference is derived content the renderer computes from an already-accepted source rather than new material this change would be publishing unreviewed.
+      status: complete
+    regenerate-architecture-document:
+      text: Re-render ARCHITECTURE.md through its owning generator, never by editing the file or any of its YAML sources, and confirm from the structured result that it reports current with no stale sources.
+      status: complete
+      command: strict-spec-cli architecture-generate
+  Testing:
+    add-generated-document-drift-test:
+      text: Add a test that walks the generated-document targets the maintenance check reads, renders each in check mode, and fails naming the document and its stale sources when the file on disk does not match, so a re-render is enforced by the suite rather than by an operator running the maintenance writer.
+      status: complete
+    validate-generated-documents:
+      text: Run the architecture renderer in check mode and confirm it reports the document current with no stale sources.
+      status: complete
+      command: strict-spec-cli architecture-generate --check
+    prove-drift-test-negative-case:
+      text: Observe the new test failing against a deliberately stale rendered document before observing it pass against the re-rendered one, so a passing result is evidence the comparison fires rather than evidence it never runs.
+      status: complete
+    run-project-regression:
+      text: Run the complete project test suite against rebuilt dist output, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?
+  Verification:
+    confirm-sources-untouched:
+      text: 'Confirm no YAML source was edited to shape the output: architecture.yaml, config.yaml, specs/INDEX.yaml, and every file under tech/ are unchanged in the working tree, and ARCHITECTURE.md is the only rendered document this change writes.'
+      status: complete
+    confirm-check-reports-clean:
+      text: Confirm the generated-doc-check reports no finding for ARCHITECTURE.md, reading the check result without invoking the maintenance writer, which seeds a change from its findings.
+      status: complete
+    run-ready-and-verify:
+      text: Run the strict readiness gate and resolve any structural diagnostic it reports.
+      status: complete
+      command: strict-spec-cli ready refresh-stale-architecture-document
+    run-coverage-gate:
+      text: Run the declared project regression and coverage gate and confirm it passes at or above the declared threshold of 78 without the threshold being changed.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+testing_gates:
+  validation_task: validate-generated-documents
+  unit_test_task: run-project-regression

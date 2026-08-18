@@ -545,6 +545,60 @@ function readSeededFindings(workspaceRoot: string, changeName: string): string[]
   return proposal.split("\n");
 }
 
+// This repository's own generated documents. Every check above runs in a synthetic workspace, so
+// they prove the check works without ever asserting anything about the documents actually committed
+// here — which is how ARCHITECTURE.md drifted for several changes while every suite stayed green.
+// The targets come from the registry the check itself reads, so a third generated document added
+// later is covered without editing this test.
+const generatedDocumentModule = await loadDistModule<{
+  GENERATED_DOCUMENT_TARGETS: {
+    reRenderCommand: string;
+    check: (rootDir: string) => { outputPath: string; documentExists: boolean; current: boolean; staleSources: string[] };
+  }[];
+}>("maintenance.js");
+// A target whose source artifact this repository never authored throws rather than returning a
+// result, and the shipped check skips exactly that case. Mirroring the skip keeps the test measuring
+// drift instead of crashing on the design system, which this repository has declined.
+const documentRenderModule = await loadDistModule<{ DocumentSourceError: new () => Error }>("document-render.js");
+const checkedDocumentResults = generatedDocumentModule.GENERATED_DOCUMENT_TARGETS.flatMap((target) => {
+  try {
+    return [target.check(ROOT)];
+  } catch (error) {
+    if (error instanceof documentRenderModule.DocumentSourceError) return [];
+    throw error;
+  }
+});
+const staleDocumentsIn = (
+  results: { outputPath: string; documentExists: boolean; current: boolean; staleSources: string[] }[],
+): string[] =>
+  results
+    .filter((result) => result.documentExists && !result.current)
+    .map((result) => `${result.outputPath} is stale against ${result.staleSources.join(", ")}`);
+const repositoryDocumentDrift = staleDocumentsIn(checkedDocumentResults);
+context.assert(
+  generatedDocumentModule.GENERATED_DOCUMENT_TARGETS.length > 0,
+  "the generated-document registry names at least one document to check",
+);
+context.assert(
+  repositoryDocumentDrift.length === 0,
+  "every generated document committed in this repository matches its strict YAML sources; re-render with strict-spec-cli architecture-generate or design-generate",
+  repositoryDocumentDrift.join("; "),
+);
+// A clean result over documents that are already current proves nothing about the comparison, so
+// the same filter is driven over a synthetic stale result. Restating the predicate inline would
+// test the restatement instead, so the probe adds its input to the real results and reuses the
+// selection the assertion above performs.
+const probedDrift = staleDocumentsIn([
+  ...checkedDocumentResults,
+  { outputPath: "PROBE.md", documentExists: true, current: false, staleSources: [".strict-spec-driven/probe/"] },
+  { outputPath: "PROBE_ABSENT.md", documentExists: false, current: false, staleSources: [".strict-spec-driven/probe/"] },
+]);
+context.assert(
+  JSON.stringify(probedDrift) === JSON.stringify(["PROBE.md is stale against .strict-spec-driven/probe/"]),
+  "the drift selection reports a stale rendered document and leaves an unrendered one alone",
+  probedDrift.join("; "),
+);
+
 // 23a: a rendered document that still matches its sources is not a finding
 const docCurrentDir = createGeneratedDocCheckWorkspace();
 try {

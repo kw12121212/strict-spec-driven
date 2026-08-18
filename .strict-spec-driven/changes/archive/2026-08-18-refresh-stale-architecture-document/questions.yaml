@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: refresh-stale-architecture-document
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today with the generated architecture document?
+    context: 'Decides whether the fix is a re-render or a change to the document''s content. Impact: if the sources were wrong, re-rendering would publish incorrect content faster.'
+    answer: ARCHITECTURE.md on disk no longer matches what its renderer produces from the current YAML sources. It understates requirement counts for cli-foundation and roadmap-domain-behavior, omits four technical-standard rules that are in force, and carries two superseded rule statements, so the repository's own architecture reference misstates the standards agents are told to follow.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: 'Fixes what the tests must assert. Impact: without a durable check, the observable difference is momentary and the drift returns.'
+    answer: The generated-doc-check reports no finding, architecture-generate --check reports current with no stale sources, and the project test suite fails if any generated document drifts from its sources again.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now?
+    context: 'Tests whether the trigger is real or tidying. Impact: a weak trigger would argue for leaving the drift and closing the finding as accepted.'
+    answer: The user directed that this be fixed in its own change after the maintenance run during remove-unused-skills-and-split-roadmap-reorder surfaced the drift for at least the fifth recorded time. Each previous surfacing ended with the seeded maintenance change being cancelled, so the finding has been observed and discarded repeatedly without being acted on.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Becomes the hard constraints. Impact: a re-render touching sources would change repository contracts under cover of a documentation fix.'
+    answer: No YAML source may be edited to shape the output, ARCHITECTURE.md may not be hand-edited, the architecture renderer and schema stay as they are, DESIGN.md is not re-rendered, and the maintenance command's change-seeding behavior is left alone.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Does fixing this mean the one re-render, or also preventing recurrence?
+    context: 'The user asked for a change to fix the drift. Impact: the re-render alone is a few seconds of work but has already been done and lost four times; adding prevention makes this a small code change with a test.'
+    answer: Both. The re-render clears the current drift and a suite-level regression test prevents the next one, because the drift's cause is that no blocking gate checks the rendered document.
+    status: resolved
+    kind: requirement
+    answered_by: human

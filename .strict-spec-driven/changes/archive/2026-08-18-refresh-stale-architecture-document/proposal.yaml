@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: refresh-stale-architecture-document
+  status: proposed
+summary:
+  what:
+    - Re-render ARCHITECTURE.md from its declared YAML sources through strict-spec-cli architecture-generate, clearing the generated-doc-check finding that the maintenance check reports.
+    - Add a regression test that fails when a generated document on disk no longer matches its strict YAML sources, so this drift is caught by the suite rather than only by an operator running maintenance.
+  why:
+    - The generated-doc-check has reported ARCHITECTURE.md stale across at least four separate maintenance runs recorded in the lesson store, and each run seeded a maintenance change that was cancelled rather than acted on. The document is the repository's own architecture reference, and a stale one misstates which technical standards are in force.
+    - 'The drift is not one change''s oversight: it accumulated because nothing in the blocking path re-renders or checks the document. The coverage gate, verify, ready, and validate-skills all pass with a stale ARCHITECTURE.md, so only the writer command notices, and the writer is the command operators learned to cancel.'
+scope:
+  in:
+    - Running strict-spec-cli architecture-generate to re-render ARCHITECTURE.md from .strict-spec-driven/architecture.yaml, config.yaml, specs/INDEX.yaml, and tech/.
+    - Adding a test that renders every generated document in check mode and fails naming the document and its stale sources when disk content does not match, covering both ARCHITECTURE.md and DESIGN.md through the same registry the maintenance check reads.
+  out:
+    - Editing ARCHITECTURE.md by hand, or editing any of its YAML sources to make the rendered output different. The sources are correct; only the rendered document is behind.
+    - Changing what the architecture document contains, its renderer, its schema, or the architecture.yaml artifact itself.
+    - Changing the maintenance command's seeding behavior, which is a separate concern recorded as a lesson.
+    - Re-rendering DESIGN.md, which the same check reports as current; the test covers it, but this change writes no design document.
+unchanged_behavior:
+  - strict-spec-cli architecture-generate keeps its arguments, output keys, and exit codes; this change only runs it.
+  - The architecture.yaml artifact, the spec index, and every technical standard stay byte-identical, so architecture-status keeps reporting 14 components, 3 data flows, 6 decisions, and no mapping drift.
+  - DESIGN.md stays as it is, because its renderer already reports it current.

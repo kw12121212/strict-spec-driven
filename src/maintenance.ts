@@ -101,7 +101,7 @@ function runSpecsDirectoryStructureCheck(rootDir: string): MaintenanceFinding[] 
  * against disk, and name the sources that went stale in check mode, so the check reuses them rather
  * than reimplementing comparison.
  */
-const GENERATED_DOCUMENT_TARGETS: {
+export const GENERATED_DOCUMENT_TARGETS: {
   reRenderCommand: string;
   check: (rootDir: string) => DocumentRenderResult;
 }[] = [

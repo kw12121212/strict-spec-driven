@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: refresh-stale-architecture-document
+approach:
+  - 'Run the owning generator once and let it write the document. The re-render is mechanical: the YAML sources are already correct, so the fix is to make the rendered file agree with them.'
+  - Close the gap that let the drift accumulate by adding a suite-level check, driven through the same DocumentRenderResult check mode the maintenance check already uses, so the repository stops depending on an operator running a writer command to notice staleness.
+decisions:
+  regenerate-never-hand-edit:
+    decision: Produce the new ARCHITECTURE.md only by running strict-spec-cli architecture-generate, never by editing the file or its sources.
+    rationale: 'The generated-documents-are-not-hand-edited MUST rule makes the generator the only writer, and the diff confirms every difference is derived content: requirement counts and technical-standard rule text the renderer computes from the sources.'
+  test-through-shared-registry:
+    decision: Drive the new test through the same generated-document target registry the maintenance check reads, rather than hardcoding ARCHITECTURE.md.
+    rationale: A hardcoded document list is exactly the shape the declared-surface-lists-are-checked-against-implementation rule exists to prevent; deriving from the registry means a third generated document added later is covered without editing the test.
+  no-delta-spec:
+    decision: Carry no delta spec and no delta tech.
+    rationale: 'No user-observable requirement changes and no engineering rule changes: the document was already required to match its sources by the existing generated-documents-are-not-hand-edited MUST rule, and this change enforces that rule rather than altering it.'
+alternatives:
+  - option: Re-render ARCHITECTURE.md and stop, without adding a test.
+    reason: 'Rejected: this is at least the fifth time the drift has been reported and cancelled. Without a check in the blocking path the document goes stale again on the next change that touches a spec index or a standard.'
+  - option: Add the check to the coverage gate script instead of the test suite.
+    reason: 'Rejected: the suite is where a failure names the file and the stale sources to a developer immediately, and the coverage gate already runs the suite, so a suite test is enforced by the same blocking command without a second enforcement path.'
+  - option: Make architecture-generate run automatically as part of build.
+    reason: 'Rejected: it would widen the build into a workflow-state writer, and a build that silently rewrites a tracked document hides the drift instead of reporting it.'
+risks:
+  - The re-render picks up every source change made since the last render, not only this change's. The diff must be read to confirm each difference is derived from a source the repository already accepted, or the change would quietly publish content nobody reviewed.
+  - 'The new test fails for any developer whose working tree has an un-rendered source change, which is the intended behavior but makes the remedy message load-bearing: it must name architecture-generate, or the failure reads as a broken test.'
