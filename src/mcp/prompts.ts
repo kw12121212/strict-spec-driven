@@ -58,7 +58,7 @@ export const MCP_PROMPT_DEFINITIONS: McpPromptDefinition[] = [
     const roadmapItem = typeof args.roadmapItem === "string" ? args.roadmapItem : undefined;
     if (roadmapItem) {
       return [
-        "Use strict-spec-propose-from-roadmap to create a strict YAML proposal from roadmap-backed work.",
+        "Use strict-roadmap-recommend to create a strict YAML proposal from roadmap-backed work.",
         `Roadmap proposal hint: ${roadmapItem}. Resolve exact milestone ids or unambiguous numeric shorthand such as 5 to a milestone id, then start with roadmap-recommend --milestone and treat the scripted recommendation as authoritative.`,
         args.summary ? `Requested change summary: ${args.summary}.` : "Derive proposal scope from the selected roadmap planned change when no extra summary is supplied.",
         "Read only the selected milestone and standalone planned-change context, scaffold exactly one recommended planned change, and link milestone and planned_change metadata in proposal.yaml.",
@@ -104,7 +104,7 @@ export const MCP_PROMPT_DEFINITIONS: McpPromptDefinition[] = [
     "Do not manually choose among roadmap candidates when the script returns a recommendation.",
   ].join("\n")),
   prompt("strict_harness_investigation", harnessSchema, (args) => [
-    `Use strict-spec-harness-session for harness session ${String(args.session)}.`,
+    `Drive harness session ${String(args.session)} with the strict-spec-cli harness-session command.`,
     args.environment ? `Target harness environment: ${args.environment}.` : "Select the environment from the harness declaration or user request.",
     "Run harness-plan before lifecycle commands, use harness-start/status/logs/stop or generated scripts, and record replayable evidence.",
     "For manual or sensitive steps, use human_checkpoints and manual_actions with secrets_recorded: false; never store secret values.",

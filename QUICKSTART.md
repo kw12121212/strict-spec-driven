@@ -97,7 +97,7 @@ This creates:
 - `.strict-spec-driven/roadmap/INDEX.yaml` — roadmap index
 - `.strict-spec-driven/changes/` — active and archived changes directory
 
-If a `.spec-driven/` bootstrap directory already exists, `init` emits a warning and continues. Use `/strict-spec-migrate` to convert bootstrap artifacts to strict YAML.
+If a `.spec-driven/` bootstrap directory already exists, `init` emits a warning and continues. Run `strict-spec-cli migrate` to convert bootstrap artifacts to strict YAML.
 
 ## Your First Change Lifecycle
 
@@ -208,7 +208,7 @@ The skill pauses only when open questions require user input or when an unrecove
 
 If your project has local services, production observability, or structured investigations, declare them in one harness:
 
-1. Run `/strict-spec-harness-init` to scaffold or refine `.strict-spec-driven/harness.yaml` from project context. The declaration is authored through `harness-infer` and `harness-edit` named arguments; a human may still maintain the file by hand outside the AI workflow. <!-- human-manual-edit -->
+1. Run `strict-spec-cli harness-infer --write` to draft `.strict-spec-driven/harness.yaml` from project context, then `strict-spec-cli harness-doctor` to resolve what it could not infer. The declaration is authored through `harness-infer` and `harness-edit` named arguments; a human may still maintain the file by hand outside the AI workflow. <!-- human-manual-edit -->
 2. Run the dry plan and generate scripts:
    ```sh
    node dist/strict-spec-cli.js harness-plan --environment development
@@ -222,7 +222,7 @@ When a bug needs structured evidence, create a harness session:
 node dist/strict-spec-cli.js harness-session create checkout-investigation
 ```
 
-Use `/strict-spec-harness-session` to guide the investigation. The workflow records selected environment/components, lifecycle evidence, reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, replay commands, and verification state without storing secret values.
+Record the investigation through `strict-spec-cli harness-session edit` named arguments. A session records selected environment/components, lifecycle evidence, reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, replay commands, and verification state without storing secret values.
 
 See [HARNESS.md](HARNESS.md) for the full reference.
 
@@ -230,8 +230,8 @@ See [HARNESS.md](HARNESS.md) for the full reference.
 
 If your project uses the legacy `.spec-driven/` Markdown workflow, migrate it to strict YAML:
 
-```
-/strict-spec-migrate
+```sh
+strict-spec-cli migrate
 ```
 
 The migration converts supported legacy specs, changes, and roadmap artifacts to `.strict-spec-driven/` YAML format. Unsupported or ambiguous shapes are reported as manual follow-up items. The source `.spec-driven/` directory is not modified.

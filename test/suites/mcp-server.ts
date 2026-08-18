@@ -262,7 +262,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   const roadmapBackedProposePrompt =
     promptsModule.renderStrictPrompt("strict_propose_change", { roadmapItem: "5" }).messages[0]?.content.text ?? "";
   context.assert(
-    roadmapBackedProposePrompt.includes("strict-spec-propose-from-roadmap")
+    roadmapBackedProposePrompt.includes("strict-roadmap-recommend")
       && roadmapBackedProposePrompt.includes("roadmap-recommend")
       && roadmapBackedProposePrompt.includes("unambiguous numeric shorthand")
       && roadmapBackedProposePrompt.includes("roadmap-recommend --milestone")
@@ -612,7 +612,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     });
     const roadmapPromptMessages = roadmapPromptGet.result?.messages as Array<{ content: { text: string } }> | undefined;
     context.assert(
-      roadmapPromptMessages?.[0]?.content.text.includes("strict-spec-propose-from-roadmap") === true
+      roadmapPromptMessages?.[0]?.content.text.includes("strict-roadmap-recommend") === true
         && roadmapPromptMessages?.[0]?.content.text.includes("roadmap-recommend") === true
         && roadmapPromptMessages?.[0]?.content.text.includes("generate proposal, design, questions, and delta-spec artifacts") === true,
       "MCP protocol prompts/get renders roadmap-backed propose guidance",
@@ -686,18 +686,19 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(quickstart.includes("confirm"), "Quick Start documents confirmation requirement");
 
   const proposeSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
-  const proposeFromRoadmapSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"), "utf8");
   const applySkill = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const reviewSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
   const roadmapSkill = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
-  const harnessSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
+  // The harness skill package was removed; HARNESS.md is the surviving surface that states the
+  // secret boundary the prompt has to keep matching.
+  const harnessDoc = readFileSync(path.join(ROOT, "HARNESS.md"), "utf8");
   const proposePrompt = promptsModule.renderStrictPrompt("strict_propose_change", {}).messages[0]?.content.text ?? "";
   const roadmapBackedPrompt = promptsModule.renderStrictPrompt("strict_propose_change", { roadmapItem: "5" }).messages[0]?.content.text ?? "";
   const applyPrompt = promptsModule.renderStrictPrompt("strict_apply_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
   context.assert(proposeSkill.includes("check-workflow-state") && proposePrompt.includes("check-workflow-state"), "MCP propose prompt tracks skill workflow precheck");
   context.assert(
-    proposeFromRoadmapSkill.includes("roadmap-recommend")
-      && roadmapBackedPrompt.includes("strict-spec-propose-from-roadmap")
+    roadmapSkill.includes("roadmap-recommend")
+      && roadmapBackedPrompt.includes("strict-roadmap-recommend")
       && roadmapBackedPrompt.includes("roadmap-recommend --milestone")
       && roadmapBackedPrompt.includes("unambiguous numeric shorthand"),
     "MCP propose roadmap prompt tracks roadmap-backed skill guidance",
@@ -709,5 +710,5 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
       && parameterizedRoadmapPrompt.includes("roadmap-recommend --milestone"),
     "MCP roadmap prompt tracks parameterized recommendation command",
   );
-  context.assert(harnessSkill.includes("secrets_recorded: false") && harnessPrompt.includes("secrets_recorded: false"), "MCP harness prompt tracks secret boundary");
+  context.assert(harnessDoc.includes("secrets_recorded: false") && harnessPrompt.includes("secrets_recorded: false"), "MCP harness prompt tracks secret boundary");
 }

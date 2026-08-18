@@ -96,7 +96,7 @@ node /path/to/strict-spec-driven/dist/strict-spec-cli.js init
 - `.strict-spec-driven/roadmap/INDEX.yaml` — 路线图索引
 - `.strict-spec-driven/changes/` — 活跃和已归档变更目录
 
-如果已存在 `.spec-driven/` 引导目录，`init` 会发出警告并继续。使用 `/strict-spec-migrate` 将引导制品转换为严格 YAML。
+如果已存在 `.spec-driven/` 引导目录，`init` 会发出警告并继续。运行 `strict-spec-cli migrate` 将引导制品转换为严格 YAML。
 
 ## 第一个变更生命周期
 
@@ -208,7 +208,7 @@ Ship Skill 读取已归档的变更摘要，构建提交信息，并将 `git pus
 
 如果你的项目有本地服务、生产环境可观测性或结构化调查，可以在一个 harness 中声明它们：
 
-1. 运行 `/strict-spec-harness-init` 从项目上下文中脚手架化（scaffold）或完善 `.strict-spec-driven/harness.yaml`。该声明通过 `harness-infer` 和 `harness-edit` 的命名参数编写；人类仍可在 AI 工作流之外手工维护该文件。 <!-- human-manual-edit -->
+1. 运行 `strict-spec-cli harness-infer --write` 从项目上下文中草拟 `.strict-spec-driven/harness.yaml`，再运行 `strict-spec-cli harness-doctor` 补齐推断不出的部分。该声明通过 `harness-infer` 和 `harness-edit` 的命名参数编写；人类仍可在 AI 工作流之外手工维护该文件。 <!-- human-manual-edit -->
 2. 运行空转规划（dry plan）并生成脚本：
    ```sh
    node dist/strict-spec-cli.js harness-plan --environment development
@@ -222,7 +222,7 @@ Ship Skill 读取已归档的变更摘要，构建提交信息，并将 `git pus
 node dist/strict-spec-cli.js harness-session create checkout-investigation
 ```
 
-使用 `/strict-spec-harness-session` 来引导调查。该工作流会记录选定的环境/组件、生命周期证据、重现步骤、证据文件、假设、发现、人工检查点、手动操作、重放/重现命令以及验证状态，且不会存储敏感值。
+通过 `strict-spec-cli harness-session edit` 的具名参数记录调查过程。一次会话会记录选定的环境/组件、生命周期证据、重现步骤、证据文件、假设、发现、人工检查点、手动操作、重放/重现命令以及验证状态，且不会存储敏感值。
 
 参见 [HARNESS.zh.md](HARNESS.zh.md) 了解完整参考。
 
@@ -230,8 +230,8 @@ node dist/strict-spec-cli.js harness-session create checkout-investigation
 
 如果你的项目使用旧版 `.spec-driven/` Markdown 工作流，将其迁移到严格 YAML：
 
-```
-/strict-spec-migrate
+```sh
+strict-spec-cli migrate
 ```
 
 迁移将支持的旧版规范、变更和路线图制品转换为 `.strict-spec-driven/` YAML 格式。不支持或模糊的格式会作为手动跟进事项报告。源 `.spec-driven/` 目录不会被修改。

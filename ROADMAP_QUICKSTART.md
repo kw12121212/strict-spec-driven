@@ -181,8 +181,8 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 |---|---|
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
 | `/strict-roadmap-review` | Review one incomplete milestone and apply fixes |
-| `/strict-spec-propose-from-roadmap` | Propose the next roadmap-recommended change without implementing |
 | `/strict-roadmap-recommend` | Get a recommendation for the next change |
-| `/strict-roadmap-transition` | One roadmap state transition: `pause`, `resume`, `defer`, `refine`, `reorder`, `move`, `reopen`, `archive`, `sync` |
+| `/strict-roadmap-transition` | One roadmap state transition: `pause`, `resume`, `defer`, `refine`, `move`, `reopen`, `archive`, `sync` |
+| `/strict-roadmap-reorder` | Change one active milestone's position in roadmap order |
 
 For the full reference, including field definitions and legacy materialization guidance, see [ROADMAP_GUIDE.md](ROADMAP_GUIDE.md).

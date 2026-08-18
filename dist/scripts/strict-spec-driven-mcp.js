@@ -36434,21 +36434,17 @@ mutation_surfaces:
       - skills/strict-spec-bugfix/SKILL.md
       - skills/strict-spec-design/SKILL.md
       - skills/strict-spec-design-sync/SKILL.md
-      - skills/strict-spec-harness-init/SKILL.md
-      - skills/strict-spec-harness-session/SKILL.md
       - skills/strict-spec-init/SKILL.md
       - skills/strict-spec-maintenance/SKILL.md
-      - skills/strict-spec-migrate/SKILL.md
       - skills/strict-spec-modify/SKILL.md
-      - skills/strict-spec-propose-from-roadmap/SKILL.md
       - skills/strict-spec-propose/SKILL.md
       - skills/strict-spec-review/SKILL.md
-      - skills/strict-spec-sop/SKILL.md
       - skills/strict-spec-spec-edit/SKILL.md
       - skills/strict-spec-sync-specs/SKILL.md
       - skills/strict-tech-edit/SKILL.md
       - skills/strict-tech-sync/SKILL.md
       - skills/strict-roadmap-transition/SKILL.md
+      - skills/strict-roadmap-reorder/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -42768,11 +42764,11 @@ var MCP_RESOURCE_INVENTORY = [
 var MCP_PROMPT_INVENTORY = [
   {
     name: "strict_propose_change",
-    description: "Guide a strict change proposal using strict-spec-propose for standalone work or strict-spec-propose-from-roadmap for roadmap-backed work.",
+    description: "Guide a strict change proposal using strict-spec-propose for standalone work or strict-roadmap-recommend for roadmap-backed work.",
     arguments: [
       { name: "change", description: "Optional kebab-case strict change name.", required: false },
       { name: "summary", description: "Optional short description of the requested change.", required: false },
-      { name: "roadmapItem", description: "Optional roadmap-backed milestone hint; accepts an exact milestone id or an unambiguous numeric prefix such as 5, then sources the proposal through strict-spec-propose-from-roadmap and roadmap-recommend --milestone.", required: false }
+      { name: "roadmapItem", description: "Optional roadmap-backed milestone hint; accepts an exact milestone id or an unambiguous numeric prefix such as 5, then sources the proposal through strict-roadmap-recommend and roadmap-recommend --milestone.", required: false }
     ]
   },
   {
@@ -42856,7 +42852,7 @@ var MCP_PROMPT_DEFINITIONS = [
     const roadmapItem = typeof args.roadmapItem === "string" ? args.roadmapItem : undefined;
     if (roadmapItem) {
       return [
-        "Use strict-spec-propose-from-roadmap to create a strict YAML proposal from roadmap-backed work.",
+        "Use strict-roadmap-recommend to create a strict YAML proposal from roadmap-backed work.",
         `Roadmap proposal hint: ${roadmapItem}. Resolve exact milestone ids or unambiguous numeric shorthand such as 5 to a milestone id, then start with roadmap-recommend --milestone and treat the scripted recommendation as authoritative.`,
         args.summary ? `Requested change summary: ${args.summary}.` : "Derive proposal scope from the selected roadmap planned change when no extra summary is supplied.",
         "Read only the selected milestone and standalone planned-change context, scaffold exactly one recommended planned change, and link milestone and planned_change metadata in proposal.yaml.",
@@ -42904,7 +42900,7 @@ var MCP_PROMPT_DEFINITIONS = [
   ].join(`
 `)),
   prompt("strict_harness_investigation", harnessSchema, (args) => [
-    `Use strict-spec-harness-session for harness session ${String(args.session)}.`,
+    `Drive harness session ${String(args.session)} with the strict-spec-cli harness-session command.`,
     args.environment ? `Target harness environment: ${args.environment}.` : "Select the environment from the harness declaration or user request.",
     "Run harness-plan before lifecycle commands, use harness-start/status/logs/stop or generated scripts, and record replayable evidence.",
     "For manual or sensitive steps, use human_checkpoints and manual_actions with secrets_recorded: false; never store secret values."

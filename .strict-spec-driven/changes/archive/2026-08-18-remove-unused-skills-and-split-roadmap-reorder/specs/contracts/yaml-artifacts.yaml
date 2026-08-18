@@ -1,0 +1,43 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+operations:
+  ADDED: {}
+  MODIFIED:
+    non-init-strict-skills-require-existing-workflow-state:
+      strength: MUST
+      statement: The system MUST require every strict skill except strict-spec-init to run the scripted check-workflow-state command before any other workflow step, and when .strict-spec-driven/ is missing the skill MUST stop and direct the user to run /strict-spec-init instead of invoking init itself.
+      scenarios:
+        missing-workflow-state-blocks-non-init-skills:
+          - GIVEN: a strict non-init skill that operates on .strict-spec-driven/ workflow state is reviewed
+          - WHEN: its prerequisites, command mapping, and first workflow step are inspected
+          - THEN: the skill exposes the check-workflow-state command in its command mapping, requires running it before any other workflow work, stops with guidance to run /strict-spec-init when the directory is missing, and does not tell the agent to run the bundled init command as a fallback
+        only-init-is-exempt:
+          - GIVEN: the bundled skill set is inspected for skills exempt from the check-workflow-state precondition
+          - WHEN: strict skill content validation runs
+          - THEN: strict-spec-init is the only exempt package, because the strict-spec-migrate skill that previously required the exemption for a repository without strict workflow state is no longer packaged
+    strict-roadmap-skill-command-contract:
+      strength: MUST
+      statement: The system MUST provide strict roadmap skill packages for planning, recommendation, review, state transition, and reorder with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST keep roadmap-backed proposal scaffolding owned by the strict-roadmap-recommend skill rather than packaging a separate strict-roadmap-propose or strict-spec-propose-from-roadmap skill.
+      scenarios:
+        roadmap-skills-expose-concrete-strict-commands:
+          - GIVEN: a strict roadmap SKILL.md file is reviewed
+          - WHEN: its command mapping section is inspected
+          - THEN: the command mapping identifies the specific strict command entry or entries the skill uses and is not limited to generic placeholder commands
+        no-separate-roadmap-proposal-skill-is-packaged:
+          - GIVEN: the repository skill packaging surfaces are reviewed
+          - WHEN: the skills directory and marketplace metadata are inspected
+          - THEN: no strict-roadmap-propose and no strict-spec-propose-from-roadmap skill package or marketplace entry exists, and roadmap-backed recommendation with proposal scaffolding is owned by the strict-roadmap-recommend skill
+    strict-roadmap-scripted-selection:
+      strength: MUST
+      statement: The strict-roadmap-recommend skill MUST obtain the planned-change recommendation from the scripted roadmap-recommend command before scaffolding a strict change, and when a user provides a roadmap hint it MUST resolve exact milestone ids or unambiguous numeric milestone-prefix shorthand to an exact milestone id before passing it to roadmap-recommend with --milestone.
+      scenarios:
+        skill-resolves-fuzzy-milestone-hint:
+          - GIVEN: a user invokes the roadmap-backed recommendation skill with a milestone hint such as an exact milestone id or a standalone number
+          - WHEN: the skill obtains the scripted recommendation
+          - THEN: the skill resolves the hint to exactly one milestone id, runs roadmap-recommend --milestone with the resolved id, treats the returned recommendation as authoritative, and stops with a clear blocker if the hint matches no milestone or several instead of manually selecting a planned change
+  REMOVED:
+    strict-harness-init-interactive-checkpoint:
+      reason: The requirement governs only the strict-spec-harness-init skill package's interactive draft-confirmation workflow. That package is deleted by this change, and the harness-infer and harness-init CLI commands it wrapped keep their own behavior requirements in the harness domain spec, so nothing the requirement constrains survives it.

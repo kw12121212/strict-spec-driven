@@ -199,7 +199,7 @@ run `init` from this skill.
 1. **Determine the change name** — use the user-provided kebab-case name when it
    already exists. Otherwise derive one from the request and scope. If the user
    asks to source a change from the roadmap, stop and tell them to use
-   `/strict-spec-propose-from-roadmap` so standalone proposals and roadmap-backed
+   `/strict-roadmap-recommend` so standalone proposals and roadmap-backed
    proposals stay separate.
 
 2. **Read project context, existing strict specs, and technical standards** — read:

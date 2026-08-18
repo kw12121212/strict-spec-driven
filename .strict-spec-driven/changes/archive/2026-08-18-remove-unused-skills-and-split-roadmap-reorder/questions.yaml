@@ -1,0 +1,56 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: remove-unused-skills-and-split-roadmap-reorder
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today with the bundled skill surface, and for whom?
+    context: 'Determines whether this change is about capability removal or entry-point removal, which decides whether the backing CLI commands are in scope. Impact: choosing capability removal would multiply the scope and break RTK.md''s declared external-project migration capability.'
+    answer: 'The five packages are never invoked in this repository''s own workflow, yet they occupy the slash-command list an operator scans before choosing a skill. Three of them are duplicate entry points rather than distinct capabilities: propose-from-roadmap duplicates roadmap-recommend''s scaffolding path, and the two harness skills overlap the ordinary debugging flow. At 748 lines they are 13 percent of the bundled skill text that is loaded as context.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Fixes the acceptance criteria the tests must pin. Impact: without a measured count the reduction is an assertion rather than evidence, which is the failure mode the previous consolidation change explicitly corrected.'
+    answer: validate-skills reports skillCount 24 with marketplaceCount 24 and zero diagnostics; the five deleted names appear in no live repository file; strict-roadmap-reorder exists as its own package and strict-roadmap-transition covers eight operations; and every retained CLI command and domain spec still behaves identically.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this change rather than leaving the surface at 28 skills?
+    context: 'Separates a real trigger from tidying. Impact: the reorder extraction partially reverses a decision archived days ago, so the trigger has to justify the reversal or the change is churn.'
+    answer: 'The preceding skill-surface-consolidation milestone cut 36 skills to 28 and explicitly deferred re-measuring the thin non-roadmap skills to a later change; this is that change. The reorder extraction is triggered separately by usage: reorder is invoked often enough that the operation-selection step inside the parameterized transition skill costs more than a dedicated package does.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Becomes the hard constraints in proposal.out and unchanged_behavior. Impact: without them a sweep of this width tends to drift into the CLI layer or into weakening a test to make a count pass.'
+    answer: No alias or forwarding skills for the deleted names; no edits to archived changes or roadmap history; no change to any CLI command name, argument, output, or exit code; and no lowering of the declared coverage threshold of 78.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Where deleting a skill could mean either removing the whole capability or only its skill-shaped entry point, which reading is intended?
+    context: 'The five skills sit on top of CLI commands, four domain specs, and four skill-behavior MUST clauses. Impact: the entry-point reading keeps the CLI and domain specs intact but still forces delta-spec edits to the clauses that name the deleted packages, because those clauses would otherwise reference skills that do not exist.'
+    answer: Entry point only. The CLI commands and the sop, harness, sessions, and migrate domain specs are retained unchanged. The four skill-packaging clauses that name deleted packages are modified or removed through delta specs, and documentation references are rewritten into the equivalent strict-spec-cli invocation rather than deleted.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: bugfix-handoff-target
+    question: strict-spec-bugfix routes unclear or unreproduced defects to strict-spec-harness-session, pinned by a model.ts required snippet and a main spec MUST. Where does that branch route once harness-session is deleted?
+    context: 'Options were routing to /strict-spec-brainstorm, replacing the handoff with a stop-and-report instruction, or deleting the branch and its MUST sub-clause. Impact: deleting it would drop a guardrail whose absence already shipped once as the stale strict-spec-debug-session reference. Recommendation was brainstorm, as the surviving skill that interrogates a problem before scoping work.'
+    answer: Route to /strict-spec-brainstorm. The boundary that an unclear issue is not fixed from code inspection alone is retained; only the named target changes, in the skill prompt, the model.ts snippet, and the cli-bugfix-skill-packaging-validation MUST.
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: documentation-reference-treatment
+    question: How are the 27 documentation references to the deleted skills handled?
+    context: 'Options were rewriting each into the equivalent strict-spec-cli invocation and keeping every document, deleting the HARNESS and DEBUG_QUICKSTART guides outright, or deleting the sentences with no substitute. Impact: the CLI commands survive this change, so a deletion-only sweep would leave live capabilities undiscoverable.'
+    answer: Rewrite every reference into the equivalent strict-spec-cli invocation and retain all documentation, including the four harness and debug guides.
+    status: resolved
+    kind: technical
+    answered_by: human

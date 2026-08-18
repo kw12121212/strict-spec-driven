@@ -68,11 +68,11 @@ Harness 会话保存在 `.strict-spec-driven/harness-sessions/<session-id>/` 目
 
 证据条目和手动操作必须保持 `contains_secrets: false` 和 `secrets_recorded: false`。
 
-## 技能 (Skills)
+## 工作流 (Workflows)
 
-两个技能驱动 harness 工作流：
+两条 CLI 工作流驱动 harness。它们都不是技能包，而是一串 `strict-spec-cli` 命令，顺序有意义：
 
-### `/strict-spec-harness-init`
+### 声明 harness
 
 创建或优化项目的 harness 声明。步骤如下：
 
@@ -84,11 +84,11 @@ Harness 会话保存在 `.strict-spec-driven/harness-sessions/<session-id>/` 目
 6. 对每个声明的环境通过 `harness-plan` 进行验证。
 7. 在 `scripts/` 下生成并验证项目本地脚本。
 
-推断出的生产环境命令和有状态生命周期操作保持禁用状态，直到人工明确确认。
+推断出的生产环境命令和有状态生命周期操作保持禁用状态，直到人工明确确认。写入文件前，应将推断出的草案完整呈现给人工，并确认开发与生产环境配置——推断无法判断某条生产命令是否可以安全执行。
 
-### `/strict-spec-harness-session`
+### 运行调查会话
 
-引导 harness 调查会话，包含生命周期证据、人工检查点、重放命令和验证。步骤如下：
+驱动一次 harness 调查，包含生命周期证据、人工检查点、重放命令和验证。步骤如下：
 
 1. 使用 `harness-session create <session-id>` 创建新会话，或验证现有会话。
 2. 记录选定的 harness 环境和组件。
@@ -97,4 +97,4 @@ Harness 会话保存在 `.strict-spec-driven/harness-sessions/<session-id>/` 目
 5. 保存重放命令，并使用证据标识符更新验证状态。
 6. 使用 `harness-session validate <session-id>` 进行验证，然后归档状态为 `resolved` 或 `blocked` 的会话。
 
-此技能取代了早期的 debug-session 工作流。不要从中创建或管理 `debug-session` 产物。
+此工作流取代了早期的 debug-session 工作流。不要创建或管理 `debug-session` 产物。

@@ -69,20 +69,33 @@ const ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestone
 const ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
 const ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
 const ROADMAP_ORDER_SOURCE_SNIPPET = "Use `roadmap-status` or `roadmap-overview` order, never id-prefix order";
+const ROADMAP_REORDER_PLACEMENT_FLAGS_SNIPPET =
+  "Pass exactly one of `--before`, `--after`, or `--order`";
+const ROADMAP_REORDER_RENUMBER_FALLBACK_SNIPPET =
+  "If no integer gap exists between the requested neighbours, run\n`roadmap-renumber` first, then rerun the reorder.";
 /**
- * The merged roadmap state-transition skill replaces nine single-command skills, and only four of
- * those — reorder, move, sync, and archive — ever had expectations. These snippets are chosen so
- * that every one of the nine operations has at least one element of its own judgment asserted, not
+ * The merged roadmap state-transition skill replaces eight single-command skills, and only three of
+ * those — move, sync, and archive — ever had expectations. These snippets are chosen so
+ * that every one of the eight operations has at least one element of its own judgment asserted, not
  * merely its command name, which the requiredCommands map already covers. A skill that dropped
  * pause's recommendation effect or reopen's frozen-history rule would otherwise still validate.
+ *
+ * Reorder is not among them. It left this skill for its own package, whose expectation below
+ * carries the reorder snippets on the same terms.
  */
 const ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET = "**The operation must be explicit.**";
 const ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET =
-  "stop and ask the user which of the nine is intended";
+  "stop and ask the user which of the eight is intended";
 const ROADMAP_TRANSITION_INVERSE_PAIRS_SNIPPET =
   "`pause` and `resume` undo each other, `defer` and `refine` undo each other";
 const ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET =
   "Archived milestones and archived planned changes are frozen history";
+/**
+ * The reorder skill states the same rule over the only artifact it can reach. Reorder never
+ * touches a planned change, so requiring the transition skill's wider literal would force the
+ * reorder guidance to claim a scope the command does not have.
+ */
+const ROADMAP_REORDER_ARCHIVED_FROZEN_SNIPPET = "Archived milestones are frozen history";
 const ROADMAP_TRANSITION_PAUSE_SKIP_REASON_SNIPPET = "milestone-paused";
 const ROADMAP_TRANSITION_RESUME_CLEARS_PAUSE_SNIPPET = "Resume deletes the `paused` field";
 const ROADMAP_TRANSITION_DEFER_IS_NOT_PAUSE_SNIPPET = "**Deferral is not a pause.**";
@@ -103,8 +116,6 @@ const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap c
 const ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
 const ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
 const ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose";
-const ROADMAP_PROPOSE_FROM_ROADMAP_PROPOSAL_ONLY_SNIPPET =
-  "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose-from-roadmap";
 const AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
 const AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
 const AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET =
@@ -141,7 +152,7 @@ const BUGFIX_KNOWN_BUG_SNIPPET = "known bug";
 const BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
 const BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
 const BUGFIX_MINIMAL_FIX_SNIPPET = "minimal fix";
-const BUGFIX_INVESTIGATION_SESSION_SNIPPET = "strict-spec-harness-session";
+const BUGFIX_UNCLEAR_ISSUE_HANDOFF_SNIPPET = "strict-spec-brainstorm";
 
 /**
  * Skills that start a change from a human request. Each must interrogate the need before the
@@ -308,7 +319,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ".strict-spec-driven/",
       "/strict-spec-auto",
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
-      "strict-spec-propose-from-roadmap",
+      "strict-roadmap-recommend",
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
@@ -321,39 +332,6 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
       "proposal review",
-    ],
-  },
-  "strict-spec-propose-from-roadmap": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
-      propose: `${COMMAND_PREFIX} propose <change-name>`,
-      generate: GENERATE_NAMED_ARGS_COMMAND,
-      ready: READY_COMMAND,
-      verify: `${COMMAND_PREFIX} verify <change-name>`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
-      "/strict-spec-auto",
-      ROADMAP_DETAILS_GUIDANCE_SNIPPET,
-      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
-      ROADMAP_ACTIVE_CONFLICT_SNIPPET,
-      ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
-      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
-      ROADMAP_PROPOSE_FROM_ROADMAP_PROPOSAL_ONLY_SNIPPET,
-      PROPOSAL_CHECKPOINT_SNIPPET,
-      PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
-      PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
-      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
-      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
-      SAMPLE_SHOW_LOOKUP_SNIPPET,
-      LOCAL_EXAMPLES_DIRECTORY_SNIPPET,
-    ],
-    forbiddenSnippets: [
-      "proposal review",
-      "immediately invoke the\n   `/strict-spec-auto <change-name>` skill",
     ],
   },
   "strict-spec-apply": {
@@ -484,7 +462,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET,
       BUGFIX_REGRESSION_TEST_SNIPPET,
       BUGFIX_MINIMAL_FIX_SNIPPET,
-      BUGFIX_INVESTIGATION_SESSION_SNIPPET,
+      BUGFIX_UNCLEAR_ISSUE_HANDOFF_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",
@@ -624,16 +602,14 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     ],
   },
   /**
-   * One entry covering all nine transitions the merged skill performs. Every operation contributes
+   * One entry covering all eight transitions the merged skill performs. Every operation contributes
    * both a command mapping and at least one content snippet, so the five that no expectation
    * reached before this entry existed — pause, resume, defer, refine, and reopen — are enforced on
-   * the same terms as the four that did.
+   * the same terms as the three that did.
    *
-   * This entry is the sole home of the assertions that the deleted strict-roadmap-reorder, move,
-   * sync, and archive entries carried. Their per-skill single-command and frozen-history literals
-   * are covered here by ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET and
-   * ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET, which assert the same guidance against the merged
-   * skill's own wording; every other snippet they required is listed below unchanged.
+   * Reorder is deliberately absent: it is the one transition whose frequency earned its own skill
+   * package, so its command mappings and guidance snippets live in the reorder entry below rather
+   * than here, and no operation is asserted against two packages.
    */
   "strict-roadmap-transition": {
     requiredCommands: {
@@ -643,8 +619,6 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       "roadmap-resume": `${COMMAND_PREFIX} roadmap-resume <milestone-id>`,
       "roadmap-defer": `${COMMAND_PREFIX} roadmap-defer <milestone-id>`,
       "roadmap-refine": `${COMMAND_PREFIX} roadmap-refine <milestone-id>`,
-      "roadmap-reorder": `${COMMAND_PREFIX} roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)`,
-      "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`,
       "roadmap-move-planned-change":
         `${COMMAND_PREFIX} roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]`,
       "roadmap-reopen": `${COMMAND_PREFIX} roadmap-reopen <milestone-id>`,
@@ -659,7 +633,6 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_CANONICAL_FILENAME_SNIPPET,
       ROADMAP_FIX_NAMES_SNIPPET,
       ROADMAP_ORDER_SOURCE_SNIPPET,
-      "optional integer `order` field",
       ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET,
       ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET,
       ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET,
@@ -679,6 +652,27 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET,
       ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET,
       ROADMAP_TRANSITION_SYNC_INVENTS_NOTHING_SNIPPET,
+    ],
+  },
+  "strict-roadmap-reorder": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
+      "roadmap-reorder": `${COMMAND_PREFIX} roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)`,
+      "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET,
+      ROADMAP_ORDER_SOURCE_SNIPPET,
+      "optional integer `order` field",
+      ROADMAP_REORDER_PLACEMENT_FLAGS_SNIPPET,
+      ROADMAP_REORDER_RENUMBER_FALLBACK_SNIPPET,
+      "dependency-order concern",
+      ROADMAP_REORDER_ARCHIVED_FROZEN_SNIPPET,
     ],
   },
 };
@@ -716,17 +710,6 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [".strict-spec-driven/specs/", "INDEX.yaml"],
-  },
-};
-
-export const MIGRATION_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
-  "strict-spec-migrate": {
-    requiredCommands: {
-      migrate: `${COMMAND_PREFIX} migrate`,
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".spec-driven/", ".strict-spec-driven/"],
   },
 };
 

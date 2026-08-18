@@ -31,15 +31,25 @@ This repository keeps a single active workflow directory, `.strict-spec-driven/`
 
 <!-- retired-skill-names -->
 
-The nine single-command roadmap skills were merged into one parameterized skill.
-`/strict-roadmap-pause`, `/strict-roadmap-resume`, `/strict-roadmap-defer`,
-`/strict-roadmap-refine`, `/strict-roadmap-reorder`, `/strict-roadmap-move`,
-`/strict-roadmap-reopen`, `/strict-roadmap-archive`, and `/strict-roadmap-sync`
-no longer exist as skill packages, and no alias package forwards them, so an
-invocation of one of those slash commands now fails rather than silently doing
-the right thing.
+The nine single-command roadmap skills were merged into one parameterized skill,
+and `/strict-roadmap-reorder` was then split back out because it is invoked often
+enough to earn a dedicated entry point. `/strict-roadmap-pause`,
+`/strict-roadmap-resume`, `/strict-roadmap-defer`, `/strict-roadmap-refine`,
+`/strict-roadmap-move`, `/strict-roadmap-reopen`, `/strict-roadmap-archive`, and
+`/strict-roadmap-sync` no longer exist as skill packages, and no alias package
+forwards them, so an invocation of one of those slash commands now fails rather
+than silently doing the right thing.
 
-Each is now an explicit operation of one skill:
+The five skills `/strict-spec-sop`, `/strict-spec-harness-init`,
+`/strict-spec-harness-session`, `/strict-spec-migrate`, and
+`/strict-spec-propose-from-roadmap` were removed the same way. Their CLI
+commands are unchanged — `sop-create` and the other `sop-*` commands, the
+`harness-*` commands, and `migrate` all keep their names, arguments, and
+behavior — so the capabilities remain available through `strict-spec-cli`, and
+roadmap-backed proposals are scaffolded by `/strict-roadmap-recommend`.
+
+Each retired roadmap name is now an explicit operation of one skill, except
+reorder, which has its own skill again:
 
 | Retired slash command | Replacement |
 |---|---|
@@ -47,7 +57,7 @@ Each is now an explicit operation of one skill:
 | `/strict-roadmap-resume` | `/strict-roadmap-transition resume` |
 | `/strict-roadmap-defer` | `/strict-roadmap-transition defer` |
 | `/strict-roadmap-refine` | `/strict-roadmap-transition refine` |
-| `/strict-roadmap-reorder` | `/strict-roadmap-transition reorder` |
+| `/strict-roadmap-reorder` | `/strict-roadmap-reorder` (its own skill again) |
 | `/strict-roadmap-move` | `/strict-roadmap-transition move` |
 | `/strict-roadmap-reopen` | `/strict-roadmap-transition reopen` |
 | `/strict-roadmap-archive` | `/strict-roadmap-transition archive` |
@@ -126,12 +136,8 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-archive` | Archive a completed change |
 | `/strict-spec-auto` | End-to-end automated change lifecycle |
 | `/strict-spec-ship` | Ship an archived change via git commit |
-| `/strict-spec-migrate` | Migrate bootstrap state to strict YAML |
 | `/strict-spec-brainstorm` | Brainstorm a change idea before proposing |
 | `/strict-spec-modify` | Modify an existing change's artifacts |
-| `/strict-spec-propose-from-roadmap` | Propose a change from the next roadmap recommendation |
-| `/strict-spec-harness-init` | Create or refine `.strict-spec-driven/harness.yaml` and generated scripts |
-| `/strict-spec-harness-session` | Run a structured harness investigation |
 | `/strict-spec-spec-edit` | Edit main spec files directly |
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
 | `/strict-spec-design` | Author or refresh the design system artifact and render `DESIGN.md` |
@@ -145,7 +151,8 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-roadmap-recommend` | Recommend the next planned change from the roadmap |
 | `/strict-roadmap-review` | Review one incomplete roadmap milestone and apply fixes |
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
-| `/strict-roadmap-transition` | Perform one roadmap state transition: `pause`, `resume`, `defer`, `refine`, `reorder`, `move`, `reopen`, `archive`, or `sync` |
+| `/strict-roadmap-transition` | Perform one roadmap state transition: `pause`, `resume`, `defer`, `refine`, `move`, `reopen`, `archive`, or `sync` |
+| `/strict-roadmap-reorder` | Change one active milestone's position in roadmap order |
 
 The roadmap docs describe the preferred split-file collaboration model: keep milestone files and `INDEX.yaml` low churn, store day-to-day roadmap work in `.strict-spec-driven/roadmap/planned-changes/`, rerun `roadmap-sync` after merges or archive handoff, and treat external tracker references as optional context rather than required source of truth.
 
@@ -351,7 +358,7 @@ See [HARNESS.md](HARNESS.md) for the full reference.
 
 ## Migration Boundaries
 
-The `migrate` subcommand and `/strict-spec-migrate` skill convert supported legacy `.spec-driven/` Markdown artifacts into `.strict-spec-driven/` YAML artifacts. The source `.spec-driven/` directory is not modified. Unsupported or ambiguous legacy shapes are reported as manual follow-up items in the migration report.
+The `strict-spec-cli migrate` subcommand converts supported legacy `.spec-driven/` Markdown artifacts into `.strict-spec-driven/` YAML artifacts. The source `.spec-driven/` directory is not modified. Unsupported or ambiguous legacy shapes are reported as manual follow-up items in the migration report.
 
 After migration, `.strict-spec-driven/` is the active workflow state. `.spec-driven/` remains as bootstrap or legacy history and is not treated as a valid strict workflow target.
 

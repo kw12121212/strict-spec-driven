@@ -12205,21 +12205,17 @@ mutation_surfaces:
       - skills/strict-spec-bugfix/SKILL.md
       - skills/strict-spec-design/SKILL.md
       - skills/strict-spec-design-sync/SKILL.md
-      - skills/strict-spec-harness-init/SKILL.md
-      - skills/strict-spec-harness-session/SKILL.md
       - skills/strict-spec-init/SKILL.md
       - skills/strict-spec-maintenance/SKILL.md
-      - skills/strict-spec-migrate/SKILL.md
       - skills/strict-spec-modify/SKILL.md
-      - skills/strict-spec-propose-from-roadmap/SKILL.md
       - skills/strict-spec-propose/SKILL.md
       - skills/strict-spec-review/SKILL.md
-      - skills/strict-spec-sop/SKILL.md
       - skills/strict-spec-spec-edit/SKILL.md
       - skills/strict-spec-sync-specs/SKILL.md
       - skills/strict-tech-edit/SKILL.md
       - skills/strict-tech-sync/SKILL.md
       - skills/strict-roadmap-transition/SKILL.md
+      - skills/strict-roadmap-reorder/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -31024,10 +31020,7 @@ function bodyWithoutProtocolSection(skillText) {
 ## `, start + AUTHORING_PROTOCOL_HEADING.length);
   return skillText.slice(0, start) + (next === -1 ? "" : skillText.slice(next + 1));
 }
-var MUTATION_CAPABLE_EXCEPTIONS = new Set(["strict-spec-migrate"]);
-function isMutationCapableSkill(skillName, skillText) {
-  if (MUTATION_CAPABLE_EXCEPTIONS.has(skillName))
-    return true;
+function isMutationCapableSkill(skillText) {
   const body = bodyWithoutProtocolSection(skillText);
   const { mutatingOwnerCommands } = loadPolicyRegistry();
   return [...mutatingOwnerCommands].some((command) => new RegExp(`strict-spec-cli\\s+${command}(?![a-z0-9-])`).test(body));
@@ -33686,10 +33679,13 @@ var ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestones"
 var ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
 var ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
 var ROADMAP_ORDER_SOURCE_SNIPPET = "Use `roadmap-status` or `roadmap-overview` order, never id-prefix order";
+var ROADMAP_REORDER_PLACEMENT_FLAGS_SNIPPET = "Pass exactly one of `--before`, `--after`, or `--order`";
+var ROADMAP_REORDER_RENUMBER_FALLBACK_SNIPPET = "If no integer gap exists between the requested neighbours, run\n`roadmap-renumber` first, then rerun the reorder.";
 var ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET = "**The operation must be explicit.**";
-var ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET = "stop and ask the user which of the nine is intended";
+var ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET = "stop and ask the user which of the eight is intended";
 var ROADMAP_TRANSITION_INVERSE_PAIRS_SNIPPET = "`pause` and `resume` undo each other, `defer` and `refine` undo each other";
 var ROADMAP_TRANSITION_ARCHIVED_FROZEN_SNIPPET = "Archived milestones and archived planned changes are frozen history";
+var ROADMAP_REORDER_ARCHIVED_FROZEN_SNIPPET = "Archived milestones are frozen history";
 var ROADMAP_TRANSITION_PAUSE_SKIP_REASON_SNIPPET = "milestone-paused";
 var ROADMAP_TRANSITION_RESUME_CLEARS_PAUSE_SNIPPET = "Resume deletes the `paused` field";
 var ROADMAP_TRANSITION_DEFER_IS_NOT_PAUSE_SNIPPET = "**Deferral is not a pause.**";
@@ -33707,7 +33703,6 @@ var ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap con
 var ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
 var ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
 var ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose";
-var ROADMAP_PROPOSE_FROM_ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose-from-roadmap";
 var AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
 var AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
 var AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET = "exactly matches the configured complete project regression command";
@@ -33730,7 +33725,7 @@ var BUGFIX_KNOWN_BUG_SNIPPET = "known bug";
 var BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
 var BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
 var BUGFIX_MINIMAL_FIX_SNIPPET = "minimal fix";
-var BUGFIX_INVESTIGATION_SESSION_SNIPPET = "strict-spec-harness-session";
+var BUGFIX_UNCLEAR_ISSUE_HANDOFF_SNIPPET = "strict-spec-brainstorm";
 var REQUIREMENT_INTERROGATION_SKILLS = [
   "strict-spec-brainstorm",
   "strict-spec-propose",
@@ -33829,7 +33824,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       ".strict-spec-driven/",
       "/strict-spec-auto",
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
-      "strict-spec-propose-from-roadmap",
+      "strict-roadmap-recommend",
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
@@ -33842,39 +33837,6 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
       "proposal review"
-    ]
-  },
-  "strict-spec-propose-from-roadmap": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
-      propose: `${COMMAND_PREFIX} propose <change-name>`,
-      generate: GENERATE_NAMED_ARGS_COMMAND,
-      ready: READY_COMMAND,
-      verify: `${COMMAND_PREFIX} verify <change-name>`
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
-      "/strict-spec-auto",
-      ROADMAP_DETAILS_GUIDANCE_SNIPPET,
-      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
-      ROADMAP_ACTIVE_CONFLICT_SNIPPET,
-      ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
-      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
-      ROADMAP_PROPOSE_FROM_ROADMAP_PROPOSAL_ONLY_SNIPPET,
-      PROPOSAL_CHECKPOINT_SNIPPET,
-      PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
-      PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
-      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
-      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
-      SAMPLE_SHOW_LOOKUP_SNIPPET,
-      LOCAL_EXAMPLES_DIRECTORY_SNIPPET
-    ],
-    forbiddenSnippets: [
-      "proposal review",
-      "immediately invoke the\n   `/strict-spec-auto <change-name>` skill"
     ]
   },
   "strict-spec-apply": {
@@ -34005,7 +33967,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET,
       BUGFIX_REGRESSION_TEST_SNIPPET,
       BUGFIX_MINIMAL_FIX_SNIPPET,
-      BUGFIX_INVESTIGATION_SESSION_SNIPPET,
+      BUGFIX_UNCLEAR_ISSUE_HANDOFF_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",
@@ -34150,8 +34112,6 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       "roadmap-resume": `${COMMAND_PREFIX} roadmap-resume <milestone-id>`,
       "roadmap-defer": `${COMMAND_PREFIX} roadmap-defer <milestone-id>`,
       "roadmap-refine": `${COMMAND_PREFIX} roadmap-refine <milestone-id>`,
-      "roadmap-reorder": `${COMMAND_PREFIX} roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)`,
-      "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`,
       "roadmap-move-planned-change": `${COMMAND_PREFIX} roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]`,
       "roadmap-reopen": `${COMMAND_PREFIX} roadmap-reopen <milestone-id>`,
       "roadmap-archive": `${COMMAND_PREFIX} roadmap-archive [milestone-id]`,
@@ -34165,7 +34125,6 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       ROADMAP_CANONICAL_FILENAME_SNIPPET,
       ROADMAP_FIX_NAMES_SNIPPET,
       ROADMAP_ORDER_SOURCE_SNIPPET,
-      "optional integer `order` field",
       ROADMAP_TRANSITION_EXPLICIT_OPERATION_SNIPPET,
       ROADMAP_TRANSITION_STOP_WITHOUT_OPERATION_SNIPPET,
       ROADMAP_TRANSITION_SINGLE_COMMAND_SNIPPET,
@@ -34185,6 +34144,27 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET,
       ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET,
       ROADMAP_TRANSITION_SYNC_INVENTS_NOTHING_SNIPPET
+    ]
+  },
+  "strict-roadmap-reorder": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
+      "roadmap-reorder": `${COMMAND_PREFIX} roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)`,
+      "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET,
+      ROADMAP_ORDER_SOURCE_SNIPPET,
+      "optional integer `order` field",
+      ROADMAP_REORDER_PLACEMENT_FLAGS_SNIPPET,
+      ROADMAP_REORDER_RENUMBER_FALLBACK_SNIPPET,
+      "dependency-order concern",
+      ROADMAP_REORDER_ARCHIVED_FROZEN_SNIPPET
     ]
   }
 };
@@ -34221,16 +34201,6 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [".strict-spec-driven/specs/", "INDEX.yaml"]
-  }
-};
-var MIGRATION_STRICT_SKILL_EXPECTATIONS = {
-  "strict-spec-migrate": {
-    requiredCommands: {
-      migrate: `${COMMAND_PREFIX} migrate`,
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".spec-driven/", ".strict-spec-driven/"]
   }
 };
 function makeDiagnostic5(code, diagPath, message, expected, actual) {
@@ -34270,7 +34240,7 @@ function validateTaskOrderGuidance(skillName, content, skillPath, diagnostics) {
   }
 }
 function requiresExistingStrictWorkflowState(skillName) {
-  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-") || skillName.startsWith("strict-tech-")) && skillName !== "strict-spec-init" && skillName !== "strict-spec-migrate";
+  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-") || skillName.startsWith("strict-tech-")) && skillName !== "strict-spec-init";
 }
 function validateStrictWorkflowStateGuidance(skillName, content, commands, skillPath, diagnostics) {
   if (!requiresExistingStrictWorkflowState(skillName))
@@ -34338,9 +34308,6 @@ function validateRoadmapSkillContent(skillName, content, commands, skillPath, di
 function validatePlanningSkillContent(skillName, content, commands, skillPath, diagnostics) {
   validateSkillContentAgainstExpectation(skillName, content, commands, skillPath, diagnostics, PLANNING_STRICT_SKILL_EXPECTATIONS, "skill.planning", "strict planning skill");
 }
-function validateMigrationSkillContent(skillName, content, commands, skillPath, diagnostics) {
-  validateSkillContentAgainstExpectation(skillName, content, commands, skillPath, diagnostics, MIGRATION_STRICT_SKILL_EXPECTATIONS, "skill.migration", "strict migration skill");
-}
 var normalizeWhitespace3 = (text) => text.replace(/\s+/g, " ");
 function skillSection(content, heading) {
   const start = content.indexOf(heading);
@@ -34404,7 +34371,7 @@ function validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnost
   }
 }
 function validateAuthoringProtocolPointer(skillName, content, commands, skillPath, diagnostics) {
-  if (!isMutationCapableSkill(skillName, content))
+  if (!isMutationCapableSkill(content))
     return;
   const section = authoringProtocolSection(content);
   if (section === undefined) {
@@ -34442,7 +34409,7 @@ function validateAuthoringProtocolPointer(skillName, content, commands, skillPat
   }
 }
 function validateCliOnlyYamlPolicy(skillName, content, commands, skillPath, diagnostics) {
-  if (!isMutationCapableSkill(skillName, content))
+  if (!isMutationCapableSkill(content))
     return;
   for (const match of scanTextForPolicyViolations(skillPath, content).matches) {
     diagnostics.push(makeDiagnostic5(`skill.cli_only_yaml.${match.category.replace(/-/g, "_")}`, `${skillPath}:${match.line}`, `mutation-capable skill must not instruct a direct YAML mutation (${match.category})`, match.replacement, match.excerpt));
@@ -34529,7 +34496,6 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   validateCoreSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateRoadmapSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
-  validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
   validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics);
   validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics);
@@ -34700,13 +34666,11 @@ function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
       message: "stale legacy roadmap skill prefix found; use strict-roadmap-* names"
     }
   ];
-  if (skillName !== "strict-spec-migrate") {
-    checks.unshift({
-      code: "skill.reference.legacy_workflow_dir",
-      regex: /\.spec-driven\//g,
-      message: "stale legacy workflow directory reference found; use .strict-spec-driven/"
-    });
-  }
+  checks.unshift({
+    code: "skill.reference.legacy_workflow_dir",
+    regex: /\.spec-driven\//g,
+    message: "stale legacy workflow directory reference found; use .strict-spec-driven/"
+  });
   for (const check of checks) {
     const sourceContent = check.code === "skill.reference.legacy_roadmap_prefix" ? contentWithoutStrictRoadmapCommands : content;
     const match = check.regex.exec(sourceContent);

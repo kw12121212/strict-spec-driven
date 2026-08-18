@@ -1,0 +1,87 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-unused-skills-and-split-roadmap-reorder
+sections:
+  Implementation:
+    author-roadmap-reorder-skill:
+      text: Author skills/strict-roadmap-reorder/SKILL.md with its scripts symlink, carrying the roadmap-reorder and roadmap-renumber command mappings, the integer order-field source, the --before/--after/--order placement guidance, the roadmap-renumber exhausted-gap fallback, and the dependency-order confirmation, plus the shared check-workflow-state precondition and yaml-authoring-protocol pointer stated exactly once.
+      status: complete
+    strip-reorder-from-transition-skill:
+      text: Remove the reorder row, the roadmap-reorder and roadmap-renumber command mappings, the reorder guidance section, and every nine-operation wording from skills/strict-roadmap-transition/SKILL.md, and point its reorder cross-reference at /strict-roadmap-reorder.
+      status: complete
+    delete-five-skill-packages:
+      text: Delete the skill directories skills/strict-spec-sop, strict-spec-harness-session, strict-spec-harness-init, strict-spec-migrate, and strict-spec-propose-from-roadmap together with their scripts symlinks, using git rm so the deletions are staged and visible to any check that discovers scope through git ls-files.
+      status: complete
+    update-marketplace-entries:
+      text: Remove the five deleted entries from skills/marketplace.json and add the strict-roadmap-reorder entry with its strict-roadmap family, leaving 24 entries.
+      status: complete
+    update-skill-content-expectations:
+      text: In src/skills/model.ts delete MIGRATION_STRICT_SKILL_EXPECTATIONS and the strict-spec-propose-from-roadmap entry, relocate the roadmap-reorder command mapping and the reorder guidance snippets from the transition expectation onto a new strict-roadmap-reorder expectation, and repoint BUGFIX_INVESTIGATION_SESSION_SNIPPET at strict-spec-brainstorm.
+      status: complete
+    rewire-expectation-groups:
+      text: In src/skills/content.ts remove the MIGRATION_STRICT_SKILL_EXPECTATIONS import and its validation wiring so no expectation group is left unwired, and remove the deleted skill names from src/skills/frontmatter.ts.
+      status: complete
+    update-cli-only-policy-exceptions:
+      text: Remove strict-spec-migrate from MUTATION_CAPABLE_EXCEPTIONS in src/cli-only-yaml-policy.ts along with the comment that explains it, since the exception existed only for that deleted package.
+      status: complete
+    update-mcp-surfaces:
+      text: Rewrite the strict_harness_investigation prompt body in src/mcp/prompts.ts and the strict_propose_change tool description in src/mcp/inventory.ts so they route to strict CLI commands and surviving skill packages instead of the deleted strict-spec-harness-session and strict-spec-propose-from-roadmap.
+      status: complete
+    update-mutation-surface-inventory:
+      text: Rewrite the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml through strict-spec-cli inventory-edit so they name the surviving skill files, then confirm from the command result that the same operation regenerated src/embedded-templates.ts rather than leaving the embedded copy stale, since the CLI reads that asset embedded-first.
+      status: complete
+    repoint-skill-cross-references:
+      text: Change the two strict-spec-harness-session routing references in skills/strict-spec-bugfix/SKILL.md to /strict-spec-brainstorm and the strict-spec-propose-from-roadmap cross-reference in skills/strict-spec-propose/SKILL.md to /strict-roadmap-recommend.
+      status: complete
+    rewrite-documentation-references:
+      text: Rewrite the 27 references to the five deleted skills in README.md, README.zh.md, QUICKSTART.md, QUICKSTART.zh.md, HARNESS.md, HARNESS.zh.md, DEBUG_QUICKSTART.md, DEBUG_QUICKSTART.zh-CN.md, ROADMAP_GUIDE.md, ROADMAP_QUICKSTART.md, and RTK.md into the equivalent strict-spec-cli invocations, and carry the harness lifecycle ordering the deleted harness skills held into the harness documents so the sequence is not lost with the packages.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild dist/ from the edited TypeScript sources so the dist-based test suite and the installed CLI observe the new skill expectations and the regenerated embedded templates.
+      status: complete
+      command: bun run build
+  Testing:
+    repin-skill-surface-counts:
+      text: Update test/suites/entrypoint-and-skills.ts to pin skillCount 24 with marketplaceCount 24 and zero diagnostics, replace the five deleted names in the bundled skill name list with strict-roadmap-reorder, and re-measure the total and per-skill bundled line budgets from the new tree rather than adjusting them until they pass.
+      status: complete
+    fix-inverted-reorder-fixture:
+      text: Replace RETIRED_REORDER_SKILL in the dangling-reference probes of test/suites/entrypoint-and-skills.ts with a name that stays retired, such as strict-roadmap-pause, because strict-roadmap-reorder is a live package again and the existing assertion that the matcher reports it as unpackaged now inverts.
+      status: complete
+    cover-deleted-skill-assertions:
+      text: Update the assertions that read the deleted packages in test/suites/entrypoint-and-skills.ts, test/suites/mcp-server.ts, and test/suites/roadmap-and-migration.ts, including the bugfix handoff-target assertion, so each one exercises the surviving surface instead of being removed outright.
+      status: complete
+    prove-dangling-scan-negative-case:
+      text: Observe the dangling-reference scan failing on synthetic text naming each of the five deleted skills before observing it clean over the tree, so the clean result is evidence rather than a scan that stopped matching.
+      status: complete
+    validate-skill-packaging:
+      text: Run strict skill packaging and content validation and confirm it reports 24 packages with marketplace parity and zero diagnostics, including the new reorder expectations and the eight-operation transition expectations.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-project-regression:
+      text: Run the complete project test suite against the rebuilt dist output, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?
+  Verification:
+    run-maintenance-checks:
+      text: Run the configured maintenance checks and confirm the generated-doc, lesson-staleness, and cli-only-yaml-policy checks report no new violations after the skill deletions and the inventory rewrite.
+      status: complete
+      command: strict-spec-cli maintenance
+    confirm-scope-and-unchanged-behavior:
+      text: 'Confirm the implemented change matches proposal scope: no CLI command name, argument, output, or exit code changed; the sop, harness, sessions, and migrate domain specs are byte-identical; no archived change or roadmap record was edited; and no alias package was created for a deleted name.'
+      status: complete
+    run-ready-and-verify:
+      text: Run the strict readiness and verification gates for this change and resolve any structural diagnostic they report.
+      status: complete
+      command: strict-spec-cli ready remove-unused-skills-and-split-roadmap-reorder
+    confirm-delta-merge-readiness:
+      text: Confirm the two delta specs merge cleanly into contracts-yaml-artifacts and cli-foundation, that the REMOVED requirement and the three MODIFIED requirements resolve against live requirement ids, and that the ADDED reorder requirement does not collide with an existing id.
+      status: complete
+    run-coverage-gate:
+      text: Run the declared project regression and coverage gate and confirm it passes at or above the declared threshold of 78 without the threshold being changed.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+testing_gates:
+  validation_task: validate-skill-packaging
+  unit_test_task: run-project-regression

@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-unused-skills-and-split-roadmap-reorder
+approach:
+  - 'Treat the change as two opposite movements on one surface: five packages leave and one arrives. Both are executed the same way — delete or add the package, then sweep every live surface that names it — because the repository already proved that a skill name surviving its package raises no error on its own.'
+  - 'Order the work so the surface is never inconsistent for a full step: author the new reorder skill and strip reorder from the transition skill together, then delete the five packages together with their model.ts expectations, then sweep references, then re-pin the counts. Each group leaves validate-skills able to run.'
+  - Keep the CLI and the four domain specs untouched, and rewrite documentation references into the equivalent strict-spec-cli invocation rather than deleting the guidance. The capabilities survive; only their skill-shaped entry points go away.
+decisions:
+  skills-only-not-cli:
+    decision: Delete only the skill packages and the references that name them, retaining every backing CLI command, schema, example, and domain spec.
+    rationale: The stated problem is entry-point cost, not capability cost. The SOP, harness, and migrate commands remain useful for direct invocation, and RTK.md declares the migrate command an external-project capability that this repository must keep offering, so removing the commands would break a documented contract to solve a different problem.
+  reorder-leaves-transition:
+    decision: Remove reorder from strict-roadmap-transition entirely rather than keeping it in both packages, taking the transition skill from nine operations to eight.
+    rationale: Two entry points for one operation is the exact duplication the preceding consolidation milestone existed to remove, and it doubles the guidance that must stay in sync when roadmap-reorder behavior changes. A shortcut that leaves the original in place would reintroduce the cost while claiming to reduce it.
+  bugfix-routes-to-brainstorm:
+    decision: Route the strict-spec-bugfix unclear-or-unreproduced branch to /strict-spec-brainstorm and keep the boundary requirement rather than deleting it.
+    rationale: The branch encodes a rule worth keeping — do not fix from code inspection alone — and brainstorm is the surviving skill that interrogates a problem before scoping work. Deleting the handoff would remove a guardrail that a main spec MUST already enforces.
+  docs-rewrite-to-cli:
+    decision: Rewrite all 27 documentation references into the equivalent strict-spec-cli invocation instead of deleting the sentences.
+    rationale: The commands still exist and external projects still need the harness and migration paths. Deleting the sentences would leave documented capabilities undiscoverable, which is a larger regression than the skill packages being removed.
+  reorder-fixture-must-move:
+    decision: Replace strict-roadmap-reorder as the dangling-reference test fixture with a name that stays retired, such as strict-roadmap-pause.
+    rationale: That fixture asserts the matcher reports strict-roadmap-reorder as unpackaged. Once this change re-creates the package the assertion inverts and fails, and a passing suite would otherwise require weakening the matcher rather than fixing the fixture.
+alternatives:
+  - option: Keep reorder in strict-roadmap-transition and add strict-roadmap-reorder as a convenience shortcut.
+    reason: 'Rejected: it restores the duplicate-entry-point cost the previous milestone removed, and every future roadmap-reorder behavior change would have to land in two guidance files or silently diverge.'
+  - option: Delete the sop, harness, and migrate CLI commands and their domain specs along with the skills.
+    reason: 'Rejected by the requester: the CLI capabilities stay. RTK.md also declares external-project migration a capability this repository must keep, so removing the migrate command would break a documented contract.'
+  - option: Delete the HARNESS and DEBUG_QUICKSTART guides rather than rewriting their references.
+    reason: 'Rejected by the requester: all documentation is retained. The 708 lines of harness guidance still describe live CLI commands, so deleting them would strand a working capability.'
+  - option: Delete the documentation sentences that name the five skills without substituting CLI commands.
+    reason: 'Rejected: it is the smallest edit but leaves the reader knowing a capability was removed and not knowing how to reach the command that still provides it.'
+risks:
+  - 'The dangling-reference scan and the pinned skill counts both encode the current 28-skill surface, so a partial sweep fails loudly rather than silently. The real risk is the inverted fixture: RETIRED_REORDER_SKILL asserts strict-roadmap-reorder is unpackaged, and re-creating the package breaks that assertion in a way that reads like a matcher regression rather than a stale fixture.'
+  - Deleting MIGRATION_STRICT_SKILL_EXPECTATIONS removes a whole expectation group from src/skills/content.ts wiring. If the group is unwired without the record being deleted, or vice versa, validation silently stops checking a surviving skill rather than failing.
+  - src/embedded-templates.ts is generated from inventory/yaml-mutation-surfaces.yaml and is also compiled. Editing the inventory without regenerating and rebuilding leaves the CLI reading a stale embedded copy that still names deleted skill paths, and the resulting check passes against the wrong evidence.
+  - The two harness skills are the only guidance that sequences the harness lifecycle commands. Rewriting the references to bare CLI invocations preserves discoverability of each command but not the ordering knowledge, so the harness documentation must carry the sequence the deleted skill held.
+  - Removing strict-spec-migrate from MUTATION_CAPABLE_EXCEPTIONS changes how isMutationCapableSkill classifies the remaining set. The exception existed for one deleted package, so the classification of every surviving skill must be observed unchanged rather than assumed.

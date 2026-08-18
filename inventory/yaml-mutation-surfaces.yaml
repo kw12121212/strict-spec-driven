@@ -774,21 +774,17 @@ mutation_surfaces:
       - skills/strict-spec-bugfix/SKILL.md
       - skills/strict-spec-design/SKILL.md
       - skills/strict-spec-design-sync/SKILL.md
-      - skills/strict-spec-harness-init/SKILL.md
-      - skills/strict-spec-harness-session/SKILL.md
       - skills/strict-spec-init/SKILL.md
       - skills/strict-spec-maintenance/SKILL.md
-      - skills/strict-spec-migrate/SKILL.md
       - skills/strict-spec-modify/SKILL.md
-      - skills/strict-spec-propose-from-roadmap/SKILL.md
       - skills/strict-spec-propose/SKILL.md
       - skills/strict-spec-review/SKILL.md
-      - skills/strict-spec-sop/SKILL.md
       - skills/strict-spec-spec-edit/SKILL.md
       - skills/strict-spec-sync-specs/SKILL.md
       - skills/strict-tech-edit/SKILL.md
       - skills/strict-tech-sync/SKILL.md
       - skills/strict-roadmap-transition/SKILL.md
+      - skills/strict-roadmap-reorder/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:

@@ -213,7 +213,7 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 
 ### `/strict-roadmap-transition sync`
 
-将路线图状态与严格工作流状态协调。`sync` 是 `/strict-roadmap-transition` 执行的九个操作之一，其余为 `pause`、`resume`、`defer`、`refine`、`reorder`、`move`、`reopen` 和 `archive`，每次调用都必须明确指定其中一个。
+将路线图状态与严格工作流状态协调。`sync` 是 `/strict-roadmap-transition` 执行的八个操作之一，其余为 `pause`、`resume`、`defer`、`refine`、`move`、`reopen` 和 `archive`，每次调用都必须明确指定其中一个。里程碑排序不在其中——它有自己的技能 `/strict-roadmap-reorder`。
 
 它会：
 
@@ -232,6 +232,22 @@ CLI 形式：
 
 ```sh
 strict-spec-cli roadmap-sync
+```
+
+### `/strict-roadmap-reorder`
+
+修改某个活动里程碑在路线图中的顺序位置。顺序来自可选的整数 `order` 字段，
+既不来自里程碑 id 前缀，也不来自文件名，因此该技能会把请求解析为 `--before`、
+`--after`、`--order` 三者之一，并只执行一次命令。当请求的两个相邻里程碑之间
+已无整数间隙时，先运行 `roadmap-renumber`，再重新执行 reorder。
+
+当新位置会把某个里程碑排到它所依赖的工作之前时，该技能会停下来等待人工明确答复；
+命令本身不会读取 `depends_on` 依赖边。
+
+CLI 形式：
+
+```sh
+strict-spec-cli roadmap-reorder <milestone-id> --after <neighbor-id>
 ```
 
 ## 如何添加计划变更

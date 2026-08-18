@@ -1,6 +1,6 @@
 ---
 name: strict-spec-bugfix
-description: Fix a known bug through a narrow strict YAML change. Use when Codex has a concrete defect, expected behavior, and enough reproduction evidence to implement a minimal fix with regression coverage; route unclear, unreproduced, browser/API/Electron, or CDP-access investigations to strict-spec-harness-session first, and route open-ended product ideas to strict-spec-brainstorm or strict-spec-propose.
+description: Fix a known bug through a narrow strict YAML change. Use when Codex has a concrete defect, expected behavior, and enough reproduction evidence to implement a minimal fix with regression coverage; route unclear, unreproduced, or evidence-gathering investigations to strict-spec-brainstorm first, and route open-ended product ideas to strict-spec-brainstorm or strict-spec-propose.
 metadata:
   skill_id: strict_spec_bugfix
   author: strict-spec-driven
@@ -207,11 +207,11 @@ run `init` from this skill.
 1. **Confirm bugfix fit** — use this skill only when the issue is a known bug:
    observed incorrect behavior, expected behavior, affected path or component,
    and reproduction evidence or a credible failing assertion are available. If
-   the issue cannot be reproduced, needs web/API/Electron/CDP investigation, or
-   needs evidence gathering before code changes, stop and recommend
-   `strict-spec-harness-session`. If the request is a new product behavior or a
-   broad design decision, stop and recommend `strict-spec-brainstorm` or
-   `strict-spec-propose`.
+   the issue cannot be reproduced or needs evidence gathering before code
+   changes, stop and recommend `strict-spec-brainstorm`, which interrogates the
+   problem before any scope is committed. If the request is a new product
+   behavior or a broad design decision, stop and recommend
+   `strict-spec-brainstorm` or `strict-spec-propose`.
 
 2. **Reset context from targeted files** — treat prior chat context as stale
    unless it has been revalidated from current repository state. Read:
@@ -243,8 +243,8 @@ run `init` from this skill.
      reproduction steps, record the blocker in `questions.yaml` and stop before
      implementation.
    - Do not use this skill for unclear or unreproduced issues. Route evidence
-     gathering to `strict-spec-harness-session` instead of making a source-level
-     fix from code inspection alone.
+     gathering to `strict-spec-brainstorm` instead of making a source-level fix
+     from code inspection alone.
 
 4. **Propose or resume a narrow change** — derive a short kebab-case change
    name from the defect, usually starting with `fix-`. If the change does not

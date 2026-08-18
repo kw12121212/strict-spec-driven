@@ -166,13 +166,14 @@ export function validateLegacyReferences(
       message: "stale legacy roadmap skill prefix found; use strict-roadmap-* names",
     },
   ];
-  if (skillName !== "strict-spec-migrate") {
-    checks.unshift({
-      code: "skill.reference.legacy_workflow_dir",
-      regex: /\.spec-driven\//g,
-      message: "stale legacy workflow directory reference found; use .strict-spec-driven/",
-    });
-  }
+  // No bundled skill describes the legacy layout any more, so every package is checked. The
+  // migrate CLI command still reads a legacy `.spec-driven/` directory; that is command behavior
+  // documented outside the skill set, not skill guidance.
+  checks.unshift({
+    code: "skill.reference.legacy_workflow_dir",
+    regex: /\.spec-driven\//g,
+    message: "stale legacy workflow directory reference found; use .strict-spec-driven/",
+  });
 
   for (const check of checks) {
     const sourceContent = check.code === "skill.reference.legacy_roadmap_prefix"

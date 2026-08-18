@@ -1,6 +1,6 @@
 ---
 name: strict-roadmap-transition
-description: Perform one strict roadmap state transition — pause, resume, defer, refine, reorder, move, reopen, archive, or sync — through its owning strict CLI command, selected by an explicit operation named in the request.
+description: Perform one strict roadmap state transition — pause, resume, defer, refine, move, reopen, archive, or sync — through its owning strict CLI command, selected by an explicit operation named in the request.
 metadata:
   skill_id: strict_roadmap_transition
   author: strict-spec-driven
@@ -28,8 +28,6 @@ roadmap-pause: strict-spec-cli roadmap-pause <milestone-id> [--reason "..."]
 roadmap-resume: strict-spec-cli roadmap-resume <milestone-id> [--reason "..."]
 roadmap-defer: strict-spec-cli roadmap-defer <milestone-id> [--reason "..."]
 roadmap-refine: strict-spec-cli roadmap-refine <milestone-id> [--reason "..."]
-roadmap-reorder: strict-spec-cli roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)
-roadmap-renumber: strict-spec-cli roadmap-renumber
 roadmap-move-planned-change: strict-spec-cli roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]
 roadmap-reopen: strict-spec-cli roadmap-reopen <milestone-id> [--reason "..."]
 roadmap-archive: strict-spec-cli roadmap-archive [milestone-id]
@@ -50,7 +48,6 @@ CLI command; there is no operation this skill performs by combining two.
 | `resume` | milestone | `roadmap-resume` | clear a pause so status re-derives from planned-change state |
 | `defer` | milestone | `roadmap-defer` | declare a milestone planned but not yet elaborated |
 | `refine` | milestone | `roadmap-refine` | clear an awaiting-refinement declaration once its precondition matured |
-| `reorder` | milestone | `roadmap-reorder` | change one active milestone's `order` value |
 | `move` | planned change | `roadmap-move-planned-change` | move one planned change to another milestone and rename it canonically |
 | `reopen` | milestone | `roadmap-reopen` | reopen a completed milestone and seed a follow-up planned change |
 | `archive` | milestone | `roadmap-archive` | relocate completed milestones and their completed planned changes |
@@ -63,7 +60,7 @@ name, the slash-command form, or an unambiguous restatement of exactly one row
 above.
 
 When the request names no operation, or its wording fits more than one row,
-stop and ask the user which of the nine is intended before running anything.
+stop and ask the user which of the eight is intended before running anything.
 Do not infer the operation from roadmap state, and do not pick the operation
 that seems most useful. Naming the wrong row is not a recoverable mistake:
 `pause` and `resume` undo each other, `defer` and `refine` undo each other, and
@@ -74,6 +71,7 @@ Two neighbouring requests are not this skill's work at all:
 - authoring or elaborating milestone and planned-change content is
   `/strict-roadmap-plan` and `/strict-roadmap-review`
 - choosing and scaffolding the next change is `/strict-roadmap-recommend`
+- changing a milestone's position in roadmap order is `/strict-roadmap-reorder`
 
 ## Roadmap Linking Rules
 
@@ -90,7 +88,7 @@ Two neighbouring requests are not this skill's work at all:
 ## Preconditions Every Operation Shares
 
 - **Archived milestones and archived planned changes are frozen history.** No
-  operation here may pause, resume, defer, refine, reorder, move, reopen, or
+  operation here may pause, resume, defer, refine, move, reopen, or
   re-archive them. If the user names an archived target, report that and stop
   rather than reviving it.
 - **Completed planned changes are immutable.** Follow-up work is always a new
@@ -155,22 +153,6 @@ Two neighbouring requests are not this skill's work at all:
 - The milestone is one continuous artifact. Never create a successor milestone
   or split it during refinement.
 
-### reorder — check dependency order first
-
-- Roadmap order comes from the optional integer `order` field, not from the
-  milestone id prefix or the filename.
-- Resolve the intent into exactly one of `--before <neighbor-id>`,
-  `--after <neighbor-id>`, or `--order <integer>`. If no integer gap exists
-  between the requested neighbours, run `roadmap-renumber` first, then rerun the
-  reorder.
-- Before running it, inspect the target milestone and its owned planned changes
-  for dependencies on other milestones or planned changes. If the new position
-  would place a milestone before work it depends on, report that
-  dependency-order concern and stop for an explicit human answer instead of
-  silently moving it.
-- Use `roadmap-renumber` only when integer gaps are exhausted or the user asks
-  to normalize spacing.
-
 ### move — check work state, then dependency order
 
 - A move rewrites the declared `planned_change.milestone` and renames the file
@@ -191,7 +173,7 @@ Two neighbouring requests are not this skill's work at all:
   `proposal.yaml` roadmap linkage is refreshed with the reported
   `strict-spec-cli generate <change-name> proposal` command, by the operator,
   not by this skill.
-- Reordering milestones themselves is the `reorder` operation, not this one.
+- Reordering milestones themselves is `/strict-roadmap-reorder`, not this one.
 
 ### reopen — only a complete milestone, and history stays frozen
 
@@ -264,7 +246,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
-1. **Resolve the operation** — identify which one of the nine rows in the
+1. **Resolve the operation** — identify which one of the eight rows in the
    Operations table the request names. If the request names none, or fits more
    than one, stop and ask the user which is intended. Do not proceed on a guess.
 
@@ -286,7 +268,7 @@ run `init` from this skill.
 4. **Check the operation's own preconditions** — apply the shared preconditions
    and the Operation Semantics section for the resolved operation: the
    archived-artifact immutability rule for every operation, the dependency-order
-   confirmation for `reorder` and `move`, the completed-work confirmation before
+   confirmation for `move`, the completed-work confirmation before
    `--allow-complete`, the complete-status requirement for `reopen` and
    `archive`, the not-complete requirement for `defer`, the
    declaration-present requirement for `resume` and `refine`, and the human
@@ -328,14 +310,14 @@ run `init` from this skill.
 - Archived milestones and archived planned changes are frozen history; never
   mutate them, and never rewrite a completed planned change
 - Never hand-edit a milestone or planned-change file to add, clear, or change a
-  `paused`, `awaiting_refinement`, `order`, `milestone`, or status field — the
+  `paused`, `awaiting_refinement`, `milestone`, or status field — the
   owning command exists so the canonical write and index sync stay deterministic
 - Never pick or rename a planned-change filename yourself; the CLI computes the
   canonical name and `roadmap-sync --fix-names` repairs it
 - Never write under `.strict-spec-driven/changes/` from this skill; relay the
   reported proposal refresh command instead
-- Stop for an explicit human answer when a transition appears to violate
-  dependency order, moves completed work, or resolves a deferral on the user's
-  behalf
+- Stop for an explicit human answer when a move appears to violate dependency
+  order, when a transition moves completed work, or when it would resolve a
+  deferral on the user's behalf
 - Do not invent planned changes, milestone content, or planned-change state to
   satisfy a schema; record what is unknown as an intake question instead

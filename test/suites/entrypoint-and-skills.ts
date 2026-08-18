@@ -955,7 +955,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const techSyncSkillContent = readFileSync(path.join(ROOT, "skills", "strict-tech-sync", "SKILL.md"), "utf8");
   const applySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const proposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
-  const proposeFromRoadmapSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"), "utf8");
   const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
   const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
   const bugfixSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-bugfix", "SKILL.md"), "utf8");
@@ -964,8 +963,9 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const roadmapTransitionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-transition", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const roadmapReviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-review", "SKILL.md"), "utf8");
-  const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
-  const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
+  // Both harness skill packages were removed. HARNESS.md now carries the lifecycle ordering they
+  // held, so the assertions they anchored are made against that document rather than dropped.
+  const harnessDocContent = readFileSync(path.join(ROOT, "HARNESS.md"), "utf8");
   const initSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-init", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedApplySkillContent = applySkillContent.replace(/\s+/g, " ");
@@ -973,7 +973,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedArchiveSkillContent = archiveSkillContent.replace(/\s+/g, " ");
   const normalizedTechSyncSkillContent = techSyncSkillContent.replace(/\s+/g, " ");
   const normalizedProposeSkillContent = proposeSkillContent.replace(/\s+/g, " ");
-  const normalizedProposeFromRoadmapSkillContent = proposeFromRoadmapSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
   const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
   const normalizedBugfixSkillContent = bugfixSkillContent.replace(/\s+/g, " ");
@@ -982,8 +981,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedRoadmapTransitionSkillContent = roadmapTransitionSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapReviewSkillContent = roadmapReviewSkillContent.replace(/\s+/g, " ");
-  const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
-  const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
+  const normalizedHarnessDocContent = harnessDocContent.replace(/\s+/g, " ");
   const normalizedInitSkillContent = initSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
   /**
@@ -1023,8 +1021,7 @@ for (const [normalizedSkillContent, skillName] of questionGateSkillChecks) {
 }
 const roadmapBackedIntakeSkillChecks: Array<[string, string]> = [
   [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
-  [normalizedProposeFromRoadmapSkillContent, "strict-spec-propose-from-roadmap"],
-];
+  ];
 for (const [normalizedSkillContent, skillName] of roadmapBackedIntakeSkillChecks) {
   context.assert(
     normalizedSkillContent.includes("Roadmap-Backed Intake Evidence")
@@ -1067,10 +1064,6 @@ context.assert(
     && normalizedProposeSkillContent.includes("When a YAML artifact already declares `schema_file`")
     && normalizedProposeSkillContent.includes("sample-show")
     && normalizedProposeSkillContent.includes("do not rely on a local `examples` directory")
-    && normalizedProposeFromRoadmapSkillContent.includes("~/.strict-spec-schemas/")
-    && normalizedProposeFromRoadmapSkillContent.includes("When a YAML artifact already declares `schema_file`")
-    && normalizedProposeFromRoadmapSkillContent.includes("sample-show")
-    && normalizedProposeFromRoadmapSkillContent.includes("do not rely on a local `examples` directory")
     && normalizedAutoSkillContent.includes("~/.strict-spec-schemas/")
     && normalizedAutoSkillContent.includes("When a YAML artifact already declares `schema_file`")
     && normalizedAutoSkillContent.includes("sample-show")
@@ -1083,7 +1076,7 @@ context.assert(
 );
 context.assert(
   normalizedProposeSkillContent.includes("proposal checkpoint")
-      && normalizedProposeSkillContent.includes("strict-spec-propose-from-roadmap")
+      && normalizedProposeSkillContent.includes("strict-roadmap-recommend")
       && normalizedProposeSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose")
       && normalizedProposeSkillContent.includes("before validation")
       && normalizedProposeSkillContent.includes("semantic self-check")
@@ -1092,33 +1085,9 @@ context.assert(
       && normalizedProposeSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && normalizedProposeSkillContent.includes("proposal checkpoint refinements made")
-      && !normalizedProposeSkillContent.includes("roadmap-recommend")
+      && !normalizedProposeSkillContent.includes("strict-spec-cli roadmap-recommend")
       && !normalizedProposeSkillContent.includes("proposal review"),
     "strict-spec-propose runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
-  );
-  context.assert(
-    normalizedProposeFromRoadmapSkillContent.includes("roadmap-recommend")
-      && normalizedProposeFromRoadmapSkillContent.includes("treat the command's selected planned change as authoritative")
-      && normalizedProposeFromRoadmapSkillContent.includes("roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]")
-      && normalizedProposeFromRoadmapSkillContent.includes("matching numeric prefix after ignoring leading zeros")
-      && normalizedProposeFromRoadmapSkillContent.includes("strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>")
-      && normalizedProposeFromRoadmapSkillContent.includes("matches zero milestones or more than one milestone")
-      && normalizedProposeFromRoadmapSkillContent.includes("before reading broad roadmap context")
-      && normalizedProposeFromRoadmapSkillContent.includes("candidates[].skipReasons")
-      && normalizedProposeFromRoadmapSkillContent.includes("recommendation.changeName")
-      && normalizedProposeFromRoadmapSkillContent.includes("`details` field")
-      && normalizedProposeFromRoadmapSkillContent.includes("active strict change conflicts")
-      && normalizedProposeFromRoadmapSkillContent.includes("standalone planned-change")
-      && normalizedProposeFromRoadmapSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose-from-roadmap")
-      && normalizedProposeFromRoadmapSkillContent.includes("proposal checkpoint")
-      && normalizedProposeFromRoadmapSkillContent.includes("decision-ready detail")
-      && normalizedProposeFromRoadmapSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable")
-      && normalizedProposeFromRoadmapSkillContent.includes("fix safe, in-scope documentation gaps")
-      && normalizedProposeFromRoadmapSkillContent.includes("ready <change-name>")
-      && normalizedProposeFromRoadmapSkillContent.includes("verify <change-name>")
-      && !normalizedProposeFromRoadmapSkillContent.includes("immediately invoke the /strict-spec-auto <change-name> skill")
-      && !normalizedProposeFromRoadmapSkillContent.includes("proposal review"),
-    "strict-spec-propose-from-roadmap handles scripted roadmap recommendation as proposal-only handoff",
   );
   context.assert(
     normalizedAutoSkillContent.includes("complete project-level regression test evidence")
@@ -1237,13 +1206,11 @@ context.assert(
   const technicalOnlyChangeCreationSkillChecks: Array<[string, string]> = [
     [normalizedProposeSkillContent, "strict-spec-propose"],
     [normalizedAutoSkillContent, "strict-spec-auto"],
-    [normalizedProposeFromRoadmapSkillContent, "strict-spec-propose-from-roadmap"],
-    [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
+        [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
   ];
   const incrementalDeltaScenarioGuidanceChecks: Array<[string, string]> = [
     [normalizedProposeSkillContent, "strict-spec-propose"],
-    [normalizedProposeFromRoadmapSkillContent, "strict-spec-propose-from-roadmap"],
-    [normalizedAutoSkillContent, "strict-spec-auto"],
+        [normalizedAutoSkillContent, "strict-spec-auto"],
     [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
     [normalizedBugfixSkillContent, "strict-spec-bugfix"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
@@ -1286,7 +1253,6 @@ context.assert(
       && normalizedBugfixSkillContent.includes("Reproduce before fixing")
       && normalizedBugfixSkillContent.includes("failing regression")
       && normalizedBugfixSkillContent.includes("minimal fix")
-      && normalizedBugfixSkillContent.includes("strict-spec-harness-session")
       && normalizedBugfixSkillContent.includes("strict-spec-brainstorm")
       && normalizedBugfixSkillContent.includes("proposal checkpoint")
       && normalizedBugfixSkillContent.includes("fix safe, in-scope documentation gaps")
@@ -1295,7 +1261,7 @@ context.assert(
       && normalizedBugfixSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
       && normalizedBugfixSkillContent.includes("Do not call or rely on a `strict-spec-cli review` command")
       && !bugfixSkillContent.includes("strict-spec-cli review <change-name>"),
-    "strict-spec-bugfix is constrained to known bugs with reproduction, regression coverage, minimal fixes, and harness-session handoff for unclear issues",
+    "strict-spec-bugfix is constrained to known bugs with reproduction, regression coverage, minimal fixes, and brainstorm handoff for unclear issues",
   );
   context.assert(
     roadmapPlanSkillContent.includes("check-workflow-state: strict-spec-cli check-workflow-state")
@@ -1357,28 +1323,25 @@ context.assert(
     "strict-roadmap-review validates all-incomplete milestone, direct-fix, and intake-answer guidance",
   );
   context.assert(
-    harnessInitSkillContent.includes("check-workflow-state: strict-spec-cli check-workflow-state")
-      && normalizedHarnessInitSkillContent.includes("Before any other step, run `strict-spec-cli check-workflow-state`")
-      && normalizedHarnessInitSkillContent.includes("template-show scaffold/harness.yaml")
-      && normalizedHarnessInitSkillContent.includes("harness-infer")
-      && normalizedHarnessInitSkillContent.includes("harness-doctor")
-      && normalizedHarnessInitSkillContent.includes("harness-scripts generate")
-      && normalizedHarnessInitSkillContent.includes("Treat `harness-infer` output as a draft")
-      && normalizedHarnessInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
-      && !harnessInitSkillContent.includes("strict-spec-cli init"),
-    "strict-spec-harness-init requires existing strict workflow state and generates harness scripts",
+    normalizedHarnessDocContent.includes("harness-infer")
+      && normalizedHarnessDocContent.includes("harness-doctor")
+      && normalizedHarnessDocContent.includes("harness-plan")
+      && normalizedHarnessDocContent.includes("Generates and verifies project-local scripts")
+      && normalizedHarnessDocContent.includes("only environment variable names — never secret values")
+      && normalizedHarnessDocContent.includes("stay disabled until the human confirms them explicitly")
+      && normalizedHarnessDocContent.includes("confirm the development and production environment configurations with a human before writing the file"),
+    "HARNESS.md carries the declaration workflow order and the confirmation and secret boundaries the removed harness-init skill held",
   );
   context.assert(
-    normalizedHarnessSessionSkillContent.includes("harness-session create")
-      && normalizedHarnessSessionSkillContent.includes("harness-session validate")
-      && normalizedHarnessSessionSkillContent.includes("harness-plan")
-      && normalizedHarnessSessionSkillContent.includes("harness-start")
-      && normalizedHarnessSessionSkillContent.includes("harness-stop")
-      && normalizedHarnessSessionSkillContent.includes("human_checkpoints")
-      && normalizedHarnessSessionSkillContent.includes("secrets_recorded: false")
-      && normalizedHarnessSessionSkillContent.includes("generated `scripts/harness-*` wrappers")
-      && !normalizedHarnessSessionSkillContent.includes("debug-session artifacts"),
-    "strict-spec-harness-session covers creation, validation, harness lifecycle, human checkpoints, and secret boundaries",
+    normalizedHarnessDocContent.includes("harness-session create")
+      && normalizedHarnessDocContent.includes("harness-session validate")
+      && normalizedHarnessDocContent.includes("harness-start")
+      && normalizedHarnessDocContent.includes("harness-stop")
+      && normalizedHarnessDocContent.includes("human_checkpoints")
+      && normalizedHarnessDocContent.includes("secrets_recorded: false")
+      && normalizedHarnessDocContent.includes("`scripts/harness-*` wrappers")
+      && normalizedHarnessDocContent.includes("Do not create or manage `debug-session` artifacts"),
+    "HARNESS.md carries the session lifecycle, human checkpoints, and secret boundaries the removed harness-session skill held",
   );
   context.assert(
     normalizedInitSkillContent.includes("Ensure AGENTS.md exists")
@@ -2527,12 +2490,15 @@ try {
   rmSync(invalidRoadmapReviewRoot, { recursive: true, force: true });
 }
 
-// The merged roadmap state-transition skill replaces nine single-command skills, and only four of
+// The merged roadmap state-transition skill replaces eight single-command skills, and only three of
 // them ever had validate-skills expectations. This drives the shipped validator over the real
-// SKILL.md with one operation's evidence removed at a time, so each of the nine — including
+// SKILL.md with one operation's evidence removed at a time, so each of the eight — including
 // pause, resume, defer, refine, and reopen, which no expectation reached before — is proven to
 // fail rather than assumed to be covered. The positive case runs first: without it, a harness that
 // reported diagnostics for an unrelated reason would make every negative assertion pass vacuously.
+//
+// Reorder is absent because it is no longer a transition operation. Its own package gets the same
+// treatment below, so splitting it out did not move the operation into an unchecked gap.
 const TRANSITION_SKILL_NAME = "strict-roadmap-transition";
 const TRANSITION_OPERATION_EVIDENCE: { operation: string; commandKey: string; snippet: string }[] = [
   { operation: "pause", commandKey: "roadmap-pause", snippet: "milestone-paused" },
@@ -2542,11 +2508,6 @@ const TRANSITION_OPERATION_EVIDENCE: { operation: string; commandKey: string; sn
     operation: "refine",
     commandKey: "roadmap-refine",
     snippet: "whether the recorded precondition is now true",
-  },
-  {
-    operation: "reorder",
-    commandKey: "roadmap-reorder",
-    snippet: "Use `roadmap-status` or `roadmap-overview` order, never id-prefix order",
   },
   { operation: "move", commandKey: "roadmap-move-planned-change", snippet: "--allow-complete" },
   { operation: "reopen", commandKey: "roadmap-reopen", snippet: "frozenPlannedChanges" },
@@ -2635,11 +2596,11 @@ for (const { operation, commandKey, snippet } of TRANSITION_OPERATION_EVIDENCE) 
   );
 }
 
-// The operation argument is the merged skill's whole invocation contract: nine transitions behind
+// The operation argument is the merged skill's whole invocation contract: eight transitions behind
 // one entry point are only deterministic while the skill refuses to guess which one was meant.
 for (const contractSnippet of [
   "**The operation must be explicit.**",
-  "stop and ask the user which of the nine is intended",
+  "stop and ask the user which of the eight is intended",
   "Perform exactly one operation per invocation, through its one owning command",
 ]) {
   const withoutContract = transitionSkillSource.split(contractSnippet).join("[removed]");
@@ -2657,6 +2618,94 @@ for (const contractSnippet of [
   );
 }
 
+
+// The reorder skill is the operation that left the merged package, so it needs the same proof the
+// eight remaining transitions get: the shipped validator driven over the real SKILL.md with one
+// piece of evidence removed at a time. Without it, splitting reorder out would move a checked
+// operation into a package whose guidance nothing enforces.
+const REORDER_SKILL_NAME = "strict-roadmap-reorder";
+const REORDER_EVIDENCE: { element: string; commandKey?: string; snippet?: string }[] = [
+  { element: "reorder command mapping", commandKey: "roadmap-reorder" },
+  { element: "renumber command mapping", commandKey: "roadmap-renumber" },
+  { element: "order field source", snippet: "optional integer `order` field" },
+  { element: "placement flags", snippet: "Pass exactly one of `--before`, `--after`, or `--order`" },
+  {
+    element: "renumber fallback",
+    snippet: "If no integer gap exists between the requested neighbours, run\n`roadmap-renumber` first, then rerun the reorder.",
+  },
+  { element: "dependency-order stop", snippet: "dependency-order concern" },
+  { element: "archived-milestone rule", snippet: "Archived milestones are frozen history" },
+];
+
+const reorderSkillSource = readFileSync(path.join(ROOT, "skills", REORDER_SKILL_NAME, "SKILL.md"), "utf8");
+
+function roadmapDiagnosticsForReorderSkill(skillText: string) {
+  const probeRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-reorder-probe-"));
+  try {
+    const probeSkillDir = path.join(probeRoot, "skills", REORDER_SKILL_NAME);
+    mkdirSync(probeSkillDir, { recursive: true });
+    writeFileSync(path.join(probeSkillDir, "SKILL.md"), skillText, "utf8");
+    writeFileSync(
+      path.join(probeRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: [{ name: REORDER_SKILL_NAME, family: "strict-roadmap" }],
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    return skillValidationModule
+      .validateStrictSkillPackaging(probeRoot)
+      .diagnostics
+      .filter((diagnostic) => diagnostic.code.startsWith("skill.roadmap."));
+  } finally {
+    rmSync(probeRoot, { recursive: true, force: true });
+  }
+}
+
+context.assert(
+  roadmapDiagnosticsForReorderSkill(reorderSkillSource).length === 0,
+  "the standalone roadmap reorder skill satisfies its content expectation as authored",
+  roadmapDiagnosticsForReorderSkill(reorderSkillSource).map((diagnostic) => diagnostic.code).join(", "),
+);
+
+for (const { element, commandKey, snippet } of REORDER_EVIDENCE) {
+  const stripped = commandKey
+    ? reorderSkillSource.split("\n").filter((line) => !line.startsWith(`${commandKey}: `)).join("\n")
+    : reorderSkillSource.split(snippet as string).join("[removed]");
+  context.assert(
+    stripped !== reorderSkillSource,
+    `the roadmap reorder skill carries the ${element} evidence to remove`,
+  );
+  const diagnostics = roadmapDiagnosticsForReorderSkill(stripped);
+  context.assert(
+    diagnostics.some((diagnostic) =>
+      commandKey
+        ? diagnostic.code === "skill.roadmap.command.missing"
+          && diagnostic.path === `skills/${REORDER_SKILL_NAME}/SKILL.md#commands.${commandKey}`
+        : diagnostic.code === "skill.roadmap.required_snippet.missing" && diagnostic.expected === snippet),
+    `dropping the ${element} fails strict skill content validation`,
+    diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.expected ?? ""}`).join(", "),
+  );
+}
+
+// One operation, one entry point. Splitting reorder out is only a reduction in selection cost while
+// no other package also declares the command; two packages naming it would restore the choice the
+// split removed, and validate-skills has nothing to say about that on its own.
+const packagesDeclaringReorderCommand = strictSkillNames.filter((skillName) =>
+  readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8")
+    .split("\n")
+    .some((line) => line.startsWith("roadmap-reorder: ")),
+);
+context.assert(
+  JSON.stringify(packagesDeclaringReorderCommand) === JSON.stringify([REORDER_SKILL_NAME]),
+  "exactly one bundled package declares the roadmap-reorder command mapping",
+  packagesDeclaringReorderCommand.join(", "),
+);
 
 const invalidSharedSchemaGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-guidance-invalid-"));
 try {
@@ -2751,7 +2800,7 @@ try {
 
 const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));
 try {
-  const semanticSkillNames = ["strict-spec-propose", "strict-spec-propose-from-roadmap", "strict-spec-archive", "strict-spec-review", "strict-spec-auto", "strict-spec-bugfix", "strict-tech-sync"];
+  const semanticSkillNames = ["strict-spec-propose", "strict-roadmap-recommend", "strict-spec-archive", "strict-spec-review", "strict-spec-auto", "strict-spec-bugfix", "strict-tech-sync"];
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "scripts"), { recursive: true });
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "templates"), { recursive: true });
 
@@ -2800,13 +2849,13 @@ try {
   );
 
   writeFileSync(
-    path.join(invalidSemanticSkillRoot, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"),
+    path.join(invalidSemanticSkillRoot, "skills", "strict-roadmap-recommend", "SKILL.md"),
     [
       "---",
-      "name: strict-spec-propose-from-roadmap",
+      "name: strict-roadmap-recommend",
       "description: Propose a strict change from roadmap work.",
       "metadata:",
-      "  skill_id: strict_spec_propose_from_roadmap",
+      "  skill_id: strict_roadmap_recommend",
       "  author: strict-spec-driven",
       "  type: agent_skill",
       "  version: 1.0.0",
@@ -3050,7 +3099,9 @@ try {
         namespace: "strict-spec-driven",
         skills: semanticSkillNames.map((name) => ({
           name,
-          family: name.startsWith("strict-tech-") ? "strict-tech" : "strict-spec",
+          family: name.startsWith("strict-tech-")
+            ? "strict-tech"
+            : name.startsWith("strict-roadmap-") ? "strict-roadmap" : "strict-spec",
         })),
       },
       null,
@@ -3064,10 +3115,10 @@ try {
   context.assert(
     invalidSemanticResult.diagnostics.some(
       (diagnostic) =>
-        diagnostic.code === "skill.core.command.missing"
-        && diagnostic.path === "skills/strict-spec-propose-from-roadmap/SKILL.md#commands.roadmap-recommend",
+        diagnostic.code === "skill.roadmap.command.missing"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md#commands.roadmap-recommend",
     ),
-    "roadmap-backed propose-from-roadmap guidance requires the roadmap-recommend command mapping",
+    "roadmap-backed recommendation guidance requires the roadmap-recommend command mapping",
   );
   context.assert(
     invalidSemanticResult.diagnostics.some(
@@ -3201,9 +3252,10 @@ context.section("[2c] CLI-only YAML authoring protocol in mutation-capable skill
 // set and the protocol an agent is taught cannot drift apart. cli_owners mixes writers with
 // inspectors, so read-only lookups are excluded before a skill is called mutation-capable.
 const INVENTORY_INSPECTOR_COMMANDS = new Set(["lesson-list", "lesson-show", "lesson-status"]);
-// migrate creates .strict-spec-driven/ YAML but the inventory registers it only against
-// legacy-migration-input, the one family it reads rather than writes; see the change design.
-const PROTOCOL_SKILL_EXCEPTIONS = new Set(["strict-spec-migrate"]);
+// The set is empty. Its one member existed for the migrate skill, which the inventory registered
+// only against legacy-migration-input — the family it reads rather than writes — and that skill is
+// no longer packaged. It stays declared so a future exception is added deliberately.
+const PROTOCOL_SKILL_EXCEPTIONS = new Set<string>();
 
 const inventoryFamilies = (inventoryArtifact.artifact_families ?? {}) as Record<
   string,
@@ -3503,7 +3555,7 @@ type CliOnlyYamlPolicyModule = {
     matches: { file: string; line: number; category: string }[];
     suppressions: { file: string; suppressedBy: string }[];
   };
-  isMutationCapableSkill: (skillName: string, skillText: string) => boolean;
+  isMutationCapableSkill: (skillText: string) => boolean;
   findProseMutationFlags: (text: string) => { command: string; flag: string }[];
   loadPolicyRegistry: () => {
     mutatingOwnerCommands: Set<string>;
@@ -3594,7 +3646,7 @@ context.assert(
 // section cannot reclassify it as exempt and pass vacuously.
 const mutationCapableSample = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
 context.assert(
-  policy.isMutationCapableSkill("strict-spec-propose", mutationCapableSample),
+  policy.isMutationCapableSkill(mutationCapableSample),
   "a skill that invokes an inventory-registered mutation command is classified mutation-capable",
 );
 const strippedOfProtocol = mutationCapableSample.replace(
@@ -3602,7 +3654,7 @@ const strippedOfProtocol = mutationCapableSample.replace(
   "",
 );
 context.assert(
-  policy.isMutationCapableSkill("strict-spec-propose", strippedOfProtocol),
+  policy.isMutationCapableSkill(strippedOfProtocol),
   "deleting the protocol section leaves the skill mutation-capable rather than exempting it",
 );
 
@@ -3614,6 +3666,7 @@ context.assert(
 const PINNED_MUTATION_CAPABLE_SKILLS = [
   "strict-roadmap-plan",
   "strict-roadmap-recommend",
+  "strict-roadmap-reorder",
   "strict-roadmap-review",
   "strict-roadmap-transition",
   "strict-spec-apply",
@@ -3624,16 +3677,11 @@ const PINNED_MUTATION_CAPABLE_SKILLS = [
   "strict-spec-bugfix",
   "strict-spec-design",
   "strict-spec-design-sync",
-  "strict-spec-harness-init",
-  "strict-spec-harness-session",
   "strict-spec-init",
   "strict-spec-maintenance",
-  "strict-spec-migrate",
   "strict-spec-modify",
   "strict-spec-propose",
-  "strict-spec-propose-from-roadmap",
   "strict-spec-review",
-  "strict-spec-sop",
   "strict-spec-spec-edit",
   "strict-spec-sync-specs",
   "strict-tech-edit",
@@ -3645,7 +3693,7 @@ const classifiedMutationCapable: string[] = [];
 const classifiedReadOnly: string[] = [];
 for (const skillName of strictSkillNames) {
   const skillText = readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8");
-  (policy.isMutationCapableSkill(skillName, skillText) ? classifiedMutationCapable : classifiedReadOnly)
+  (policy.isMutationCapableSkill(skillText) ? classifiedMutationCapable : classifiedReadOnly)
     .push(skillName);
 }
 context.assert(
@@ -3666,21 +3714,21 @@ context.assert(
 // The surface reduction this milestone exists to produce is pinned here rather than asserted in a
 // change record, so a skill added back later fails a test instead of quietly restoring the count.
 context.assert(
-  packageValidation.summary.skillCount === 28
-    && packageValidation.summary.marketplaceCount === 28
+  packageValidation.summary.skillCount === 24
+    && packageValidation.summary.marketplaceCount === 24
     && packageValidation.summary.diagnosticsCount === 0,
-  "validate-skills reports 28 bundled skills with marketplace parity and no diagnostics",
+  "validate-skills reports 24 bundled skills with marketplace parity and no diagnostics",
   `skillCount: ${packageValidation.summary.skillCount}, marketplaceCount: ${packageValidation.summary.marketplaceCount}, diagnosticsCount: ${packageValidation.summary.diagnosticsCount}`,
 );
 
 // The budget is per skill rather than a repository-wide total. A single total couples every
-// skill's headroom to every other skill's growth: with 5630 lines measured against a 5700-line cap,
+// skill's headroom to every other skill's growth: with 5058 lines measured against a 5700-line cap,
 // an unrelated skill addition failed a check that was measuring something else, and the file whose
 // author could act on it was never named. A per-skill bound fails only the skill that actually
 // grew.
 //
-// Measured across the 28 packages at 5630 lines total, largest strict-spec-auto at 515 and mean
-// 201. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
+// Measured across the 24 packages at 5058 lines total, largest strict-spec-auto at 515 and mean
+// 210. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
 // reach, so raising it is a deliberate decision carrying a new measurement rather than a silent
 // drift upward.
 const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 560;
@@ -3767,7 +3815,7 @@ const danglingSkillNamesIn = (text: string, pattern = ROUTING_SKILL_REFERENCE_PA
 const RETIRED_INVESTIGATION_SKILL = `strict-spec-${"debug"}-session`;
 const RETIRED_SYNC_SKILL = `strict-roadmap-${"sync"}`;
 const RETIRED_ARCHIVE_SKILL = `strict-roadmap-${"archive"}`;
-const RETIRED_REORDER_SKILL = `strict-roadmap-${"reorder"}`;
+const RETIRED_PAUSE_SKILL = `strict-roadmap-${"pause"}`;
 context.assert(
   JSON.stringify(
     danglingSkillNamesIn(`route unclear investigations to \`${RETIRED_INVESTIGATION_SKILL}\` first`),
@@ -3785,15 +3833,15 @@ context.assert(
 // backtick and no slash reads to an operator exactly like the backticked one, and before this the
 // scan saw only the punctuation.
 context.assert(
-  JSON.stringify(danglingSkillNamesIn(`the deleted ${RETIRED_REORDER_SKILL} entry moved here`))
-    === JSON.stringify([RETIRED_REORDER_SKILL]),
+  JSON.stringify(danglingSkillNamesIn(`the deleted ${RETIRED_PAUSE_SKILL} entry moved here`))
+    === JSON.stringify([RETIRED_PAUSE_SKILL]),
   "the routing matcher fires on a bare prose mention that carries no backtick or slash",
 );
 // The source form must not fire on that same bare sentence, or scoping it to the routing surfaces
 // would be a claim with nothing behind it; it must still fire on a diagnostic that routes a reader.
 context.assert(
   danglingSkillNamesIn(
-    `the deleted ${RETIRED_REORDER_SKILL} entry moved here`,
+    `the deleted ${RETIRED_PAUSE_SKILL} entry moved here`,
     SOURCE_SKILL_REFERENCE_PATTERN,
   ).length === 0,
   "the source matcher leaves a bare prose mention unreported, which is what keeps source commentary out of scope",
@@ -3812,6 +3860,33 @@ context.assert(
       + "resolving schemas beneath ~/.strict-spec-schemas/",
   ).length === 0,
   "the matcher accepts existing skill names and the non-skill identifiers on its allowlist",
+);
+
+// The five skills this change removed get the same negative case as the earlier retirements: the
+// clean tree result below is only evidence once the matcher has been observed firing on each of
+// these names. They are assembled at runtime because this file is inside the governed scope, so a
+// literal here would be a real finding rather than a fixture.
+const REMOVED_SKILL_NAMES = [
+  `strict-spec-${"sop"}`,
+  `strict-spec-${"harness"}-init`,
+  `strict-spec-${"harness"}-session`,
+  `strict-spec-${"migrate"}`,
+  `strict-spec-${"propose"}-from-roadmap`,
+];
+for (const removedName of REMOVED_SKILL_NAMES) {
+  context.assert(
+    JSON.stringify(danglingSkillNamesIn(`route this to \`/${removedName}\` first`))
+      === JSON.stringify([removedName]),
+    `the dangling-reference matcher flags the removed skill ${removedName}`,
+    danglingSkillNamesIn(`route this to \`/${removedName}\` first`).join(", "),
+  );
+}
+// strict-roadmap-reorder is the inverse case: it was retired by the previous consolidation and is a
+// packaged skill again, so the matcher must now leave it alone. Without this the reduction could be
+// "proven" by a scan that simply stopped recognizing the name.
+context.assert(
+  danglingSkillNamesIn(`reorder a milestone with \`/strict-roadmap-${"reorder"}\``).length === 0,
+  "the matcher accepts strict-roadmap-reorder, which this change restored as its own package",
 );
 
 // The marker is a scope carve-out, so it needs both halves proven: it must silence the section it
@@ -3909,14 +3984,11 @@ context.assert(
   "the inventory yields a mutating command for the classification probes",
 );
 context.assert(
-  policy.isMutationCapableSkill("strict-probe-writer", `Run \`strict-spec-cli ${oneMutatingCommand}\` to write it.`),
+  policy.isMutationCapableSkill(`Run \`strict-spec-cli ${oneMutatingCommand}\` to write it.`),
   "a skill naming an inventory-registered mutation command is classified mutation-capable",
 );
 context.assert(
-  !policy.isMutationCapableSkill(
-    "strict-probe-reader",
-    "Run `strict-spec-cli check-workflow-state` and read the result.",
-  ),
+  !policy.isMutationCapableSkill("Run `strict-spec-cli check-workflow-state` and read the result."),
   "a skill naming only inspection commands is not classified mutation-capable",
 );
 
@@ -3973,7 +4045,7 @@ for (const skillName of readdirSync(path.join(ROOT, "skills"), { withFileTypes: 
   const skillFile = path.join(ROOT, "skills", skillName, "SKILL.md");
   if (!existsSync(skillFile)) continue;
   const text = readFileSync(skillFile, "utf8");
-  if (!policy.isMutationCapableSkill(skillName, text)) continue;
+  if (!policy.isMutationCapableSkill(text)) continue;
   for (const { command, flag } of policy.findProseMutationFlags(text)) {
     if (!registry.mutatingOwnerCommands.has(command)) continue;
     const declared = registry.declaredFlagsByCommand.get(command);

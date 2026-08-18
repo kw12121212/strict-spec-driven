@@ -72,11 +72,12 @@ Each session records selected environment/components, lifecycle evidence, reprod
 
 Evidence entries and manual actions must keep `contains_secrets: false` and `secrets_recorded: false`.
 
-## Skills
+## Workflows
 
-Two skills drive the harness workflow:
+Two CLI workflows drive the harness. Neither is a skill package; each is a
+sequence of `strict-spec-cli` commands, and the order matters.
 
-### `/strict-spec-harness-init`
+### Declaring a harness
 
 Creates or refines a project harness declaration. Steps:
 
@@ -88,11 +89,11 @@ Creates or refines a project harness declaration. Steps:
 6. Validates via `harness-plan` for each declared environment.
 7. Generates and verifies project-local scripts under `scripts/`.
 
-Inferred production commands and stateful lifecycle operations stay disabled until the human confirms them explicitly.
+Inferred production commands and stateful lifecycle operations stay disabled until the human confirms them explicitly. Present the inferred draft and confirm the development and production environment configurations with a human before writing the file — the inference cannot decide whether a production command is safe to run.
 
-### `/strict-spec-harness-session`
+### Running an investigation session
 
-Guides harness investigation sessions with lifecycle evidence, human checkpoints, replay commands, and validation. Steps:
+Drives a harness investigation with lifecycle evidence, human checkpoints, replay commands, and validation. Steps:
 
 1. Creates a new session with `harness-session create <session-id>` or validates an existing one.
 2. Records the selected harness environment and components.
@@ -101,4 +102,4 @@ Guides harness investigation sessions with lifecycle evidence, human checkpoints
 5. Preserves replay commands and updates verification status with evidence identifiers.
 6. Validates with `harness-session validate <session-id>`, then archives sessions whose status is `resolved` or `blocked`.
 
-This skill replaces the older debug-session workflow. Do not create or manage `debug-session` artifacts from it.
+This workflow replaces the older debug-session workflow. Do not create or manage `debug-session` artifacts.

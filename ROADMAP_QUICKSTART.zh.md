@@ -181,6 +181,7 @@ strict-spec-cli roadmap-sync --materialize-planned-changes
 | `/strict-roadmap-plan` | 创建或重构路线图 |
 | `/strict-roadmap-review` | 审查单个未完成里程碑并直接修复 |
 | `/strict-roadmap-recommend` | 获取下一个变更的推荐 |
-| `/strict-roadmap-transition` | 一次路线图状态迁移：`pause`、`resume`、`defer`、`refine`、`reorder`、`move`、`reopen`、`archive`、`sync` |
+| `/strict-roadmap-transition` | 一次路线图状态迁移：`pause`、`resume`、`defer`、`refine`、`move`、`reopen`、`archive`、`sync` |
+| `/strict-roadmap-reorder` | 修改某个活动里程碑在路线图中的顺序位置 |
 
 完整的 YAML 模式和字段定义参考，请参阅 [ROADMAP_GUIDE.zh.md](ROADMAP_GUIDE.zh.md)。

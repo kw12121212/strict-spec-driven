@@ -1,0 +1,49 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-unused-skills-and-split-roadmap-reorder
+  status: proposed
+summary:
+  what:
+    - Delete the five bundled skill packages strict-spec-sop, strict-spec-harness-session, strict-spec-harness-init, strict-spec-migrate, and strict-spec-propose-from-roadmap from skills/, removing 748 of the 5630 bundled skill lines.
+    - Extract the reorder operation out of strict-roadmap-transition into a new standalone strict-roadmap-reorder skill package, leaving the transition skill covering eight operations instead of nine so no operation has two entry points.
+    - Sweep every live reference to the five deleted skills across skills/marketplace.json, src/skills/model.ts, src/skills/content.ts, src/skills/frontmatter.ts, src/cli-only-yaml-policy.ts, src/mcp/prompts.ts, src/mcp/inventory.ts, inventory/yaml-mutation-surfaces.yaml with its embedded copy, and the 27 documentation references across README, QUICKSTART, HARNESS, DEBUG_QUICKSTART, ROADMAP_GUIDE, ROADMAP_QUICKSTART, and RTK.md.
+    - Re-point the strict-spec-bugfix unclear-or-unreproduced routing from the deleted strict-spec-harness-session to /strict-spec-brainstorm, in the skill prompt, the model.ts required snippet, and the main spec MUST that pins the handoff target.
+    - 'Prove the reduction with tests: validate-skills reporting skillCount 24 with marketplace parity and zero diagnostics, re-measured bundled skill line budgets, and a dangling-reference scan that stays clean.'
+  why:
+    - 'Three of the five skills are duplicate entry points rather than distinct capabilities: strict-spec-propose-from-roadmap duplicates strict-roadmap-recommend''s scaffolding path, and the two harness skills overlap the ordinary debugging flow. Carrying a duplicate entry point costs a selection decision on every invocation and a second copy of guidance to keep in sync.'
+    - The five packages are never invoked in this repository's own workflow while still occupying the slash-command list an operator reads before choosing a skill, so they add selection cost with no corresponding use.
+    - At 748 lines they are 13 percent of the bundled skill text, which is loaded as context; the preceding skill-surface-consolidation milestone cut 36 skills to 28 on the same reasoning and explicitly deferred re-measuring the thin non-roadmap skills to a later change.
+    - The reorder operation is invoked often enough that routing it through the parameterized transition skill costs an operation-selection step on every use, which is the one case where a dedicated entry point earns its package back.
+scope:
+  in:
+    - Deleting the five skill directories skills/strict-spec-{sop,harness-session,harness-init,migrate,propose-from-roadmap}/ together with their scripts symlinks.
+    - Authoring skills/strict-roadmap-reorder/SKILL.md as a standalone package with its scripts symlink, carrying the roadmap-reorder and roadmap-renumber command mappings, the integer-order-field guidance, the --before/--after/--order selection guidance, the exhausted-integer-gap roadmap-renumber fallback, and the dependency-order confirmation before reordering.
+    - Removing the reorder row, the roadmap-reorder and roadmap-renumber command mappings, the reorder guidance section, and the nine-operation wording from skills/strict-roadmap-transition/SKILL.md, and pointing its reorder cross-reference at the new skill.
+    - Removing the five deleted entries and adding the strict-roadmap-reorder entry in skills/marketplace.json so validate-skills reports 24 packages with marketplace parity.
+    - Deleting the MIGRATION_STRICT_SKILL_EXPECTATIONS record and the strict-spec-propose-from-roadmap entry in src/skills/model.ts, relocating its reorder command mapping and reorder snippets from the transition expectation onto a new strict-roadmap-reorder expectation, and repointing BUGFIX_INVESTIGATION_SESSION_SNIPPET at strict-spec-brainstorm.
+    - Removing the MIGRATION_STRICT_SKILL_EXPECTATIONS import and its validation wiring in src/skills/content.ts, and the deleted skill names in src/skills/frontmatter.ts.
+    - Removing strict-spec-migrate from MUTATION_CAPABLE_EXCEPTIONS in src/cli-only-yaml-policy.ts, since the exception exists only for that skill package.
+    - Rewriting the strict_harness_investigation prompt body and the strict_propose_change tool description in src/mcp/prompts.ts and src/mcp/inventory.ts so they route to strict CLI commands and surviving skills instead of deleted packages.
+    - Rewriting the bundled-skill-guidance path patterns in inventory/yaml-mutation-surfaces.yaml through inventory-edit, regenerating src/embedded-templates.ts in the same operation.
+    - Rewriting the 27 documentation references in README.md, README.zh.md, QUICKSTART.md, QUICKSTART.zh.md, HARNESS.md, HARNESS.zh.md, DEBUG_QUICKSTART.md, DEBUG_QUICKSTART.zh-CN.md, ROADMAP_GUIDE.md, ROADMAP_QUICKSTART.md, and RTK.md into the equivalent strict-spec-cli command invocations, keeping every document in place.
+    - Correcting the two strict-spec-harness-session routing references in skills/strict-spec-bugfix/SKILL.md and the one strict-spec-propose-from-roadmap cross-reference in skills/strict-spec-propose/SKILL.md.
+    - 'Delta spec against contracts-yaml-artifacts: REMOVED strict-harness-init-interactive-checkpoint, MODIFIED strict-roadmap-scripted-selection, strict-roadmap-skill-command-contract, and non-init-strict-skills-require-existing-workflow-state.'
+    - 'Delta spec against cli-foundation: MODIFIED cli-bugfix-skill-packaging-validation and cli-roadmap-transition-skill-covers-every-transition-operation, plus an ADDED requirement that the system package a standalone roadmap reorder skill validated for its command mapping and reorder guidance.'
+    - 'Updating test/suites/entrypoint-and-skills.ts, test/suites/mcp-server.ts, and test/suites/roadmap-and-migration.ts: the pinned skillCount and marketplaceCount, the bundled skill name list, the re-measured line budgets, the bugfix handoff assertions, and the RETIRED_REORDER_SKILL dangling-reference fixture, which stops being a dangling name once the reorder package exists again.'
+  out:
+    - Alias or shim skill packages preserving the five deleted slash-command names. Old invocations fail outright, matching how the preceding 36-to-28 consolidation retired its nine names.
+    - Any change to strict CLI command names, arguments, output, or exit codes. sop-generate, the harness commands, migrate, roadmap-reorder, and roadmap-renumber all keep their current behavior; this change touches only the skill layer and the references that name it.
+    - Deleting or narrowing the sop-domain-behavior, harness-domain-behavior, sessions-domain-behavior, and migrate-domain-behavior main specs, or their schemas and examples. The CLI capabilities they describe are retained for direct invocation and for external projects.
+    - Editing archived strict change artifacts under .strict-spec-driven/changes/archive/ or archived roadmap records that name the five deleted skills. They are historical record, and the dangling-reference scan must keep excluding those paths.
+    - Lowering the declared coverage threshold of 78 to accommodate the deleted code paths.
+    - Folding the remaining thin skills into other packages, or any further reduction beyond the five named here and the one reorder extraction.
+unchanged_behavior:
+  - Every strict CLI command keeps its name, arguments, output, and exit codes, including sop-generate, harness-infer, harness-plan, harness-start, harness-status, harness-logs, harness-stop, harness-doctor, migrate, roadmap-reorder, and roadmap-renumber.
+  - The four domain specs for SOP, harness, sessions, and migrate behavior remain byte-identical, so the CLI behavior they govern is still specified and still tested.
+  - 'The reorder transition itself behaves identically: the same roadmap-reorder command with the same --before, --after, and --order selection and the same roadmap-renumber fallback, invoked from a different skill package.'
+  - The other eight transition operations pause, resume, defer, refine, move, reopen, archive, and sync stay in strict-roadmap-transition with unchanged guidance.
+  - The cli-only-yaml-policy maintenance check reports no new violations, and isMutationCapableSkill classifies every surviving skill package exactly as before.
+  - strict-spec-bugfix keeps its boundary that an unclear or unreproduced issue is not fixed from code inspection alone; only the named handoff target changes.

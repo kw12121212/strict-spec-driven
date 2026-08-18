@@ -32,13 +32,14 @@ overwrite existing declarations.
 
 ## 2. Declare Your Harness
 
-Let the skill prepare the declaration from repository context:
+Draft the declaration from repository context, then refine it:
 
-```
-/strict-spec-harness-init
+```sh
+strict-spec-cli harness-infer --write
+strict-spec-cli harness-doctor
 ```
 
-Or draft and refine it directly through the CLI:
+Every field is set through named arguments:
 
 ```sh
 strict-spec-cli harness-infer --write
@@ -104,11 +105,11 @@ strict-spec-cli harness-session create my-bug
 ```
 
 This creates `.strict-spec-driven/harness-sessions/my-bug/` with the session
-artifact and an evidence directory. Or use the guided skill, which walks
-through the full investigation lifecycle:
+artifact and an evidence directory. `harness-session validate` and
+`harness-session archive` close out the lifecycle:
 
-```
-/strict-spec-harness-session
+```sh
+strict-spec-cli harness-session validate my-bug
 ```
 
 ---

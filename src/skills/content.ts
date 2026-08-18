@@ -17,7 +17,6 @@ import {
   CORE_STRICT_SKILL_EXPECTATIONS,
   CHECK_WORKFLOW_STATE_COMMAND,
   GENERIC_COMMAND_PLACEHOLDER,
-  MIGRATION_STRICT_SKILL_EXPECTATIONS,
   PLANNING_STRICT_SKILL_EXPECTATIONS,
   ROADMAP_STRICT_SKILL_EXPECTATIONS,
   PREFERRED_HUMAN_LANGUAGE_HEADING,
@@ -123,8 +122,7 @@ function requiresExistingStrictWorkflowState(skillName: string): boolean {
     skillName.startsWith("strict-roadmap-") ||
     skillName.startsWith("strict-tech-")
   )
-    && skillName !== "strict-spec-init"
-    && skillName !== "strict-spec-migrate";
+    && skillName !== "strict-spec-init";
 }
 
 function validateStrictWorkflowStateGuidance(
@@ -195,7 +193,7 @@ function validateSkillContentAgainstExpectation(
   skillPath: string,
   diagnostics: SkillPackagingDiagnostic[],
   expectationMap: Record<string, SkillContentExpectation>,
-  diagnosticPrefix: "skill.core" | "skill.roadmap" | "skill.planning" | "skill.migration",
+  diagnosticPrefix: "skill.core" | "skill.roadmap" | "skill.planning",
   label: string,
 ): void {
   const expectation = expectationMap[skillName];
@@ -336,25 +334,6 @@ function validatePlanningSkillContent(
     PLANNING_STRICT_SKILL_EXPECTATIONS,
     "skill.planning",
     "strict planning skill",
-  );
-}
-
-function validateMigrationSkillContent(
-  skillName: string,
-  content: string,
-  commands: Record<string, string>,
-  skillPath: string,
-  diagnostics: SkillPackagingDiagnostic[],
-): void {
-  validateSkillContentAgainstExpectation(
-    skillName,
-    content,
-    commands,
-    skillPath,
-    diagnostics,
-    MIGRATION_STRICT_SKILL_EXPECTATIONS,
-    "skill.migration",
-    "strict migration skill",
   );
 }
 
@@ -537,7 +516,7 @@ function validateAuthoringProtocolPointer(
   skillPath: string,
   diagnostics: SkillPackagingDiagnostic[],
 ): void {
-  if (!isMutationCapableSkill(skillName, content)) return;
+  if (!isMutationCapableSkill(content)) return;
 
   const section = authoringProtocolSection(content);
   if (section === undefined) {
@@ -643,7 +622,7 @@ function validateCliOnlyYamlPolicy(
   skillPath: string,
   diagnostics: SkillPackagingDiagnostic[],
 ): void {
-  if (!isMutationCapableSkill(skillName, content)) return;
+  if (!isMutationCapableSkill(content)) return;
 
   for (const match of scanTextForPolicyViolations(skillPath, content).matches) {
     diagnostics.push(
@@ -835,7 +814,6 @@ export function validateCommandSection(
   validateCoreSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateRoadmapSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
-  validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
   validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics);
   validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics);

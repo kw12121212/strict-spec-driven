@@ -31,14 +31,21 @@
 
 <!-- retired-skill-names -->
 
-九个单命令 roadmap 技能已合并为一个带参数的技能。
+九个单命令 roadmap 技能已合并为一个带参数的技能，随后 `/strict-roadmap-reorder`
+又被拆回独立技能，因为它的调用频率足以支撑一个专属入口。
 `/strict-roadmap-pause`、`/strict-roadmap-resume`、`/strict-roadmap-defer`、
-`/strict-roadmap-refine`、`/strict-roadmap-reorder`、`/strict-roadmap-move`、
-`/strict-roadmap-reopen`、`/strict-roadmap-archive` 和 `/strict-roadmap-sync`
+`/strict-roadmap-refine`、`/strict-roadmap-move`、`/strict-roadmap-reopen`、
+`/strict-roadmap-archive` 和 `/strict-roadmap-sync`
 已不再是技能包，也没有任何别名包做转发，因此调用这些斜杠命令现在会直接失败，
 而不是悄悄执行原来的行为。
 
-每一个都变成了同一个技能的一个显式操作：
+`/strict-spec-sop`、`/strict-spec-harness-init`、`/strict-spec-harness-session`、
+`/strict-spec-migrate` 和 `/strict-spec-propose-from-roadmap` 这五个技能以同样的方式被移除。
+它们背后的 CLI 命令没有变化——`sop-*`、`harness-*` 和 `migrate` 都保留原有名称、参数和行为——
+因此这些能力仍可通过 `strict-spec-cli` 使用，而路线图支持的提案由
+`/strict-roadmap-recommend` 脚手架化。
+
+除 reorder 重新拥有独立技能外，其余已退役的 roadmap 名称都变成了同一个技能的一个显式操作：
 
 | 已退役的斜杠命令 | 替代写法 |
 |---|---|
@@ -46,7 +53,7 @@
 | `/strict-roadmap-resume` | `/strict-roadmap-transition resume` |
 | `/strict-roadmap-defer` | `/strict-roadmap-transition defer` |
 | `/strict-roadmap-refine` | `/strict-roadmap-transition refine` |
-| `/strict-roadmap-reorder` | `/strict-roadmap-transition reorder` |
+| `/strict-roadmap-reorder` | `/strict-roadmap-reorder`（重新成为独立技能） |
 | `/strict-roadmap-move` | `/strict-roadmap-transition move` |
 | `/strict-roadmap-reopen` | `/strict-roadmap-transition reopen` |
 | `/strict-roadmap-archive` | `/strict-roadmap-transition archive` |
@@ -125,12 +132,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-archive` | 归档已完成的变更 |
 | `/strict-spec-auto` | 端到端自动化变更生命周期 |
 | `/strict-spec-ship` | 通过 git 提交发布已归档的变更 |
-| `/strict-spec-migrate` | 将引导状态迁移到严格 YAML |
 | `/strict-spec-brainstorm` | 在提议前对变更想法进行头脑风暴 |
 | `/strict-spec-modify` | 修改现有变更的制品 |
-| `/strict-spec-propose-from-roadmap` | 从路线图推荐项提议变更 |
-| `/strict-spec-harness-init` | 创建或优化 `.strict-spec-driven/harness.yaml` 和生成脚本 |
-| `/strict-spec-harness-session` | 运行结构化 harness 调查 |
 | `/strict-spec-spec-edit` | 直接编辑主规范文件 |
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
 | `/strict-spec-design` | 编写或刷新设计系统制品并渲染 `DESIGN.md` |
@@ -144,7 +147,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-roadmap-recommend` | 从路线图推荐下一个计划变更 |
 | `/strict-roadmap-review` | 审查未完成的路线图里程碑并直接修复 |
 | `/strict-roadmap-plan` | 创建或重构路线图 |
-| `/strict-roadmap-transition` | 执行一次路线图状态迁移：`pause`、`resume`、`defer`、`refine`、`reorder`、`move`、`reopen`、`archive` 或 `sync` |
+| `/strict-roadmap-transition` | 执行一次路线图状态迁移：`pause`、`resume`、`defer`、`refine`、`move`、`reopen`、`archive` 或 `sync` |
+| `/strict-roadmap-reorder` | 修改某个活动里程碑在路线图中的顺序位置 |
 
 路线图文档描述了首选的拆分文件协作模型：保持里程碑文件和 `INDEX.yaml` 低变动率，将日常路线图工作存储在 `.strict-spec-driven/roadmap/planned-changes/` 中，在合并或归档交接后重新运行 `roadmap-sync`，并将外部跟踪器引用视为可选上下文而非必需的真实来源。
 
@@ -308,7 +312,7 @@ strict-spec-cli sop-validate
 
 ## 迁移边界
 
-`migrate` 子命令和 `/strict-spec-migrate` Skill 将支持的旧版 `.spec-driven/` Markdown 制品转换为 `.strict-spec-driven/` YAML 制品。源 `.spec-driven/` 目录不会被修改。不支持或模糊的旧版格式会在迁移报告中作为手动跟进事项报告。
+`strict-spec-cli migrate` 子命令将支持的旧版 `.spec-driven/` Markdown 制品转换为 `.strict-spec-driven/` YAML 制品。源 `.spec-driven/` 目录不会被修改。不支持或模糊的旧版格式会在迁移报告中作为手动跟进事项报告。
 
 迁移后，`.strict-spec-driven/` 是活跃的工作流状态。`.spec-driven/` 保留为引导或旧版历史，不作为有效的严格工作流目标处理。
 

@@ -1830,11 +1830,11 @@ requirements:
         - THEN: validate-skills reports deterministic diagnostics that preserve proposal checkpoint as the planning-stage terminology
   cli-bugfix-skill-packaging-validation:
     strength: MUST
-    statement: The system MUST package a strict-spec-bugfix skill and validate that its guidance is limited to known bugs with reproduction evidence, regression coverage, minimal fixes, strict verification, direct review, and handoff to strict-spec-harness-session when an issue is unclear or unreproduced.
+    statement: The system MUST package a strict-spec-bugfix skill and validate that its guidance is limited to known bugs with reproduction evidence, regression coverage, minimal fixes, strict verification, direct review, and handoff to strict-spec-brainstorm when an issue is unclear or unreproduced.
     scenarios:
       validate-skills-requires-bugfix-boundaries:
         - GIVEN: validate-skills inspects the bundled strict-spec-bugfix skill
-        - WHEN: the skill omits known-bug, reproduce-before-fixing, failing-regression, minimal-fix, or investigation-session handoff guidance
+        - WHEN: the skill omits known-bug, reproduce-before-fixing, failing-regression, minimal-fix, or unclear-issue handoff guidance
         - THEN: validate-skills reports deterministic diagnostics for the missing bugfix guidance
       bugfix-skill-documents-narrow-fix-workflow:
         - GIVEN: an agent follows the strict-spec-bugfix skill for a known defect
@@ -2871,20 +2871,24 @@ requirements:
         - THEN: the first is classified mutation-capable and the second is not, so a classifier that answered the same way for every input would fail the suite
   cli-roadmap-transition-skill-covers-every-transition-operation:
     strength: MUST
-    statement: The system MUST provide a bundled roadmap state-transition skill that selects its transition from an explicit operation naming exactly one of pause, resume, defer, refine, reorder, move, reopen, archive, and sync, and MUST make strict skill content validation require, for that skill, the owning CLI command mapping and the guidance content of every one of those nine operations rather than an arbitrary subset.
+    statement: The system MUST provide a bundled roadmap state-transition skill that selects its transition from an explicit operation naming exactly one of pause, resume, defer, refine, move, reopen, archive, and sync, and MUST make strict skill content validation require, for that skill, the owning CLI command mapping and the guidance content of every one of those eight operations rather than an arbitrary subset. The reorder operation MUST NOT be one of them, because it is owned by its own bundled skill package.
     scenarios:
       transition-skill-declares-every-operation-command:
-        - GIVEN: the bundled roadmap state-transition skill package declares one owning strict roadmap CLI command for each of its nine operations and carries the guidance for each
+        - GIVEN: the bundled roadmap state-transition skill package declares one owning strict roadmap CLI command for each of its eight operations and carries the guidance for each
         - WHEN: strict skill content validation is executed
         - THEN: the roadmap skill content checks pass
       missing-operation-guidance-is-rejected:
-        - GIVEN: the bundled roadmap state-transition skill package omits the command mapping or the guidance content for any one of the nine operations
+        - GIVEN: the bundled roadmap state-transition skill package omits the command mapping or the guidance content for any one of the eight operations
         - WHEN: strict skill content validation is executed
         - THEN: the roadmap skill content checks fail and the diagnostics identify the failing skill package deterministically
       unnamed-operation-stops-for-a-human-answer:
-        - GIVEN: a roadmap state-transition request that names none of the nine operations
+        - GIVEN: a roadmap state-transition request that names none of the eight operations
         - WHEN: the bundled roadmap state-transition skill's instructions are read
         - THEN: they direct the agent to stop and ask which operation is intended rather than infer one from the request
+      reorder-is-not-a-transition-operation:
+        - GIVEN: the bundled roadmap state-transition skill package is inspected for the reorder operation
+        - WHEN: strict skill content validation is executed
+        - THEN: the skill declares no roadmap-reorder command mapping and no reorder operation row, and its reorder cross-reference names the standalone roadmap reorder skill, so exactly one bundled package owns the operation
   cli-skills-state-workflow-state-precondition-once:
     strength: MUST
     statement: 'A bundled strict skill MUST state the `check-workflow-state` precondition, the init guidance, and the do-not-run-init statement at most once per skill file; when any two sections of the same skill file both state them, skill packaging validation MUST report a diagnostic naming the offending skill, regardless of which sections those are. The requirement constrains repetition, not placement: a skill that states the guidance in exactly one section satisfies it regardless of which section that is, a Prerequisites section carrying a skill-specific precondition remains valid, and the section that declares the skill''s commands is not a restatement because every skill keeps it by design.'
@@ -2929,3 +2933,19 @@ requirements:
         - GIVEN: the set of skill packages discovered by scanning skills/
         - WHEN: skill packaging validation checks a skill's references against that set
         - THEN: the set of valid names is derived from the discovered directories rather than from a list written inside the guidance being checked, so deleting a skill package makes every reference to it fail
+  cli-roadmap-reorder-skill-is-standalone:
+    strength: MUST
+    statement: The system MUST package a standalone bundled roadmap reorder skill that owns the reorder operation alone, and MUST make strict skill content validation require its roadmap-reorder and roadmap-renumber command mappings together with the guidance that milestone order comes from the optional integer order field rather than an id prefix, that placement is expressed with --before, --after, or --order, that roadmap-renumber is run only when no integer gap remains between the requested neighbours or the user asks for it, and that a reorder contradicting a declared dependency stops for an explicit human answer.
+    scenarios:
+      reorder-skill-is-packaged-and-validated:
+        - GIVEN: the bundled skill set and marketplace metadata are inspected
+        - WHEN: validate-skills runs
+        - THEN: a strict-roadmap-reorder skill package and its marketplace entry both exist, and its roadmap-reorder and roadmap-renumber command mappings are validated against the bundled CLI commands
+      missing-reorder-guidance-is-rejected:
+        - GIVEN: the bundled roadmap reorder skill omits the order-field source, the placement flags, the roadmap-renumber fallback, or the dependency-order confirmation guidance
+        - WHEN: strict skill content validation is executed
+        - THEN: validation fails and the diagnostics name the strict-roadmap-reorder package deterministically
+      reorder-has-exactly-one-owning-skill:
+        - GIVEN: the bundled skill set is searched for packages declaring a roadmap-reorder command mapping
+        - WHEN: strict skill content validation is executed
+        - THEN: the standalone roadmap reorder skill is the only such package, so an operator choosing how to reorder a milestone has one entry point rather than two

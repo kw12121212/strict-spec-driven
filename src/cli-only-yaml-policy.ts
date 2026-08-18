@@ -269,14 +269,13 @@ export function bodyWithoutProtocolSection(skillText: string): string {
 }
 
 /**
- * migrate creates `.strict-spec-driven/` YAML but the inventory registers it only against
- * legacy-migration-input, the one family it reads rather than writes.
+ * Whether a bundled skill directs a repository-owned YAML mutation, decided from the inventory.
+ *
+ * The set carries no exceptions. The one it held existed for the migrate skill, whose owning
+ * command the inventory registers only against legacy-migration-input — the family it reads rather
+ * than writes — and that skill is no longer packaged.
  */
-const MUTATION_CAPABLE_EXCEPTIONS = new Set(["strict-spec-migrate"]);
-
-/** Whether a bundled skill directs a repository-owned YAML mutation, decided from the inventory. */
-export function isMutationCapableSkill(skillName: string, skillText: string): boolean {
-  if (MUTATION_CAPABLE_EXCEPTIONS.has(skillName)) return true;
+export function isMutationCapableSkill(skillText: string): boolean {
   const body = bodyWithoutProtocolSection(skillText);
   const { mutatingOwnerCommands } = loadPolicyRegistry();
   return [...mutatingOwnerCommands].some((command) =>

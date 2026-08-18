@@ -29,13 +29,14 @@ strict-spec-cli init
 
 ## 2. 声明你的 Harness
 
-让 Skill 从仓库上下文准备声明：
+从仓库上下文起草声明，然后完善它：
 
-```
-/strict-spec-harness-init
+```sh
+strict-spec-cli harness-infer --write
+strict-spec-cli harness-doctor
 ```
 
-或直接通过 CLI 起草并完善：
+每个字段都通过命名参数设置：
 
 ```sh
 strict-spec-cli harness-infer --write
@@ -98,10 +99,10 @@ strict-spec-cli harness-session create my-bug
 ```
 
 这会创建 `.strict-spec-driven/harness-sessions/my-bug/`，包含会话制品和证据目录。
-也可以使用引导式 Skill，它会带你走完整个调查生命周期：
+`harness-session validate` 与 `harness-session archive` 收尾整个生命周期：
 
-```
-/strict-spec-harness-session
+```sh
+strict-spec-cli harness-session validate my-bug
 ```
 
 ---

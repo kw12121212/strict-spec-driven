@@ -169,12 +169,6 @@ Recommended habits:
 
 Use these Claude Code slash commands to work with the roadmap:
 
-### `/strict-spec-propose-from-roadmap`
-
-Runs the scripted roadmap recommendation and turns the selected planned change
-into a normal strict change proposal. This command stops after proposal
-validation; it does not implement code or invoke `/strict-spec-auto`.
-
 ### `/strict-roadmap-recommend`
 
 Reads roadmap state and recommends the best next planned change to work on from standalone planned-change files. The command scaffolds one normal strict change under `.strict-spec-driven/changes/` without stopping for extra confirmation.
@@ -240,7 +234,7 @@ Creates or restructures the roadmap when you need to add, reorder, or rewrite mi
 
 ### `/strict-roadmap-transition sync`
 
-Reconciles roadmap state against strict workflow state. `sync` is one of the nine operations `/strict-roadmap-transition` performs; the others are `pause`, `resume`, `defer`, `refine`, `reorder`, `move`, `reopen`, and `archive`, each selected by naming it explicitly.
+Reconciles roadmap state against strict workflow state. `sync` is one of the eight operations `/strict-roadmap-transition` performs; the others are `pause`, `resume`, `defer`, `refine`, `move`, `reopen`, and `archive`, each selected by naming it explicitly. Milestone reordering is not among them — it has its own skill, `/strict-roadmap-reorder`.
 
 It:
 
@@ -259,6 +253,25 @@ CLI form:
 
 ```sh
 strict-spec-cli roadmap-sync
+```
+
+### `/strict-roadmap-reorder`
+
+Changes one active milestone's position in roadmap order. Order comes from the
+optional integer `order` field, never from the milestone id prefix or the
+filename, so the skill resolves the request into exactly one of `--before`,
+`--after`, or `--order` and runs the command once. When no integer gap remains
+between the requested neighbours, run `roadmap-renumber` first, then rerun the
+reorder.
+
+The skill stops for an explicit human answer when the new position would place
+a milestone before work it depends on; the command itself does not read
+`depends_on` edges.
+
+CLI form:
+
+```sh
+strict-spec-cli roadmap-reorder <milestone-id> --after <neighbor-id>
 ```
 
 ## How to Add a Planned Change
