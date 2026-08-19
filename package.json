@@ -14,13 +14,11 @@
     "check:yaml-inventory": "bun scripts/check-yaml-mutation-inventory.ts",
     "install-strict-skills": "bash install.sh",
     "install-strict-skills:win": "powershell -ExecutionPolicy Bypass -File install.ps1",
-    "install-strict-skills:project": "bash install.sh --project",
     "lint": "tsc --noEmit",
     "test": "bun test/run.ts",
     "test:coverage": "bun scripts/coverage-gate.ts",
     "uninstall-strict-skills": "bash install.sh --uninstall",
     "uninstall-strict-skills:win": "powershell -ExecutionPolicy Bypass -File install.ps1 -Uninstall",
-    "uninstall-strict-skills:project": "bash install.sh --uninstall --project",
     "validate-skills": "bun run build:bundle && node dist/scripts/strict-spec-driven.js validate-skills"
   },
   "devDependencies": {
