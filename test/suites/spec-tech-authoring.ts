@@ -494,7 +494,11 @@ function isRemovalHistory(relativePath: string): boolean {
     || relativePath.includes("/.spec-driven/")
     // The suite that proves the removal necessarily names what was removed.
     || relativePath === "test/suites/change-lifecycle.ts"
-    || relativePath === "test/suites/spec-tech-authoring.ts";
+    || relativePath === "test/suites/spec-tech-authoring.ts"
+    // The retired-skill list names, by definition, packages this repository no longer ships; an
+    // entry there is the record of a removal, in the same category as the archived workflow state
+    // above. The names cannot carry a removal assertion of their own because the file is a list.
+    || relativePath === "retired-skills.json";
 }
 
 /**
