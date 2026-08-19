@@ -1,0 +1,49 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-installer-removes-retired-skills:
+      strength: MUST
+      statement: The installer MUST remove from the target machine every skill package this repository has retired, on both the Unix and Windows flows, and MUST identify that retired set from the retired-skill list the repository records rather than from skill name prefixes or from what happens to be installed; the install path MUST report the retired skills it removed, and MUST leave every packaged skill installed.
+      scenarios:
+        unix-install-removes-a-retired-skill:
+          - GIVEN: a machine carries an installed skill package that this repository has since retired
+          - WHEN: the Unix installer runs its install path
+          - THEN: the installer removes that retired skill from the machine
+        windows-install-removes-a-retired-skill:
+          - GIVEN: a machine carries an installed skill package that this repository has since retired
+          - WHEN: the Windows PowerShell installer runs its install path
+          - THEN: the installer removes that retired skill from the machine
+        retired-set-is-read-from-the-recorded-list:
+          - GIVEN: a retired skill whose name carries none of the prefixes used by the packaged skill families
+          - WHEN: the installer determines which skills to remove
+          - THEN: that skill is still removed, because the retired set is read from the recorded retired-skill list
+        install-keeps-every-packaged-skill:
+          - GIVEN: the repository packages a skill that was retired earlier and later restored
+          - WHEN: the installer runs its install path
+          - THEN: that skill remains installed after the run
+        install-reports-what-it-removed:
+          - GIVEN: the install path removes one or more retired skills
+          - WHEN: installation completes
+          - THEN: the installer reports the retired skill names it removed
+    cli-installer-uninstall-names-its-skills:
+      strength: MUST
+      statement: The installer uninstall path MUST name every skill it removes, covering both the packaged and the retired skills, so removal cannot depend on an interactive selection; in a session with no interactive input the uninstall path MUST still remove those skills rather than completing successfully having removed nothing.
+      scenarios:
+        unix-uninstall-removes-skills-without-interaction:
+          - GIVEN: the Unix installer uninstall path runs in a session with no interactive input
+          - WHEN: it asks the skills tool to remove this repository skills
+          - THEN: the packaged and retired skills are removed from the machine
+        windows-uninstall-removes-skills-without-interaction:
+          - GIVEN: the Windows PowerShell installer uninstall path runs in a session with no interactive input
+          - WHEN: it asks the skills tool to remove this repository skills
+          - THEN: the packaged and retired skills are removed from the machine
+        uninstall-does-not-report-success-without-removing:
+          - GIVEN: the uninstall path completes with a success exit status
+          - WHEN: the installed skills are inspected afterwards
+          - THEN: no packaged or retired skill from this repository is still installed
+  MODIFIED: {}
+  REMOVED: {}

@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: installer-prunes-retired-skills
+approach:
+  - 'The repository records its retired skill names in retired-skills.json at the repository root. One source module reads that list together with the packaged names taken from the skills directories, a thin scripts entry point prints either set, and both installers call that entry point and hand the names to the skills CLI: the install path removes the retired names after adding the packaged ones, and the uninstall path removes the packaged and retired names together instead of calling the removal with no names.'
+decisions:
+  retired-list-lives-outside-the-scanned-tree:
+    decision: Keep the retired list at the repository root in retired-skills.json, rather than as a field in skills/marketplace.json or as a file under inventory/.
+    rationale: 'The list names packages that no longer exist, and two scans report exactly that. The dangling-reference scan walks the whole skills tree, json files included, with the bare-name matcher: feeding the 26 retired names through it reports 23 of them as guidance naming a package that does not exist, and the rule requires such text to sit outside the scanned scope rather than be excused inside it. The inventory directory looked safe by that measure but is not, because it is a bundled-asset family root whose files are embedded verbatim into src/embedded-templates.ts; placing the list there put every retired name inside the scanned src tree and the removal sweep failed on it. The repository root is walked for markdown only and is embedded nowhere. JSON keeps the file parallel to marketplace.json and avoids enrolling a new repository-owned YAML family that would need its own CLI owner command, schema, and mutation-inventory entry.'
+  explicit-list-not-prefix-derivation:
+    decision: Determine the retired set from the explicit list, never from packaged family name prefixes.
+    rationale: Three retired skills are named strict-ticket, strict-ticket-archive, and strict-ticket-dispatch, and none of them carries a packaged family prefix, so a prefix rule would silently leave them installed. An explicit list also cannot remove a skill this package never shipped.
+  set-logic-has-one-implementation:
+    decision: Implement the name resolution once in a source module under src, exposed to the installers through a thin scripts entry point, instead of writing set logic in both bash and PowerShell.
+    rationale: The two installers must stay at parity, and duplicated set logic drifts. A source module is also inside the measured coverage scope and can be unit tested directly, which a shell fragment cannot. The repository already has both installers calling a shared scripts entry point for the native CLI build.
+  removal-passes-the-whole-list:
+    decision: Pass every retired name to the skills CLI removal without first checking which ones are installed.
+    rationale: The skills CLI exits 0 and reports that no matching skills were found when a name is not installed, so the call is idempotent and needs no pre-filter, and delegating removal keeps every agent directory the skills CLI manages in scope rather than deleting directories directly.
+  list-rot-is-caught-by-a-git-cross-check:
+    decision: Cross-check the retired list against git history in both directions in the regression suite.
+    rationale: 'A hand-maintained list fails silently when someone deletes a skill and forgets the list. Git history is a source independent of the list itself: a skill directory that history deleted and the repository no longer packages must appear in the list, and a listed name must be a directory history actually deleted and the repository does not package. The installer itself never reads git, so a packaged install without a git checkout is unaffected.'
+alternatives:
+  - option: Derive the retired set from packaged family name prefixes.
+    reason: Misses the three strict-ticket packages entirely, and would delete any unrelated skill that happens to share a prefix.
+  - option: Write a manifest of installed names at install time and diff it on the next install.
+    reason: The first upgrade after shipping the feature has no manifest, which is exactly the machine that carries the stale skills, so it would still need a second rule to fall back on.
+  - option: Add the retired array to skills/marketplace.json.
+    reason: 'Rejected by the guidance-names-only-packaged-skills rule: the scan covers the skills tree, and 23 of the 26 names were observed being reported as dangling references.'
+risks:
+  - The retired list is maintained by hand, so a future skill deletion can forget it; the git cross-check in the regression suite is what keeps that from passing silently.
+  - Removal reaches every agent directory the skills CLI manages, so a name wrongly added to the retired list would uninstall a live skill; the cross-check rejects a listed name that the repository still packages.

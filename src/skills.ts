@@ -4,6 +4,7 @@ import { validateCommandSection, validateSkillReferences } from "./skills/conten
 import { sortDiagnostics } from "./skills/diagnostics.js";
 import { validateRequiredSymlink, validateMarketplaceMetadata } from "./skills/fs-checks.js";
 import { parseFrontmatter, validateFrontmatterFields, validateLegacyReferences } from "./skills/frontmatter.js";
+import { validateRetiredSkillList } from "./skills/package-names.js";
 import {
   EXPECTED_SCRIPT_SYMLINK,
   makeDiagnostic,
@@ -31,6 +32,7 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
       summary: {
         skillCount: 0,
         marketplaceCount: 0,
+        retiredCount: 0,
         diagnosticsCount: diagnostics.length,
       },
     };
@@ -84,6 +86,7 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
   }
 
   const marketplaceCount = validateMarketplaceMetadata(rootDir, skillNames, diagnostics);
+  const retiredCount = validateRetiredSkillList(rootDir, skillNames, diagnostics);
   const sorted = sortDiagnostics(diagnostics);
   return {
     valid: sorted.length === 0,
@@ -91,6 +94,7 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
     summary: {
       skillCount: skillNames.length,
       marketplaceCount,
+      retiredCount,
       diagnosticsCount: sorted.length,
     },
   };

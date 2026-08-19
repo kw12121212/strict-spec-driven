@@ -3367,6 +3367,50 @@ context.assert(
   installPsContent.includes("supersedes any native executable"),
   "Windows installer removes a stale native executable when npm-global install succeeds",
 );
+// Adding never removes, so without this an upgrade over an older checkout leaves every retired
+// skill installed and still offering a slash command that no longer resolves.
+context.assert(
+  installShContent.includes("skill_names retired")
+    && installShContent.includes("$SKILLS_CMD remove -g -y $RETIRED_SKILLS")
+    && installPsContent.includes("Get-SkillNames -Set 'retired'")
+    && installPsContent.includes("@('remove', '-g', '-y') + $retiredSkills"),
+  "both installers remove the retired skills on the install path after adding the packaged ones",
+);
+context.assert(
+  installShContent.includes("$SKILLS_CMD remove -g -y $REMOVABLE_SKILLS")
+    && installPsContent.includes("@('remove', '-g', '-y') + $removableSkills"),
+  "both installers name the skills their uninstall path removes, covering the packaged and the retired ones",
+);
+// The defect this pins is silent: given no names the skills CLI opens an interactive selection
+// menu, and a non-interactive session selects nothing and exits 0, so the uninstall reports
+// success having removed not one skill.
+// Comment lines are dropped first: both installers have to name the unnamed form in prose to
+// explain why it is never used, and a matcher that cannot tell an explanation from an invocation
+// would force the explanation out of the file.
+const withoutComments = (text: string): string =>
+  text
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+const unnamedShRemovals = [...withoutComments(installShContent).matchAll(/remove -g(?! -y \$)/g)].length;
+const unnamedPsRemovals = [...withoutComments(installPsContent).matchAll(/'remove', '-g'(?!, '-y')/g)].length;
+context.assert(
+  unnamedShRemovals === 0 && unnamedPsRemovals === 0,
+  "neither installer asks the skills CLI to remove skills without naming them",
+  `install.sh: ${unnamedShRemovals}; install.ps1: ${unnamedPsRemovals}`,
+);
+context.assert(
+  installShContent.includes("retired-skills.json") && installPsContent.includes("retired-skills.json"),
+  "both installers document the retired-skill cleanup and where the list lives",
+);
+// The two matchers above are proven on the exact forms this change replaced, so a clean count is
+// evidence that the unnamed invocation is gone rather than that the pattern stopped matching.
+context.assert(
+  [...withoutComments("  $SKILLS_CMD remove -g").matchAll(/remove -g(?! -y \$)/g)].length === 1
+    && [...withoutComments("    Invoke-Skills -CommandArgs @('remove', '-g')").matchAll(/'remove', '-g'(?!, '-y')/g)].length === 1
+    && [...withoutComments("# `skills remove -g` opens an interactive menu").matchAll(/remove -g(?! -y \$)/g)].length === 0,
+  "the unnamed-removal matchers fire on the invocation each installer used before this change, and not on a comment explaining it",
+);
 context.assert(
   installPsContent.includes("[System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')")
     && installPsContent.includes("Add-UserPathEntry $ResolvedBinDir")

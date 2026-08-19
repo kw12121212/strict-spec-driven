@@ -116,6 +116,8 @@ bun run install-strict-skills
 
 在 Windows 上，当 npm/Node 可用时，`install.ps1` 通过 `npm install -g .` 安装 `strict-spec-cli`——命令进入 npm 全局 bin 目录（已在 `PATH` 上），因此装完即可在任意终端直接使用，无需改 PATH。当 npm 不可用时，回落到构建原生 `strict-spec-cli` 可执行文件并放入用户级 bin 目录；此情况下默认把该目录加入当前用户的 `PATH`，在安装器会话之外用 `strict-spec-cli` 命令名前请重新打开一个终端。使用 `-NoPathUpdate` 可跳过 PATH 变更，使用 `-KeepPathOnUninstall` 可在卸载时保留 PATH 条目。
 
+两个安装器还会删除本仓库已退役的技能。安装过程只做添加，因此在旧检出之上升级曾会把所有已删除的技能永久留在机器上，继续提供一个已经无法解析的斜杠命令。退役名单记录在 `retired-skills.json` 中——它无法从名字前缀推导，因为部分退役包早于当前的命名家族——每次安装都会把该名单交给 `skills` CLI，由它从其管理的所有 agent 目录中移除。卸载同样会显式列出打包的和已退役的技能，原因相同：不给名字时 `skills` CLI 会打开交互式选择菜单，而非交互式会话对它不会作出任何选择。
+
 ### Skills：`strict-spec-*` 和 `strict-roadmap-*`
 
 Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中使用斜杠命令名称调用它们：

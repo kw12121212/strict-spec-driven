@@ -197,3 +197,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-green-suite-does-not-prove-module-initializati-6bdb53.yaml
+    a-directory-outside-every-scan-root-can-still-be-aefe31:
+      title: A directory outside every scan root can still be inside one through the embedded bundle
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-directory-outside-every-scan-root-can-still-be-aefe31.yaml

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: installer-prunes-retired-skills
+  status: proposed
+summary:
+  what:
+    - The installer uninstall path passes explicit skill names to the skills CLI instead of invoking it with no names.
+    - The installer install path removes every strict skill package this repository has retired, using an explicit retired list the repository maintains at retired-skills.json.
+  why:
+    - 'Installing over an older checkout leaves retired skills on the machine forever: the install path only ever ran skills add, which never removes. A machine installed on 2026-08-12 still carried 11 skills deleted by later commits, and their slash commands were still offered to agents.'
+    - Running the skills CLI removal with no skill names opens an interactive selection menu, so under a non-interactive agent it exits 0 having removed nothing and the uninstall path silently leaves every skill installed.
+    - 'A family-prefix rule cannot express the retired set: the retired skills include strict-ticket, strict-ticket-archive, and strict-ticket-dispatch, which carry none of the three packaged family prefixes.'
+scope:
+  in:
+    - A source module that reads the packaged and retired skill names, and a scripts entry point that prints them for the installers to consume.
+    - Install and uninstall path changes in install.sh and install.ps1, kept at parity, that delegate removal to the skills CLI with explicit names.
+    - A regression check that cross-checks the retired list against git history in both directions so the hand-maintained list cannot rot.
+    - A main spec requirement for the installer cleanup behavior and installer content assertions in the existing suite.
+    - A repository-maintained retired-skill list at retired-skills.json, seeded with every skill directory that git history deleted and that the repository no longer packages.
+  out:
+    - Deriving the retired set from family name prefixes; the explicit list is the decided rule.
+    - Removing any skill this package did not ship, or deleting agent skill directories directly instead of through the skills CLI.
+    - Changing which skills the repository bundles, or restoring any retired skill.
+    - 'Changing the strict CLI command surface: the commands the retired skills used, including sop, harness, and migrate commands, stay exactly as they are.'
+unchanged_behavior:
+  - The 24 bundled skill packages and their marketplace.json entries stay as they are, and validate-skills keeps reporting 24 skills, 24 marketplace entries, and zero diagnostics.
+  - strict-roadmap-reorder stays packaged and never enters the retired list, because it was deleted and then restored as its own package.
+  - Skill removal stays delegated to the skills CLI so every agent directory it manages is covered; the installer never deletes an agent skill directory itself.
+  - The npm-global-first CLI install with native-executable fallback, and the bun bootstrap that precedes it, behave exactly as before.

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-directory-outside-every-scan-root-can-still-be-aefe31
+  title: A directory outside every scan root can still be inside one through the embedded bundle
+category: tooling
+status: active
+created_at: '2026-08-18T15:26:55.621Z'
+updated_at: '2026-08-18T15:26:55.621Z'
+context: 'Choosing where to keep a repository file whose whole purpose is to name retired skill packages, having first checked which trees the repository content scans walk: skills/, root markdown, and src/.'
+observation: inventory/ was chosen because it is none of those three. The suite then failed on src/embedded-templates.ts, naming a retired skill the new file listed. inventory/ is a bundled-asset family root, so gen-templates-bundle embeds every file in it verbatim into that generated source file, which sits inside the scanned src/ tree. The file never appeared in a scanned directory; its contents were copied into one by the build.
+takeaway: Checking a scan list of root directories is not enough to place a file safely, because a generator can carry the file content into a scanned tree. Before choosing a home for content that deliberately names a banned or retired token, ask both which directories are scanned and which directories are embedded, copied, or concatenated into a scanned one. In this repository the second question means templates/, examples/, and inventory/ all reach src/ through src/embedded-templates.ts.
+applies_when: Placing repository content that legitimately names a banned, deleted, or retired token — a retirement list, an upgrade note, a fixture — and choosing the directory by checking which trees a static content scan walks.
+occurrences:
+  - origin: installer-prunes-retired-skills
+    date: '2026-08-18'
+    evidence: FAIL no governed file references a deleted mapping command, the deleted repair skill, or a mapping accessor (src/embedded-templates.ts:4942 (deleted-repair-skill)); resolved by moving inventory/retired-skills.json to retired-skills.json at the repository root.

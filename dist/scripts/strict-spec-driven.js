@@ -33490,13 +33490,13 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
 }
 
 // src/cli/cmd-operations.ts
-import { existsSync as existsSync46, readFileSync as readFileSync32, statSync as statSync29 } from "fs";
+import { existsSync as existsSync47, readFileSync as readFileSync33, statSync as statSync30 } from "fs";
 import { execSync as execSync2 } from "child_process";
-import path49 from "path";
+import path50 from "path";
 
 // src/skills.ts
-import { existsSync as existsSync44, readdirSync as readdirSync15, readFileSync as readFileSync30, statSync as statSync27 } from "node:fs";
-import path47 from "node:path";
+import { existsSync as existsSync45, readdirSync as readdirSync16, readFileSync as readFileSync31, statSync as statSync28 } from "node:fs";
+import path48 from "node:path";
 
 // src/skills/references.ts
 var ROUTING_SKILL_REFERENCE_PATTERN = /(?<![A-Za-z0-9-])(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)/g;
@@ -34700,12 +34700,106 @@ function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
   }
 }
 
+// src/skills/package-names.ts
+import { existsSync as existsSync44, readdirSync as readdirSync15, readFileSync as readFileSync30, statSync as statSync27 } from "node:fs";
+import path47 from "node:path";
+var RETIRED_SKILLS_FILE = "retired-skills.json";
+var byName = (left, right) => left.localeCompare(right);
+function readRetiredSkillNames(rootDir) {
+  const listPath = path47.join(rootDir, RETIRED_SKILLS_FILE);
+  if (!existsSync44(listPath))
+    return { names: [], present: false, problems: [] };
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync30(listPath, "utf8"));
+  } catch (error) {
+    return {
+      names: [],
+      present: true,
+      problems: [
+        {
+          code: "skills.retired.parse_error",
+          message: "retired skill list must be valid JSON",
+          expected: "valid JSON",
+          actual: error instanceof Error ? error.message : String(error)
+        }
+      ]
+    };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {
+      names: [],
+      present: true,
+      problems: [
+        {
+          code: "skills.retired.invalid_shape",
+          message: "retired skill list must be a JSON object"
+        }
+      ]
+    };
+  }
+  const retired = parsed.retired;
+  if (!Array.isArray(retired)) {
+    return {
+      names: [],
+      present: true,
+      problems: [
+        {
+          code: "skills.retired.missing",
+          message: "retired skill list must include a retired array"
+        }
+      ]
+    };
+  }
+  const problems = [];
+  const names = [];
+  const seen = new Set;
+  for (let index = 0;index < retired.length; index += 1) {
+    const entry = retired[index];
+    if (typeof entry !== "string" || entry.trim().length === 0) {
+      problems.push({
+        code: "skills.retired.entry.invalid",
+        message: `retired skill list entry ${index} must be a non-empty string`,
+        expected: "a non-empty string",
+        actual: JSON.stringify(entry)
+      });
+      continue;
+    }
+    if (seen.has(entry)) {
+      problems.push({
+        code: "skills.retired.entry.duplicate",
+        message: `retired skill list names '${entry}' more than once`,
+        expected: "each retired name listed once",
+        actual: entry
+      });
+      continue;
+    }
+    seen.add(entry);
+    names.push(entry);
+  }
+  return { names: names.sort(byName), present: true, problems };
+}
+function validateRetiredSkillList(rootDir, packagedNames, diagnostics) {
+  const relativePath = RETIRED_SKILLS_FILE;
+  const list = readRetiredSkillNames(rootDir);
+  for (const problem of list.problems) {
+    diagnostics.push(makeDiagnostic5(problem.code, relativePath, problem.message, problem.expected, problem.actual));
+  }
+  const packaged = new Set(packagedNames);
+  for (const name of list.names) {
+    if (!packaged.has(name))
+      continue;
+    diagnostics.push(makeDiagnostic5("skills.retired.entry.still_packaged", `${relativePath}#retired`, `retired skill list names '${name}', which this repository still packages under skills/, so installing would remove a live skill`, "a name with no package under skills/", name));
+  }
+  return list.names.length;
+}
+
 // src/skills.ts
 function validateStrictSkillPackaging(rootDir) {
   const diagnostics = [];
-  const skillsRoot = path47.join(rootDir, "skills");
+  const skillsRoot = path48.join(rootDir, "skills");
   const relativeSkillsRoot = "skills";
-  if (!existsSync44(skillsRoot) || !statSync27(skillsRoot).isDirectory()) {
+  if (!existsSync45(skillsRoot) || !statSync28(skillsRoot).isDirectory()) {
     diagnostics.push(makeDiagnostic5("skills.directory.missing", relativeSkillsRoot, "skills directory is missing"));
     return {
       valid: false,
@@ -34713,23 +34807,24 @@ function validateStrictSkillPackaging(rootDir) {
       summary: {
         skillCount: 0,
         marketplaceCount: 0,
+        retiredCount: 0,
         diagnosticsCount: diagnostics.length
       }
     };
   }
-  const skillNames = readdirSync15(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+  const skillNames = readdirSync16(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
   for (const skillName of skillNames) {
-    const skillDir = path47.join(skillsRoot, skillName);
-    const skillPath = path47.join("skills", skillName, "SKILL.md");
+    const skillDir = path48.join(skillsRoot, skillName);
+    const skillPath = path48.join("skills", skillName, "SKILL.md");
     if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path47.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
+      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path48.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
     }
-    const skillFilePath = path47.join(skillDir, "SKILL.md");
-    if (!existsSync44(skillFilePath)) {
+    const skillFilePath = path48.join(skillDir, "SKILL.md");
+    if (!existsSync45(skillFilePath)) {
       diagnostics.push(makeDiagnostic5("skill.file.missing", skillPath, "skill directory must include SKILL.md"));
       continue;
     }
-    const content = readFileSync30(skillFilePath, "utf8");
+    const content = readFileSync31(skillFilePath, "utf8");
     const frontmatter = parseFrontmatter(content, skillPath, diagnostics);
     if (frontmatter) {
       validateFrontmatterFields(frontmatter, skillName, skillPath, diagnostics);
@@ -34740,6 +34835,7 @@ function validateStrictSkillPackaging(rootDir) {
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
   }
   const marketplaceCount = validateMarketplaceMetadata(rootDir, skillNames, diagnostics);
+  const retiredCount = validateRetiredSkillList(rootDir, skillNames, diagnostics);
   const sorted = sortDiagnostics2(diagnostics);
   return {
     valid: sorted.length === 0,
@@ -34747,24 +34843,25 @@ function validateStrictSkillPackaging(rootDir) {
     summary: {
       skillCount: skillNames.length,
       marketplaceCount,
+      retiredCount,
       diagnosticsCount: sorted.length
     }
   };
 }
 
 // src/cli/tech-status.ts
-import { existsSync as existsSync45, readFileSync as readFileSync31, statSync as statSync28 } from "fs";
-import path48 from "path";
-var STRICT_TECH_DIR = path48.join(".strict-spec-driven", "tech");
+import { existsSync as existsSync46, readFileSync as readFileSync32, statSync as statSync29 } from "fs";
+import path49 from "path";
+var STRICT_TECH_DIR = path49.join(".strict-spec-driven", "tech");
 var EXCLUDED_TECH_BASENAMES2 = new Set(["INDEX.yaml"]);
 function listTechFiles2(techDir) {
   return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path48.basename(filePath);
+    const basename = path49.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES2.has(basename);
   });
 }
 function getTechStatus(rootDir) {
-  const techDir = path48.join(rootDir, STRICT_TECH_DIR);
+  const techDir = path49.join(rootDir, STRICT_TECH_DIR);
   const empty = {
     techDirExists: false,
     standardCount: 0,
@@ -34772,7 +34869,7 @@ function getTechStatus(rootDir) {
     strengthCounts: { MUST: 0, SHOULD: 0, MAY: 0 },
     standards: []
   };
-  if (!existsSync45(techDir) || !statSync28(techDir).isDirectory()) {
+  if (!existsSync46(techDir) || !statSync29(techDir).isDirectory()) {
     return empty;
   }
   const standards = [];
@@ -34781,7 +34878,7 @@ function getTechStatus(rootDir) {
     const artifactPath = normalizeRepoRelativePath4(rootDir, techFile);
     let doc;
     try {
-      doc = parseYamlDocument(readFileSync31(techFile, "utf8"), { source: artifactPath });
+      doc = parseYamlDocument(readFileSync32(techFile, "utf8"), { source: artifactPath });
     } catch {
       continue;
     }
@@ -34835,8 +34932,8 @@ function runShip(argv) {
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
   let resolvedArchiveName = null;
-  const exactDir = path49.join(archiveRoot, target);
-  if (existsSync46(exactDir) && statSync29(exactDir).isDirectory()) {
+  const exactDir = path50.join(archiveRoot, target);
+  if (existsSync47(exactDir) && statSync30(exactDir).isDirectory()) {
     resolvedArchiveName = target;
   } else {
     const bareMatches = findArchivedMatchesByBareName(rootDir, target);
@@ -34854,13 +34951,13 @@ function runShip(argv) {
     writeError(`archived change '${target}' not found`);
     return 1;
   }
-  const resolvedArchiveDir = path49.join(archiveRoot, resolvedArchiveName);
+  const resolvedArchiveDir = path50.join(archiveRoot, resolvedArchiveName);
   const archivePath = normalizeRepoRelativePath4(rootDir, resolvedArchiveDir);
   let proposalSummary = "";
-  const proposalPath = path49.join(resolvedArchiveDir, "proposal.yaml");
-  if (existsSync46(proposalPath)) {
+  const proposalPath = path50.join(resolvedArchiveDir, "proposal.yaml");
+  if (existsSync47(proposalPath)) {
     try {
-      const proposalDoc = parseYamlDocument(readFileSync32(proposalPath, "utf8"));
+      const proposalDoc = parseYamlDocument(readFileSync33(proposalPath, "utf8"));
       const summary = proposalDoc.summary;
       if (summary && typeof summary === "object" && !Array.isArray(summary)) {
         const what = summary.what;
@@ -34907,7 +35004,7 @@ function runTechStatus(argv) {
 }
 var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 function getDirectoryCreationTimeMs(directoryPath) {
-  const stats = statSync29(directoryPath);
+  const stats = statSync30(directoryPath);
   return stats.birthtimeMs > 0 ? stats.birthtimeMs : stats.ctimeMs;
 }
 function runCommitAndPush(argv) {
@@ -34929,7 +35026,7 @@ function runCommitAndPush(argv) {
     const match = ARCHIVE_DATE_PATTERN.exec(name);
     return match ? {
       dirName: name,
-      createdAtMs: getDirectoryCreationTimeMs(path49.join(archiveRoot, name)),
+      createdAtMs: getDirectoryCreationTimeMs(path50.join(archiveRoot, name)),
       bareName: match[2]
     } : null;
   }).filter((entry) => entry !== null).sort((a, b) => b.createdAtMs - a.createdAtMs || b.dirName.localeCompare(a.dirName));
@@ -34967,8 +35064,8 @@ function runCommitAndPush(argv) {
 }
 
 // src/spec-tech-author.ts
-import { existsSync as existsSync47, readdirSync as readdirSync16 } from "fs";
-import path50 from "path";
+import { existsSync as existsSync48, readdirSync as readdirSync17 } from "fs";
+import path51 from "path";
 var STRICT_WORKFLOW_DIR15 = ".strict-spec-driven";
 var SPEC_ROOT = `${STRICT_WORKFLOW_DIR15}/specs`;
 var TECH_ROOT = `${STRICT_WORKFLOW_DIR15}/tech`;
@@ -35003,15 +35100,15 @@ function appendUnique4(existing, additions) {
   return [...new Set([...existing, ...additions])];
 }
 function toRepoPath2(rootDir, absolutePath) {
-  return path50.relative(rootDir, absolutePath).split(path50.sep).join("/");
+  return path51.relative(rootDir, absolutePath).split(path51.sep).join("/");
 }
 function listYamlFiles5(directoryPath) {
-  if (!existsSync47(directoryPath))
+  if (!existsSync48(directoryPath))
     return [];
   const files = [];
   const walk = (currentPath) => {
-    for (const entry of readdirSync16(currentPath, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
-      const entryPath = path50.join(currentPath, entry.name);
+    for (const entry of readdirSync17(currentPath, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const entryPath = path51.join(currentPath, entry.name);
       if (entry.isDirectory())
         walk(entryPath);
       else if (entry.isFile() && /\.ya?ml$/u.test(entry.name))
@@ -35027,18 +35124,18 @@ function assertId(id, label) {
 }
 function canonicalArtifactPath(familyRoot, id, suppliedPath, flagName) {
   const candidate = suppliedPath ?? `${familyRoot}/${id}.yaml`;
-  const normalized = path50.posix.normalize(candidate.replaceAll("\\", "/"));
-  if (path50.isAbsolute(candidate) || normalized === familyRoot || !normalized.startsWith(`${familyRoot}/`) || !normalized.endsWith(".yaml") || path50.posix.basename(normalized) === "INDEX.yaml") {
+  const normalized = path51.posix.normalize(candidate.replaceAll("\\", "/"));
+  if (path51.isAbsolute(candidate) || normalized === familyRoot || !normalized.startsWith(`${familyRoot}/`) || !normalized.endsWith(".yaml") || path51.posix.basename(normalized) === "INDEX.yaml") {
     throw new Error(`${flagName} must name a .yaml file below ${familyRoot}/ and cannot name INDEX.yaml`);
   }
   return normalized;
 }
 function loadArtifacts(rootDir, familyRoot, artifactType, headerField) {
-  const absoluteRoot = path50.join(rootDir, familyRoot);
+  const absoluteRoot = path51.join(rootDir, familyRoot);
   const loaded = [];
   const byId = new Map;
   for (const absolutePath of listYamlFiles5(absoluteRoot)) {
-    if (path50.basename(absolutePath) === "INDEX.yaml")
+    if (path51.basename(absolutePath) === "INDEX.yaml")
       continue;
     const artifact = parseYamlFile(absolutePath);
     if (artifact.artifact_type !== artifactType)
@@ -35057,8 +35154,8 @@ function loadArtifacts(rootDir, familyRoot, artifactType, headerField) {
   return loaded;
 }
 function readIndex(rootDir, repoPath, base) {
-  const absolutePath = path50.join(rootDir, repoPath);
-  return existsSync47(absolutePath) ? { artifact: parseYamlFile(absolutePath), exists: true } : { artifact: base, exists: false };
+  const absolutePath = path51.join(rootDir, repoPath);
+  return existsSync48(absolutePath) ? { artifact: parseYamlFile(absolutePath), exists: true } : { artifact: base, exists: false };
 }
 function schemaIssues(artifactType, value, artifactPath) {
   return validateArtifact(loadBundledSchemaByArtifactType(artifactType), value, artifactPath).diagnostics.map((entry) => ({
@@ -35275,14 +35372,14 @@ function buildTechIndex(rootDir, loaded, targetPath, candidate) {
   return index;
 }
 function activeDeltaPaths(rootDir, relativeDirectory, targetField, id) {
-  const changesRoot = path50.join(rootDir, STRICT_WORKFLOW_DIR15, "changes");
-  if (!existsSync47(changesRoot))
+  const changesRoot = path51.join(rootDir, STRICT_WORKFLOW_DIR15, "changes");
+  if (!existsSync48(changesRoot))
     return [];
   const references = [];
-  for (const entry of readdirSync16(changesRoot, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+  for (const entry of readdirSync17(changesRoot, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
     if (!entry.isDirectory() || entry.name === "archive")
       continue;
-    const deltaRoot = path50.join(changesRoot, entry.name, relativeDirectory);
+    const deltaRoot = path51.join(changesRoot, entry.name, relativeDirectory);
     for (const deltaPath of listYamlFiles5(deltaRoot)) {
       const artifact = parseYamlFile(deltaPath);
       if (artifact[targetField] === id)
@@ -35336,7 +35433,7 @@ function authorMainSpec(rootDir, input) {
   const existing = loaded.find((entry) => entry.id === input.id);
   const suppliedPath = input.specPath === undefined ? undefined : canonicalArtifactPath(SPEC_ROOT, input.id, input.specPath, "--spec-path");
   const targetPath = existing?.repoPath ?? canonicalArtifactPath(SPEC_ROOT, input.id, suppliedPath, "--spec-path");
-  const absolutePath = path50.join(rootDir, targetPath);
+  const absolutePath = path51.join(rootDir, targetPath);
   const operation = input.delete ? "delete" : existing === undefined ? "create" : "update";
   if (input.delete && existing === undefined)
     throw new Error(`main spec '${input.id}' does not exist`);
@@ -35357,7 +35454,7 @@ function authorMainSpec(rootDir, input) {
         artifactFamily: "spec-state",
         artifactId: input.id,
         schemaId: MAIN_SPEC_SCHEMA_ID,
-        familyRoot: path50.join(rootDir, SPEC_ROOT),
+        familyRoot: path51.join(rootDir, SPEC_ROOT),
         absolutePath,
         operation,
         ...candidate === undefined ? editDuringDelete ? { candidate: {} } : {} : { candidate, validateCandidate: (value, context) => schemaIssues("main_spec", value, context.artifactPath) }
@@ -35366,8 +35463,8 @@ function authorMainSpec(rootDir, input) {
         artifactFamily: "spec-state",
         artifactId: "spec-index",
         schemaId: SPEC_INDEX_SCHEMA_ID,
-        familyRoot: path50.join(rootDir, SPEC_ROOT),
-        absolutePath: path50.join(rootDir, SPEC_INDEX_PATH2),
+        familyRoot: path51.join(rootDir, SPEC_ROOT),
+        absolutePath: path51.join(rootDir, SPEC_INDEX_PATH2),
         operation: index ? "update" : "create",
         role: "reference",
         candidate: indexCandidate,
@@ -35386,7 +35483,7 @@ function authorMainTech(rootDir, input) {
   const existing = loaded.find((entry) => entry.id === input.id);
   const suppliedPath = input.techPath === undefined ? undefined : canonicalArtifactPath(TECH_ROOT, input.id, input.techPath, "--tech-path");
   const targetPath = existing?.repoPath ?? canonicalArtifactPath(TECH_ROOT, input.id, suppliedPath, "--tech-path");
-  const absolutePath = path50.join(rootDir, targetPath);
+  const absolutePath = path51.join(rootDir, targetPath);
   const operation = input.delete ? "delete" : existing === undefined ? "create" : "update";
   if (input.delete && existing === undefined)
     throw new Error(`technical standard '${input.id}' does not exist`);
@@ -35407,7 +35504,7 @@ function authorMainTech(rootDir, input) {
         artifactFamily: "tech-state",
         artifactId: input.id,
         schemaId: MAIN_TECH_SCHEMA_ID,
-        familyRoot: path50.join(rootDir, TECH_ROOT),
+        familyRoot: path51.join(rootDir, TECH_ROOT),
         absolutePath,
         operation,
         ...candidate === undefined ? editDuringDelete ? { candidate: {} } : {} : { candidate, validateCandidate: (value, context) => schemaIssues("main_tech", value, context.artifactPath) }
@@ -35416,8 +35513,8 @@ function authorMainTech(rootDir, input) {
         artifactFamily: "tech-state",
         artifactId: "tech-index",
         schemaId: TECH_INDEX_SCHEMA_ID,
-        familyRoot: path50.join(rootDir, TECH_ROOT),
-        absolutePath: path50.join(rootDir, TECH_INDEX_PATH),
+        familyRoot: path51.join(rootDir, TECH_ROOT),
+        absolutePath: path51.join(rootDir, TECH_INDEX_PATH),
         operation: index ? "update" : "create",
         role: "reference",
         candidate: indexCandidate,
@@ -35838,10 +35935,10 @@ function runYamlSurfaceShow(argv) {
 }
 
 // src/bundled-asset-mutation.ts
-import { existsSync as existsSync48, mkdtempSync, readFileSync as readFileSync33, readdirSync as readdirSync17, rmSync as rmSync5, statSync as statSync30, writeFileSync as writeFileSync10 } from "fs";
+import { existsSync as existsSync49, mkdtempSync, readFileSync as readFileSync34, readdirSync as readdirSync18, rmSync as rmSync5, statSync as statSync31, writeFileSync as writeFileSync10 } from "fs";
 import { spawnSync } from "child_process";
 import { tmpdir } from "os";
-import path51 from "path";
+import path52 from "path";
 import { fileURLToPath as fileURLToPath6 } from "url";
 var FAMILIES = {
   "bundled-schema-assets": {
@@ -35884,16 +35981,16 @@ var CHECKOUT_MARKERS = [
 ];
 var EMBEDDED_BUNDLE_PATH = "src/embedded-templates.ts";
 function toPosix4(value) {
-  return value.split(path51.sep).join("/");
+  return value.split(path52.sep).join("/");
 }
 function moduleRepositoryRoot() {
-  return path51.join(path51.dirname(fileURLToPath6(import.meta.url)), "..");
+  return path52.join(path52.dirname(fileURLToPath6(import.meta.url)), "..");
 }
 function resolveCheckoutRoot(candidateRoot) {
   const candidates = candidateRoot ? [candidateRoot] : [process.cwd(), moduleRepositoryRoot()];
   for (const candidate of candidates) {
-    const resolved = path51.resolve(candidate);
-    if (CHECKOUT_MARKERS.every((marker) => existsSync48(path51.join(resolved, marker))))
+    const resolved = path52.resolve(candidate);
+    if (CHECKOUT_MARKERS.every((marker) => existsSync49(path52.join(resolved, marker))))
       return resolved;
   }
   return;
@@ -35921,14 +36018,14 @@ function refusal(family, code, message, assetPath) {
 function resolveAssetPath(family, assetName, rootDir) {
   const descriptor = FAMILIES[family];
   if (descriptor.singleton) {
-    if (assetName && assetName !== descriptor.singleton && assetName !== toPosix4(path51.join(descriptor.familyRoot, descriptor.singleton))) {
+    if (assetName && assetName !== descriptor.singleton && assetName !== toPosix4(path52.join(descriptor.familyRoot, descriptor.singleton))) {
       return { error: `${family} holds only ${descriptor.singleton}` };
     }
-    return { assetPath: toPosix4(path51.join(descriptor.familyRoot, descriptor.singleton)), familyRoot: descriptor.familyRoot };
+    return { assetPath: toPosix4(path52.join(descriptor.familyRoot, descriptor.singleton)), familyRoot: descriptor.familyRoot };
   }
   if (!assetName)
     return { error: `${family} requires an asset name` };
-  if (path51.isAbsolute(assetName) || assetName.split(/[\\/]/).includes("..")) {
+  if (path52.isAbsolute(assetName) || assetName.split(/[\\/]/).includes("..")) {
     return { error: `asset name must stay inside ${family}, and '${assetName}' does not` };
   }
   const normalized = assetName.endsWith(".yaml") || assetName.endsWith(".yml") ? assetName : `${assetName}.yaml`;
@@ -35936,14 +36033,14 @@ function resolveAssetPath(family, assetName, rootDir) {
   for (const root of roots) {
     const stripped = normalized.startsWith(`${root}/`) ? normalized.slice(root.length + 1) : undefined;
     if (stripped !== undefined)
-      return { assetPath: toPosix4(path51.join(root, stripped)), familyRoot: root };
+      return { assetPath: toPosix4(path52.join(root, stripped)), familyRoot: root };
   }
   for (const root of roots) {
-    if (existsSync48(path51.join(rootDir, root, normalized))) {
-      return { assetPath: toPosix4(path51.join(root, normalized)), familyRoot: root };
+    if (existsSync49(path52.join(rootDir, root, normalized))) {
+      return { assetPath: toPosix4(path52.join(root, normalized)), familyRoot: root };
     }
   }
-  return { assetPath: toPosix4(path51.join(descriptor.familyRoot, normalized)), familyRoot: descriptor.familyRoot };
+  return { assetPath: toPosix4(path52.join(descriptor.familyRoot, normalized)), familyRoot: descriptor.familyRoot };
 }
 function splitFieldPath(fieldPath) {
   return fieldPath.replace(/^\$\.?/, "").split(".").filter((segment) => segment.length > 0);
@@ -36047,7 +36144,7 @@ function applyFieldEdits(document, edits) {
   return { document: root, failures };
 }
 function fixtureIntent(assetPath) {
-  return path51.basename(assetPath).includes(".invalid.malformed.") ? "must-not-parse" : "must-parse";
+  return path52.basename(assetPath).includes(".invalid.malformed.") ? "must-not-parse" : "must-parse";
 }
 function registeredSchemaFor(candidate, assetPath) {
   if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
@@ -36068,7 +36165,7 @@ function registeredSchemaFor(candidate, assetPath) {
 function validateSchemaDocument(candidate, assetPath) {
   const record = candidate;
   const issues = [];
-  if (path51.basename(assetPath) === "registry.yaml") {
+  if (path52.basename(assetPath) === "registry.yaml") {
     if (!Array.isArray(record.entries)) {
       issues.push(issue("$.entries", "the schema registry must hold an entries sequence", "registry-entries-missing", { artifactPath: assetPath }));
     }
@@ -36099,7 +36196,7 @@ function validateCandidateFor(descriptor, assetPath, rootDir) {
 }
 function findAssetReferences(assetPath, rootDir) {
   const references = [];
-  const base = path51.basename(assetPath);
+  const base = path52.basename(assetPath);
   const schemaFileName = base;
   if (assetPath.startsWith("templates/strict-spec-driven/schemas/") && base !== "registry.yaml") {
     try {
@@ -36121,26 +36218,26 @@ function findAssetReferences(assetPath, rootDir) {
       }
     } catch {}
   }
-  const inventoryPath = path51.join(rootDir, "inventory", "yaml-mutation-surfaces.yaml");
-  if (assetPath !== "inventory/yaml-mutation-surfaces.yaml" && existsSync48(inventoryPath)) {
-    const inventoryText = readFileSync33(inventoryPath, "utf8");
+  const inventoryPath = path52.join(rootDir, "inventory", "yaml-mutation-surfaces.yaml");
+  if (assetPath !== "inventory/yaml-mutation-surfaces.yaml" && existsSync49(inventoryPath)) {
+    const inventoryText = readFileSync34(inventoryPath, "utf8");
     if (inventoryText.includes(assetPath))
       references.push("inventory/yaml-mutation-surfaces.yaml");
   }
-  const suitesDir = path51.join(rootDir, "test", "suites");
-  if (existsSync48(suitesDir)) {
-    for (const entry of readdirSync17(suitesDir).sort()) {
+  const suitesDir = path52.join(rootDir, "test", "suites");
+  if (existsSync49(suitesDir)) {
+    for (const entry of readdirSync18(suitesDir).sort()) {
       if (!entry.endsWith(".ts"))
         continue;
-      const suitePath = path51.join(suitesDir, entry);
-      if (readFileSync33(suitePath, "utf8").includes(base))
-        references.push(toPosix4(path51.relative(rootDir, suitePath)));
+      const suitePath = path52.join(suitesDir, entry);
+      if (readFileSync34(suitePath, "utf8").includes(base))
+        references.push(toPosix4(path52.relative(rootDir, suitePath)));
     }
   }
-  const scaffoldSources = [path51.join(rootDir, "src", "scaffold.ts"), path51.join(rootDir, "src", "sop-categories.ts")];
+  const scaffoldSources = [path52.join(rootDir, "src", "scaffold.ts"), path52.join(rootDir, "src", "sop-categories.ts")];
   for (const source of scaffoldSources) {
-    if (existsSync48(source) && readFileSync33(source, "utf8").includes(base)) {
-      references.push(toPosix4(path51.relative(rootDir, source)));
+    if (existsSync49(source) && readFileSync34(source, "utf8").includes(base)) {
+      references.push(toPosix4(path52.relative(rootDir, source)));
     }
   }
   return [...new Set(references)].sort();
@@ -36149,18 +36246,18 @@ function listEmbeddedAssetFiles(rootDir) {
   const assetRoots = ["templates", "examples", "inventory"];
   const found = [];
   for (const assetRoot of assetRoots) {
-    const assetRootDir = path51.join(rootDir, assetRoot);
-    if (!existsSync48(assetRootDir))
+    const assetRootDir = path52.join(rootDir, assetRoot);
+    if (!existsSync49(assetRootDir))
       continue;
     const walk = (directory) => {
-      for (const entry of readdirSync17(directory).sort()) {
-        const full = path51.join(directory, entry);
-        if (statSync30(full).isDirectory()) {
+      for (const entry of readdirSync18(directory).sort()) {
+        const full = path52.join(directory, entry);
+        if (statSync31(full).isDirectory()) {
           walk(full);
           continue;
         }
-        const relativePath = path51.relative(assetRootDir, full);
-        found.push([toPosix4(assetRoot === "templates" ? relativePath : path51.join(assetRoot, relativePath)), full]);
+        const relativePath = path52.relative(assetRootDir, full);
+        found.push([toPosix4(assetRoot === "templates" ? relativePath : path52.join(assetRoot, relativePath)), full]);
       }
     };
     walk(assetRootDir);
@@ -36170,7 +36267,7 @@ function listEmbeddedAssetFiles(rootDir) {
 function renderEmbeddedBundle(rootDir) {
   const entries = [];
   for (const [key, file] of listEmbeddedAssetFiles(rootDir)) {
-    const content = readFileSync33(file, "utf8");
+    const content = readFileSync34(file, "utf8");
     const escaped = content.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
     entries.push(`  ${JSON.stringify(key)}: \`${escaped}\``);
   }
@@ -36194,13 +36291,13 @@ export function readEmbeddedTemplate(key: string): string | undefined {
 `;
 }
 function runInventoryChecker(rootDir, assetPath, candidate) {
-  const checkerPath = path51.join(rootDir, "scripts", "check-yaml-mutation-inventory.ts");
-  if (!existsSync48(checkerPath))
+  const checkerPath = path52.join(rootDir, "scripts", "check-yaml-mutation-inventory.ts");
+  if (!existsSync49(checkerPath))
     return [];
-  const candidatePath = path51.join(mkdtempSync(path51.join(tmpdir(), "strict-spec-inventory-")), "candidate.yaml");
+  const candidatePath = path52.join(mkdtempSync(path52.join(tmpdir(), "strict-spec-inventory-")), "candidate.yaml");
   writeFileSync10(candidatePath, stringifyYamlDocument(candidate), "utf8");
   const completed = spawnSync("bun", [checkerPath, rootDir, "--candidate", candidatePath], { encoding: "utf8" });
-  rmSync5(path51.dirname(candidatePath), { recursive: true, force: true });
+  rmSync5(path52.dirname(candidatePath), { recursive: true, force: true });
   if (completed.error || typeof completed.stdout !== "string" || completed.stdout.trim() === "") {
     return [issue("$.inventory.check", "the mutation inventory check could not be run, so the candidate inventory cannot be accepted", "inventory-check-unavailable", { artifactPath: assetPath })];
   }
@@ -36224,8 +36321,8 @@ function mutateBundledAsset(options) {
   if ("error" in resolved)
     return refusal(options.family, "unknown-asset", resolved.error);
   const { assetPath, familyRoot } = resolved;
-  const absolutePath = path51.join(rootDir, assetPath);
-  const exists = existsSync48(absolutePath);
+  const absolutePath = path52.join(rootDir, assetPath);
+  const exists = existsSync49(absolutePath);
   const edits = options.edits ?? [];
   if (options.delete) {
     if (edits.length > 0) {
@@ -36249,7 +36346,7 @@ function mutateBundledAsset(options) {
     let current = {};
     if (exists) {
       try {
-        current = parseYamlDocument(readFileSync33(absolutePath, "utf8"), { source: assetPath });
+        current = parseYamlDocument(readFileSync34(absolutePath, "utf8"), { source: assetPath });
       } catch (error) {
         return refusal(options.family, "target-unparseable", `${assetPath} could not be parsed, so its fields cannot be addressed: ${error instanceof Error ? error.message : String(error)}`, assetPath);
       }
@@ -36287,8 +36384,8 @@ function mutateBundledAsset(options) {
     }
   }];
   if (descriptor.feedsEmbeddedBundle) {
-    const bundleAbsolutePath = path51.join(rootDir, EMBEDDED_BUNDLE_PATH);
-    if (existsSync48(bundleAbsolutePath)) {
+    const bundleAbsolutePath = path52.join(rootDir, EMBEDDED_BUNDLE_PATH);
+    if (existsSync49(bundleAbsolutePath)) {
       let bundleContent;
       try {
         const render = options.regenerateEmbeddedBundle ?? renderEmbeddedBundle;
@@ -36467,8 +36564,8 @@ function runInventoryEdit(argv) {
 }
 
 // src/architecture-author.ts
-import { existsSync as existsSync49 } from "fs";
-import path52 from "path";
+import { existsSync as existsSync50 } from "fs";
+import path53 from "path";
 var ARCHITECTURE_SCHEMA_ID = "strict-spec-driven/architecture/v1";
 var ARCHITECTURE_ARTIFACT_PATH2 = ".strict-spec-driven/architecture.yaml";
 function asRecord7(value) {
@@ -36532,7 +36629,7 @@ function relationshipIssues(candidate) {
 }
 function authorArchitecture(rootDir, input) {
   const absolutePath = getArchitectureArtifactPath(rootDir);
-  const exists = existsSync49(absolutePath);
+  const exists = existsSync50(absolutePath);
   const operation = input.delete ? "delete" : exists ? "update" : "create";
   if (input.delete && hasEditIntent2(input))
     throw new Error("--delete cannot be combined with architecture editing flags");
@@ -36627,7 +36724,7 @@ function authorArchitecture(rootDir, input) {
       artifactFamily: "architecture-state",
       artifactId: "architecture",
       schemaId: ARCHITECTURE_SCHEMA_ID,
-      familyRoot: path52.join(rootDir, ".strict-spec-driven"),
+      familyRoot: path53.join(rootDir, ".strict-spec-driven"),
       absolutePath,
       operation,
       ...candidate === undefined ? {} : {
@@ -37017,27 +37114,27 @@ function runDesignStatus(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync51, mkdirSync as mkdirSync8, openSync, readFileSync as readFileSync34, renameSync as renameSync4, rmSync as rmSync6, rmdirSync as rmdirSync3, statSync as statSync32, writeFileSync as writeFileSync11, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync52, mkdirSync as mkdirSync8, openSync, readFileSync as readFileSync35, renameSync as renameSync4, rmSync as rmSync6, rmdirSync as rmdirSync3, statSync as statSync33, writeFileSync as writeFileSync11, appendFileSync } from "fs";
 import { spawn, spawnSync as spawnSync2 } from "child_process";
-import path54 from "path";
+import path55 from "path";
 
 // src/harness-author.ts
-import { existsSync as existsSync50, readdirSync as readdirSync18, rmdirSync as rmdirSync2, statSync as statSync31 } from "fs";
-import path53 from "path";
+import { existsSync as existsSync51, readdirSync as readdirSync19, rmdirSync as rmdirSync2, statSync as statSync32 } from "fs";
+import path54 from "path";
 var HARNESS_SCHEMA_ID = "strict-spec-driven/harness/v1";
 var HARNESS_FAMILY_ROOT = ".strict-spec-driven";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 var HARNESS_SESSIONS_DIR = ".strict-spec-driven/harness-sessions";
 var HARNESS_SESSION_SCHEMA_ID = "strict-spec-driven/harness-session/v1";
 function commitHarnessCandidate(rootDir, candidate, operation) {
-  const absolutePath = path53.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path54.join(rootDir, HARNESS_DECLARATION_PATH);
   return commitYamlMutation({
     rootDir,
     mutations: [{
       artifactFamily: "harness-state",
       artifactId: "harness",
       schemaId: HARNESS_SCHEMA_ID,
-      familyRoot: path53.join(rootDir, HARNESS_FAMILY_ROOT),
+      familyRoot: path54.join(rootDir, HARNESS_FAMILY_ROOT),
       absolutePath,
       operation,
       candidate,
@@ -37124,10 +37221,10 @@ function baseComponent(type2) {
   };
 }
 function activeSessionPaths(rootDir) {
-  const sessionsDir = path53.join(rootDir, HARNESS_SESSIONS_DIR);
-  if (!existsSync50(sessionsDir) || !statSync31(sessionsDir).isDirectory())
+  const sessionsDir = path54.join(rootDir, HARNESS_SESSIONS_DIR);
+  if (!existsSync51(sessionsDir) || !statSync32(sessionsDir).isDirectory())
     return [];
-  return readdirSync18(sessionsDir).filter((entry) => entry !== "archive").map((entry) => path53.join(sessionsDir, entry, "session.yaml")).filter((entry) => existsSync50(entry));
+  return readdirSync19(sessionsDir).filter((entry) => entry !== "archive").map((entry) => path54.join(sessionsDir, entry, "session.yaml")).filter((entry) => existsSync51(entry));
 }
 function validateRelationships(candidate) {
   const issues = [];
@@ -37299,8 +37396,8 @@ function hasEditIntent3(input) {
   return input.id !== undefined || input.description !== undefined || input.environment !== undefined || input.component !== undefined || input.removeEnvironments.length > 0 || input.removeComponents.length > 0 || input.removeDependsOn.length > 0 || input.removeRequiredEnvironment.length > 0 || input.removeOptionalEnvironment.length > 0 || input.removeUrls.length > 0 || input.removePorts.length > 0 || input.removeReadinessNotes.length > 0 || input.removeEvidenceLabels.length > 0 || input.removeUnavailableConditions.length > 0 || input.removeOperations.length > 0;
 }
 function authorHarness(rootDir, input) {
-  const absolutePath = path53.join(rootDir, HARNESS_DECLARATION_PATH);
-  const exists = existsSync50(absolutePath);
+  const absolutePath = path54.join(rootDir, HARNESS_DECLARATION_PATH);
+  const exists = existsSync51(absolutePath);
   const operation = input.delete ? "delete" : exists ? "update" : "create";
   if (input.delete && hasEditIntent3(input)) {
     throw new Error("--delete cannot be combined with harness editing flags");
@@ -37347,7 +37444,7 @@ function authorHarness(rootDir, input) {
       artifactFamily: "harness-state",
       artifactId: "harness",
       schemaId: HARNESS_SCHEMA_ID,
-      familyRoot: path53.join(rootDir, HARNESS_FAMILY_ROOT),
+      familyRoot: path54.join(rootDir, HARNESS_FAMILY_ROOT),
       absolutePath,
       operation
     }]
@@ -37355,14 +37452,14 @@ function authorHarness(rootDir, input) {
   return { ...mutation, artifactPath: HARNESS_DECLARATION_PATH, operation };
 }
 function commitHarnessSessionCandidate(rootDir, sessionId, candidate, operation) {
-  const absolutePath = path53.join(rootDir, HARNESS_SESSIONS_DIR, sessionId, "session.yaml");
+  const absolutePath = path54.join(rootDir, HARNESS_SESSIONS_DIR, sessionId, "session.yaml");
   return commitYamlMutation({
     rootDir,
     mutations: [{
       artifactFamily: "harness-state",
       artifactId: sessionId,
       schemaId: HARNESS_SESSION_SCHEMA_ID,
-      familyRoot: path53.join(rootDir, HARNESS_SESSIONS_DIR),
+      familyRoot: path54.join(rootDir, HARNESS_SESSIONS_DIR),
       absolutePath,
       operation,
       candidate,
@@ -37393,18 +37490,18 @@ function hasSessionEditIntent(input) {
   return input.status !== undefined || input.owner !== undefined || input.environment !== undefined || input.issueSummary !== undefined || input.observedBehavior !== undefined || input.expectedBehavior !== undefined || input.expectedFailure !== undefined || input.verificationStatus !== undefined || input.selectedComponents.length > 0 || input.preconditions.length > 0 || input.replayCommands.length > 0 || input.verificationEvidence.length > 0 || input.step !== undefined || input.evidence !== undefined || input.hypothesis !== undefined || input.finding !== undefined || input.checkpoint !== undefined || input.manualAction !== undefined || input.removeSelectedComponents.length > 0 || input.removePreconditions.length > 0 || input.removeSteps.length > 0 || input.removeVerificationSteps.length > 0 || input.removeEvidence.length > 0 || input.removeHypotheses.length > 0 || input.removeFindings.length > 0 || input.removeCheckpoints.length > 0 || input.removeManualActions.length > 0 || input.removeReplayCommands.length > 0 || input.removeVerificationEvidence.length > 0;
 }
 function authorHarnessSession(rootDir, sessionId, input) {
-  const sessionDir = path53.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
-  const absolutePath = path53.join(sessionDir, "session.yaml");
-  const evidenceDir = path53.join(sessionDir, "evidence");
-  const sessionPath = path53.relative(rootDir, absolutePath).split(path53.sep).join("/");
-  const relativeEvidenceDir = `${path53.relative(rootDir, evidenceDir).split(path53.sep).join("/")}/`;
-  if (!existsSync50(absolutePath))
+  const sessionDir = path54.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
+  const absolutePath = path54.join(sessionDir, "session.yaml");
+  const evidenceDir = path54.join(sessionDir, "evidence");
+  const sessionPath = path54.relative(rootDir, absolutePath).split(path54.sep).join("/");
+  const relativeEvidenceDir = `${path54.relative(rootDir, evidenceDir).split(path54.sep).join("/")}/`;
+  if (!existsSync51(absolutePath))
     throw new Error(`harness-session artifact not found: ${sessionPath}`);
   if (input.delete && hasSessionEditIntent(input))
     throw new Error("session delete cannot be combined with editing flags");
   if (!input.delete && !hasSessionEditIntent(input))
     throw new Error("harness-session edit requires semantic fields or named removals");
-  if (input.delete && existsSync50(evidenceDir) && readdirSync18(evidenceDir).length > 0) {
+  if (input.delete && existsSync51(evidenceDir) && readdirSync19(evidenceDir).length > 0) {
     throw new Error("harness-session delete is blocked while its evidence directory is non-empty; archive the session to preserve evidence");
   }
   if (input.delete) {
@@ -37414,15 +37511,15 @@ function authorHarnessSession(rootDir, sessionId, input) {
         artifactFamily: "harness-state",
         artifactId: sessionId,
         schemaId: HARNESS_SESSION_SCHEMA_ID,
-        familyRoot: path53.join(rootDir, HARNESS_SESSIONS_DIR),
+        familyRoot: path54.join(rootDir, HARNESS_SESSIONS_DIR),
         absolutePath,
         operation: "delete"
       }]
     });
     if (mutation2.valid) {
-      if (existsSync50(evidenceDir))
+      if (existsSync51(evidenceDir))
         rmdirSync2(evidenceDir);
-      if (existsSync50(sessionDir))
+      if (existsSync51(sessionDir))
         rmdirSync2(sessionDir);
     }
     return { ...mutation2, sessionId, sessionPath, evidenceDir: relativeEvidenceDir, operation: "delete" };
@@ -37572,9 +37669,9 @@ function yamlDiagnosticFromError(artifactPath, error) {
   };
 }
 function getRuntimePaths(rootDir) {
-  const absoluteRuntimeDir = path54.join(rootDir, HARNESS_RUNTIME_DIR);
-  const absoluteLogsDir = path54.join(rootDir, HARNESS_LOGS_DIR);
-  const absoluteStatePath = path54.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
+  const absoluteRuntimeDir = path55.join(rootDir, HARNESS_RUNTIME_DIR);
+  const absoluteLogsDir = path55.join(rootDir, HARNESS_LOGS_DIR);
+  const absoluteStatePath = path55.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
   return {
     absoluteRuntimeDir,
     absoluteLogsDir,
@@ -37606,10 +37703,10 @@ function isProcessAlive(pid) {
 }
 function readRuntimeState(rootDir) {
   const paths = getRuntimePaths(rootDir);
-  if (!existsSync51(paths.absoluteStatePath))
+  if (!existsSync52(paths.absoluteStatePath))
     return { ok: true, state: null };
   try {
-    const state = JSON.parse(readFileSync34(paths.absoluteStatePath, "utf8"));
+    const state = JSON.parse(readFileSync35(paths.absoluteStatePath, "utf8"));
     if (typeof state !== "object" || state === null || state.version !== 1 || typeof state.artifactPath !== "string" || typeof state.harnessId !== "string" || typeof state.environmentId !== "string" || !Array.isArray(state.componentOrder) || typeof state.components !== "object" || state.components === null) {
       return {
         ok: false,
@@ -37800,20 +37897,20 @@ function assertOperationAllowed(artifactPath, environment, component, operationN
   return null;
 }
 function readJsonFile(filePath) {
-  if (!existsSync51(filePath))
+  if (!existsSync52(filePath))
     return null;
   try {
-    return JSON.parse(readFileSync34(filePath, "utf8"));
+    return JSON.parse(readFileSync35(filePath, "utf8"));
   } catch {
     return null;
   }
 }
 function detectPackageRunner(rootDir) {
-  if (existsSync51(path54.join(rootDir, "bun.lock")) || existsSync51(path54.join(rootDir, "bun.lockb")))
+  if (existsSync52(path55.join(rootDir, "bun.lock")) || existsSync52(path55.join(rootDir, "bun.lockb")))
     return "bun run";
-  if (existsSync51(path54.join(rootDir, "pnpm-lock.yaml")))
+  if (existsSync52(path55.join(rootDir, "pnpm-lock.yaml")))
     return "pnpm run";
-  if (existsSync51(path54.join(rootDir, "yarn.lock")))
+  if (existsSync52(path55.join(rootDir, "yarn.lock")))
     return "yarn";
   return "npm run";
 }
@@ -37859,11 +37956,11 @@ function readEnvSampleNames(rootDir) {
   const names = new Set;
   const evidence = [];
   for (const relativePath of ENV_SAMPLE_FILES) {
-    const absolutePath = path54.join(rootDir, relativePath);
-    if (!existsSync51(absolutePath))
+    const absolutePath = path55.join(rootDir, relativePath);
+    if (!existsSync52(absolutePath))
       continue;
     evidence.push(relativePath);
-    for (const line of readFileSync34(absolutePath, "utf8").split(/\r?\n/)) {
+    for (const line of readFileSync35(absolutePath, "utf8").split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#"))
         continue;
@@ -37917,7 +38014,7 @@ function inferComposePort(service) {
   return null;
 }
 function detectPackageScriptSignal(rootDir, packageJson, scripts) {
-  if (!existsSync51(path54.join(rootDir, "package.json"))) {
+  if (!existsSync52(path55.join(rootDir, "package.json"))) {
     return { candidate: null, evidence: [] };
   }
   const preferredScript = PACKAGE_SCRIPT_NAMES.find((name) => scripts[name] !== undefined);
@@ -37943,11 +38040,11 @@ function detectPackageScriptSignal(rootDir, packageJson, scripts) {
 function detectComposeServiceSignal(rootDir) {
   const evidence = [];
   for (const relativePath of COMPOSE_FILES) {
-    const absolutePath = path54.join(rootDir, relativePath);
-    if (!existsSync51(absolutePath))
+    const absolutePath = path55.join(rootDir, relativePath);
+    if (!existsSync52(absolutePath))
       continue;
     try {
-      const compose = parseYamlDocument(readFileSync34(absolutePath, "utf8"), { source: relativePath });
+      const compose = parseYamlDocument(readFileSync35(absolutePath, "utf8"), { source: relativePath });
       const services = isRecord5(compose) && isRecord5(compose.services) ? Object.entries(compose.services).filter((entry) => isRecord5(entry[1])) : [];
       const eligible = services.filter(([, service2]) => ("build" in service2) || readStringOrStringArray(service2.command) !== undefined);
       if (eligible.length === 0) {
@@ -37973,11 +38070,11 @@ function detectComposeServiceSignal(rootDir) {
   return { candidate: null, evidence };
 }
 function detectProcfileSignal(rootDir, packageJson) {
-  const procfilePath = path54.join(rootDir, "Procfile");
-  if (!existsSync51(procfilePath)) {
+  const procfilePath = path55.join(rootDir, "Procfile");
+  if (!existsSync52(procfilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const entries = readFileSync34(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
+  const entries = readFileSync35(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
   const eligible = entries.filter((entry) => !PROCFILE_EXCLUDED_PROCESS_NAMES.has(entry.name.toLowerCase()));
   if (eligible.length === 0) {
     return {
@@ -37999,11 +38096,11 @@ function detectProcfileSignal(rootDir, packageJson) {
   };
 }
 function detectMakefileSignal(rootDir) {
-  const makefilePath = path54.join(rootDir, "Makefile");
-  if (!existsSync51(makefilePath)) {
+  const makefilePath = path55.join(rootDir, "Makefile");
+  if (!existsSync52(makefilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const target = readFileSync34(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
+  const target = readFileSync35(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
   if (!target) {
     return {
       candidate: null,
@@ -38039,7 +38136,7 @@ function detectHarnessInferenceSignal(rootDir, packageJson, scripts) {
   return { signal: null, evidence };
 }
 function buildInferredHarness(rootDir) {
-  const packageJson = readJsonFile(path54.join(rootDir, "package.json"));
+  const packageJson = readJsonFile(path55.join(rootDir, "package.json"));
   const scripts = getPackageScripts(packageJson);
   const envSamples = readEnvSampleNames(rootDir);
   const inference = detectHarnessInferenceSignal(rootDir, packageJson, scripts);
@@ -38060,7 +38157,7 @@ function buildInferredHarness(rootDir) {
       artifact_type: "harness",
       schema_file: "templates/strict-spec-driven/schemas/harness.yaml",
       harness: {
-        id: path54.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
+        id: path55.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
         description: "AI-assisted draft inferred from repository metadata. Review commands and safety policy before enabling lifecycle scripts.",
         environments: {
           development: {
@@ -38139,7 +38236,7 @@ function buildInferredHarness(rootDir) {
   };
 }
 function inferHarness(rootDir, options = {}) {
-  const absolutePath = path54.join(rootDir, HARNESS_DECLARATION_PATH2);
+  const absolutePath = path55.join(rootDir, HARNESS_DECLARATION_PATH2);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
   const inferred = buildInferredHarness(rootDir);
   const draft = stringifyYamlDocument(inferred.artifact);
@@ -38149,7 +38246,7 @@ function inferHarness(rootDir, options = {}) {
     return { ok: false, artifactPath, created: false, draft, evidence: inferred.evidence, diagnostics };
   }
   if (options.write) {
-    if (existsSync51(absolutePath) && !options.force) {
+    if (existsSync52(absolutePath) && !options.force) {
       return {
         ok: false,
         artifactPath,
@@ -38162,7 +38259,7 @@ function inferHarness(rootDir, options = {}) {
         })]
       };
     }
-    const mutation = commitHarnessCandidate(rootDir, inferred.artifact, existsSync51(absolutePath) ? "update" : "create");
+    const mutation = commitHarnessCandidate(rootDir, inferred.artifact, existsSync52(absolutePath) ? "update" : "create");
     if (!mutation.valid) {
       return {
         ok: false,
@@ -38186,9 +38283,9 @@ function inferHarness(rootDir, options = {}) {
   return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
 }
 function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
-  const absolutePath = path54.join(rootDir, HARNESS_DECLARATION_PATH2);
+  const absolutePath = path55.join(rootDir, HARNESS_DECLARATION_PATH2);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  if (!existsSync51(absolutePath)) {
+  if (!existsSync52(absolutePath)) {
     throw new Error("missing-harness");
   }
   const artifact = parseYamlFile(absolutePath);
@@ -38287,7 +38384,7 @@ function normalizeOperation(operation) {
   };
 }
 function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path54.join(rootDir, HARNESS_DECLARATION_PATH2));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path55.join(rootDir, HARNESS_DECLARATION_PATH2));
   try {
     return {
       valid: true,
@@ -38450,7 +38547,7 @@ function startHarness(rootDir, options = {}) {
       return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics };
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
-    const logAbsolutePath = path54.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
+    const logAbsolutePath = path55.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
     const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
       const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
@@ -38510,7 +38607,7 @@ function startHarness(rootDir, options = {}) {
     writeFileSync11(logAbsolutePath, "", "utf8");
     const logDescriptor = openSync(logAbsolutePath, "a");
     const child = spawn(component.operations.start.command ?? "", [], {
-      cwd: path54.join(rootDir, component.workingDirectory),
+      cwd: path55.join(rootDir, component.workingDirectory),
       env: process.env,
       shell: true,
       detached: true,
@@ -38574,7 +38671,7 @@ function getHarnessLogs(rootDir, options = {}) {
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  const content = readFileSync34(path54.join(rootDir, record.logPath), "utf8");
+  const content = readFileSync35(path55.join(rootDir, record.logPath), "utf8");
   const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
@@ -38607,7 +38704,7 @@ function stopHarness(rootDir, options = {}) {
       continue;
     }
     if (record.stopCommand) {
-      const result2 = spawnSync2(record.stopCommand, [], { cwd: path54.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      const result2 = spawnSync2(record.stopCommand, [], { cwd: path55.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
       if (result2.status !== 0) {
         record.status = "failed";
         record.failureReason = result2.stderr.trim() || result2.stdout.trim() || "stop command failed";
@@ -38636,13 +38733,13 @@ function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, opti
   diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
 }
 function doctorHarness(rootDir) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path54.join(rootDir, HARNESS_DECLARATION_PATH2));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path55.join(rootDir, HARNESS_DECLARATION_PATH2));
   const planResult = getHarnessPlanResult(rootDir);
   const diagnostics = [];
   if (!planResult.valid) {
     return { ok: false, artifactPath: planResult.artifactPath, diagnostics: planResult.diagnostics };
   }
-  const absolutePath = path54.join(rootDir, HARNESS_DECLARATION_PATH2);
+  const absolutePath = path55.join(rootDir, HARNESS_DECLARATION_PATH2);
   const artifact = parseYamlFile(absolutePath);
   const rootEnvSamples = readEnvSampleNames(rootDir);
   const wrapperCheck = verifyHarnessScripts(rootDir);
@@ -38656,8 +38753,8 @@ function doctorHarness(rootDir) {
     }
     const seenPorts = new Map;
     for (const component of environmentPlan.components) {
-      const workingDirectory = path54.join(rootDir, component.workingDirectory);
-      if (!existsSync51(workingDirectory) || !statSync32(workingDirectory).isDirectory()) {
+      const workingDirectory = path55.join(rootDir, component.workingDirectory);
+      if (!existsSync52(workingDirectory) || !statSync33(workingDirectory).isDirectory()) {
         addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
           source: "filesystem",
           componentId: component.id,
@@ -38665,19 +38762,19 @@ function doctorHarness(rootDir) {
           actual: component.workingDirectory
         });
       }
-      const componentEnvSamples = workingDirectory === rootDir || !existsSync51(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
+      const componentEnvSamples = workingDirectory === rootDir || !existsSync52(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
       const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
       for (const name of component.environment.required) {
         if (!documentedEnvNames.has(name)) {
           let targetPath = ".env.example";
           if (componentEnvSamples.evidence.length > 0) {
-            targetPath = path54.join(component.workingDirectory, componentEnvSamples.evidence[0]);
+            targetPath = path55.join(component.workingDirectory, componentEnvSamples.evidence[0]);
           } else if (rootEnvSamples.evidence.length > 0) {
             targetPath = rootEnvSamples.evidence[0];
           } else if (component.workingDirectory !== ".") {
-            targetPath = path54.join(component.workingDirectory, ".env.example");
+            targetPath = path55.join(component.workingDirectory, ".env.example");
           }
-          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path54.resolve(rootDir, targetPath));
+          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path55.resolve(rootDir, targetPath));
           const recovery = {
             type: "bootstrap_env",
             description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
@@ -38726,7 +38823,7 @@ ${name}=
           continue;
         const scriptName = extractPackageScriptName(operation.command);
         if (scriptName !== null) {
-          const packageJson = readJsonFile(path54.join(workingDirectory, "package.json"));
+          const packageJson = readJsonFile(path55.join(workingDirectory, "package.json"));
           const scripts = getPackageScripts(packageJson);
           if (scripts[scriptName] === undefined) {
             addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.command`, "harness operation references a missing package script", {
@@ -38783,7 +38880,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
       continue;
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
-        const absolutePath = path54.resolve(rootDir, step.path);
+        const absolutePath = path55.resolve(rootDir, step.path);
         const relativePath = normalizeRepoRelativePath4(rootDir, absolutePath);
         if (relativePath.startsWith(".strict-spec-driven/") && /\.ya?ml$/i.test(relativePath)) {
           throw new Error(`harness-doctor recovery cannot write repository-owned YAML directly: ${relativePath}; declare a run_cli recovery that uses the artifact-aware authoring command`);
@@ -38793,8 +38890,8 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const dir = path54.dirname(absolutePath);
-        if (!existsSync51(dir)) {
+        const dir = path55.dirname(absolutePath);
+        if (!existsSync52(dir)) {
           mkdirSync8(dir, { recursive: true });
         }
         if (mode === "append") {
@@ -38808,7 +38905,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const cliPath = path54.resolve(process.argv[1]);
+        const cliPath = path55.resolve(process.argv[1]);
         const display = ["strict-spec-cli", ...step.args].join(" ");
         const result2 = spawnSync2(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
         if (result2.error) {
@@ -38847,11 +38944,11 @@ function wrapperContent(scriptName) {
 `);
 }
 function generateHarnessScripts(rootDir) {
-  const scriptsDir = path54.join(rootDir, "scripts");
+  const scriptsDir = path55.join(rootDir, "scripts");
   mkdirSync8(scriptsDir, { recursive: true });
   const created = [];
   for (const scriptName of SCRIPT_NAMES) {
-    const absolutePath = path54.join(scriptsDir, scriptName);
+    const absolutePath = path55.join(scriptsDir, scriptName);
     writeFileSync11(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
     created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
   }
@@ -38872,8 +38969,8 @@ function verifyHarnessScripts(rootDir) {
   };
   for (const scriptName of SCRIPT_NAMES) {
     const relativePath = `scripts/${scriptName}`;
-    const absolutePath = path54.join(rootDir, relativePath);
-    if (!existsSync51(absolutePath)) {
+    const absolutePath = path55.join(rootDir, relativePath);
+    if (!existsSync52(absolutePath)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", {
         source: "scripts",
         phase: "scripts",
@@ -38883,7 +38980,7 @@ function verifyHarnessScripts(rootDir) {
       }));
       continue;
     }
-    const content = readFileSync34(absolutePath, "utf8");
+    const content = readFileSync35(absolutePath, "utf8");
     if (content !== wrapperContent(scriptName)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", {
         source: "scripts",
@@ -38902,47 +38999,47 @@ function normalizeHarnessSessionPath(rootDir, target) {
   const normalized = target.split("\\").join("/");
   const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
   const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR2}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
-  const absolutePath = path54.resolve(rootDir, repoRelativePath);
+  const absolutePath = path55.resolve(rootDir, repoRelativePath);
   return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
 }
 function formatLocalDate2(date = new Date) {
   return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
-  const archiveRoot = path54.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
+  const archiveRoot = path55.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
   mkdirSync8(archiveRoot, { recursive: true });
   const baseName = `${formatLocalDate2()}-${sessionId}`;
-  let candidate = path54.join(archiveRoot, baseName);
+  let candidate = path55.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync51(candidate)) {
-    candidate = path54.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync52(candidate)) {
+    candidate = path55.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function isDirectory(filePath) {
-  return existsSync51(filePath) && statSync32(filePath).isDirectory();
+  return existsSync52(filePath) && statSync33(filePath).isDirectory();
 }
 function createHarnessSession(rootDir, sessionId) {
-  const sessionDir = path54.join(rootDir, HARNESS_SESSIONS_DIR2, sessionId);
-  const sessionPath = path54.join(sessionDir, HARNESS_SESSION_FILE_NAME);
-  const evidenceDir = path54.join(sessionDir, "evidence");
+  const sessionDir = path55.join(rootDir, HARNESS_SESSIONS_DIR2, sessionId);
+  const sessionPath = path55.join(sessionDir, HARNESS_SESSION_FILE_NAME);
+  const evidenceDir = path55.join(sessionDir, "evidence");
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
   if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
-  if (existsSync51(sessionPath) || existsSync51(evidenceDir)) {
+  if (existsSync52(sessionPath) || existsSync52(evidenceDir)) {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
   mkdirSync8(evidenceDir, { recursive: true });
   const candidate = parseYamlDocument(readBundledScaffoldTemplate(HARNESS_SESSION_TEMPLATE_PATH).replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), { source: relativeSessionPath });
   const mutation = commitHarnessSessionCandidate(rootDir, sessionId, candidate, "create");
   if (!mutation.valid) {
-    if (existsSync51(evidenceDir))
+    if (existsSync52(evidenceDir))
       rmdirSync3(evidenceDir);
-    if (existsSync51(sessionDir))
+    if (existsSync52(sessionDir))
       rmdirSync3(sessionDir);
     return {
       ok: false,
@@ -38967,7 +39064,7 @@ function createHarnessSession(rootDir, sessionId) {
 }
 function validateHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  if (!existsSync51(absolutePath)) {
+  if (!existsSync52(absolutePath)) {
     return { valid: false, artifactPath, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
   let artifact;
@@ -38981,15 +39078,15 @@ function validateHarnessSession(rootDir, target) {
 }
 function archiveHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  const sourceDir = path54.dirname(absolutePath);
+  const sourceDir = path55.dirname(absolutePath);
   const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
   const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
-  if (!existsSync51(absolutePath)) {
+  if (!existsSync52(absolutePath)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
-  const activeRoot = path54.resolve(rootDir, HARNESS_SESSIONS_DIR2);
-  const sourceParent = path54.dirname(path54.resolve(sourceDir));
-  if (path54.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+  const activeRoot = path55.resolve(rootDir, HARNESS_SESSIONS_DIR2);
+  const sourceParent = path55.dirname(path55.resolve(sourceDir));
+  if (path55.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session archive target must be an active session.yaml artifact", { expected: `${HARNESS_SESSIONS_DIR2}/<session-id>/${HARNESS_SESSION_FILE_NAME}`, actual: artifactPath })] };
   }
   const validation = validateHarnessSession(rootDir, artifactPath);
@@ -39004,8 +39101,8 @@ function archiveHarnessSession(rootDir, target) {
   if (sessionId === "archive") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id is reserved for archived sessions", { expected: "non-reserved harness-session id", actual: sessionId })] };
   }
-  if (path54.basename(sourceDir) !== sessionId) {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path54.basename(sourceDir), actual: sessionId })] };
+  if (path55.basename(sourceDir) !== sessionId) {
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path55.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
     const setStatus = `strict-spec-cli harness-session edit ${sessionId} --status`;
@@ -39029,7 +39126,7 @@ function archiveHarnessSession(rootDir, target) {
     };
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
-  const archivePath = path54.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
+  const archivePath = path55.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
   renameSync4(sourceDir, archiveDestination);
   return {
     ok: true,

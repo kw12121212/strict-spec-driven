@@ -1,0 +1,32 @@
+{
+  "schema": "strict-spec-driven/retired-skills/v1",
+  "purpose": "Skill packages this repository used to ship and no longer does. The installer removes every name listed here from the machine it installs to, so an upgrade over an older checkout does not leave a retired slash command on offer. A skill deleted from skills/ belongs here; a skill that was deleted and later restored does not.",
+  "retired": [
+    "strict-roadmap-archive",
+    "strict-roadmap-defer",
+    "strict-roadmap-milestone",
+    "strict-roadmap-move",
+    "strict-roadmap-pause",
+    "strict-roadmap-propose",
+    "strict-roadmap-refine",
+    "strict-roadmap-reopen",
+    "strict-roadmap-resume",
+    "strict-roadmap-sync",
+    "strict-spec-cancel",
+    "strict-spec-debug-session",
+    "strict-spec-debug-session-archive",
+    "strict-spec-debug-session-to-change",
+    "strict-spec-dev-session-init",
+    "strict-spec-dev-session-scripts",
+    "strict-spec-harness-init",
+    "strict-spec-harness-session",
+    "strict-spec-migrate",
+    "strict-spec-propose-from-roadmap",
+    "strict-spec-resync-code-mapping",
+    "strict-spec-simple-task",
+    "strict-spec-sop",
+    "strict-ticket",
+    "strict-ticket-archive",
+    "strict-ticket-dispatch"
+  ]
+}

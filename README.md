@@ -120,6 +120,8 @@ On Unix-like hosts, `install.sh` installs `strict-spec-cli` via `npm install -g 
 
 On Windows, `install.ps1` installs `strict-spec-cli` via `npm install -g .` when npm/Node is available — the command lands in npm's global bin directory (already on `PATH`), so it is usable immediately in any terminal with no PATH edits. When npm is unavailable, it falls back to building a native `strict-spec-cli` executable and placing it in a user-level bin directory; in that case it adds the bin directory to the current user's `PATH` by default, so open a new terminal before invoking `strict-spec-cli` by name outside the installer session. Use `-NoPathUpdate` to skip PATH changes, or `-KeepPathOnUninstall` to leave the PATH entry in place when uninstalling.
 
+Both installers also remove the skills this repository has retired. Installing only ever adds packages, so upgrading over an older checkout used to leave every deleted skill on the machine, still offering a slash command that no longer resolves. The retired names are recorded in `retired-skills.json` — they cannot be derived from a name prefix, because some retired packages predate the current naming families — and each install hands that list to the `skills` CLI, which removes them from every agent directory it manages. Uninstalling names both the packaged and the retired skills for the same reason: given no names, the `skills` CLI opens an interactive selection menu, which a non-interactive session answers with nothing at all.
+
 ### Skills: `strict-spec-*` and `strict-roadmap-*`
 
 Skills are Agent Skills packages installed via `install.sh`. Invoke them in Claude Code using their slash-command names:

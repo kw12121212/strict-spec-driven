@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNINSTALL=false
+SKILL_REMOVAL_FAILED=false
 
 usage() {
   cat >&2 <<'EOF'
@@ -10,6 +11,11 @@ Usage: bash install.sh [--uninstall]
 
 Registers or removes the strict skill package from this repository.
   --uninstall      Remove the strict skill registration instead of installing it.
+
+Installing also removes the skills this repository has retired, listed in
+retired-skills.json, so upgrading over an older checkout does not leave a
+deleted slash command installed. Both paths name the skills they remove;
+the skills CLI opens an interactive menu when given none.
 
 The install path bootstraps its own dependencies, so bun is the only runtime
 that must already be present (and it is auto-installed if missing):
@@ -117,13 +123,33 @@ install_native() {
   ( cd "$SCRIPT_DIR" && bun scripts/build-native-cli.ts --install --bin-dir "$BIN_DIR" )
 }
 
+# The skill names this repository ships (`packaged`), the ones it used to ship (`retired`), and
+# both together (`removable`). One implementation answers for both installers, so bash and
+# PowerShell cannot drift apart, and the retired names cannot be guessed from a name prefix:
+# strict-ticket, strict-ticket-archive, and strict-ticket-dispatch carry none of the packaged
+# family prefixes.
+skill_names() {
+  ( cd "$SCRIPT_DIR" && bun scripts/skill-package-names.ts "$1" )
+}
+
 if $UNINSTALL; then
   if ! SKILLS_CMD="$(resolve_skills_cmd)"; then
     printf 'No runtime available to run the skills CLI (need bun, npm, or npx).\n' >&2
     exit 1
   fi
   echo "Uninstalling strict skills from: $SCRIPT_DIR"
-  $SKILLS_CMD remove -g
+  # Removal is always given explicit names. `skills remove -g` with none opens an interactive
+  # selection menu, and a non-interactive session answers nothing and exits 0, so the uninstall
+  # reports success having removed not one skill. Retired names are included so an uninstall also
+  # clears skills that an older version of this repository installed.
+  if command -v bun >/dev/null 2>&1 && REMOVABLE_SKILLS="$(skill_names removable)" && [ -n "$REMOVABLE_SKILLS" ]; then
+    # shellcheck disable=SC2086 # the name list is intentionally split into separate arguments
+    $SKILLS_CMD remove -g -y $REMOVABLE_SKILLS
+  else
+    SKILL_REMOVAL_FAILED=true
+    printf 'Could not resolve the strict skill names, so no skill was removed.\n' >&2
+    printf 'Install bun and rerun this script; skill removal needs the name list it prints.\n' >&2
+  fi
   # npm/Node is the preferred install channel; remove the npm-global CLI when
   # npm is available. The native executable is always cleaned up because a
   # prior fallback install may have left it.
@@ -132,6 +158,9 @@ if $UNINSTALL; then
     npm uninstall -g strict-spec-driven
   fi
   rm -f "$BIN_DIR/strict-spec-cli"
+  if $SKILL_REMOVAL_FAILED; then
+    exit 1
+  fi
 else
   ensure_bun
   ensure_project_deps
@@ -163,4 +192,16 @@ else
   echo "Installing strict skills from: $SCRIPT_DIR"
   SKILLS_CMD="$(resolve_skills_cmd)" # bun is guaranteed present here -> bunx
   $SKILLS_CMD add "$SCRIPT_DIR" -g -y
+  # Adding never removes. Without this an upgrade over an older checkout leaves every skill this
+  # repository has since retired installed on the machine, still offering a slash command that no
+  # longer resolves. Names already absent are reported as not found and cost nothing, so the whole
+  # list is passed rather than first working out which ones are installed.
+  RETIRED_SKILLS="$(skill_names retired)"
+  if [ -n "$RETIRED_SKILLS" ]; then
+    echo "Removing retired strict skills:"
+    # shellcheck disable=SC2086 # the name list is intentionally split into separate arguments
+    printf '  %s\n' $RETIRED_SKILLS
+    # shellcheck disable=SC2086 # the name list is intentionally split into separate arguments
+    $SKILLS_CMD remove -g -y $RETIRED_SKILLS
+  fi
 fi

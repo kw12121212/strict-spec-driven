@@ -119,6 +119,7 @@ export type SkillValidationModule = {
     summary: {
       skillCount: number;
       marketplaceCount: number;
+      retiredCount: number;
       diagnosticsCount: number;
     };
   };

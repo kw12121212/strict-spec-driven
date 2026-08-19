@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: installer-prunes-retired-skills
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'The interrogation gate needs the failing behavior rather than the requested fix. A sufficient answer names what a person observes on their own machine. Impact: it decides whether the change targets the install path, the uninstall path, or both.'
+    answer: Installing the repository onto a machine leaves previously deleted skills in place. On the requesters machine the install carried 34 skill packages while the repository packages 24, so 11 retired skills stayed installed and their slash commands stayed on offer to every agent. The requester raised it as install the project, but be careful to clean up the skills that were deleted.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: 'A sufficient answer is something a person can check after running the installer, not a description of the mechanism. Impact: it decides what the spec scenario asserts and what the regression check has to prove.'
+    answer: After running the installer, no skill this package has retired is left installed on the machine, and the installer achieved that by itself. The requester stated it as the install function in install.sh has to accurately delete the skills that are known to need deleting, with no human diffing the installed set against the repository afterwards.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: 'This tests whether the need is real rather than anticipated. A sufficient answer describes the last concrete occurrence. Impact: a one-off would justify a smaller fix than a defect that recurs on every upgrade.'
+    answer: It happened during this install. The requester asked for the project to be installed and flagged stale skills up front; the install left 11 retired skills behind, and the uninstall path removed nothing at all because the skills CLI removal was invoked with no names and fell back to an interactive menu that exits without a selection under an agent. The cleanup only happened because it was performed by hand afterwards, which is what has to stop.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Naming the untouched surface keeps the change from widening. A sufficient answer names behavior that must survive, not files. Impact: it fixes the proposal out-of-scope and unchanged-behavior entries.'
+    answer: 'The retired set must not be derived from family name prefixes; the requester rejected that reading explicitly. strict-roadmap-reorder must stay packaged and must never be treated as retired, because it was deleted and then restored as its own package. Removal must stay delegated to the skills CLI rather than deleting agent directories directly. The strict CLI command surface stays untouched: the sop, harness, and migrate commands the retired skills used keep their names, arguments, and exit codes.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of skills that are known to need deleting is intended?
+    context: 'The phrase carries more than one reading and they produce different systems. A sufficient answer picks one and accepts its cost. Impact: it decides the data the installer consults, and whether a future skill deletion is picked up automatically or has to be recorded by hand.'
+    answer: Known means recorded by the repository in an explicit retired list, not inferred at runtime. The requester chose the maintained list over prefix derivation and over an install-time manifest diff, accepting that each future deletion must be added to the list. When the first proposed location was shown to break the rule against naming unpackaged skills, the requester chose inventory/retired-skills.json; implementation then found that directory is embedded verbatim into the scanned src tree, so the list was moved to retired-skills.json at the repository root, which the same reasoning selects.
+    status: resolved
+    kind: requirement
+    answered_by: human

@@ -16,6 +16,7 @@ import {
   TestContext,
   cli,
   loadDistModule,
+  runCommand,
   type SkillValidationModule,
   type YamlModule,
 } from "../support/harness.js";
@@ -4505,6 +4506,196 @@ context.assert(
     .join(", "),
 );
 
+}
+
+// The retired-skill list the installers read. Its whole job is to name packages that no longer
+// exist, so it is kept in inventory/ rather than under skills/, where the dangling-reference scan
+// above would report every entry.
+type PackageNamesModule = {
+  RETIRED_SKILLS_FILE: string;
+  readPackagedSkillNames: (rootDir: string) => string[];
+  readRetiredSkillNames: (rootDir: string) => {
+    names: string[];
+    present: boolean;
+    problems: Array<{ code: string; message: string }>;
+  };
+  resolveRemovableSkillNames: (rootDir: string) => string[];
+};
+const packageNames = (await loadDistModule("skills/package-names.js")) as PackageNamesModule;
+
+const writeRetiredListRoot = (retired: unknown, packaged: string[]): string => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "strict-retired-list-"));
+  mkdirSync(path.join(root, "inventory"), { recursive: true });
+  for (const name of packaged) mkdirSync(path.join(root, "skills", name), { recursive: true });
+  writeFileSync(
+    path.join(root, packageNames.RETIRED_SKILLS_FILE),
+    `${JSON.stringify({ schema: "strict-spec-driven/retired-skills/v1", retired }, null, 2)}\n`,
+    "utf8",
+  );
+  return root;
+};
+
+{
+  const wellFormedRoot = writeRetiredListRoot(["strict-spec-gone", "strict-ticket"], ["strict-spec-live"]);
+  try {
+    const parsed = packageNames.readRetiredSkillNames(wellFormedRoot);
+    context.assert(
+      parsed.present && parsed.problems.length === 0
+        && JSON.stringify(parsed.names) === JSON.stringify(["strict-spec-gone", "strict-ticket"]),
+      "a well-formed retired list is read in sorted order with no problems reported",
+      JSON.stringify(parsed),
+    );
+    context.assert(
+      JSON.stringify(packageNames.resolveRemovableSkillNames(wellFormedRoot))
+        === JSON.stringify(["strict-spec-gone", "strict-spec-live", "strict-ticket"]),
+      "the removable set an uninstall names is the packaged and the retired names together",
+      JSON.stringify(packageNames.resolveRemovableSkillNames(wellFormedRoot)),
+    );
+  } finally {
+    rmSync(wellFormedRoot, { recursive: true, force: true });
+  }
+
+  // An entry that is not a usable name is reported rather than silently skipped: a list that
+  // quietly drops entries is a list that quietly stops removing skills.
+  const malformedRoot = writeRetiredListRoot(["strict-spec-gone", "", 7, "strict-spec-gone"], []);
+  try {
+    const parsed = packageNames.readRetiredSkillNames(malformedRoot);
+    context.assert(
+      parsed.problems.some((problem) => problem.code === "skills.retired.entry.invalid")
+        && parsed.problems.filter((problem) => problem.code === "skills.retired.entry.invalid").length === 2,
+      "an empty and a non-string retired entry are each reported as invalid",
+      JSON.stringify(parsed.problems),
+    );
+    context.assert(
+      parsed.problems.some((problem) => problem.code === "skills.retired.entry.duplicate")
+        && JSON.stringify(parsed.names) === JSON.stringify(["strict-spec-gone"]),
+      "a repeated retired entry is reported once and kept once",
+      JSON.stringify(parsed),
+    );
+  } finally {
+    rmSync(malformedRoot, { recursive: true, force: true });
+  }
+
+  const missingListRoot = mkdtempSync(path.join(os.tmpdir(), "strict-retired-absent-"));
+  try {
+    const parsed = packageNames.readRetiredSkillNames(missingListRoot);
+    context.assert(
+      !parsed.present && parsed.names.length === 0 && parsed.problems.length === 0,
+      "an absent retired list reads as empty rather than as a failure, so a tree without one still installs",
+      JSON.stringify(parsed),
+    );
+  } finally {
+    rmSync(missingListRoot, { recursive: true, force: true });
+  }
+
+  // The dangerous case, driven through the shipped validation command's own entry point: a name in
+  // both lists would make an install remove the skill it had just added.
+  const contradictoryRoot = writeRetiredListRoot(["strict-spec-live"], ["strict-spec-live"]);
+  try {
+    const result = skillValidationModule.validateStrictSkillPackaging(contradictoryRoot);
+    context.assert(
+      !result.valid
+        && result.diagnostics.some(
+          (diagnostic) =>
+            diagnostic.code === "skills.retired.entry.still_packaged"
+            && diagnostic.actual === "strict-spec-live",
+        ),
+      "skill packaging validation fails, naming the skill, when the retired list claims a package the repository still ships",
+      JSON.stringify(result.diagnostics.map((diagnostic) => diagnostic.code)),
+    );
+  } finally {
+    rmSync(contradictoryRoot, { recursive: true, force: true });
+  }
+}
+
+// The list is maintained by hand, so it is cross-checked against a source that does not depend on
+// it: the skill directories git history has deleted. Both directions are checked, because a list
+// that names a package history never deleted is as broken as one that forgets a deletion.
+type RetiredListCrossCheck = { missing: string[]; unearned: string[] };
+const crossCheckRetiredList = (
+  retiredNames: Iterable<string>,
+  packagedNames: Iterable<string>,
+  everDeletedNames: Iterable<string>,
+): RetiredListCrossCheck => {
+  const retired = new Set(retiredNames);
+  const packaged = new Set(packagedNames);
+  const everDeleted = new Set(everDeletedNames);
+  return {
+    missing: [...everDeleted].filter((name) => !packaged.has(name) && !retired.has(name)).sort(),
+    unearned: [...retired].filter((name) => packaged.has(name) || !everDeleted.has(name)).sort(),
+  };
+};
+
+{
+  const deletedSkillLog = runCommand(
+    "git",
+    ["log", "--all", "--diff-filter=D", "--name-only", "--format=", "--", "skills/*/SKILL.md"],
+    { cwd: ROOT },
+  );
+  const everDeletedSkillNames = [
+    ...new Set(
+      deletedSkillLog.stdout
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith("skills/") && line.endsWith("/SKILL.md"))
+        .map((line) => line.slice("skills/".length, -"/SKILL.md".length)),
+    ),
+  ].sort();
+  const packagedSkillNames = packageNames.readPackagedSkillNames(ROOT);
+  const retiredSkillNames = packageNames.readRetiredSkillNames(ROOT).names;
+
+  context.assert(
+    deletedSkillLog.status === 0 && everDeletedSkillNames.length > 0 && retiredSkillNames.length > 0,
+    "git history and the retired list both produced names, so the cross-check below is not vacuous",
+    `git status ${deletedSkillLog.status}; ${everDeletedSkillNames.length} deleted; ${retiredSkillNames.length} retired`,
+  );
+
+  const liveCrossCheck = crossCheckRetiredList(retiredSkillNames, packagedSkillNames, everDeletedSkillNames);
+  context.assert(
+    liveCrossCheck.missing.length === 0,
+    "every skill directory git history deleted and the repository no longer packages is on the retired list",
+    liveCrossCheck.missing.join(", "),
+  );
+  context.assert(
+    liveCrossCheck.unearned.length === 0,
+    "every name on the retired list is a skill directory history deleted and the repository does not package",
+    liveCrossCheck.unearned.join(", "),
+  );
+
+  // The negative cases run the same function the assertions above call, with synthetic names added
+  // to the real input, so a green cross-check is evidence rather than a check that stopped firing.
+  const forgottenDeletion = crossCheckRetiredList(
+    retiredSkillNames,
+    packagedSkillNames,
+    [...everDeletedSkillNames, "strict-spec-forgotten-deletion"],
+  );
+  context.assert(
+    forgottenDeletion.missing.includes("strict-spec-forgotten-deletion") && forgottenDeletion.unearned.length === 0,
+    "the cross-check reports a deleted skill that nobody added to the retired list",
+    JSON.stringify(forgottenDeletion),
+  );
+
+  const retiredWhileStillPackaged = crossCheckRetiredList(
+    [...retiredSkillNames, packagedSkillNames[0] as string],
+    packagedSkillNames,
+    everDeletedSkillNames,
+  );
+  context.assert(
+    retiredWhileStillPackaged.unearned.includes(packagedSkillNames[0] as string),
+    "the cross-check reports a retired entry that names a package the repository still ships",
+    JSON.stringify(retiredWhileStillPackaged),
+  );
+
+  const retiredButNeverDeleted = crossCheckRetiredList(
+    [...retiredSkillNames, "strict-spec-never-existed"],
+    packagedSkillNames,
+    everDeletedSkillNames,
+  );
+  context.assert(
+    retiredButNeverDeleted.unearned.includes("strict-spec-never-existed"),
+    "the cross-check reports a retired entry that names no skill history ever deleted",
+    JSON.stringify(retiredButNeverDeleted),
+  );
 }
 
 }

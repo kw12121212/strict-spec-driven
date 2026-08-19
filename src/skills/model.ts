@@ -15,6 +15,7 @@ export type SkillPackagingValidationResult = {
   summary: {
     skillCount: number;
     marketplaceCount: number;
+    retiredCount: number;
     diagnosticsCount: number;
   };
 };

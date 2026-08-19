@@ -5,6 +5,10 @@ Registers or removes the strict skill package from this repository (Windows).
 The install path bootstraps its own dependencies: bun is auto-installed if
 missing, project deps are installed with `bun install`, and the global `skills`
 CLI runs via bunx (npm exec / npx are kept as uninstall fallbacks).
+Installing also removes the skills this repository has retired, listed in
+retired-skills.json, so upgrading over an older checkout does not leave a
+deleted slash command installed. Both paths name the skills they remove;
+the skills CLI opens an interactive menu when given none.
 
 .PARAMETER Uninstall
 Remove the strict skill registration instead of installing it.
@@ -226,6 +230,24 @@ function Invoke-Skills {
     & $prefix[0] @skillsArgs
 }
 
+# The skill names this repository ships ('packaged'), the ones it used to ship ('retired'), and
+# both together ('removable'). One implementation answers for both installers, so this file and
+# install.sh cannot drift apart, and the retired names cannot be guessed from a name prefix:
+# strict-ticket, strict-ticket-archive, and strict-ticket-dispatch carry none of the packaged
+# family prefixes.
+function Get-SkillNames {
+    param([Parameter(Mandatory = $true)][ValidateSet('packaged', 'retired', 'removable')][string]$Set)
+
+    Push-Location $ScriptDir
+    try {
+        $names = & bun scripts/skill-package-names.ts $Set
+        if ($LASTEXITCODE -ne 0) { throw "Could not resolve the $Set strict skill names." }
+    } finally {
+        Pop-Location
+    }
+    return @($names | Where-Object { $_ -and $_.Trim().Length -gt 0 })
+}
+
 # Install bun from the official Windows installer when it is not already on PATH.
 function Ensure-Bun {
     if (Get-Command bun -ErrorAction SilentlyContinue) { return }
@@ -304,8 +326,31 @@ function Build-CliBundle {
 
 if ($Uninstall) {
     Write-Host "Uninstalling strict skills from: $ScriptDir"
-    Invoke-Skills -CommandArgs @('remove', '-g')
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    # Removal is always given explicit names. 'skills remove -g' with none opens an interactive
+    # selection menu, and a non-interactive session answers nothing and exits 0, so the uninstall
+    # reports success having removed not one skill. Retired names are included so an uninstall also
+    # clears skills that an older version of this repository installed.
+    # An unresolved name list is reported and the uninstall carries on to the CLI and PATH cleanup,
+    # exiting non-zero at the end, so this path behaves as install.sh does rather than aborting here.
+    $skillRemovalFailed = $false
+    $removableSkills = @()
+    if (Get-Command bun -ErrorAction SilentlyContinue) {
+        try {
+            $removableSkills = Get-SkillNames -Set 'removable'
+        } catch {
+            $skillRemovalFailed = $true
+            Write-Warning $_.Exception.Message
+        }
+    } else {
+        $skillRemovalFailed = $true
+        Write-Warning 'bun is not on PATH, so the strict skill names could not be resolved.'
+    }
+    if ($skillRemovalFailed) {
+        Write-Warning 'No skill was removed. Install bun and rerun this script; skill removal needs the name list it prints.'
+    } elseif ($removableSkills.Count -gt 0) {
+        Invoke-Skills -CommandArgs (@('remove', '-g', '-y') + $removableSkills)
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
     if (Test-NpmAvailable) {
         Write-Host 'Uninstalling strict-spec-cli via npm'
         & npm uninstall -g strict-spec-driven
@@ -320,6 +365,7 @@ if ($Uninstall) {
     } else {
         Remove-UserPathEntry $ResolvedBinDir
     }
+    if ($skillRemovalFailed) { exit 1 }
 } else {
     Build-CliBundle
     if (Test-NpmAvailable) {
@@ -356,6 +402,17 @@ if ($Uninstall) {
         Write-Host "Installing strict skills from: $ScriptDir"
         Invoke-Skills -CommandArgs @('add', $stageDir, '-g', '-y')
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        # Adding never removes. Without this an upgrade over an older checkout leaves every skill
+        # this repository has since retired installed on the machine, still offering a slash command
+        # that no longer resolves. Names already absent are reported as not found and cost nothing,
+        # so the whole list is passed rather than first working out which ones are installed.
+        $retiredSkills = Get-SkillNames -Set 'retired'
+        if ($retiredSkills.Count -gt 0) {
+            Write-Host 'Removing retired strict skills:'
+            foreach ($retiredSkill in $retiredSkills) { Write-Host "  $retiredSkill" }
+            Invoke-Skills -CommandArgs (@('remove', '-g', '-y') + $retiredSkills)
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        }
     } finally {
         Remove-Item -LiteralPath $stageDir -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "Cleaned up staging directory"

@@ -1,0 +1,69 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: installer-prunes-retired-skills
+sections:
+  Implementation:
+    add-retired-skill-inventory:
+      text: Add retired-skills.json at the repository root recording the 26 skill directories git history deleted and this repository no longer packages, excluding strict-roadmap-reorder because it was deleted and then restored as its own package.
+      status: complete
+    add-package-name-module:
+      text: Add a source module under src/skills that resolves the packaged skill names from the skills directories and the retired names from retired-skills.json, rejecting a retired entry that is not a non-empty string, a duplicate entry, and any name that appears in both lists, and returning deterministic sorted output.
+      status: complete
+    validate-retired-list-in-shipped-command:
+      text: Extend the shipped skill packaging validation so validate-skills reports a diagnostic when the retired list is malformed or names a skill the repository still packages, keeping the policy observable through the command an operator runs rather than only in the suite.
+      status: complete
+    add-name-listing-script:
+      text: Add scripts/skill-package-names.ts as the thin entry point both installers call, printing the packaged, retired, or combined name set one name per line so no set logic is written twice in bash and PowerShell.
+      status: complete
+    prune-in-unix-installer:
+      text: Change install.sh so the install path removes the retired skills through the skills CLI after adding the packaged ones and reports the names it removed, and so the uninstall path passes the packaged and retired names explicitly instead of invoking removal with no names.
+      status: complete
+    prune-in-windows-installer:
+      text: Make the same install-path and uninstall-path changes in install.ps1 so both installers stay at parity, using the staged skill directory the Windows flow already builds.
+      status: complete
+    document-installer-cleanup:
+      text: Document the installer retired-skill cleanup and the retired-list location in README.md and README.zh.md alongside the existing installer behavior description.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild dist/ from the edited TypeScript sources so the dist-based suite and the installed CLI observe the new module and validation.
+      status: complete
+      command: bun run build
+  Testing:
+    lint-typescript:
+      text: Run the TypeScript lint check over the new module, the new script, and the edited validation so no type error reaches the suite.
+      status: complete
+      command: bun run lint
+    unit-test-name-resolution:
+      text: Add unit tests for the name resolution module covering a well-formed pair of lists, a retired entry that is not a non-empty string, a duplicate retired entry, and a retired name the repository still packages.
+      status: complete
+    cross-check-retired-list-against-git-history:
+      text: 'Add a regression check that cross-checks retired-skills.json against git history in both directions: every skill directory history deleted that the repository no longer packages must be listed, and every listed name must be a directory history actually deleted.'
+      status: complete
+    prove-cross-check-negative-case:
+      text: Drive the same cross-check function used by the passing assertion with synthetic input added to the real input, observing it fail for a deleted-but-unlisted name and for a listed name the repository still packages, so the green result is evidence rather than an unfireable check.
+      status: complete
+    pin-installer-content-assertions:
+      text: Extend the installer assertions in test/suites/foundation-and-fixtures.ts so both installers are pinned to removing the retired skills on the install path and to naming the skills explicitly on the uninstall path.
+      status: complete
+    validate-skill-packaging:
+      text: Run strict skill packaging and content validation and confirm it still reports 24 packages with marketplace parity and zero diagnostics after the retired-list validation is added.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-project-regression:
+      text: Run the configured complete project regression command with subprocess coverage collection, redirecting output to a file and reading the command own exit status.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage.log 2>&1; echo EXIT=$?
+  Verification:
+    verify-change:
+      text: Run strict verification for this change and confirm no artifact, task, or open-question blockers remain.
+      status: complete
+      command: strict-spec-cli verify installer-prunes-retired-skills
+    run-maintenance-checks:
+      text: Run the configured maintenance checks and confirm the generated-doc, lesson-staleness, and cli-only-yaml-policy checks report no new violations.
+      status: complete
+      command: strict-spec-cli maintenance
+testing_gates:
+  validation_task: validate-skill-packaging
+  unit_test_task: run-project-regression
