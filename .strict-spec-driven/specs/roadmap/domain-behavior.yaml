@@ -104,20 +104,24 @@ requirements:
         - THEN: the command exits non-zero with deterministic diagnostics and does not move milestone or planned-change files
   roadmap-milestone-authoring-command-contract:
     strength: MUST
-    statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, require explicit structured milestone intake questions when creating a milestone, run roadmap synchronization after successful writes, and report updated files deterministically, while standalone planned-change authoring remains on the dedicated roadmap-generate planned-change command. A supplied scalar field MUST overwrite the recorded value without any confirming flag; supplied list values and intake questions MUST merge additively, with a restated intake question id overwriting only that question; and the command MUST offer no flag that replaces or clears a list the invocation did not name, so editing one field can never discard unrelated recorded content.
+    statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, require explicit structured milestone intake questions when creating a milestone, run roadmap synchronization after successful writes, and report updated files deterministically, while standalone planned-change authoring remains on the dedicated roadmap-generate planned-change command. A supplied scalar field MUST overwrite the recorded value without any confirming flag; supplied list values and intake questions MUST merge additively, with a restated intake question id overwriting only that question; and the command MUST offer no flag that replaces or clears a list the invocation did not name, so editing one field can never discard unrelated recorded content, including an existing awaiting_refinement mapping.
     scenarios:
       editing-a-scalar-preserves-every-list:
-        - GIVEN: a strict roadmap milestone records a goal together with multiple scope entries, done criteria, dependencies, risks, notes, and intake questions
-        - WHEN: roadmap-generate milestone supplies a new goal and one additional risk
-        - THEN: the goal is replaced, the new risk is appended, and every previously recorded scope entry, done criterion, dependency, risk, note, and intake question remains present unchanged
+        - GIVEN: A strict roadmap milestone records a goal together with multiple scope entries, done criteria, dependencies, risks, notes, and intake questions.
+        - WHEN: roadmap-generate milestone supplies a new goal and one additional risk.
+        - THEN: The goal is replaced, the new risk is appended, and every previously recorded scope entry, done criterion, dependency, risk, note, and intake question remains present unchanged.
       restating-an-intake-question-overwrites-only-that-question:
-        - GIVEN: a strict roadmap milestone records multiple intake_questions entries
-        - WHEN: roadmap-generate milestone restates one intake question id with new content
-        - THEN: that question's content is replaced, every other intake question is preserved unchanged, and the roadmap index is synchronized
+        - GIVEN: A strict roadmap milestone records multiple intake_questions entries.
+        - WHEN: roadmap-generate milestone restates one intake question id with new content.
+        - THEN: That question's content is replaced, every other intake question is preserved unchanged, and the roadmap index is synchronized.
       no-flag-replaces-an-unnamed-list:
-        - GIVEN: a strict roadmap milestone records multiple risks
-        - WHEN: any roadmap-generate milestone invocation runs without a removal flag naming a risk
-        - THEN: no recorded risk is removed, and the command offers no flag that would replace the risk list wholesale
+        - GIVEN: A strict roadmap milestone records multiple risks.
+        - WHEN: Any roadmap-generate milestone invocation runs without a removal flag naming a risk.
+        - THEN: No recorded risk is removed, and the command offers no flag that would replace the risk list wholesale.
+      editing-an-unrelated-field-preserves-awaiting-refinement:
+        - GIVEN: A strict roadmap milestone has a complete awaiting_refinement mapping recorded by roadmap-defer.
+        - WHEN: roadmap-generate milestone edits an unrelated scalar field.
+        - THEN: The command preserves the complete awaiting_refinement mapping unchanged while applying the requested scalar edit.
   roadmap-milestone-update-preserves-work-items:
     strength: MUST
     statement: The system MUST make roadmap-generate milestone update milestone planning fields without creating, modifying, deleting, or moving standalone planned-change artifacts, and MUST reject legacy inline planned_changes without partially rewriting the milestone because inline planned-change migration remains on the existing materialization workflow.

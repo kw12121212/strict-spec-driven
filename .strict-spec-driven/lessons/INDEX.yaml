@@ -95,7 +95,7 @@ categories:
     a-schema-field-is-not-live-until-the-artifact-ge-910119:
       title: A schema field is not live until the artifact generator's normalizer copies it
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/tooling/a-schema-field-is-not-live-until-the-artifact-ge-910119.yaml
     apply-completes-the-next-task-in-list-order-not-268fb1:
       title: apply completes the next task in list order, not the task you just finished

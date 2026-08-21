@@ -327,6 +327,9 @@ function buildArtifact(
     ),
     risks: mergeList(existing?.artifact.risks ?? [], input.risks, input.removedRisks, "remove-risk"),
     status: existing?.artifact.status ?? "proposed",
+    ...(existing?.artifact.awaiting_refinement
+      ? { awaiting_refinement: { ...existing.artifact.awaiting_refinement } }
+      : {}),
     notes: mergeList(existing?.artifact.notes ?? [], input.notes, input.removedNotes, "remove-note"),
     ...(details !== undefined ? { details } : {}),
   };

@@ -804,6 +804,21 @@ try {
     "roadmap-generate milestone does not rewrite standalone planned-change files",
   );
 
+  const deferBeforeScalarEdit = cli([
+    "roadmap-defer",
+    "authoring",
+    "--reason",
+    "The milestone needs another refinement pass.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(
+    deferBeforeScalarEdit.status === 0,
+    "roadmap-defer records awaiting_refinement before a milestone field edit",
+    deferBeforeScalarEdit.stdout || deferBeforeScalarEdit.stderr,
+  );
+  const awaitingRefinementBeforeScalarEdit = yamlModule.parseYamlFile<{
+    awaiting_refinement?: { status: true; reason: string; deferred_on: string };
+  }>(generatedMilestonePath).awaiting_refinement;
+
   // A supplied scalar replaces the recorded value with no confirming flag.
   const beforeScalarEdit = yamlModule.parseYamlFile<{
     scope: { in: string[] };
@@ -824,6 +839,14 @@ try {
     scalarEdit.status === 0,
     "roadmap-generate milestone replaces a scalar field without any confirming flag",
     scalarEdit.stdout || scalarEdit.stderr,
+  );
+  const afterScalarEdit = yamlModule.parseYamlFile<{
+    awaiting_refinement?: { status: true; reason: string; deferred_on: string };
+  }>(generatedMilestonePath);
+  context.assert(
+    awaitingRefinementBeforeScalarEdit !== undefined
+      && JSON.stringify(afterScalarEdit.awaiting_refinement) === JSON.stringify(awaitingRefinementBeforeScalarEdit),
+    "roadmap-generate milestone preserves awaiting_refinement when editing an unrelated scalar field",
   );
 
   // The reported regression: editing one field while supplying one list value must never replace

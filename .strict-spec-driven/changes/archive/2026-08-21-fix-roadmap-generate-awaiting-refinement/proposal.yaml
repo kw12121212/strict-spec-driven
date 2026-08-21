@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-roadmap-generate-awaiting-refinement
+  status: proposed
+summary:
+  what:
+    - Preserve an existing milestone awaiting_refinement mapping when roadmap-generate milestone edits any unrelated named field.
+  why:
+    - The command currently rebuilds the milestone without awaiting_refinement, silently losing recorded workflow state and violating its non-destructive authoring contract.
+scope:
+  in:
+    - Add a failing end-to-end regression for an unrelated scalar edit on a deferred milestone.
+    - Preserve awaiting_refinement in the milestone authoring candidate and clarify the roadmap authoring requirement.
+  out:
+    - Change roadmap-defer or roadmap-refine semantics.
+    - Add roadmap-generate flags for editing or clearing awaiting_refinement.
+    - Refactor adjacent roadmap authoring or synchronization behavior.
+unchanged_behavior:
+  - All milestone fields and named-removal behavior other than preservation of awaiting_refinement remain unchanged.
+  - roadmap-defer remains the command that records awaiting_refinement and roadmap-refine remains the command that clears it.

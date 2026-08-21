@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-roadmap-generate-awaiting-refinement
+sections:
+  Implementation:
+    reproduce-awaiting-refinement-loss:
+      text: Add and run an end-to-end regression that defers a milestone, edits an unrelated scalar through roadmap-generate milestone, and demonstrates the complete awaiting_refinement mapping is lost before the fix.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runRoadmapAndMigrationSuite } from "./test/suites/roadmap-and-migration.ts"; const context = new TestContext(); await runRoadmapAndMigrationSuite(context); printFinalSummary(context);'
+    preserve-awaiting-refinement:
+      text: Carry the existing awaiting_refinement mapping into the roadmap-generate milestone candidate without changing defer/refine semantics.
+      status: complete
+  Testing:
+    build-cli:
+      text: Rebuild TypeScript and bundled CLI output after the source edit.
+      status: complete
+      command: bun run build
+    roadmap-regression:
+      text: Run the focused roadmap and migration regression suite and confirm the new preservation assertion passes.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runRoadmapAndMigrationSuite } from "./test/suites/roadmap-and-migration.ts"; const context = new TestContext(); await runRoadmapAndMigrationSuite(context); printFinalSummary(context);'
+    complete-project-regression:
+      text: Run the configured complete project regression and coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-verification:
+      text: Run strict change verification after every implementation and test task is complete.
+      status: complete
+      command: strict-spec-cli verify fix-roadmap-generate-awaiting-refinement
+    direct-review:
+      text: Review the implementation, regression assertion, delta spec, unchanged behavior, and tracked diff for archive readiness.
+      status: complete
+testing_gates:
+  validation_task: build-cli
+  unit_test_task: roadmap-regression

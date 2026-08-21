@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-roadmap-generate-awaiting-refinement
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: The reported command silently discards recorded milestone state during an unrelated edit.
+    answer: roadmap-generate milestone silently drops the existing awaiting_refinement block when editing another field.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the defect is solved?
+    context: The fix needs an externally visible preservation criterion.
+    answer: After editing one milestone field, the complete awaiting_refinement block remains recorded unchanged.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why does this need correction now?
+    context: The trigger identifies the contract failure motivating the bugfix.
+    answer: The observed data loss contradicts the command help promise that editing one field never discards unrelated recorded content.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: The scope boundary prevents this preservation fix from changing transition semantics or adding authoring capabilities.
+    answer: Do not change roadmap-defer or roadmap-refine semantics and do not add parameters for manually editing awaiting_refinement.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which interpretation of preservation is intended?
+    context: The report could mean preserving only status or preserving the whole structured mapping.
+    answer: Preserve the entire existing awaiting_refinement mapping exactly when roadmap-generate milestone edits an unrelated field.
+    status: resolved
+    kind: requirement
+    answered_by: human
