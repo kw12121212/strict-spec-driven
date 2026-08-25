@@ -73,8 +73,9 @@ function buildRefineNote(reason: string): string {
 function loadRefinementContext(rootDir: string) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  return { roadmap, changeStates };
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
+  return { roadmap, changeStates, archivedPlannedChangeIds };
 }
 
 function findMilestoneById(roadmap: ReturnType<typeof loadRoadmap>, milestoneId: string): LoadedMilestone | undefined {
@@ -128,7 +129,7 @@ export function deferMilestoneRefinement(
   options: RoadmapDeferOptions = {},
 ): RoadmapDeferResult {
   const reason = (options.reason ?? "").trim() || DEFAULT_DEFER_REASON;
-  const { roadmap, changeStates } = loadRefinementContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadRefinementContext(rootDir);
 
   if (roadmap.diagnostics.length > 0) {
     return {
@@ -156,7 +157,7 @@ export function deferMilestoneRefinement(
 
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
 
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
@@ -202,7 +203,7 @@ export function deferMilestoneRefinement(
     ...milestone,
     artifact: draftArtifact,
   };
-  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
+  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
   const syncResult = syncRoadmap(rootDir, {
     stagedMutations: [{
@@ -261,7 +262,7 @@ export function refineMilestone(
   options: RoadmapRefineOptions = {},
 ): RoadmapRefineResult {
   const reason = (options.reason ?? "").trim() || DEFAULT_REFINE_REASON;
-  const { roadmap, changeStates } = loadRefinementContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadRefinementContext(rootDir);
 
   if (roadmap.diagnostics.length > 0) {
     return {
@@ -289,7 +290,7 @@ export function refineMilestone(
 
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
 
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
@@ -337,7 +338,7 @@ export function refineMilestone(
     ...milestone,
     artifact: draftArtifact,
   };
-  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
+  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
   const syncResult = syncRoadmap(rootDir, {
     stagedMutations: [{

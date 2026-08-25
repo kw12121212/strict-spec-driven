@@ -152,6 +152,11 @@ function appendPlannedChangeDetail(lines: string[], plannedChange: RoadmapPlanne
   lines.push(
     `  - ${plannedChange.id} | state=${plannedChange.state} | declared=${plannedChange.declaredStatus} | derived=${plannedChange.derivedStatus} | path=${plannedChange.path}`,
   );
+  // Named here as well as in roadmap-status so the human-readable view explains
+  // a dependency id that no active planned change accounts for.
+  if (plannedChange.archivedDependsOn.length > 0) {
+    lines.push(`    archived dependencies: ${plannedChange.archivedDependsOn.join(", ")}`);
+  }
   if (plannedChange.mismatches.length === 0) return;
   for (const mismatch of plannedChange.mismatches) {
     lines.push(`    issue: ${mismatch}`);
@@ -163,18 +168,22 @@ type RoadmapStatusContext = {
   warnings: string[];
   diagnostics: RoadmapDiagnostic[];
   milestones: RoadmapMilestoneStatus[];
+  archivedPlannedChangeIds: Set<string>;
 };
 
 function loadRoadmapStatusContext(rootDir: string): RoadmapStatusContext {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  // Loaded once per invocation: the archive directory is read here and the same
+  // set answers both cross-file dependency validation and per-milestone status.
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const statusMap = new Map<string, RoadmapMilestoneStatus>();
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
+    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries));
   }
   const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
   const diagnostics = sortDiagnostics(roadmap.diagnostics);
@@ -184,6 +193,7 @@ function loadRoadmapStatusContext(rootDir: string): RoadmapStatusContext {
     warnings: roadmap.warnings,
     diagnostics,
     milestones,
+    archivedPlannedChangeIds,
   };
 }
 
@@ -288,6 +298,7 @@ function findPlannedChangeStatus(
 function buildCandidateSkipReasons(
   plannedChangeStatus: RoadmapPlannedChangeStatus,
   dependencyStatusIndex: Map<string, RoadmapPlannedChangeStatus>,
+  archivedPlannedChangeIds: Set<string>,
   dependencyIds: string[],
 ): RoadmapRecommendationSkip[] {
   const skipReasons: RoadmapRecommendationSkip[] = [];
@@ -319,11 +330,19 @@ function buildCandidateSkipReasons(
   for (const dependencyId of dependencyIds) {
     const dependencyStatus = dependencyStatusIndex.get(dependencyId);
     if (dependencyStatus?.derivedStatus === "complete") continue;
+    // Archiving relocates completed work instead of deleting it, so a target
+    // that only exists in the archive is complete, not missing. Recommendation
+    // resolves dependencies against the same active-union-archived universe
+    // cross-file validation uses; anything else would stall the pipeline on the
+    // first archived milestone. A target in neither universe still skips the
+    // candidate, though roadmap validation reports it as a dangling reference
+    // and blocks recommendation before this branch is reached.
+    if (dependencyStatus === undefined && archivedPlannedChangeIds.has(dependencyId)) continue;
     skipReasons.push({
       code: "dependency-incomplete",
       message: dependencyStatus
         ? `dependency '${dependencyId}' is not complete (state=${dependencyStatus.state})`
-        : `dependency '${dependencyId}' is missing from roadmap status`,
+        : `dependency '${dependencyId}' is missing from roadmap status and from the roadmap archive`,
     });
   }
 
@@ -331,7 +350,7 @@ function buildCandidateSkipReasons(
 }
 
 export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommendOptions = {}): RoadmapRecommendResult {
-  const { roadmap, warnings, diagnostics, milestones } = loadRoadmapStatusContext(rootDir);
+  const { roadmap, warnings, diagnostics, milestones, archivedPlannedChangeIds } = loadRoadmapStatusContext(rootDir);
   if (diagnostics.length > 0) {
     return {
       valid: false,
@@ -415,6 +434,7 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
       const skipReasons = buildCandidateSkipReasons(
         plannedChangeStatus,
         dependencyStatusIndex,
+        archivedPlannedChangeIds,
         standalonePlannedChange.artifact.depends_on,
       );
       if (milestonePaused) {
@@ -645,7 +665,8 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
   });
   applyStagedRoadmapMutations(rootDir, roadmap, options.stagedMutations ?? []);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const tolerated = new Set((options.toleratedDiagnostics ?? []).map(diagnosticKey));
   // A retired milestone status is tolerated by sync itself, not only by the
   // mutation commands that stage a tolerated set: repairing it is precisely
@@ -690,7 +711,7 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
   for (const milestone of roadmap.milestones) {
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+    const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
     const materializedInlineIds = options.materializePlannedChanges
       ? new Set(Object.keys(milestone.artifact.planned_changes))
       : undefined;

@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-scope-discipline
+operations:
+  ADDED:
+    roadmap-dependency-targets-resolve-against-one-universe:
+      strength: MUST
+      statement: Every roadmap consumer that decides whether a planned-change depends_on target exists MUST resolve it against the shared universe of active planned-change ids unioned with the ids loaded from the roadmap archive, obtained from the loader that already computes that set. A consumer MUST NOT build its own dependency-target universe from active roadmap state alone, and MUST NOT re-derive archived membership by parsing archived artifacts.
+      rationale: roadmap-archive relocates completed work instead of deleting it, so archive membership is part of what it means for a dependency target to exist. Cross-file validation already unioned the archive in, while roadmap-recommend resolved against active state only; the two rules disagreed silently and stalled recommendation for every planned change downstream of an archived milestone. Nothing failed loudly, because each consumer was internally consistent. One shared universe is what makes archiving a milestone a safe operation for the work that depends on it.
+      enforcement:
+        method: review
+        detail: Reviewers reject a roadmap consumer that resolves dependency targets from active planned-change state alone, or that opens archived artifacts to re-derive completion. New consumers take the archived id set as an explicit parameter from a caller that loaded it once per command invocation.
+      examples:
+        good:
+          - recommendRoadmapChange resolves depends_on against the active planned-change status index plus the archived id set that loadRoadmapStatusContext already loaded for cross-file validation.
+        bad:
+          - A new roadmap command builds a dependency index from the active milestones it just walked, so a target that was archived reads as missing and blocks the dependent work.
+      exceptions:
+        - Code that reports on archived history itself, rather than deciding whether an active dependency target is satisfied.
+  MODIFIED: {}
+  REMOVED: {}

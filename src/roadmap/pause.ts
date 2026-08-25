@@ -75,8 +75,9 @@ function buildResumeNote(reason: string): string {
 function loadPauseContext(rootDir: string) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  return { roadmap, changeStates };
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
+  return { roadmap, changeStates, archivedPlannedChangeIds };
 }
 
 function findMilestoneById(roadmap: ReturnType<typeof loadRoadmap>, milestoneId: string): LoadedMilestone | undefined {
@@ -131,7 +132,7 @@ export function pauseMilestone(
   options: RoadmapPauseOptions = {},
 ): RoadmapPauseResult {
   const reason = (options.reason ?? "").trim() || DEFAULT_PAUSE_REASON;
-  const { roadmap, changeStates } = loadPauseContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadPauseContext(rootDir);
 
   if (roadmap.diagnostics.length > 0) {
     return {
@@ -159,7 +160,7 @@ export function pauseMilestone(
 
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
 
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
@@ -194,6 +195,7 @@ export function pauseMilestone(
   const nextStatus = buildMilestoneStatus(
     draftMilestone,
     changeStates,
+    archivedPlannedChangeIds,
     plannedChangeEntries,
   );
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
@@ -251,7 +253,7 @@ export function resumeMilestone(
   options: RoadmapResumeOptions = {},
 ): RoadmapResumeResult {
   const reason = (options.reason ?? "").trim() || DEFAULT_RESUME_REASON;
-  const { roadmap, changeStates } = loadPauseContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadPauseContext(rootDir);
 
   if (roadmap.diagnostics.length > 0) {
     return {
@@ -279,7 +281,7 @@ export function resumeMilestone(
 
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
 
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
@@ -330,7 +332,7 @@ export function resumeMilestone(
     ...milestone,
     artifact: draftArtifact,
   };
-  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
+  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
   const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
     absolutePath: milestone.absolutePath,

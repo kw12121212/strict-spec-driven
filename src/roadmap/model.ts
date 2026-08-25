@@ -294,6 +294,13 @@ export type RoadmapPlannedChangeStatus = {
   path: string;
   summary: string;
   dependsOn: string[];
+  /**
+   * The subset of `dependsOn` whose target ids are present in the roadmap
+   * archive. Archiving relocates completed work instead of deleting it, so such
+   * a target is a satisfied dependency even though no active planned change
+   * carries its id; reporting it keeps that dependency id traceable.
+   */
+  archivedDependsOn: string[];
   declaredStatus: DeclaredPlannedChangeStatus;
   derivedStatus: DeclaredPlannedChangeStatus;
   state: PlannedChangeState;
@@ -366,7 +373,7 @@ export type RoadmapStatusResult = {
   milestones: RoadmapMilestoneStatus[];
 };
 
-export type RoadmapSyncPlannedChangeStatus = Omit<RoadmapPlannedChangeStatus, "summary" | "dependsOn">;
+export type RoadmapSyncPlannedChangeStatus = Omit<RoadmapPlannedChangeStatus, "summary" | "dependsOn" | "archivedDependsOn">;
 
 export type RoadmapSyncMilestoneStatus = Omit<RoadmapMilestoneStatus, "plannedChanges"> & {
   plannedChanges: RoadmapSyncPlannedChangeStatus[];

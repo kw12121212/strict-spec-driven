@@ -8,24 +8,32 @@ spec:
 requirements:
   roadmap-status-contract:
     strength: MUST
-    statement: The system MUST make roadmap-status validate roadmap artifacts, report compact declared and derived milestone and planned-change state, expose standalone planned-change source paths together with each planned change's summary and dependency ids, omit bulky or redundant milestone fields plus planned-change details and team metadata from default status output, and surface mismatches or diagnostics deterministically.
+    statement: The system MUST make roadmap-status validate roadmap artifacts, report compact declared and derived milestone and planned-change state, expose standalone planned-change source paths together with each planned change's summary and dependency ids, report for each planned change which of its dependency ids resolve to planned changes already moved into the roadmap archive, omit bulky or redundant milestone fields plus planned-change details and team metadata from default status output, and surface mismatches or diagnostics deterministically.
     scenarios:
       status-reports-compact-valid-roadmap-state:
         - GIVEN: A structurally valid roadmap exists with milestone goals and planned changes containing summaries, details, dependencies, and optional team metadata.
         - WHEN: strict-spec-driven roadmap-status runs.
         - THEN: The command exits zero and reports valid=true, milestone order, declared status, derived status, planned changes, source paths, state, each planned change's exact summary, and its dependency ids as dependsOn, without emitting milestone goal, milestone file, planned-change details, or team metadata.
+      status-marks-dependency-ids-that-resolve-to-archived-work:
+        - GIVEN: an active standalone planned change declares two depends_on targets, one owned by an active milestone and one already moved into roadmap/archive by roadmap-archive
+        - WHEN: strict-spec-driven roadmap-status runs
+        - THEN: the command exits zero and reports the archived target as an archived dependency of that planned change while the active target is not reported as archived, and a planned change with no archived dependency target reports an empty archived dependency list
       status-reports-invalid-artifacts:
         - GIVEN: Roadmap artifacts are malformed or contain cross-file conflicts.
         - WHEN: strict-spec-driven roadmap-status runs.
         - THEN: The command exits non-zero with deterministic diagnostics including artifact path and field path context.
   roadmap-overview-contract:
     strength: MUST
-    statement: The system MUST make roadmap-overview render a deterministic compact human-readable milestone and planned-change summary for valid roadmap state without emitting bulky milestone goal or planned-change summary text, and emit actionable diagnostics for invalid roadmap artifacts.
+    statement: The system MUST make roadmap-overview render a deterministic compact human-readable milestone and planned-change summary for valid roadmap state without emitting bulky milestone goal or planned-change summary text, render the archived dependency targets of a planned change whenever it has any so the human-readable view and roadmap-status agree, and emit actionable diagnostics for invalid roadmap artifacts.
     scenarios:
       overview-renders-compact-valid-roadmap:
         - GIVEN: a valid roadmap has milestones and planned changes with goals and summaries
         - WHEN: strict-spec-driven roadmap-overview runs
         - THEN: the command exits zero and prints milestone table content plus compact planned-change detail in deterministic order without milestone goal or planned-change summary text
+      overview-renders-archived-dependency-targets:
+        - GIVEN: an active standalone planned change depends on a planned change already moved into roadmap/archive by roadmap-archive
+        - WHEN: strict-spec-driven roadmap-overview runs
+        - THEN: the planned-change detail names that dependency target as resolving to archived history, and a planned change with no archived dependency target prints no such detail
       overview-rejects-invalid-roadmap:
         - GIVEN: roadmap artifacts are invalid
         - WHEN: strict-spec-driven roadmap-overview runs
@@ -224,12 +232,20 @@ requirements:
         - THEN: the regenerated index lists milestones in order-field order rather than id-prefix order
   roadmap-archived-dependency-resolution-contract:
     strength: MUST
-    statement: The system MUST treat a planned-change depends_on entry whose target planned-change id has been moved into the roadmap archive by a prior roadmap-archive as a satisfied dependency target rather than a missing dependency, so roadmap-status, roadmap-sync, roadmap-archive, roadmap-reorder, and roadmap-reopen remain valid for active milestones whose planned changes depend on completed-and-archived planned changes, while archived planned-change artifacts continue to be excluded from active roadmap index regeneration, active status output, active duplicate-id detection, and active dependency-cycle detection.
+    statement: 'The system MUST treat a planned-change depends_on entry whose target planned-change id has been moved into the roadmap archive by a prior roadmap-archive as a satisfied dependency target rather than a missing dependency, so roadmap-status, roadmap-sync, roadmap-archive, roadmap-reorder, roadmap-reopen, and roadmap-recommend remain valid and usable for active milestones whose planned changes depend on completed-and-archived planned changes. roadmap-recommend MUST apply the same resolution rule to candidate eligibility: a depends_on target found in the roadmap archive MUST NOT produce a dependency-incomplete skip reason and MUST NOT prevent the candidate from being recommended, while a depends_on target present in neither active roadmap state nor the roadmap archive MUST still produce one. Archived planned-change artifacts continue to be excluded from active roadmap index regeneration, active status output, active duplicate-id detection, and active dependency-cycle detection.'
     scenarios:
       archived-dependency-target-resolves-after-milestone-archive:
         - GIVEN: a valid roadmap has two milestones where an active milestone's standalone planned change depends_on a planned change owned by another milestone, and the owning milestone and its standalone planned changes are complete and have been moved into roadmap/archive by roadmap-archive
         - WHEN: strict-spec-driven roadmap-status and roadmap-sync run afterward against the active roadmap
         - THEN: both commands exit zero, report valid roadmap state, and do not emit a 'planned change dependency is missing from roadmap planned-change sources' diagnostic for the archived dependency target
+      recommend-selects-candidate-that-depends-on-archived-work:
+        - GIVEN: a valid roadmap has an otherwise-eligible standalone planned change whose only depends_on target is a planned change already moved into roadmap/archive by roadmap-archive
+        - WHEN: strict-spec-driven roadmap-recommend runs
+        - THEN: the command exits zero, recommends that planned change, and reports no dependency-incomplete skip reason for the archived dependency target
+      recommend-still-skips-a-dependency-target-that-exists-nowhere:
+        - GIVEN: a standalone planned change declares a depends_on target present in neither active roadmap state nor the roadmap archive
+        - WHEN: strict-spec-driven roadmap-recommend runs
+        - THEN: that planned change is not recommended and the unresolved dependency target is reported rather than silently treated as satisfied
   roadmap-pause-resume-contract:
     strength: MUST
     statement: The system MUST provide roadmap-pause and roadmap-resume commands that mark and clear a sticky paused state on a non-archived strict roadmap milestone. Pausing records an optional reason and a deterministic pause date in a structured top-level paused field on the milestone artifact, forces the milestone effective status to blocked so roadmap-sync canonical rewrite preserves it, appends a dated pause note, and makes roadmap-recommend skip every planned change the milestone owns with a milestone-paused skip reason. Resuming clears the paused field, optionally appends a dated resume note, and lets roadmap-sync re-derive the milestone status from planned-change state. Both commands reject unknown milestone ids with deterministic diagnostics, never modify archived milestones or any planned-change file, and leave the roadmap valid afterward.

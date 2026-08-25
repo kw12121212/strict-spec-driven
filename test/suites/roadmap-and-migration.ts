@@ -1859,6 +1859,206 @@ try {
   rmSync(roadmapArchiveDependencyDir, { recursive: true, force: true });
 }
 
+const roadmapRecommendArchivedDependencyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-recommend-archived-dependency-"));
+try {
+  // Recommendation resolves dependency targets against the same
+  // active-union-archived universe validation uses. Once the milestone owning a
+  // dependency target is archived, the target lives in roadmap/archive, and the
+  // planned change that depends on it is still the next work to do.
+  mkdirSync(
+    path.join(
+      roadmapRecommendArchivedDependencyDir,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      `${formatLocalDateStamp()}-base-work`,
+    ),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapRecommendArchivedDependencyDir, "0001-base.yaml", {
+    id: "0001-base",
+    title: "Base Milestone",
+    goal: "Ship foundational work that later milestones depend on.",
+    status: "complete",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapRecommendArchivedDependencyDir, "0002-followup.yaml", {
+    id: "0002-followup",
+    title: "Followup Milestone",
+    goal: "Depend on completed-and-archived base work.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapRecommendArchivedDependencyDir, "planned-changes/0001-base-base-work.yaml", {
+    id: "base-work",
+    milestone: "0001-base",
+    status: "complete",
+    summary: "Foundational work that gets archived.",
+    details: "Standalone details for base-work.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapRecommendArchivedDependencyDir, "planned-changes/0002-followup-followup-work.yaml", {
+    id: "followup-work",
+    milestone: "0002-followup",
+    status: "planned",
+    summary: "Followup work depends on archived base work.",
+    details: "Standalone details for followup-work.",
+    depends_on: ["base-work"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapRecommendArchivedDependencyDir, "planned-changes/0002-followup-later-work.yaml", {
+    id: "later-work",
+    milestone: "0002-followup",
+    status: "planned",
+    summary: "Later work depends on active incomplete work.",
+    details: "Standalone details for later-work.",
+    depends_on: ["followup-work"],
+  });
+  writeRoadmapIndexArtifact(roadmapRecommendArchivedDependencyDir, [
+    {
+      id: "0001-base",
+      title: "Base Milestone",
+      path: "roadmap/milestones/0001-base.yaml",
+      status: "complete",
+    },
+    {
+      id: "0002-followup",
+      title: "Followup Milestone",
+      path: "roadmap/milestones/0002-followup.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const recommendArchiveBase = cli(["roadmap-archive", "0001-base"], { cwd: roadmapRecommendArchivedDependencyDir });
+  context.assert(
+    recommendArchiveBase.status === 0,
+    "roadmap-archive archives the milestone owning a dependency target of active work",
+    recommendArchiveBase.stderr,
+  );
+
+  const recommendAfterArchive = cli(["roadmap-recommend", "--details"], { cwd: roadmapRecommendArchivedDependencyDir });
+  context.assert(
+    recommendAfterArchive.status === 0,
+    "roadmap-recommend exits zero when the only dependency target has been moved into the roadmap archive",
+    recommendAfterArchive.stdout || recommendAfterArchive.stderr,
+  );
+  const recommendAfterArchiveJson = JSON.parse(recommendAfterArchive.stdout.trim());
+  context.assert(
+    recommendAfterArchiveJson.status === "recommended"
+      && recommendAfterArchiveJson.recommendation?.id === "followup-work",
+    "roadmap-recommend selects the planned change whose dependency target was archived",
+    recommendAfterArchive.stdout,
+  );
+  const archivedDependencyCandidate = recommendAfterArchiveJson.candidates.find(
+    (candidate: { id: string }) => candidate.id === "followup-work",
+  );
+  context.assert(
+    archivedDependencyCandidate?.eligible === true
+      && archivedDependencyCandidate.skipReasons.length === 0,
+    "roadmap-recommend reports no skip reason for a dependency target that resolves to the roadmap archive",
+    recommendAfterArchive.stdout,
+  );
+  const activeDependencyCandidate = recommendAfterArchiveJson.candidates.find(
+    (candidate: { id: string }) => candidate.id === "later-work",
+  );
+  context.assert(
+    activeDependencyCandidate?.eligible === false
+      && activeDependencyCandidate.skipReasons.some(
+        (reason: { code: string }) => reason.code === "dependency-incomplete",
+      ),
+    "roadmap-recommend still skips a candidate whose active dependency target is incomplete",
+    recommendAfterArchive.stdout,
+  );
+
+  const recommendStatusAfterArchive = cli(["roadmap-status"], { cwd: roadmapRecommendArchivedDependencyDir });
+  context.assert(
+    recommendStatusAfterArchive.status === 0,
+    "roadmap-status exits zero after the dependency target milestone is archived",
+    recommendStatusAfterArchive.stderr,
+  );
+  const recommendStatusAfterArchiveJson = JSON.parse(recommendStatusAfterArchive.stdout.trim());
+  const followupPlannedChanges = recommendStatusAfterArchiveJson.milestones[0].plannedChanges;
+  const followupStatusEntry = followupPlannedChanges.find(
+    (plannedChange: { id: string }) => plannedChange.id === "followup-work",
+  );
+  const laterStatusEntry = followupPlannedChanges.find(
+    (plannedChange: { id: string }) => plannedChange.id === "later-work",
+  );
+  context.assert(
+    Array.isArray(followupStatusEntry?.archivedDependsOn)
+      && followupStatusEntry.archivedDependsOn.length === 1
+      && followupStatusEntry.archivedDependsOn[0] === "base-work"
+      && followupStatusEntry.dependsOn.length === 1
+      && Array.isArray(laterStatusEntry?.archivedDependsOn)
+      && laterStatusEntry.archivedDependsOn.length === 0,
+    "roadmap-status marks only the dependency ids that resolve to archived planned changes",
+    recommendStatusAfterArchive.stdout,
+  );
+
+  const recommendOverviewAfterArchive = cli(["roadmap-overview"], { cwd: roadmapRecommendArchivedDependencyDir });
+  context.assert(
+    recommendOverviewAfterArchive.status === 0,
+    "roadmap-overview exits zero after the dependency target milestone is archived",
+    recommendOverviewAfterArchive.stderr,
+  );
+  context.assert(
+    recommendOverviewAfterArchive.stdout.split("archived dependencies: base-work").length === 2,
+    "roadmap-overview renders the archived dependency target exactly once, on the planned change that declares it",
+    recommendOverviewAfterArchive.stdout,
+  );
+} finally {
+  rmSync(roadmapRecommendArchivedDependencyDir, { recursive: true, force: true });
+}
+
+const roadmapRecommendUnknownDependencyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-recommend-unknown-dependency-"));
+try {
+  // Treating an archived dependency target as satisfied must not extend to a
+  // target that exists in neither active roadmap state nor the roadmap archive.
+  writeRoadmapMilestoneArtifact(roadmapRecommendUnknownDependencyDir, "0001-unknown.yaml", {
+    id: "0001-unknown",
+    title: "Unknown Dependency Milestone",
+    goal: "Prove an unresolvable dependency target is still reported.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapRecommendUnknownDependencyDir, "planned-changes/0001-unknown-dangling-work.yaml", {
+    id: "dangling-work",
+    milestone: "0001-unknown",
+    status: "planned",
+    summary: "Work whose dependency target exists nowhere.",
+    details: "Standalone details for dangling-work.",
+    depends_on: ["ghost-work"],
+  });
+  writeRoadmapIndexArtifact(roadmapRecommendUnknownDependencyDir, [
+    {
+      id: "0001-unknown",
+      title: "Unknown Dependency Milestone",
+      path: "roadmap/milestones/0001-unknown.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const unknownDependencyRecommend = cli(["roadmap-recommend", "--details"], { cwd: roadmapRecommendUnknownDependencyDir });
+  context.assert(
+    unknownDependencyRecommend.status !== 0,
+    "roadmap-recommend exits non-zero when a dependency target exists in neither active roadmap state nor the archive",
+    unknownDependencyRecommend.stdout,
+  );
+  const unknownDependencyRecommendJson = JSON.parse(unknownDependencyRecommend.stdout.trim());
+  context.assert(
+    unknownDependencyRecommendJson.status === "roadmap-error"
+      && unknownDependencyRecommendJson.recommendation === null
+      && unknownDependencyRecommendJson.diagnostics.some(
+        (diagnostic: { message: string; actual?: string }) =>
+          diagnostic.actual === "ghost-work" || diagnostic.message.includes("ghost-work"),
+      ),
+    "roadmap-recommend reports the unresolvable dependency target instead of treating it as satisfied",
+    unknownDependencyRecommend.stdout,
+  );
+} finally {
+  rmSync(roadmapRecommendUnknownDependencyDir, { recursive: true, force: true });
+}
+
 const roadmapReopenDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-reopen-"));
 try {
   // A milestone whose single planned change is archived → milestone derives complete.

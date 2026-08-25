@@ -109,11 +109,12 @@ function midpointOrder(
 
 function buildTargetOrderMutation(rootDir: string, milestone: LoadedMilestone, order: number): RoadmapMutation {
   const changeStates = getChangeStateIndex(rootDir);
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
   const roadmap = loadRoadmap(rootDir);
   const freshMilestone = roadmap.milestones.find((candidate) => candidate.artifact.milestone.id === milestone.artifact.milestone.id) ?? milestone;
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, freshMilestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(freshMilestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(freshMilestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(freshMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const draftMilestone = { ...freshMilestone, artifact: { ...freshMilestone.artifact, order } };
   return {
     absolutePath: freshMilestone.absolutePath,

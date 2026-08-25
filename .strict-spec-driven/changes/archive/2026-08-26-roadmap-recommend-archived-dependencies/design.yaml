@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: roadmap-recommend-archived-dependencies
+approach:
+  - 'Give roadmap-recommend the same dependency-target universe validation already uses: the union of active planned-change ids and the ids loaded from roadmap/archive/planned-changes. A depends_on entry that resolves to an archived id counts as satisfied and produces no skip reason; the dependency-incomplete skip survives only for a target present in neither universe, which roadmap validation already rejects as a reference diagnostic before recommendation runs. Separately, buildMilestoneStatus receives the archived id set and records the subset of each planned change''s depends_on that resolves to archived history as archivedDependsOn, which roadmap-status returns and roadmap-overview renders on the planned-change detail line when non-empty.'
+decisions:
+  archived-target-is-satisfied:
+    decision: Treat any depends_on target found in the roadmap archive as a complete dependency, without reading the archived artifact's status field.
+    rationale: roadmap-archive only relocates milestones whose derived status is complete, so archive membership already implies completion. The archive is frozen history that the loader deliberately does not parse for active decisions, and reintroducing parsing of archived documents to re-derive a fact archiving already guarantees would add a failure mode with no new information.
+  match-validation-resolution-rule:
+    decision: Resolve recommendation dependencies against the same active-union-archived id set that appendRoadmapCrossFileDiagnostics uses, rather than adding a second archive lookup rule near the recommendation code.
+    rationale: The defect is two divergent resolution rules for one roadmap. Fixing the symptom with an independent third rule would leave the divergence in place for the next command that resolves dependencies.
+  status-and-overview-move-together:
+    decision: Render the archived-dependency marking in roadmap-overview text as well as roadmap-status JSON.
+    rationale: Marking archived dependencies only in JSON would leave the human-readable view showing an unexplained dependency, which is the same class of inconsistency between two views of one fact that this change exists to remove.
+  required-archived-id-parameter:
+    decision: Add the archived planned-change id set as a required parameter of buildMilestoneStatus and update every call site, instead of an optional parameter defaulting to an empty set.
+    rationale: 'An optional empty default would make roadmap-pause, roadmap-refine, roadmap-order, roadmap-move-planned-change, and every other status-embedding command silently report archivedDependsOn: [] for planned changes that do have archived dependencies. A required parameter turns each omission into a compile error instead of a false report.'
+alternatives:
+  - option: 'Make roadmap-recommend read each archived planned-change file and require status: complete before treating the dependency as satisfied.'
+    reason: 'Rejected: archive membership already implies completion, and parsing frozen history would make an unreadable archived file able to block active recommendation.'
+  - option: Suppress the dependency-incomplete skip reason entirely when the target is not found in active status.
+    reason: 'Rejected: it would also mask a dependency id that exists nowhere, replacing a wrong skip with a wrong recommendation.'
+risks:
+  - buildMilestoneStatus has fourteen call sites; loading the archived id set inside a per-milestone loop would re-read the archive directory once per milestone. The set must be loaded once per command invocation and passed down.
+  - Adding archivedDependsOn to RoadmapPlannedChangeStatus reaches every consumer of that type, including RoadmapSyncPlannedChangeStatus, which omits summary and dependsOn and must omit the new field for the same reason.

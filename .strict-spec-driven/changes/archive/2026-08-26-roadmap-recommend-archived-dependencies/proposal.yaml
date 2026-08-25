@@ -1,0 +1,20 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-recommend-archived-dependencies
+  status: proposed
+summary:
+  what:
+    - Make roadmap-recommend resolve a depends_on target that has been moved into the roadmap archive as a satisfied dependency instead of a missing one, and report which dependency ids resolve to archived history in roadmap-status and roadmap-overview.
+  why:
+    - roadmap-archive relocates a completed milestone and its standalone planned changes into roadmap/archive without deleting them, and validation already unions archived ids into the known dependency targets. roadmap-recommend builds its dependency index from active milestones only, so every downstream planned change that depends on archived work is skipped with 'dependency is missing from roadmap status' and the recommendation pipeline stalls immediately after a milestone is archived. Two dependency-resolution rules for the same roadmap is the defect.
+scope:
+  in:
+    - recommendRoadmapChange dependency resolution in src/roadmap.ts; an archivedDependsOn marking on planned-change status in src/roadmap/status.ts; propagation of the archived planned-change id set to every buildMilestoneStatus call site; roadmap-overview planned-change detail rendering; regression tests covering recommendation after milestone archive and the new status marking; delta spec updates for the archived-dependency, status, and overview contracts.
+    - A delta tech rule under workflow-scope-discipline requiring every roadmap dependency-target existence check to resolve against the shared active-union-archived id set.
+  out:
+    - Machine-readable semantics for the prose milestone-level dependencies field, which stays advisory and out of recommendation eligibility; roadmap-archive eligibility and file relocation behavior; the workflow-state-archived, milestone-paused, and milestone-awaiting-refinement skip semantics; marking archived dependencies inside roadmap-recommend --details candidate output.
+unchanged_behavior:
+  - Recommendation ordering and first-eligible selection; --milestone scoping; the --allow-unrefined gate and its refusal diagnostic; roadmap-status top-level output keys and the command-metadata registry entries; roadmap validation diagnostics for dependency ids that exist in neither active nor archived roadmap state.

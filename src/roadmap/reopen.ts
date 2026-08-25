@@ -64,8 +64,9 @@ function buildReopenNote(reason: string): string {
 function loadReopenContext(rootDir: string) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  return { roadmap, changeStates };
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
+  return { roadmap, changeStates, archivedPlannedChangeIds };
 }
 
 function findMilestoneById(roadmap: ReturnType<typeof loadRoadmap>, milestoneId: string): LoadedMilestone | undefined {
@@ -139,7 +140,7 @@ export function reopenMilestone(
   options: RoadmapReopenOptions = {},
 ): RoadmapReopenResult {
   const reason = (options.reason ?? "").trim() || DEFAULT_REOPEN_REASON;
-  const { roadmap, changeStates } = loadReopenContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadReopenContext(rootDir);
 
   if (roadmap.diagnostics.length > 0) {
     return {
@@ -171,7 +172,7 @@ export function reopenMilestone(
 
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
 
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;

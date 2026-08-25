@@ -22725,7 +22725,7 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
   }
   return Array.from(merged.values());
 }
-function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, []), displayOrdinal = 0) {
+function buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, []), displayOrdinal = 0) {
   const plannedChanges = plannedChangeEntries.map(({ id, entry, source, path: plannedChangePath }) => {
     const state = derivePlannedChangeState(changeStates, id);
     const derivedStatus2 = derivePlannedChangeDeclaredStatus(state);
@@ -22742,6 +22742,7 @@ function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = ge
       path: plannedChangePath,
       summary: entry.summary,
       dependsOn: [...entry.depends_on],
+      archivedDependsOn: entry.depends_on.filter((dependencyId) => archivedPlannedChangeIds.has(dependencyId)),
       declaredStatus: entry.status,
       derivedStatus: derivedStatus2,
       state,
@@ -23054,6 +23055,9 @@ function milestoneIssueCount(milestone) {
 }
 function appendPlannedChangeDetail(lines, plannedChange) {
   lines.push(`  - ${plannedChange.id} | state=${plannedChange.state} | declared=${plannedChange.declaredStatus} | derived=${plannedChange.derivedStatus} | path=${plannedChange.path}`);
+  if (plannedChange.archivedDependsOn.length > 0) {
+    lines.push(`    archived dependencies: ${plannedChange.archivedDependsOn.join(", ")}`);
+  }
   if (plannedChange.mismatches.length === 0)
     return;
   for (const mismatch of plannedChange.mismatches) {
@@ -23063,13 +23067,14 @@ function appendPlannedChangeDetail(lines, plannedChange) {
 function loadRoadmapStatusContext(rootDir) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const statusMap = new Map;
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
+    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries));
   }
   const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
   const diagnostics = sortDiagnostics(roadmap.diagnostics);
@@ -23077,7 +23082,8 @@ function loadRoadmapStatusContext(rootDir) {
     roadmap,
     warnings: roadmap.warnings,
     diagnostics,
-    milestones
+    milestones,
+    archivedPlannedChangeIds
   };
 }
 function formatRoadmapOverview(result2) {
@@ -23161,7 +23167,7 @@ function createPlannedChangeStatusIndex(milestones) {
 function findPlannedChangeStatus(milestoneStatus, plannedChangeId, plannedChangePath) {
   return milestoneStatus.plannedChanges.find((plannedChange) => plannedChange.id === plannedChangeId && plannedChange.path === plannedChangePath);
 }
-function buildCandidateSkipReasons(plannedChangeStatus, dependencyStatusIndex, dependencyIds) {
+function buildCandidateSkipReasons(plannedChangeStatus, dependencyStatusIndex, archivedPlannedChangeIds, dependencyIds) {
   const skipReasons = [];
   if (plannedChangeStatus.state === "active") {
     skipReasons.push({
@@ -23189,15 +23195,17 @@ function buildCandidateSkipReasons(plannedChangeStatus, dependencyStatusIndex, d
     const dependencyStatus = dependencyStatusIndex.get(dependencyId);
     if (dependencyStatus?.derivedStatus === "complete")
       continue;
+    if (dependencyStatus === undefined && archivedPlannedChangeIds.has(dependencyId))
+      continue;
     skipReasons.push({
       code: "dependency-incomplete",
-      message: dependencyStatus ? `dependency '${dependencyId}' is not complete (state=${dependencyStatus.state})` : `dependency '${dependencyId}' is missing from roadmap status`
+      message: dependencyStatus ? `dependency '${dependencyId}' is not complete (state=${dependencyStatus.state})` : `dependency '${dependencyId}' is missing from roadmap status and from the roadmap archive`
     });
   }
   return skipReasons;
 }
 function recommendRoadmapChange(rootDir, options = {}) {
-  const { roadmap, warnings, diagnostics, milestones } = loadRoadmapStatusContext(rootDir);
+  const { roadmap, warnings, diagnostics, milestones, archivedPlannedChangeIds } = loadRoadmapStatusContext(rootDir);
   if (diagnostics.length > 0) {
     return {
       valid: false,
@@ -23246,7 +23254,7 @@ function recommendRoadmapChange(rootDir, options = {}) {
       const plannedChangeStatus = findPlannedChangeStatus(milestoneStatus, standalonePlannedChange.artifact.planned_change.id, plannedChangePath);
       if (!plannedChangeStatus)
         continue;
-      const skipReasons = buildCandidateSkipReasons(plannedChangeStatus, dependencyStatusIndex, standalonePlannedChange.artifact.depends_on);
+      const skipReasons = buildCandidateSkipReasons(plannedChangeStatus, dependencyStatusIndex, archivedPlannedChangeIds, standalonePlannedChange.artifact.depends_on);
       if (milestonePaused) {
         skipReasons.push({
           code: "milestone-paused",
@@ -23449,7 +23457,8 @@ function syncRoadmap(rootDir, options = {}) {
   });
   applyStagedRoadmapMutations(rootDir, roadmap, options.stagedMutations ?? []);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const tolerated = new Set((options.toleratedDiagnostics ?? []).map(diagnosticKey));
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic2.artifactPath === ROADMAP_DIR) && !isRetiredMilestoneStatusDiagnostic(diagnostic2) && !tolerated.has(diagnosticKey(diagnostic2)));
   if (blockingDiagnostics.length > 0) {
@@ -23480,7 +23489,7 @@ function syncRoadmap(rootDir, options = {}) {
   for (const milestone of roadmap.milestones) {
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    const status2 = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+    const status2 = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
     const materializedInlineIds = options.materializePlannedChanges ? new Set(Object.keys(milestone.artifact.planned_changes)) : undefined;
     if (options.materializePlannedChanges) {
       for (const [id, entry] of Object.entries(milestone.artifact.planned_changes)) {
@@ -25884,13 +25893,14 @@ function appendCollisionDiagnostics(targets, diagnostics, rootDir) {
 function archiveRoadmapMilestones(rootDir, milestoneId) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const statusMap = new Map;
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
+    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries));
   }
   const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
   let diagnostics = sortDiagnostics(roadmap.diagnostics);
@@ -26169,11 +26179,12 @@ function findExistingMilestone(milestones, id) {
 function findStandalonePlannedChangeRewriteDiagnostics(rootDir, milestones, commandLabel, excludePlannedChangeIds = new Set) {
   const diagnostics = [];
   const changeStates = getChangeStateIndex(rootDir);
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
   const roadmap = loadRoadmap(rootDir);
   for (const milestone of milestones) {
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+    const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
     for (const plannedChange of standalonePlannedChanges) {
       if (excludePlannedChangeIds.has(plannedChange.artifact.planned_change.id))
         continue;
@@ -26476,13 +26487,14 @@ function findDependents(plannedChanges, plannedChangeId) {
 function deletePlannedChange(rootDir, input) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH));
   if (blockingDiagnostics.length > 0)
     return invalidDeleteResult(roadmap.warnings, blockingDiagnostics);
   const plannedChange = roadmap.plannedChanges.find((candidate) => candidate.artifact.planned_change.id === input.plannedChangeId);
   if (!plannedChange) {
-    const archived = loadArchivedPlannedChangeIds(rootDir).has(input.plannedChangeId);
+    const archived = archivedPlannedChangeIds.has(input.plannedChangeId);
     return invalidDeleteResult(roadmap.warnings, [
       makeDiagnostic("reference", `${ROADMAP_DIR}/planned-changes`, "$.planned_change.id", archived ? "roadmap-delete-planned-change planned change is archived and cannot be deleted" : "roadmap-delete-planned-change planned change was not found in the active roadmap", "active standalone planned change id", input.plannedChangeId)
     ]);
@@ -26518,7 +26530,7 @@ function deletePlannedChange(rootDir, input) {
         depends_on: dependent.artifact.depends_on.filter((id) => id !== input.plannedChangeId)
       }
     };
-    const dependentStatus = buildMilestoneStatus(dependentMilestone, changeStates, getMergedPlannedChangesForMilestone(dependentMilestone, getStandalonePlannedChangesForMilestone(roadmap, dependentMilestone)));
+    const dependentStatus = buildMilestoneStatus(dependentMilestone, changeStates, archivedPlannedChangeIds, getMergedPlannedChangesForMilestone(dependentMilestone, getStandalonePlannedChangesForMilestone(roadmap, dependentMilestone)));
     mutations.push({
       absolutePath: dependent.absolutePath,
       artifactId: dependent.artifact.planned_change.id,
@@ -26624,7 +26636,8 @@ function buildMoveWarnings(roadmap, plannedChange, targetMilestoneId, hasActiveC
 function movePlannedChangeToMilestone(rootDir, input) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH));
   if (blockingDiagnostics.length > 0)
     return invalidMoveResult(roadmap.warnings, blockingDiagnostics);
@@ -26637,7 +26650,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
   }
   const plannedChange = roadmap.plannedChanges.find((candidate) => candidate.artifact.planned_change.id === input.plannedChangeId);
   if (!plannedChange) {
-    const archived = loadArchivedPlannedChangeIds(rootDir).has(input.plannedChangeId);
+    const archived = archivedPlannedChangeIds.has(input.plannedChangeId);
     return invalidMoveResult(roadmap.warnings, [
       makeDiagnostic("reference", `${ROADMAP_DIR}/planned-changes`, "$.planned_change.id", archived ? "roadmap-move-planned-change planned change is archived and cannot be moved" : "roadmap-move-planned-change planned change was not found in the active roadmap", "active standalone planned change id", input.plannedChangeId)
     ]);
@@ -26688,7 +26701,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
     ...getStandalonePlannedChangesForMilestone(roadmap, targetMilestone),
     draftPlannedChange
   ];
-  const targetStatus = buildMilestoneStatus(targetMilestone, changeStates, getMergedPlannedChangesForMilestone(targetMilestone, targetStandalone));
+  const targetStatus = buildMilestoneStatus(targetMilestone, changeStates, archivedPlannedChangeIds, getMergedPlannedChangesForMilestone(targetMilestone, targetStandalone));
   const nextArtifact = buildCanonicalPlannedChangeArtifact(draftPlannedChange, targetStatus);
   const moveRequests = [{
     absolutePath: destinationAbsolutePath,
@@ -26752,8 +26765,9 @@ function buildResumeNote(reason) {
 function loadPauseContext(rootDir) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  return { roadmap, changeStates };
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
+  return { roadmap, changeStates, archivedPlannedChangeIds };
 }
 function findMilestoneById(roadmap, milestoneId) {
   return roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === milestoneId);
@@ -26790,7 +26804,7 @@ function emptyResumeResult(milestoneId) {
 }
 function pauseMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_PAUSE_REASON;
-  const { roadmap, changeStates } = loadPauseContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadPauseContext(rootDir);
   if (roadmap.diagnostics.length > 0) {
     return {
       ...emptyPauseResult(milestoneId),
@@ -26808,7 +26822,7 @@ function pauseMilestone(rootDir, milestoneId, options = {}) {
   }
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
   const milestonePathResolved = toPosix3(path26.join("roadmap", "milestones", milestone.relativeMilestonePath));
@@ -26833,7 +26847,7 @@ function pauseMilestone(rootDir, milestoneId, options = {}) {
     ...milestone,
     artifact: draftArtifact
   };
-  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
+  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
   const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
     absolutePath: milestone.absolutePath,
@@ -26874,7 +26888,7 @@ function pauseMilestone(rootDir, milestoneId, options = {}) {
 }
 function resumeMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_RESUME_REASON;
-  const { roadmap, changeStates } = loadPauseContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadPauseContext(rootDir);
   if (roadmap.diagnostics.length > 0) {
     return {
       ...emptyResumeResult(milestoneId),
@@ -26892,7 +26906,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
   }
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
   const milestonePathResolved = toPosix3(path26.join("roadmap", "milestones", milestone.relativeMilestonePath));
@@ -26929,7 +26943,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
     ...milestone,
     artifact: draftArtifact
   };
-  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
+  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
   const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
     absolutePath: milestone.absolutePath,
@@ -26987,8 +27001,9 @@ function buildRefineNote(reason) {
 function loadRefinementContext(rootDir) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  return { roadmap, changeStates };
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
+  return { roadmap, changeStates, archivedPlannedChangeIds };
 }
 function findMilestoneById2(roadmap, milestoneId) {
   return roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === milestoneId);
@@ -27023,7 +27038,7 @@ function emptyRefineResult(milestoneId) {
 }
 function deferMilestoneRefinement(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_DEFER_REASON;
-  const { roadmap, changeStates } = loadRefinementContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadRefinementContext(rootDir);
   if (roadmap.diagnostics.length > 0) {
     return {
       ...emptyDeferResult(milestoneId),
@@ -27041,7 +27056,7 @@ function deferMilestoneRefinement(rootDir, milestoneId, options = {}) {
   }
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
   const milestonePathResolved = toPosix3(path27.join("roadmap", "milestones", milestone.relativeMilestonePath));
@@ -27073,7 +27088,7 @@ function deferMilestoneRefinement(rootDir, milestoneId, options = {}) {
     ...milestone,
     artifact: draftArtifact
   };
-  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
+  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
   const syncResult = syncRoadmap(rootDir, {
     stagedMutations: [{
@@ -27115,7 +27130,7 @@ function deferMilestoneRefinement(rootDir, milestoneId, options = {}) {
 }
 function refineMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_REFINE_REASON;
-  const { roadmap, changeStates } = loadRefinementContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadRefinementContext(rootDir);
   if (roadmap.diagnostics.length > 0) {
     return {
       ...emptyRefineResult(milestoneId),
@@ -27133,7 +27148,7 @@ function refineMilestone(rootDir, milestoneId, options = {}) {
   }
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
   const milestonePathResolved = toPosix3(path27.join("roadmap", "milestones", milestone.relativeMilestonePath));
@@ -27168,7 +27183,7 @@ function refineMilestone(rootDir, milestoneId, options = {}) {
     ...milestone,
     artifact: draftArtifact
   };
-  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
+  const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
   const syncResult = syncRoadmap(rootDir, {
     stagedMutations: [{
@@ -27222,8 +27237,9 @@ function buildReopenNote(reason) {
 function loadReopenContext(rootDir) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  return { roadmap, changeStates };
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
+  return { roadmap, changeStates, archivedPlannedChangeIds };
 }
 function findMilestoneById3(roadmap, milestoneId) {
   return roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === milestoneId);
@@ -27261,7 +27277,7 @@ function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedCha
 }
 function reopenMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_REOPEN_REASON;
-  const { roadmap, changeStates } = loadReopenContext(rootDir);
+  const { roadmap, changeStates, archivedPlannedChangeIds } = loadReopenContext(rootDir);
   if (roadmap.diagnostics.length > 0) {
     return {
       valid: false,
@@ -27283,7 +27299,7 @@ function reopenMilestone(rootDir, milestoneId, options = {}) {
   }
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
   const milestonePathResolved = toPosix3(path28.join("roadmap", "milestones", milestone.relativeMilestonePath));
@@ -27428,11 +27444,12 @@ function midpointOrder(sortedMilestones, mode, neighbor) {
 }
 function buildTargetOrderMutation(rootDir, milestone, order) {
   const changeStates = getChangeStateIndex(rootDir);
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
   const roadmap = loadRoadmap(rootDir);
   const freshMilestone = roadmap.milestones.find((candidate) => candidate.artifact.milestone.id === milestone.artifact.milestone.id) ?? milestone;
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, freshMilestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(freshMilestone, standalonePlannedChanges);
-  const status = buildMilestoneStatus(freshMilestone, changeStates, plannedChangeEntries);
+  const status = buildMilestoneStatus(freshMilestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const draftMilestone = { ...freshMilestone, artifact: { ...freshMilestone.artifact, order } };
   return {
     absolutePath: freshMilestone.absolutePath,

@@ -90,7 +90,8 @@ function findDependents(plannedChanges: LoadedPlannedChange[], plannedChangeId: 
 export function deletePlannedChange(rootDir: string, input: RoadmapDeleteInput): RoadmapDeleteResult {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(
     roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH),
   );
@@ -100,7 +101,7 @@ export function deletePlannedChange(rootDir: string, input: RoadmapDeleteInput):
     (candidate) => candidate.artifact.planned_change.id === input.plannedChangeId,
   );
   if (!plannedChange) {
-    const archived = loadArchivedPlannedChangeIds(rootDir).has(input.plannedChangeId);
+    const archived = archivedPlannedChangeIds.has(input.plannedChangeId);
     return invalidDeleteResult(roadmap.warnings, [
       makeDiagnostic(
         "reference",
@@ -173,6 +174,7 @@ export function deletePlannedChange(rootDir: string, input: RoadmapDeleteInput):
     const dependentStatus = buildMilestoneStatus(
       dependentMilestone,
       changeStates,
+      archivedPlannedChangeIds,
       getMergedPlannedChangesForMilestone(
         dependentMilestone,
         getStandalonePlannedChangesForMilestone(roadmap, dependentMilestone),

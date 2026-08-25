@@ -1,0 +1,62 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-recommend-archived-dependencies
+sections:
+  Implementation:
+    reproduce-archived-dependency-stall:
+      text: Add a failing end-to-end regression that archives a milestone owning a depends_on target and demonstrates that roadmap-recommend skips the dependent planned change with a dependency-incomplete reason before the fix.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runRoadmapAndMigrationSuite } from "./test/suites/roadmap-and-migration.ts"; const context = new TestContext(); await runRoadmapAndMigrationSuite(context); printFinalSummary(context);'
+    thread-archived-id-set:
+      text: Add the archived planned-change id set as a required parameter of buildMilestoneStatus and pass it at every call site across src/roadmap.ts and src/roadmap/{pause,move,delete,reopen,order,refinement,archive,author}.ts, loading it once per command invocation rather than inside a per-milestone loop.
+      status: complete
+    record-archived-depends-on:
+      text: Add archivedDependsOn to RoadmapPlannedChangeStatus in src/roadmap/model.ts, populate it in buildMilestoneStatus with the subset of depends_on that resolves to archived history, and keep RoadmapSyncPlannedChangeStatus omitting it alongside summary and dependsOn.
+      status: complete
+    resolve-archived-dependency-in-recommend:
+      text: Make recommendRoadmapChange resolve depends_on against the union of active planned-change status and archived planned-change ids, emitting no skip reason for an archived target and keeping dependency-incomplete only for a target present in neither.
+      status: complete
+    render-archived-dependency-in-overview:
+      text: Render the archived-dependency marking on the roadmap-overview planned-change detail line when archivedDependsOn is non-empty, keeping the existing deterministic line order.
+      status: complete
+    record-dependency-universe-standard:
+      text: Record the single dependency-resolution universe as a delta tech rule under workflow-scope-discipline so archive merges it into the live standards.
+      status: complete
+  Testing:
+    build-cli:
+      text: Rebuild TypeScript and bundled CLI output after the source edits.
+      status: complete
+      command: bun run build
+    recommend-after-archive-regression:
+      text: Assert that after archiving the owning milestone, roadmap-recommend recommends the dependent planned change and reports no dependency-incomplete skip reason for the archived target.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runRoadmapAndMigrationSuite } from "./test/suites/roadmap-and-migration.ts"; const context = new TestContext(); await runRoadmapAndMigrationSuite(context); printFinalSummary(context);'
+    status-marks-archived-dependency:
+      text: Assert that roadmap-status reports archivedDependsOn for a planned change depending on archived work and that roadmap-overview renders the marking, while planned changes without archived dependencies report an empty marking.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runRoadmapAndMigrationSuite } from "./test/suites/roadmap-and-migration.ts"; const context = new TestContext(); await runRoadmapAndMigrationSuite(context); printFinalSummary(context);'
+    unknown-dependency-still-blocks:
+      text: Assert that a depends_on target present in neither active nor archived roadmap state still produces the dependency-incomplete skip reason and the existing roadmap reference diagnostic, proving the fix did not suppress genuine dangling dependencies.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runRoadmapAndMigrationSuite } from "./test/suites/roadmap-and-migration.ts"; const context = new TestContext(); await runRoadmapAndMigrationSuite(context); printFinalSummary(context);'
+    complete-project-regression:
+      text: Run the configured complete project regression and coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-verification:
+      text: Run strict change verification after every implementation and test task is complete.
+      status: complete
+      command: strict-spec-cli verify roadmap-recommend-archived-dependencies
+    roadmap-command-evidence:
+      text: Run roadmap-status, roadmap-overview, and roadmap-recommend --details against this repository and confirm output stays valid and deterministic with the new marking present.
+      status: complete
+      command: strict-spec-cli roadmap-status
+    archive-readiness-review:
+      text: Review the implementation, regression assertions, delta spec against what was built, unchanged behavior, and the tracked diff for archive readiness, including that archive merges the three modified roadmap requirements into the main spec.
+      status: complete
+testing_gates:
+  validation_task: build-cli
+  unit_test_task: recommend-after-archive-regression

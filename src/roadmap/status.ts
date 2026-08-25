@@ -445,9 +445,16 @@ export function getMergedPlannedChangesForMilestone(
   return Array.from(merged.values());
 }
 
+/**
+ * `archivedPlannedChangeIds` is required rather than defaulted so every caller
+ * has to supply the set from its own root directory. An empty default would let
+ * a call site silently report `archivedDependsOn: []` for a planned change that
+ * does depend on archived work, which reads as a fact rather than an omission.
+ */
 export function buildMilestoneStatus(
   milestone: LoadedMilestone,
   changeStates: ChangeStateIndex,
+  archivedPlannedChangeIds: Set<string>,
   plannedChangeEntries: MergedPlannedChangeEntry[] = getMergedPlannedChangesForMilestone(milestone, []),
   displayOrdinal = 0,
 ): RoadmapMilestoneStatus {
@@ -468,6 +475,7 @@ export function buildMilestoneStatus(
       path: plannedChangePath,
       summary: entry.summary,
       dependsOn: [...entry.depends_on],
+      archivedDependsOn: entry.depends_on.filter((dependencyId) => archivedPlannedChangeIds.has(dependencyId)),
       declaredStatus: entry.status,
       derivedStatus,
       state,

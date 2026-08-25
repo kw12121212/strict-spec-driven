@@ -16,7 +16,7 @@ import {
   type RoadmapDiagnostic,
   type RoadmapSyncMilestoneStatus,
 } from "./model.js";
-import { loadRoadmap } from "./load.js";
+import { loadArchivedPlannedChangeIds, loadRoadmap } from "./load.js";
 import {
   ensureTrailingNewline,
   isDeclaredPlannedChangeStatus,
@@ -347,11 +347,12 @@ function findStandalonePlannedChangeRewriteDiagnostics(
 ): RoadmapDiagnostic[] {
   const diagnostics: RoadmapDiagnostic[] = [];
   const changeStates = getChangeStateIndex(rootDir);
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
   const roadmap = loadRoadmap(rootDir);
   for (const milestone of milestones) {
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+    const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
     for (const plannedChange of standalonePlannedChanges) {
       if (excludePlannedChangeIds.has(plannedChange.artifact.planned_change.id)) continue;
       const nextContent = ensureTrailingNewline(stringifyYamlDocument(buildCanonicalPlannedChangeArtifact(plannedChange, status)));

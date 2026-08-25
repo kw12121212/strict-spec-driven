@@ -165,7 +165,8 @@ function buildMoveWarnings(
 export function movePlannedChangeToMilestone(rootDir: string, input: RoadmapMoveInput): RoadmapMoveResult {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(
     roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH),
   );
@@ -194,7 +195,7 @@ export function movePlannedChangeToMilestone(rootDir: string, input: RoadmapMove
     (candidate) => candidate.artifact.planned_change.id === input.plannedChangeId,
   );
   if (!plannedChange) {
-    const archived = loadArchivedPlannedChangeIds(rootDir).has(input.plannedChangeId);
+    const archived = archivedPlannedChangeIds.has(input.plannedChangeId);
     return invalidMoveResult(roadmap.warnings, [
       makeDiagnostic(
         "reference",
@@ -279,6 +280,7 @@ export function movePlannedChangeToMilestone(rootDir: string, input: RoadmapMove
   const targetStatus: RoadmapMilestoneStatus = buildMilestoneStatus(
     targetMilestone,
     changeStates,
+    archivedPlannedChangeIds,
     getMergedPlannedChangesForMilestone(targetMilestone, targetStandalone),
   );
   const nextArtifact = buildCanonicalPlannedChangeArtifact(draftPlannedChange, targetStatus);

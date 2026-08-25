@@ -105,14 +105,15 @@ function appendCollisionDiagnostics(targets: ArchiveTarget[], diagnostics: Roadm
 export function archiveRoadmapMilestones(rootDir: string, milestoneId?: string): RoadmapArchiveResult {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
+  const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
 
   const statusMap = new Map<string, RoadmapMilestoneStatus>();
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
+    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries));
   }
 
   const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
