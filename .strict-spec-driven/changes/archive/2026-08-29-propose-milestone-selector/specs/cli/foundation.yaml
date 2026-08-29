@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-propose-roadmap-backed-guidance:
+      strength: MUST
+      statement: The system MUST let strict-spec-propose guidance enter a roadmap-backed proposal mode when the request names a milestone selector. In that mode the guidance MUST resolve the selector to exactly one milestone id, pass it to roadmap-recommend with --milestone, treat the returned recommendation as authoritative rather than selecting a planned change itself, read only the targeted roadmap context for the selected planned change, scaffold exactly one recommended planned change as a normal strict change with milestone and planned_change links, and still stop at proposal validation instead of auto-implementing the change. A request that names no milestone selector MUST keep the standalone proposal behavior, with whole-roadmap selection owned by the strict-roadmap-recommend skill. When the selector matches no milestone or several, or roadmap-recommend returns no eligible planned change for the selected milestone, the guidance MUST stop and report the resolved milestone, the returned status, and the named blockers instead of selecting a planned change by hand, supplying --allow-unrefined on the agent's own initiative, or falling back to a standalone proposal.
+      scenarios:
+        roadmap-backed-propose-uses-scripted-recommendation:
+          - GIVEN: a user requests roadmap-backed proposal flow through strict-spec-propose
+          - WHEN: the skill guidance is followed
+          - THEN: the guidance requires roadmap-recommend as the authoritative selector, scaffolds exactly one recommended planned change as a normal strict proposal with milestone and planned_change links, and hands off after ready and verify
+        milestone-selector-scopes-the-recommendation:
+          - GIVEN: a user names a milestone selector when requesting a proposal through strict-spec-propose
+          - WHEN: the skill guidance is followed
+          - THEN: the guidance resolves the selector to exactly one milestone id, runs roadmap-recommend with --milestone and that id, and sources the proposal from the planned change the command returns rather than choosing among the milestone's planned changes itself
+        unavailable-planned-change-is-reported-with-its-reason:
+          - GIVEN: a milestone selector resolves but roadmap-recommend returns no eligible planned change for that milestone
+          - WHEN: the skill guidance is followed
+          - THEN: the guidance stops and reports the milestone id, the returned status, and the named blockers such as an incomplete dependency, a paused milestone, or a milestone awaiting refinement, without selecting a planned change manually, adding --allow-unrefined, or falling back to a standalone proposal
+        no-selector-keeps-the-standalone-proposal-path:
+          - GIVEN: a proposal request through strict-spec-propose that names no milestone selector
+          - WHEN: the skill guidance is followed
+          - THEN: the guidance derives the change name and scope from the request as a standalone proposal without running roadmap-recommend, leaving whole-roadmap selection to the strict-roadmap-recommend skill
+  REMOVED: {}

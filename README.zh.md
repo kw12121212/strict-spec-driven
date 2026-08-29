@@ -42,8 +42,8 @@
 `/strict-spec-sop`、`/strict-spec-harness-init`、`/strict-spec-harness-session`、
 `/strict-spec-migrate` 和 `/strict-spec-propose-from-roadmap` 这五个技能以同样的方式被移除。
 它们背后的 CLI 命令没有变化——`sop-*`、`harness-*` 和 `migrate` 都保留原有名称、参数和行为——
-因此这些能力仍可通过 `strict-spec-cli` 使用，而路线图支持的提案由
-`/strict-roadmap-recommend` 脚手架化。
+因此这些能力仍可通过 `strict-spec-cli` 使用；而路线图支持的提案，在需要跨整个路线图挑选下一件工作时由
+`/strict-roadmap-recommend` 脚手架化，在请求指名某一个里程碑时则由 `/strict-spec-propose` 脚手架化。
 
 除 reorder 重新拥有独立技能外，其余已退役的 roadmap 名称都变成了同一个技能的一个显式操作：
 
@@ -127,7 +127,7 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | 斜杠命令 | 用途 |
 |---|---|
 | `/strict-spec-init` | 在项目中初始化严格工作流 |
-| `/strict-spec-propose` | 提议新变更 |
+| `/strict-spec-propose` | 提议新变更，可独立提出，也可限定到指名的路线图里程碑 |
 | `/strict-spec-apply` | 实现变更中的任务 |
 | `/strict-spec-verify` | 验证变更是否完成 |
 | `/strict-spec-review` | 基于证据对变更进行代码质量审查 |

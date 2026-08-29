@@ -1086,9 +1086,27 @@ context.assert(
       && normalizedProposeSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && normalizedProposeSkillContent.includes("proposal checkpoint refinements made")
-      && !normalizedProposeSkillContent.includes("strict-spec-cli roadmap-recommend")
       && !normalizedProposeSkillContent.includes("proposal review"),
     "strict-spec-propose runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
+  );
+  // The package used to refuse a roadmap-sourced request and send the user to another skill, which
+  // contradicted the requirement that propose carry a roadmap-backed mode. The negation this
+  // replaces asserted the opposite, so it is the assertion that had to move rather than the
+  // guidance.
+  context.assert(
+    normalizedProposeSkillContent.includes("Resolve the selector to exactly one milestone id")
+      && normalizedProposeSkillContent.includes("strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>")
+      && normalizedProposeSkillContent.includes("treat the command's selected planned change as authoritative")
+      && normalizedProposeSkillContent.includes("before reading broad roadmap context")
+      && normalizedProposeSkillContent.includes("--milestone <milestone-id> --planned-change <planned-change-id>")
+      && !normalizedProposeSkillContent.includes("If the user asks to source a change from the roadmap, stop and tell them to use"),
+    "strict-spec-propose sources a named milestone through roadmap-recommend instead of refusing roadmap-backed work",
+  );
+  context.assert(
+    normalizedProposeSkillContent.includes("When no planned change comes back, report the reason and stop.")
+      && normalizedProposeSkillContent.includes("an incomplete dependency, a paused milestone, a milestone awaiting refinement, or invalid roadmap state")
+      && normalizedProposeSkillContent.includes("do not add `--allow-unrefined`"),
+    "strict-spec-propose reports the milestone's own blockers instead of selecting or overriding",
   );
   context.assert(
     normalizedAutoSkillContent.includes("complete project-level regression test evidence")
@@ -2707,6 +2725,99 @@ context.assert(
   "exactly one bundled package declares the roadmap-reorder command mapping",
   packagesDeclaringReorderCommand.join(", "),
 );
+
+// The milestone-mode expectations govern content this same change wrote, so a passing suite proves
+// nothing about them until the phrases are observed missing. The probe drops each phrase from a copy
+// of the real package — every one of them lives on a single source line, so line filtering reaches
+// it even though the validator collapses whitespace — and re-adds the retired redirect sentence, so
+// the required-snippet and forbidden-snippet matchers are both seen firing.
+const MILESTONE_MODE_SELECTOR_PHRASE = "Resolve the selector to exactly one milestone id";
+const MILESTONE_MODE_BLOCKER_PHRASE = "When no planned change comes back, report the reason and stop.";
+const MILESTONE_MODE_ALLOW_UNREFINED_PHRASE = "do not add `--allow-unrefined`";
+const MILESTONE_MODE_RETIRED_REDIRECT_PHRASE =
+  "If the user asks to source a change from the roadmap, stop and tell them to use";
+
+const invalidMilestoneModeRoot = mkdtempSync(path.join(os.tmpdir(), "strict-propose-milestone-mode-invalid-"));
+try {
+  const invalidMilestoneModeSkillDir = path.join(invalidMilestoneModeRoot, "skills", "strict-spec-propose");
+  mkdirSync(path.join(invalidMilestoneModeRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(invalidMilestoneModeSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidMilestoneModeSkillDir, "scripts"));
+
+  const shippedProposeSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
+  for (const phrase of [MILESTONE_MODE_SELECTOR_PHRASE, MILESTONE_MODE_BLOCKER_PHRASE, MILESTONE_MODE_ALLOW_UNREFINED_PHRASE]) {
+    context.assert(
+      shippedProposeSkill.split("\n").some((line) => line.includes(phrase)),
+      `the milestone-mode probe can remove '${phrase}' from a single line of the shipped package`,
+    );
+  }
+
+  const proposeSkillWithoutMilestoneMode = shippedProposeSkill
+    .split("\n")
+    .filter((line) =>
+      !line.includes(MILESTONE_MODE_SELECTOR_PHRASE)
+      && !line.includes(MILESTONE_MODE_BLOCKER_PHRASE)
+      && !line.includes(MILESTONE_MODE_ALLOW_UNREFINED_PHRASE)
+    )
+    .join("\n")
+    + `\n${MILESTONE_MODE_RETIRED_REDIRECT_PHRASE} \`/strict-roadmap-recommend\`.\n`;
+
+  writeFileSync(path.join(invalidMilestoneModeSkillDir, "SKILL.md"), proposeSkillWithoutMilestoneMode, "utf8");
+  writeFileSync(
+    path.join(invalidMilestoneModeRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-propose", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidMilestoneModeResult = skillValidationModule.validateStrictSkillPackaging(invalidMilestoneModeRoot);
+  context.assert(
+    !invalidMilestoneModeResult.valid,
+    "strict skill validation fails when the propose package drops its roadmap-backed milestone mode",
+  );
+  for (const [phrase, element] of [
+    [MILESTONE_MODE_SELECTOR_PHRASE, "milestone selector resolution"],
+    [MILESTONE_MODE_BLOCKER_PHRASE, "stop-and-report blocker behavior"],
+    [MILESTONE_MODE_ALLOW_UNREFINED_PHRASE, "the refusal to supply --allow-unrefined"],
+  ] as const) {
+    context.assert(
+      invalidMilestoneModeResult.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "skill.core.required_snippet.missing"
+          && diagnostic.path === "skills/strict-spec-propose/SKILL.md"
+          && diagnostic.expected === phrase,
+      ),
+      `validate-skills requires ${element} in the propose package`,
+      invalidMilestoneModeResult.diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.expected ?? ""}`).join(", "),
+    );
+  }
+  context.assert(
+    invalidMilestoneModeResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.forbidden_snippet.present"
+        && diagnostic.path === "skills/strict-spec-propose/SKILL.md"
+        && diagnostic.actual === MILESTONE_MODE_RETIRED_REDIRECT_PHRASE,
+    ),
+    "validate-skills rejects a propose package that restores the retired roadmap redirect",
+    invalidMilestoneModeResult.diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.actual ?? ""}`).join(", "),
+  );
+
+  const invalidMilestoneModeCli = cli(["validate-skills"], { cwd: invalidMilestoneModeRoot });
+  context.assert(
+    invalidMilestoneModeCli.status !== 0,
+    "validate-skills CLI exits non-zero when the propose package drops its roadmap-backed milestone mode",
+  );
+} finally {
+  rmSync(invalidMilestoneModeRoot, { recursive: true, force: true });
+}
 
 const invalidSharedSchemaGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-guidance-invalid-"));
 try {

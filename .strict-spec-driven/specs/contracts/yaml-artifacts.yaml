@@ -328,7 +328,7 @@ requirements:
         - THEN: at least one planned change depends on an earlier planned change
   strict-roadmap-skill-command-contract:
     strength: MUST
-    statement: The system MUST provide strict roadmap skill packages for planning, recommendation, review, state transition, and reorder with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST keep roadmap-backed proposal scaffolding owned by the strict-roadmap-recommend skill rather than packaging a separate strict-roadmap-propose or strict-spec-propose-from-roadmap skill.
+    statement: The system MUST provide strict roadmap skill packages for planning, recommendation, review, state transition, and reorder with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST NOT package a separate strict-roadmap-propose or strict-spec-propose-from-roadmap skill. Roadmap-backed proposal scaffolding MUST remain owned by the strict-roadmap-recommend skill when work is selected across the whole roadmap and by the strict-spec-propose skill when the request names one milestone, and both MUST obtain the selected planned change from the roadmap-recommend command rather than by manual selection.
     scenarios:
       roadmap-skills-expose-concrete-strict-commands:
         - GIVEN: a strict roadmap SKILL.md file is reviewed
@@ -337,7 +337,7 @@ requirements:
       no-separate-roadmap-proposal-skill-is-packaged:
         - GIVEN: the repository skill packaging surfaces are reviewed
         - WHEN: the skills directory and marketplace metadata are inspected
-        - THEN: no strict-roadmap-propose and no strict-spec-propose-from-roadmap skill package or marketplace entry exists, and roadmap-backed recommendation with proposal scaffolding is owned by the strict-roadmap-recommend skill
+        - THEN: no strict-roadmap-propose and no strict-spec-propose-from-roadmap skill package or marketplace entry exists, and roadmap-backed scaffolding is reached through the strict-roadmap-recommend skill for whole-roadmap selection and through the strict-spec-propose skill for a named milestone
   strict-roadmap-skill-guidance-contract:
     strength: MUST
     statement: The system MUST ensure strict roadmap skill packages describe .strict-spec-driven/roadmap/ YAML artifacts, canonical milestone ordering, declared and derived roadmap status rules, the prompt-vs-script split used by the strict workflow, and efficient handoff behavior that relies on deterministic CLI recommendation output before broad manual context reads.

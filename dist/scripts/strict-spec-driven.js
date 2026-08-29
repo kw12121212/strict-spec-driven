@@ -33740,6 +33740,11 @@ var ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap con
 var ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
 var ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
 var ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose";
+var PROPOSE_MILESTONE_SELECTOR_SNIPPET = "Resolve the selector to exactly one milestone id";
+var PROPOSE_MILESTONE_RECOMMEND_SNIPPET = "roadmap-recommend --milestone";
+var PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET = "--milestone <milestone-id> --planned-change <planned-change-id>";
+var PROPOSE_MILESTONE_BLOCKER_SNIPPET = "When no planned change comes back, report the reason and stop.";
+var PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET = "do not add `--allow-unrefined`";
 var AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
 var AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
 var AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET = "exactly matches the configured complete project regression command";
@@ -33851,6 +33856,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
   },
   "strict-spec-propose": {
     requiredCommands: {
+      "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
       ready: READY_COMMAND,
@@ -33862,6 +33868,13 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "/strict-spec-auto",
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
       "strict-roadmap-recommend",
+      PROPOSE_MILESTONE_SELECTOR_SNIPPET,
+      PROPOSE_MILESTONE_RECOMMEND_SNIPPET,
+      ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
+      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
+      PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET,
+      PROPOSE_MILESTONE_BLOCKER_SNIPPET,
+      PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
@@ -33873,7 +33886,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     ],
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
-      "proposal review"
+      "proposal review",
+      "If the user asks to source a change from the roadmap, stop and tell them to use"
     ]
   },
   "strict-spec-apply": {

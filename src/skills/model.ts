@@ -117,6 +117,19 @@ const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap c
 const ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
 const ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
 const ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose";
+/**
+ * The milestone-scoped proposal path. strict-spec-propose used to refuse a roadmap-sourced request
+ * and redirect to strict-roadmap-recommend, which contradicted the requirement that it carry a
+ * roadmap-backed mode. These snippets pin the parts an agent cannot infer: that the selector is
+ * resolved to exactly one milestone before anything runs, that the selection comes from
+ * roadmap-recommend --milestone, that the roadmap link is recorded on the proposal, and that an
+ * unusable milestone is reported with its own blockers rather than worked around.
+ */
+const PROPOSE_MILESTONE_SELECTOR_SNIPPET = "Resolve the selector to exactly one milestone id";
+const PROPOSE_MILESTONE_RECOMMEND_SNIPPET = "roadmap-recommend --milestone";
+const PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET = "--milestone <milestone-id> --planned-change <planned-change-id>";
+const PROPOSE_MILESTONE_BLOCKER_SNIPPET = "When no planned change comes back, report the reason and stop.";
+const PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET = "do not add `--allow-unrefined`";
 const AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
 const AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
 const AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET =
@@ -310,6 +323,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
   },
   "strict-spec-propose": {
     requiredCommands: {
+      "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
       ready: READY_COMMAND,
@@ -321,6 +335,13 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "/strict-spec-auto",
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
       "strict-roadmap-recommend",
+      PROPOSE_MILESTONE_SELECTOR_SNIPPET,
+      PROPOSE_MILESTONE_RECOMMEND_SNIPPET,
+      ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
+      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
+      PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET,
+      PROPOSE_MILESTONE_BLOCKER_SNIPPET,
+      PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
@@ -333,6 +354,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
       "proposal review",
+      "If the user asks to source a change from the roadmap, stop and tell them to use",
     ],
   },
   "strict-spec-apply": {

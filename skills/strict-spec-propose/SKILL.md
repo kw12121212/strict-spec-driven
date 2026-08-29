@@ -1,6 +1,6 @@
 ---
 name: strict-spec-propose
-description: Propose a new standalone strict change from a user request. Use when Codex should scaffold proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and optional delta artifacts under .strict-spec-driven/changes/<name>/ without sourcing work from the roadmap.
+description: Propose a new strict change from a user request, standalone or scoped to a named roadmap milestone. Use when Codex should scaffold proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and optional delta artifacts under .strict-spec-driven/changes/<name>/, sourcing the planned change from roadmap-recommend when the request names a milestone and stopping at proposal validation either way.
 metadata:
   skill_id: strict_spec_propose
   author: strict-spec-driven
@@ -25,6 +25,8 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
+roadmap-status: strict-spec-cli roadmap-status
+roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -190,17 +192,74 @@ A strict change may legitimately have no delta spec. Do not invent a
   `ready`/`verify` checks, and archive-readiness or archive-merge checks when
   the change affects artifacts consumed by archive.
 
+## Roadmap-Backed Milestone Mode
+
+A request that names a milestone — an exact milestone id, a bare number, or a
+recognizable part of a milestone id or title — is a roadmap-backed proposal.
+Source it from the roadmap rather than deriving scope from the request text.
+
+Resolve the selector to exactly one milestone id first, consulting
+`.strict-spec-driven/roadmap/INDEX.yaml` or `strict-spec-cli roadmap-status`
+for that resolution only:
+
+- an exact milestone id is used as given
+- a bare number resolves to the milestone whose id carries that numeric prefix
+  once leading zeros are ignored, so `5` resolves to a single milestone id such
+  as `0005-migration-and-self-hosting`
+- any other hint is matched first as an exact milestone id, then as a
+  case-insensitive substring of a milestone id or title
+- zero matches, or more than one, is a blocker: report the ambiguity and stop
+  rather than picking a milestone
+
+Then obtain the planned change from the command that owns selection:
+
+```bash
+strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>
+```
+
+Roadmap order, dependency resolution, pauses, and awaiting-refinement handling
+all live in that command, so treat the command's selected planned change as
+authoritative and run it before reading broad roadmap context. Never choose
+among a milestone's planned changes yourself. Open only the selected
+planned-change artifact and its owning milestone, and carry that planned
+change's `summary`, `details`, `depends_on`, and labels forward as change-intake
+evidence instead of re-asking what they already answer.
+
+Scaffold exactly one recommended planned change as a normal strict change, and
+record the roadmap link when generating the proposal so archive can reconcile
+the planned change:
+
+```bash
+strict-spec-cli generate <change-name> proposal --what "..." --why "..." --milestone <milestone-id> --planned-change <planned-change-id>
+```
+
+**When no planned change comes back, report the reason and stop.** A
+`no-candidate`, `roadmap-error`, or `refine-milestone` result already names why
+the milestone yields no work — an incomplete dependency, a paused milestone, a
+milestone awaiting refinement, or invalid roadmap state. Report the resolved
+milestone id, the returned status, and those named blockers, and stop there. Do
+not select a planned change by hand, do not quietly fall back to a standalone
+proposal under the same name, and do not add `--allow-unrefined`: that flag is a
+deliberate human decision, so surface the refusal and let the human take it.
+
+Everything after selection is the ordinary proposal flow in the steps below,
+including the handoff that stops at proposal validation.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
-1. **Determine the change name** — use the user-provided kebab-case name when it
-   already exists. Otherwise derive one from the request and scope. If the user
-   asks to source a change from the roadmap, stop and tell them to use
-   `/strict-roadmap-recommend` so standalone proposals and roadmap-backed
-   proposals stay separate.
+1. **Determine the proposal mode and the change name** — when the request names
+   a milestone, follow the roadmap-backed milestone mode above before anything
+   else; the planned change it selects supplies the scope, and its id supplies
+   the change name unless the user gave one. Without a milestone selector this
+   is a standalone proposal: use the user-provided kebab-case name when it
+   already exists, and otherwise derive one from the request and scope.
+   `/strict-roadmap-recommend` still owns whole-roadmap selection, where no
+   milestone is named and the recommendation continues into the automatic
+   workflow.
 
 2. **Read project context, existing strict specs, and technical standards** — read:
    - `.strict-spec-driven/config.yaml`

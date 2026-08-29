@@ -46,7 +46,9 @@ The five skills `/strict-spec-sop`, `/strict-spec-harness-init`,
 commands are unchanged — `sop-create` and the other `sop-*` commands, the
 `harness-*` commands, and `migrate` all keep their names, arguments, and
 behavior — so the capabilities remain available through `strict-spec-cli`, and
-roadmap-backed proposals are scaffolded by `/strict-roadmap-recommend`.
+roadmap-backed proposals are scaffolded by `/strict-roadmap-recommend` when the
+next change is chosen across the whole roadmap, or by `/strict-spec-propose`
+when the request names one milestone.
 
 Each retired roadmap name is now an explicit operation of one skill, except
 reorder, which has its own skill again:
@@ -131,7 +133,7 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | Slash command | Purpose |
 |---|---|
 | `/strict-spec-init` | Initialize strict workflow in a project |
-| `/strict-spec-propose` | Propose a new change |
+| `/strict-spec-propose` | Propose a new change, standalone or scoped to a named roadmap milestone |
 | `/strict-spec-apply` | Implement tasks in a change |
 | `/strict-spec-verify` | Verify a change is complete |
 | `/strict-spec-review` | Evidence-based code-quality review of a change |

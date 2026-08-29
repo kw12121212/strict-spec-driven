@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: propose-milestone-selector
+approach:
+  - Add a roadmap-backed milestone mode to the strict-spec-propose skill prompt. When the request carries a milestone selector, the skill resolves the hint to exactly one milestone id from roadmap-status or the roadmap index, runs 'strict-spec-cli roadmap-recommend --milestone <resolved-id>', and treats the returned recommendation as the authoritative selection. It then reads only the selected planned change and its owning milestone as targeted intake evidence, scaffolds one normal strict change, and links milestone and planned_change through 'generate proposal --milestone --planned-change'. When the command returns no recommendation, the skill stops and reports the milestone, the returned status, and the blockers instead of choosing a planned change by hand or falling back to a redirect.
+  - 'Make the guidance enforceable rather than advisory: extend the strict-spec-propose entry in the core skill content expectations with the roadmap-recommend command mapping and snippets for milestone resolution, scripted-recommendation authority, and blocker reporting, so validate-skills fails a package that drops them. Bring the two live main spec requirements in line through delta specs, and correct the one README sentence that names strict-roadmap-recommend as the sole roadmap-backed scaffolder.'
+decisions:
+  delegate-selection-to-roadmap-recommend:
+    decision: The propose skill never selects a planned change itself; it passes the resolved milestone id to roadmap-recommend and treats the returned planned change as authoritative.
+    rationale: Roadmap order, dependency resolution against active and archived ids, pause, and awaiting-refinement handling are already implemented in one command that roadmap-sync and archive also depend on. Restating those rules as prompt text would create a second selection authority that drifts from the first the moment either changes, and the requester asked for CLI-derived accuracy rather than agent judgement.
+  reuse-recommend-hint-resolution:
+    decision: 'Milestone selector resolution reuses the rules already stated in the strict-roadmap-recommend skill: exact milestone id, then unambiguous numeric prefix, then unambiguous case-insensitive substring against id or title, stopping on zero or multiple matches.'
+    rationale: A user who types 5 must get the same milestone from either entry point. Two resolution vocabularies for one identifier would make the same input mean different things depending on which skill was invoked, which is a worse failure than the detour this change removes.
+  report-command-blockers-instead-of-redirecting:
+    decision: When roadmap-recommend returns no-candidate, roadmap-error, or a refine action, the propose skill stops and reports the milestone, the status, and the named blockers, and never adds --allow-unrefined on its own.
+    rationale: The requester's stated outcome was that an unusable milestone yields the reason, such as an unfinished prerequisite, rather than a pointer to another skill. The command already computes and names those reasons, and --allow-unrefined is documented as a deliberate human decision that an agent must not take for the human.
+  enforce-guidance-through-validate-skills:
+    decision: The new milestone-mode guidance is added to the core skill content expectations so validate-skills reports a diagnostic when a propose package omits it, rather than relying on this repository's suite alone.
+    rationale: This change exists because shipped guidance drifted away from a MUST requirement that nothing checked. Adding the same guidance without a check would reproduce the defect, and the technical standard treats a bundled skill as a static protocol surface whose required content is validated.
+  keep-both-entry-points:
+    decision: The strict-roadmap-recommend skill stays packaged and unchanged; propose gains only the milestone-scoped path.
+    rationale: 'The two answer different questions: recommend chooses across the whole roadmap and continues into the automatic workflow, while propose scopes to a named milestone and stops at the change documents. Retiring either would force one flow to serve both intents and would require a repository-wide sweep of the retired skill name.'
+  align-both-live-spec-requirements:
+    decision: Delta specs modify cli-propose-roadmap-backed-guidance to cover milestone scoping and blocker reporting, and modify strict-roadmap-skill-command-contract so its ownership clause constrains skill packaging rather than forbidding a milestone mode inside propose.
+    rationale: Leaving the second requirement's literal wording in place would make the shipped guidance violate a MUST rule the moment propose scaffolds roadmap-backed work, and the workflow standard requires the contract to be updated before the implementation widens.
+alternatives:
+  - option: Add a --milestone flag to the propose CLI command.
+    reason: propose only creates the change container and writes no planning artifact, so a milestone flag would have nowhere to record the link; the roadmap link already belongs to 'generate proposal --milestone --planned-change' and the selection already belongs to roadmap-recommend, so the flag would duplicate two existing commands without adding a capability.
+  - option: Have the propose skill forward the request into the strict-roadmap-recommend flow.
+    reason: It keeps two flow descriptions for one user intent and lands the user in a skill that continues into strict-spec-auto, contradicting the requirement that propose stop at the change documents.
+  - option: Retire strict-roadmap-recommend and make propose the single roadmap entry point.
+    reason: 'The requester rejected it: whole-roadmap selection and milestone-scoped proposal are different questions, and retiring a packaged skill name would pull in a repository-wide reference sweep governed by a separate MUST rule.'
+risks:
+  - A snippet check asserted only positively can be unfireable, so the added expectations need a negative probe that removes the phrase from a real skill copy and observes validate-skills report it missing, with whitespace collapsing and repeated phrases in mind.
+  - The shared-instruction duplication check can fire if the new milestone-mode text restates an instruction another section of the same skill already states.
+  - skills/strict-spec-propose/SKILL.md is read from the working tree rather than from the embedded asset set, and this repository tracks its dist bundle, so verifying through a globally installed strict-spec-cli instead of this checkout's rebuilt dist can show stale guidance.

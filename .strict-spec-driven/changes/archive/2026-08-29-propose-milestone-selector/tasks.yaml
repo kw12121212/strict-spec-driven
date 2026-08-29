@@ -1,0 +1,61 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: propose-milestone-selector
+sections:
+  Implementation:
+    add-milestone-mode-to-propose-skill:
+      text: 'Replace the roadmap refusal in skills/strict-spec-propose/SKILL.md step 1 with a roadmap-backed milestone mode: resolve a milestone selector to exactly one milestone id, run roadmap-recommend --milestone with it, treat the returned planned change as authoritative, read only the selected planned change and its owning milestone as intake evidence, and link milestone and planned_change when generating proposal.yaml.'
+      status: complete
+    add-blocker-reporting-to-propose-skill:
+      text: State in the same skill that a no-candidate, roadmap-error, or refine-action result stops the skill with the milestone id, the returned status, and the named blockers such as an incomplete dependency, a paused milestone, or a milestone awaiting refinement, and that the agent never supplies --allow-unrefined itself.
+      status: complete
+    map-roadmap-commands-in-propose-skill:
+      text: Add roadmap-status and roadmap-recommend to the propose skill's This Skill's Commands mapping so the milestone mode names the commands it runs, and keep the existing standalone-proposal path and its wording untouched.
+      status: complete
+    enforce-milestone-mode-in-skill-expectations:
+      text: Extend the strict-spec-propose entry in CORE_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts with the roadmap-recommend required command mapping and shared snippet constants for milestone-selector resolution, scripted-recommendation authority, and blocker reporting, reusing the existing roadmap snippet constants where the wording is already declared.
+      status: complete
+    correct-readme-roadmap-proposal-sentence:
+      text: 'Update the README.md and README.zh.md sentence that states roadmap-backed proposals are scaffolded by /strict-roadmap-recommend so it records both entry points: whole-roadmap recommendation in that skill and milestone-scoped proposal in /strict-spec-propose.'
+      status: complete
+  Testing:
+    lint-typescript:
+      text: Type-check the TypeScript sources after the skill expectation edits.
+      status: complete
+      command: bun run lint
+    rebuild-embedded-assets:
+      text: Rebuild the bundled CLI output this repository tracks so the shipped validate-skills entry point runs the edited expectations.
+      status: complete
+      command: bun run build
+    assert-propose-milestone-guidance:
+      text: Assert in test/suites/entrypoint-and-skills.ts that the shipped strict-spec-propose package states the milestone-selector resolution, the authoritative scripted recommendation, the milestone and planned_change linking, and the stop-and-report blocker behavior, and that it no longer instructs the agent to refuse roadmap-sourced work.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runEntrypointAndSkillsSuite } from "./test/suites/entrypoint-and-skills.ts"; const context = new TestContext(); await runEntrypointAndSkillsSuite(context); printFinalSummary(context);'
+    probe-missing-milestone-guidance:
+      text: Drive validate-skills over a copy of the real propose package with the new milestone-mode phrase removed and observe it report the missing snippet for skills/strict-spec-propose/SKILL.md, proving the added expectation can fire rather than only passing on content this change wrote.
+      status: complete
+      command: bun -e 'import { TestContext, printFinalSummary } from "./test/support/harness.ts"; import { runEntrypointAndSkillsSuite } from "./test/suites/entrypoint-and-skills.ts"; const context = new TestContext(); await runEntrypointAndSkillsSuite(context); printFinalSummary(context);'
+    validate-shipped-skill-packaging:
+      text: Run the shipped skill packaging validation against this checkout so the operator-facing entry point observes the edited package as valid.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    complete-project-regression:
+      text: Run the configured complete project regression and coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-verification:
+      text: Run strict change verification after every implementation and testing task is complete.
+      status: complete
+      command: strict-spec-cli verify propose-milestone-selector
+    review-changed-files:
+      text: Read every changed skill, source, test, documentation, and strict artifact file against the proposal scope, the unchanged-behavior list, and the applicable technical standards, confirming the standalone propose path and the roadmap-recommend command are untouched.
+      status: complete
+    archive-merge-readiness:
+      text: Confirm the two delta specs name existing requirement ids in cli-foundation and contracts-yaml-artifacts and that archive will merge them as MODIFIED requirements into the live main specs.
+      status: complete
+testing_gates:
+  validation_task: rebuild-embedded-assets
+  unit_test_task: assert-propose-milestone-guidance

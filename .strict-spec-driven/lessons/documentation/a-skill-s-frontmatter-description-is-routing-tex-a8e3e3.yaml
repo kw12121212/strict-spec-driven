@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-skill-s-frontmatter-description-is-routing-tex-a8e3e3
+  title: A skill's frontmatter description is routing text no content check reads
+category: documentation
+status: active
+created_at: '2026-08-29T14:35:48.953Z'
+updated_at: '2026-08-29T14:35:48.953Z'
+context: Adding a roadmap-backed milestone mode to skills/strict-spec-propose/SKILL.md, whose body previously told the agent to refuse roadmap-sourced work and redirect to another skill.
+observation: After the body was rewritten and the new guidance was added to CORE_STRICT_SKILL_EXPECTATIONS, validate-skills reported valid and the full suite passed, while the package's own frontmatter description still ended 'without sourcing work from the roadmap' — the exact behavior the change had just reversed. The required-snippet, forbidden-snippet, heading, and command-mapping checks all read the body; nothing compares the description against it, so the contradiction was found only by reading the file top to bottom during review.
+takeaway: 'Treat a skill''s frontmatter description as a separate surface from its body: it is the text a router and a human read first, and it is outside every content check the repository runs, so a behavior change to a skill is not finished until the description has been re-read against the new body.'
+applies_when: Changing what a bundled skill does — adding, removing, or reversing a mode or a refusal — especially when validate-skills and the suite pass, because those checks read the SKILL.md body and never its frontmatter description.
+occurrences:
+  - origin: propose-milestone-selector
+    date: '2026-08-29'
+    evidence: skills/strict-spec-propose/SKILL.md frontmatter read 'Propose a new standalone strict change ... without sourcing work from the roadmap.' while the body's new Roadmap-Backed Milestone Mode section sourced the change from roadmap-recommend --milestone; node dist/scripts/strict-spec-driven.js validate-skills returned {"valid":true,"diagnosticsCount":0} in that state.

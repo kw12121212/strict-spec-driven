@@ -25,6 +25,11 @@ categories:
       status: active
       occurrences: 2
       path: .strict-spec-driven/lessons/documentation/adding-cli-mutation-guidance-to-a-document-enrol-18d554.yaml
+    a-skill-s-frontmatter-description-is-routing-tex-a8e3e3:
+      title: A skill's frontmatter description is routing text no content check reads
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/documentation/a-skill-s-frontmatter-description-is-routing-tex-a8e3e3.yaml
   testing:
     a-self-populating-cache-cannot-be-made-absent-by-49b4d2:
       title: A self-populating cache cannot be made absent by pointing at an empty directory

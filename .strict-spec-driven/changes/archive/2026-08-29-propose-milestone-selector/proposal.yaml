@@ -1,0 +1,41 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: propose-milestone-selector
+  status: proposed
+summary:
+  what:
+    - 'Give the strict-spec-propose skill a roadmap-backed milestone mode: when the request names a milestone selector, the skill resolves it to exactly one milestone id and obtains the planned change from ''strict-spec-cli roadmap-recommend --milestone <id>'' instead of refusing roadmap-sourced work and redirecting to /strict-roadmap-recommend.'
+    - Require the skill to treat the scripted recommendation as authoritative and scaffold exactly one recommended planned change as a normal strict change with milestone and planned_change links in proposal.yaml.
+    - Require the skill to stop and report the command's own reason when no eligible planned change is returned, naming the selected milestone, the reported status, and the blockers such as an incomplete dependency, a paused milestone, or a milestone awaiting refinement.
+    - Enforce the new guidance through validate-skills by extending the strict-spec-propose entry in the core skill content expectations with the roadmap-recommend command mapping and the milestone-mode snippets.
+    - Update the two live main spec requirements that describe roadmap-backed proposal guidance and roadmap skill ownership so the contract matches the shipped guidance.
+    - Update the README and README.zh sentence that states roadmap-backed proposals are scaffolded only by /strict-roadmap-recommend.
+  why:
+    - The shipped strict-spec-propose skill stops and redirects whenever a request names roadmap work, so proposing from a known milestone costs an extra detour through a second skill.
+    - The live main spec requirement cli-propose-roadmap-backed-guidance already requires strict-spec-propose to support a roadmap-backed proposal mode, so the shipped skill currently contradicts the contract it is validated against.
+    - Selection rules for roadmap order, dependencies, pauses, and awaiting refinement already live in roadmap-recommend, so the missing piece is guidance that calls it with a milestone rather than any new selection logic.
+scope:
+  in:
+    - skills/strict-spec-propose/SKILL.md roadmap-backed milestone mode, its command mapping, and its stop-and-report behavior
+    - src/skills/model.ts core skill content expectations for strict-spec-propose
+    - Delta spec for cli-foundation requirement cli-propose-roadmap-backed-guidance
+    - Delta spec for contracts-yaml-artifacts requirement strict-roadmap-skill-command-contract
+    - Regression assertions in test/suites/entrypoint-and-skills.ts covering the new guidance and a negative validate-skills probe
+    - README.md and README.zh.md roadmap-backed proposal sentence
+    - Rebuilt dist/scripts bundle output, which this repository tracks
+  out:
+    - Any change to the roadmap-recommend command itself, including its flags, JSON output keys, and candidate selection algorithm
+    - Any change to the planned-change selection rules for order, dependencies, pause, or awaiting refinement
+    - Any change to the strict-roadmap-recommend skill, which keeps whole-roadmap selection
+    - Packaging a new skill for roadmap-backed proposals
+    - Any change to the strict_propose_change MCP prompt or its roadmapItem argument
+    - Automatic implementation, apply, or archive from strict-spec-propose
+unchanged_behavior:
+  - strict-spec-propose invoked without a milestone selector produces a standalone change exactly as it does today
+  - The roadmap-recommend command's flags, output keys, exit codes, and candidate selection remain unchanged
+  - The strict-roadmap-recommend skill package remains installed and keeps owning whole-roadmap recommendation
+  - strict-spec-propose still stops after ready and verify and never auto-invokes strict-spec-auto
+  - The agent never supplies --allow-unrefined on its own; a milestone awaiting refinement is reported as a blocker
