@@ -12,6 +12,10 @@ export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks"
 export type GeneratableArtifact = (typeof GENERATABLE_ARTIFACTS)[number];
 
 export const TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"] as const;
+export const TASK_SECTION_SELECTORS = TASK_SECTION_NAMES.map((section) => ({
+  flag: section.toLowerCase(),
+  section,
+}));
 const TASK_STATUS_VALUES = ["pending", "complete"] as const;
 
 export type GenerationInputRecord = Record<string, unknown>;

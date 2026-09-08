@@ -12341,6 +12341,18 @@ mutation_surfaces:
     evidence:
       - test/fixtures/guidance-skills/README.md
       - test/fixtures/guidance-skills/strict-spec-fixture-absent-skill-reference/SKILL.md
+  task-selector-fixture-guidance:
+    mechanism: agent-guidance
+    classification: read-only
+    path_patterns:
+      - test/fixtures/task-guidance/retired-section.md
+    operations:
+      - read
+    families:
+      - change-planning-state
+    evidence:
+      - test/fixtures/task-guidance/retired-section.md
+      - test/suites/entrypoint-and-skills.ts
 `
 };
 function hasEmbeddedTemplate(key) {
@@ -15979,7 +15991,964 @@ var MAINTENANCE_CHECK_TYPES = [
   "cli-only-yaml-policy"
 ];
 
+// src/propose-generation.ts
+import { existsSync as existsSync6, readFileSync as readFileSync7 } from "fs";
+import path6 from "path";
+
+// src/yaml-mutation.ts
+import {
+  existsSync as existsSync5,
+  mkdirSync as mkdirSync3,
+  readFileSync as readFileSync6,
+  realpathSync,
+  renameSync as renameSync2,
+  rmSync as rmSync3,
+  rmdirSync,
+  statSync as statSync4,
+  writeFileSync as writeFileSync3
+} from "fs";
+import path5 from "path";
+var nodeFileSystem = {
+  exists: existsSync5,
+  read: (filePath) => readFileSync6(filePath, "utf8"),
+  mkdir: (directoryPath) => mkdirSync3(directoryPath),
+  writeExclusive: (filePath, content) => writeFileSync3(filePath, content, { encoding: "utf8", flag: "wx" }),
+  rename: renameSync2,
+  remove: (filePath) => rmSync3(filePath, { force: true }),
+  removeEmptyDirectory: rmdirSync
+};
+var transactionSequence = 0;
+function toPosix2(value) {
+  return value.split(path5.sep).join("/");
+}
+function isWithin(parentPath, candidatePath) {
+  const relative = path5.relative(parentPath, candidatePath);
+  return relative === "" || !relative.startsWith(`..${path5.sep}`) && relative !== ".." && !path5.isAbsolute(relative);
+}
+function nearestExistingPath(candidatePath) {
+  let cursor = candidatePath;
+  while (!existsSync5(cursor)) {
+    const parent = path5.dirname(cursor);
+    if (parent === cursor)
+      return cursor;
+    cursor = parent;
+  }
+  return cursor;
+}
+function physicalConfinementDiagnostic(rootDir, familyRoot, absolutePath, artifactPath) {
+  try {
+    const realRoot = realpathSync(rootDir);
+    const familyAnchor = nearestExistingPath(familyRoot);
+    const realFamilyAnchor = realpathSync(familyAnchor);
+    if (!isWithin(realRoot, realFamilyAnchor)) {
+      return diagnostic(artifactPath, "planning", "family-root-symlink-escape", "$.familyRoot", "declared artifact-family location resolves outside the repository root");
+    }
+    if (existsSync5(familyRoot) && !statSync4(familyRoot).isDirectory()) {
+      return diagnostic(artifactPath, "planning", "family-root-not-directory", "$.familyRoot", "declared artifact-family location must be a directory");
+    }
+    const realFamilyBoundary = existsSync5(familyRoot) ? realpathSync(familyRoot) : realFamilyAnchor;
+    const targetAnchor = nearestExistingPath(existsSync5(absolutePath) ? absolutePath : path5.dirname(absolutePath));
+    const realTargetAnchor = realpathSync(targetAnchor);
+    if (!isWithin(realFamilyBoundary, realTargetAnchor)) {
+      return diagnostic(artifactPath, "planning", "target-symlink-escape", "$.absolutePath", "mutation target resolves outside its declared repository-owned artifact family");
+    }
+    return null;
+  } catch (error) {
+    return diagnostic(artifactPath, "planning", "path-resolution-failed", "$.absolutePath", "failed to resolve the physical mutation target path", { actual: errorCode(error) });
+  }
+}
+function compareMutations(left, right) {
+  return [left.artifactFamily, left.artifactId, left.artifactPath, left.operation].join("\x00").localeCompare([right.artifactFamily, right.artifactId, right.artifactPath, right.operation].join("\x00"));
+}
+function compareDiagnostics(left, right) {
+  return [left.artifactPath, left.phase, left.code, left.fieldPath, left.message].join("\x00").localeCompare([right.artifactPath, right.phase, right.code, right.fieldPath, right.message].join("\x00"));
+}
+function diagnostic(artifactPath, phase, code, fieldPath, message, details = {}) {
+  return { artifactPath, phase, code, fieldPath, message, ...details };
+}
+function validationDiagnostic(issue, defaultArtifactPath, phase, defaultCode) {
+  return {
+    artifactPath: issue.artifactPath ?? defaultArtifactPath,
+    phase,
+    code: issue.code ?? defaultCode,
+    fieldPath: issue.fieldPath,
+    message: issue.message,
+    ...issue.expected !== undefined ? { expected: issue.expected } : {},
+    ...issue.actual !== undefined ? { actual: issue.actual } : {}
+  };
+}
+function isMeaningfulArtifact(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return false;
+  return Object.keys(value).length > 0;
+}
+function result(planned, diagnostics, committed, identifiersByArtifactPath = new Map) {
+  return {
+    valid: committed && diagnostics.length === 0,
+    committed,
+    exitStatus: committed && diagnostics.length === 0 ? 0 : 1,
+    changes: [...planned].sort(compareMutations).map((mutation) => ({
+      artifactFamily: mutation.artifactFamily,
+      artifactId: mutation.artifactId,
+      schemaId: mutation.schemaId,
+      artifactPath: mutation.artifactPath,
+      operation: mutation.operation,
+      role: mutation.role,
+      changed: mutation.changed,
+      ...resolveYamlArtifactIdentifiers(mutation.schemaId)
+    })),
+    diagnostics: [...diagnostics].sort(compareDiagnostics).map((entry) => ({
+      ...identifiersByArtifactPath.get(entry.artifactPath),
+      ...entry
+    }))
+  };
+}
+function errorCode(error) {
+  if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
+    return error.code;
+  }
+  return error instanceof Error ? error.name : "unknown-error";
+}
+function createOwnedDirectories(rootDir, directoryPath, fileSystem, createdDirectories) {
+  const missing = [];
+  let cursor = directoryPath;
+  while (cursor !== rootDir && !fileSystem.exists(cursor)) {
+    if (!isWithin(rootDir, cursor)) {
+      throw new Error("directory escaped the repository root");
+    }
+    missing.push(cursor);
+    cursor = path5.dirname(cursor);
+  }
+  for (const missingDirectory of missing.reverse()) {
+    fileSystem.mkdir(missingDirectory);
+    createdDirectories.push(missingDirectory);
+  }
+}
+function removeCreatedDirectories(createdDirectories, fileSystem) {
+  for (const directoryPath of [...createdDirectories].reverse()) {
+    try {
+      fileSystem.removeEmptyDirectory(directoryPath);
+    } catch {}
+  }
+}
+function siblingWorkPath(targetPath, transactionId, index, suffix) {
+  return path5.join(path5.dirname(targetPath), `.${path5.basename(targetPath)}.strict-spec-${transactionId}-${index}.${suffix}`);
+}
+function rollbackEntries(entries, fileSystem, transactionId) {
+  const diagnostics = [];
+  for (const entry of [...entries].reverse()) {
+    const { mutation } = entry;
+    try {
+      if (entry.targetInstalled && fileSystem.exists(mutation.absolutePath)) {
+        fileSystem.remove(mutation.absolutePath);
+      }
+      if (entry.backupCreated && entry.backupPath && fileSystem.exists(entry.backupPath)) {
+        fileSystem.rename(entry.backupPath, mutation.absolutePath);
+      } else if (entry.backupCreated && mutation.previousContent !== null) {
+        const restorePath = siblingWorkPath(mutation.absolutePath, transactionId, 0, "restore");
+        if (fileSystem.exists(restorePath))
+          fileSystem.remove(restorePath);
+        fileSystem.writeExclusive(restorePath, mutation.previousContent);
+        fileSystem.rename(restorePath, mutation.absolutePath);
+      }
+      if (entry.temporaryPath && fileSystem.exists(entry.temporaryPath)) {
+        fileSystem.remove(entry.temporaryPath);
+      }
+    } catch (error) {
+      diagnostics.push(diagnostic(mutation.artifactPath, "rollback", "rollback-failed", "$", "failed to restore the pre-mutation filesystem state", { actual: errorCode(error) }));
+    }
+  }
+  return diagnostics;
+}
+function commitYamlMutation(options) {
+  const fileSystem = options.fileSystem ?? nodeFileSystem;
+  const rootDir = path5.resolve(options.rootDir);
+  const diagnostics = [];
+  const seenPaths = new Set;
+  const planned = [];
+  const transactionId = `${process.pid}-${++transactionSequence}`;
+  const identifiersByArtifactPath = new Map;
+  for (const request of options.mutations) {
+    const identifiers = resolveYamlArtifactIdentifiers(request.schemaId);
+    if (Object.keys(identifiers).length === 0)
+      continue;
+    const artifactPath = toPosix2(path5.relative(rootDir, path5.resolve(request.absolutePath)));
+    identifiersByArtifactPath.set(request.artifactId, identifiers);
+    if (artifactPath)
+      identifiersByArtifactPath.set(artifactPath, identifiers);
+  }
+  if (options.mutations.length === 0) {
+    diagnostics.push(diagnostic("<transaction>", "planning", "empty-transaction", "$.mutations", "a YAML mutation transaction must contain at least one artifact operation"));
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
+  }
+  for (const request of options.mutations) {
+    const familyRoot = path5.resolve(rootDir, request.familyRoot);
+    const absolutePath = path5.resolve(request.absolutePath);
+    const artifactPath = toPosix2(path5.relative(rootDir, absolutePath));
+    const artifactLabel = artifactPath && !artifactPath.startsWith("../") ? artifactPath : request.artifactId;
+    if (!isWithin(rootDir, familyRoot) || !isWithin(familyRoot, absolutePath) || absolutePath === familyRoot) {
+      diagnostics.push(diagnostic(artifactLabel, "planning", "path-outside-family", "$.absolutePath", "mutation target must be a file inside its declared repository-owned artifact family", { expected: toPosix2(path5.relative(rootDir, familyRoot)), actual: artifactPath }));
+      continue;
+    }
+    const confinementDiagnostic = physicalConfinementDiagnostic(rootDir, familyRoot, absolutePath, artifactPath);
+    if (confinementDiagnostic) {
+      diagnostics.push(confinementDiagnostic);
+      continue;
+    }
+    if (seenPaths.has(absolutePath)) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "duplicate-target", "$.absolutePath", "a mutation transaction may name each target path only once"));
+      continue;
+    }
+    seenPaths.add(absolutePath);
+    let exists = false;
+    let previousContent = null;
+    try {
+      exists = fileSystem.exists(absolutePath);
+      previousContent = exists ? fileSystem.read(absolutePath) : null;
+    } catch (error) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "target-read-failed", "$", "failed to read the current YAML artifact before planning its mutation", { actual: errorCode(error) }));
+      continue;
+    }
+    let serializedCandidate;
+    let validatedCandidate = request.candidate;
+    if (request.operation === "create" && exists) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "target-exists", "$", "create requires an absent target"));
+    } else if ((request.operation === "update" || request.operation === "delete") && !exists) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "target-missing", "$", `${request.operation} requires an existing target`));
+    }
+    if (request.content !== undefined && (request.role !== "generated" || request.candidate !== undefined)) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "content-not-generated", "$.content", "pre-serialized content is accepted only for a generated participant carrying no YAML candidate"));
+    } else if (request.operation !== "delete" && request.content !== undefined) {
+      serializedCandidate = request.content;
+    } else if (request.operation !== "delete") {
+      if (!isMeaningfulArtifact(request.candidate)) {
+        diagnostics.push(diagnostic(artifactPath, "validation", "empty-candidate", "$", "create and update require a non-empty YAML mapping candidate"));
+      } else if (!request.validateCandidate) {
+        diagnostics.push(diagnostic(artifactPath, "validation", "missing-candidate-validator", "$", "create and update require complete-candidate schema validation"));
+      } else {
+        try {
+          serializedCandidate = stringifyYamlDocument(request.candidate);
+          const serializedArtifact = parseYamlDocument(serializedCandidate, { source: artifactPath });
+          validatedCandidate = serializedArtifact;
+          for (const issue of request.validateCandidate(serializedArtifact, { artifactPath, schemaId: request.schemaId })) {
+            diagnostics.push(validationDiagnostic(issue, artifactPath, "validation", "candidate-invalid"));
+          }
+        } catch (error) {
+          diagnostics.push(diagnostic(artifactPath, "validation", "candidate-validation-failed", "$", "failed to serialize or validate the complete YAML candidate", { actual: errorCode(error) }));
+        }
+      }
+    } else if (request.candidate !== undefined || request.validateCandidate !== undefined || request.content !== undefined) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "delete-with-edit", "$", "whole-artifact deletion cannot be combined with candidate edits or validation"));
+    }
+    planned.push({
+      artifactFamily: request.artifactFamily,
+      artifactId: request.artifactId,
+      schemaId: request.schemaId,
+      artifactPath,
+      absolutePath,
+      operation: request.operation,
+      role: request.role ?? "artifact",
+      candidate: validatedCandidate,
+      serializedCandidate,
+      previousContent,
+      changed: request.operation === "delete" ? exists : previousContent !== serializedCandidate
+    });
+  }
+  planned.sort(compareMutations);
+  if (diagnostics.length === 0 && options.validateRelationships) {
+    const candidateByIdentity = new Map(planned.map((mutation) => [`${mutation.artifactFamily}\x00${mutation.artifactId}`, mutation.candidate]));
+    try {
+      const relationshipIssues = options.validateRelationships({
+        mutations: planned,
+        getCandidate: (artifactFamily, artifactId) => candidateByIdentity.get(`${artifactFamily}\x00${artifactId}`)
+      });
+      for (const issue of relationshipIssues) {
+        diagnostics.push(validationDiagnostic(issue, "<transaction>", "validation", "relationship-invalid"));
+      }
+    } catch (error) {
+      diagnostics.push(diagnostic("<transaction>", "validation", "relationship-validation-failed", "$.relationships", "failed to validate YAML mutation relationships and side effects", { actual: errorCode(error) }));
+    }
+  }
+  if (diagnostics.length > 0) {
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
+  }
+  const activeMutations = planned.filter((mutation) => mutation.changed);
+  if (activeMutations.length === 0) {
+    return result(planned, [], true, identifiersByArtifactPath);
+  }
+  const createdDirectories = [];
+  const entries = activeMutations.map((mutation) => ({
+    mutation,
+    targetInstalled: false,
+    backupCreated: false
+  }));
+  try {
+    for (const [index, entry] of entries.entries()) {
+      if (entry.mutation.operation === "delete")
+        continue;
+      createOwnedDirectories(rootDir, path5.dirname(entry.mutation.absolutePath), fileSystem, createdDirectories);
+      const temporaryPath = siblingWorkPath(entry.mutation.absolutePath, transactionId, index, "stage");
+      if (fileSystem.exists(temporaryPath))
+        fileSystem.remove(temporaryPath);
+      entry.temporaryPath = temporaryPath;
+      fileSystem.writeExclusive(temporaryPath, entry.mutation.serializedCandidate ?? "");
+    }
+  } catch (error) {
+    diagnostics.push(diagnostic("<transaction>", "staging", "stage-failed", "$", "failed to stage the complete YAML mutation transaction", { actual: errorCode(error) }));
+    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
+    removeCreatedDirectories(createdDirectories, fileSystem);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
+  }
+  try {
+    for (const [index, entry] of entries.entries()) {
+      const { mutation } = entry;
+      if (mutation.operation === "update" || mutation.operation === "delete") {
+        const backupPath = siblingWorkPath(mutation.absolutePath, transactionId, index, "backup");
+        if (fileSystem.exists(backupPath))
+          fileSystem.remove(backupPath);
+        fileSystem.rename(mutation.absolutePath, backupPath);
+        entry.backupPath = backupPath;
+        entry.backupCreated = true;
+      }
+      if (mutation.operation === "create" || mutation.operation === "update") {
+        fileSystem.rename(entry.temporaryPath ?? "", mutation.absolutePath);
+        entry.targetInstalled = true;
+        entry.temporaryPath = undefined;
+      }
+    }
+  } catch (error) {
+    diagnostics.push(diagnostic("<transaction>", "commit", "commit-failed", "$", "failed to commit the complete YAML mutation transaction", { actual: errorCode(error) }));
+    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
+    removeCreatedDirectories(createdDirectories, fileSystem);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
+  }
+  try {
+    for (const entry of entries) {
+      if (entry.backupPath && fileSystem.exists(entry.backupPath)) {
+        fileSystem.remove(entry.backupPath);
+      }
+    }
+  } catch (error) {
+    diagnostics.push(diagnostic("<transaction>", "commit", "cleanup-failed", "$", "failed to remove transaction backups after commit", { actual: errorCode(error) }));
+    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
+    removeCreatedDirectories(createdDirectories, fileSystem);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
+  }
+  return result(planned, [], true, identifiersByArtifactPath);
+}
+
+// src/propose-generation.ts
+var STRICT_WORKFLOW_DIR2 = ".strict-spec-driven";
+var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks", "delta-spec", "delta-tech"];
+var TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"];
+var TASK_SECTION_SELECTORS = TASK_SECTION_NAMES.map((section) => ({
+  flag: section.toLowerCase(),
+  section
+}));
+var TASK_STATUS_VALUES = ["pending", "complete"];
+function normalizeRepoRelativePath(rootDir, absolutePath) {
+  return path6.relative(rootDir, absolutePath).split(path6.sep).join("/");
+}
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function asRecord2(value, fieldPath) {
+  if (!isRecord(value)) {
+    throw new Error(`input field '${fieldPath}' must be an object`);
+  }
+  return value;
+}
+function asOptionalRecord(value, fieldPath) {
+  if (value === undefined)
+    return;
+  return asRecord2(value, fieldPath);
+}
+function asString2(value, fieldPath) {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`input field '${fieldPath}' must be a non-empty string`);
+  }
+  return value;
+}
+function asOptionalString(value, fieldPath) {
+  if (value === undefined)
+    return;
+  return asString2(value, fieldPath);
+}
+function asStringArray2(value, fieldPath, options = {}) {
+  if (!Array.isArray(value)) {
+    throw new Error(`input field '${fieldPath}' must be an array of strings`);
+  }
+  if (options.minItems !== undefined && value.length < options.minItems) {
+    throw new Error(`input field '${fieldPath}' must contain at least ${options.minItems} item(s)`);
+  }
+  return value.map((item, index) => asString2(item, `${fieldPath}[${index}]`));
+}
+function asOptionalStringArray(value, fieldPath) {
+  if (value === undefined)
+    return;
+  return asStringArray2(value, fieldPath);
+}
+function validateGeneratedArtifact(artifactType, artifact, artifactPath) {
+  const schema2 = loadBundledSchemaByArtifactType(artifactType);
+  const result2 = validateArtifact(schema2, artifact, artifactPath);
+  return result2.diagnostics;
+}
+function formatDiagnostics(diagnostics) {
+  return diagnostics.map((diagnostic2) => `${diagnostic2.artifactPath} ${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
+}
+function mapGeneratedFieldToInputField(artifact, fieldPath) {
+  if (fieldPath === "$")
+    return "$";
+  const directPrefixes = {
+    proposal: ["$.summary", "$.scope", "$.unchanged_behavior", "$.roadmap"],
+    design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
+    questions: ["$.open", "$.resolved"],
+    tasks: ["$.sections", "$.testing_gates"],
+    "delta-spec": ["$.target_spec", "$.operations"],
+    "delta-tech": ["$.target_standard", "$.standard", "$.operations"]
+  };
+  for (const prefix of directPrefixes[artifact]) {
+    if (fieldPath === prefix || fieldPath.startsWith(`${prefix}.`) || fieldPath.startsWith(`${prefix}[`)) {
+      return fieldPath;
+    }
+  }
+  if (artifact === "proposal") {
+    if (fieldPath === "$.change.status")
+      return "$.status";
+    if (fieldPath === "$.change.id")
+      return "<change-name>";
+  }
+  if (artifact === "design" || artifact === "questions" || artifact === "tasks") {
+    if (fieldPath === "$.change")
+      return "<change-name>";
+  }
+  if (artifact === "questions") {
+    const openStatusMatch = fieldPath.match(/^\$\.open\[(\d+)\]\.status$/);
+    if (openStatusMatch)
+      return `$.open[${openStatusMatch[1]}]`;
+    const resolvedStatusMatch = fieldPath.match(/^\$\.resolved\[(\d+)\]\.status$/);
+    if (resolvedStatusMatch)
+      return `$.resolved[${resolvedStatusMatch[1]}]`;
+  }
+  if ((artifact === "delta-spec" || artifact === "delta-tech") && fieldPath === "$.schema_file") {
+    return "<generated schema_file>";
+  }
+  if (fieldPath === "$.schema" || fieldPath === "$.schema_version" || fieldPath === "$.artifact_type" || fieldPath === "$.schema_file") {
+    return `<generated ${fieldPath.slice(2)}>`;
+  }
+  return fieldPath;
+}
+function formatRecoveryAssets(artifactType) {
+  const identifiers = resolveYamlArtifactIdentifiers(artifactType);
+  if (identifiers.schemaKey === undefined)
+    return [];
+  const inspect = [
+    `schema-show ${path6.posix.basename(identifiers.schemaKey, ".yaml")}`,
+    ...identifiers.exampleKey === undefined ? [] : [`sample-show ${path6.posix.basename(identifiers.exampleKey, ".yaml")}`]
+  ];
+  return [
+    `Artifact kind ${identifiers.artifactKind ?? artifactType}; schema ${identifiers.schemaKey}${identifiers.schemaFilePath === undefined ? "" : ` (cached at ${identifiers.schemaFilePath})`}.`,
+    `Inspect the contract with: ${inspect.join(", ")}`
+  ];
+}
+function formatGenerationDiagnostics(artifact, inputLabel, diagnostics, artifactType) {
+  const lines = diagnostics.map((diagnostic2) => {
+    const inputField = mapGeneratedFieldToInputField(artifact, diagnostic2.fieldPath);
+    const details = [
+      diagnostic2.message,
+      diagnostic2.expected ? `expected ${diagnostic2.expected}` : undefined,
+      diagnostic2.actual ? `actual ${diagnostic2.actual}` : undefined,
+      `generated field ${diagnostic2.fieldPath}`
+    ].filter((value) => Boolean(value));
+    return `- ${inputField}: ${details.join("; ")}`;
+  });
+  return [
+    `${inputLabel} is invalid for ${artifact}; fix these field(s):`,
+    ...lines,
+    ...formatRecoveryAssets(artifactType)
+  ].join(`
+`);
+}
+function buildProposalArtifact(changeName, input) {
+  const summary = asRecord2(input.summary, "$.summary");
+  const scope = asRecord2(input.scope, "$.scope");
+  const status = asOptionalString(input.status, "$.status") ?? "proposed";
+  const artifact = {
+    schema: "strict-spec-driven/change-proposal/v1",
+    schema_version: 1,
+    artifact_type: "change_proposal",
+    schema_file: "templates/strict-spec-driven/schemas/change-proposal.yaml",
+    change: {
+      id: changeName,
+      status
+    },
+    summary: {
+      what: asStringArray2(summary.what, "$.summary.what", { minItems: 1 }),
+      why: asStringArray2(summary.why, "$.summary.why", { minItems: 1 })
+    },
+    scope: {
+      in: asStringArray2(scope.in, "$.scope.in"),
+      out: asStringArray2(scope.out, "$.scope.out")
+    },
+    unchanged_behavior: asStringArray2(input.unchanged_behavior, "$.unchanged_behavior")
+  };
+  const roadmap = asOptionalRecord(input.roadmap, "$.roadmap");
+  if (roadmap) {
+    artifact.roadmap = {
+      milestone: asString2(roadmap.milestone, "$.roadmap.milestone"),
+      planned_change: asString2(roadmap.planned_change, "$.roadmap.planned_change")
+    };
+  }
+  return artifact;
+}
+function buildDesignArtifact(changeName, input) {
+  const decisions = asRecord2(input.decisions, "$.decisions");
+  for (const [decisionId, decision] of Object.entries(decisions)) {
+    const decisionRecord = asRecord2(decision, `$.decisions.${decisionId}`);
+    decisions[decisionId] = {
+      decision: asString2(decisionRecord.decision, `$.decisions.${decisionId}.decision`),
+      rationale: asString2(decisionRecord.rationale, `$.decisions.${decisionId}.rationale`)
+    };
+  }
+  const alternativesInput = input.alternatives;
+  if (!Array.isArray(alternativesInput)) {
+    throw new Error("input field '$.alternatives' must be an array");
+  }
+  const alternatives = alternativesInput.map((alternative, index) => {
+    const record = asRecord2(alternative, `$.alternatives[${index}]`);
+    return {
+      option: asString2(record.option, `$.alternatives[${index}].option`),
+      reason: asString2(record.reason, `$.alternatives[${index}].reason`)
+    };
+  });
+  return {
+    schema: "strict-spec-driven/change-design/v1",
+    schema_version: 1,
+    artifact_type: "change_design",
+    schema_file: "templates/strict-spec-driven/schemas/change-design.yaml",
+    change: changeName,
+    approach: asStringArray2(input.approach, "$.approach", { minItems: 1 }),
+    decisions,
+    alternatives,
+    risks: asOptionalStringArray(input.risks, "$.risks") ?? []
+  };
+}
+var QUESTION_KIND_VALUES = new Set(["requirement", "technical"]);
+var ANSWERED_BY_VALUES = new Set(["human", "roadmap", "assumption"]);
+function applyQuestionAttribution(target, record, fieldPath) {
+  if (record.kind !== undefined) {
+    const kind = asString2(record.kind, `${fieldPath}.kind`);
+    if (!QUESTION_KIND_VALUES.has(kind)) {
+      throw new Error(`input field '${fieldPath}.kind' must be one of: requirement, technical`);
+    }
+    target.kind = kind;
+  }
+  if (record.answered_by !== undefined) {
+    const answeredBy = asString2(record.answered_by, `${fieldPath}.answered_by`);
+    if (!ANSWERED_BY_VALUES.has(answeredBy)) {
+      throw new Error(`input field '${fieldPath}.answered_by' must be one of: human, roadmap, assumption`);
+    }
+    target.answered_by = answeredBy;
+  }
+  return target;
+}
+function normalizeOpenQuestion(question, index) {
+  const record = asRecord2(question, `$.open[${index}]`);
+  return applyQuestionAttribution({
+    id: asString2(record.id, `$.open[${index}].id`),
+    question: asString2(record.question, `$.open[${index}].question`),
+    context: asString2(record.context, `$.open[${index}].context`),
+    status: "open"
+  }, record, `$.open[${index}]`);
+}
+function normalizeResolvedQuestion(question, index) {
+  const record = asRecord2(question, `$.resolved[${index}]`);
+  return applyQuestionAttribution({
+    id: asString2(record.id, `$.resolved[${index}].id`),
+    question: asString2(record.question, `$.resolved[${index}].question`),
+    context: asString2(record.context, `$.resolved[${index}].context`),
+    answer: asString2(record.answer, `$.resolved[${index}].answer`),
+    status: "resolved"
+  }, record, `$.resolved[${index}]`);
+}
+function buildQuestionsArtifact(changeName, input) {
+  const open = input.open ?? [];
+  const resolved = input.resolved ?? [];
+  if (!Array.isArray(open)) {
+    throw new Error("input field '$.open' must be an array");
+  }
+  if (!Array.isArray(resolved)) {
+    throw new Error("input field '$.resolved' must be an array");
+  }
+  return {
+    schema: "strict-spec-driven/question-list/v1",
+    schema_version: 1,
+    artifact_type: "question_list",
+    schema_file: "templates/strict-spec-driven/schemas/question-list.yaml",
+    change: changeName,
+    open: open.map(normalizeOpenQuestion),
+    resolved: resolved.map(normalizeResolvedQuestion)
+  };
+}
+function normalizeTaskRecord(task, fieldPath) {
+  const record = asRecord2(task, fieldPath);
+  const status = asOptionalString(record.status, `${fieldPath}.status`) ?? "pending";
+  if (!TASK_STATUS_VALUES.includes(status)) {
+    throw new Error(`input field '${fieldPath}.status' must be one of: ${TASK_STATUS_VALUES.join(", ")}`);
+  }
+  const normalized = {
+    text: asString2(record.text, `${fieldPath}.text`),
+    status
+  };
+  const command = asOptionalString(record.command, `${fieldPath}.command`);
+  if (command !== undefined) {
+    normalized.command = command;
+  }
+  return normalized;
+}
+function buildTaskListArtifact(changeName, input) {
+  const sectionsInput = asRecord2(input.sections, "$.sections");
+  const gatesInput = asRecord2(input.testing_gates, "$.testing_gates");
+  const sections = {};
+  for (const sectionName of TASK_SECTION_NAMES) {
+    const sectionInput = sectionsInput[sectionName];
+    if (sectionInput === undefined)
+      continue;
+    const sectionRecord = asRecord2(sectionInput, `$.sections.${sectionName}`);
+    const taskEntries = Object.entries(sectionRecord);
+    if (taskEntries.length === 0)
+      continue;
+    const sectionTasks = {};
+    for (const [taskId, task] of taskEntries) {
+      sectionTasks[taskId] = normalizeTaskRecord(task, `$.sections.${sectionName}.${taskId}`);
+    }
+    sections[sectionName] = sectionTasks;
+  }
+  const unknownSections = Object.keys(sectionsInput).filter((name) => !TASK_SECTION_NAMES.includes(name));
+  if (unknownSections.length > 0) {
+    throw new Error(`input field '$.sections' has unknown section(s): ${unknownSections.join(", ")}`);
+  }
+  return {
+    schema: "strict-spec-driven/task-list/v2",
+    schema_version: 2,
+    artifact_type: "task_list",
+    schema_file: "templates/strict-spec-driven/schemas/task-list.yaml",
+    change: changeName,
+    sections,
+    testing_gates: {
+      validation_task: asGateReference(gatesInput.validation_task, "$.testing_gates.validation_task"),
+      unit_test_task: asGateReference(gatesInput.unit_test_task, "$.testing_gates.unit_test_task")
+    }
+  };
+}
+function asGateReference(value, fieldPath) {
+  if (typeof value !== "string") {
+    throw new Error(`input field '${fieldPath}' must be a string`);
+  }
+  return value;
+}
+function computeTaskListReadiness(artifact, artifactPath) {
+  const shape = isRecord(artifact) ? artifact : {};
+  const sections = shape.sections ?? {};
+  const testingTaskIds = Object.keys(sections.Testing ?? {});
+  const diagnostics = [];
+  for (const sectionName of TASK_SECTION_NAMES) {
+    if (Object.keys(sections[sectionName] ?? {}).length === 0) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.sections.${sectionName}`,
+        message: `task list has no ${sectionName} task yet; add at least one before verify`
+      });
+    }
+  }
+  for (const gate of ["validation_task", "unit_test_task"]) {
+    const reference = shape.testing_gates?.[gate];
+    if (typeof reference !== "string" || reference.length === 0) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.testing_gates.${gate}`,
+        message: `testing gate '${gate}' is not set yet; set it with --${gate.replaceAll("_", "-")}`
+      });
+      continue;
+    }
+    if (!testingTaskIds.includes(reference)) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.testing_gates.${gate}`,
+        message: `testing gate '${gate}' references '${reference}', which is not a task in the Testing section`
+      });
+    }
+  }
+  return diagnostics;
+}
+function normalizeDeltaSpecRelativePath(relativePath) {
+  let normalized = relativePath.replaceAll("\\", "/");
+  const strictSpecsPrefix = `${STRICT_WORKFLOW_DIR2}/specs/`;
+  if (normalized.startsWith(strictSpecsPrefix)) {
+    normalized = normalized.slice(strictSpecsPrefix.length);
+  }
+  if (path6.isAbsolute(normalized)) {
+    throw new Error("input field '$.spec_path' must be relative to the strict specs directory");
+  }
+  const parts = normalized.split("/");
+  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path6.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
+    throw new Error("input field '$.spec_path' must be a normalized YAML path under the strict specs directory");
+  }
+  return normalized;
+}
+function readSpecIndexPathForTarget(rootDir, targetSpec) {
+  const indexPath = path6.join(rootDir, STRICT_WORKFLOW_DIR2, "specs", "INDEX.yaml");
+  if (!existsSync6(indexPath))
+    return;
+  const index = parseYamlDocument(readFileSync7(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
+  const match = (index.specs ?? []).find((candidate) => candidate.id === targetSpec);
+  return typeof match?.path === "string" ? match.path : undefined;
+}
+function resolveDeltaSpecRelativePath(rootDir, targetSpec, input) {
+  const explicitPath = asOptionalString(input.spec_path, "$.spec_path");
+  if (explicitPath) {
+    return normalizeDeltaSpecRelativePath(explicitPath);
+  }
+  const indexedPath = readSpecIndexPathForTarget(rootDir, targetSpec);
+  if (indexedPath) {
+    return normalizeDeltaSpecRelativePath(indexedPath);
+  }
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(targetSpec)) {
+    throw new Error("input field '$.spec_path' is required when target_spec is not a kebab-case spec id");
+  }
+  return `${targetSpec}.yaml`;
+}
+function buildDeltaSpecArtifact(rootDir, input) {
+  const targetSpec = asString2(input.target_spec, "$.target_spec");
+  const operations = asRecord2(input.operations ?? {}, "$.operations");
+  const relativePath = resolveDeltaSpecRelativePath(rootDir, targetSpec, input);
+  const specBlock = asOptionalRecord(input.spec, "$.spec");
+  const artifact = {
+    schema: "strict-spec-driven/delta-spec/v1",
+    schema_version: 1,
+    artifact_type: "delta_spec",
+    schema_file: "templates/strict-spec-driven/schemas/delta-spec.yaml",
+    target_spec: targetSpec
+  };
+  if (specBlock) {
+    artifact.spec = {
+      title: asString2(specBlock.title, "$.spec.title"),
+      path: asString2(specBlock.path, "$.spec.path")
+    };
+  }
+  artifact.operations = {
+    ADDED: asRecord2(operations.ADDED ?? {}, "$.operations.ADDED"),
+    MODIFIED: asRecord2(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
+    REMOVED: asRecord2(operations.REMOVED ?? {}, "$.operations.REMOVED")
+  };
+  return { relativePath, artifact };
+}
+function normalizeDeltaTechRelativePath(relativePath) {
+  let normalized = relativePath.replaceAll("\\", "/");
+  const strictTechPrefix = `${STRICT_WORKFLOW_DIR2}/tech/`;
+  if (normalized.startsWith(strictTechPrefix)) {
+    normalized = normalized.slice(strictTechPrefix.length);
+  }
+  if (path6.isAbsolute(normalized)) {
+    throw new Error("input field '$.tech_path' must be relative to the strict tech directory");
+  }
+  const parts = normalized.split("/");
+  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path6.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
+    throw new Error("input field '$.tech_path' must be a normalized YAML path under the strict tech directory");
+  }
+  return normalized;
+}
+function readTechIndexPathForTarget(rootDir, targetStandard) {
+  const indexPath = path6.join(rootDir, STRICT_WORKFLOW_DIR2, "tech", "INDEX.yaml");
+  if (!existsSync6(indexPath))
+    return;
+  const index = parseYamlDocument(readFileSync7(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
+  const match = (index.standards ?? []).find((candidate) => candidate.id === targetStandard);
+  return typeof match?.path === "string" ? match.path : undefined;
+}
+function resolveDeltaTechRelativePath(rootDir, targetStandard, input) {
+  const explicitPath = asOptionalString(input.tech_path, "$.tech_path");
+  if (explicitPath) {
+    return normalizeDeltaTechRelativePath(explicitPath);
+  }
+  const indexedPath = readTechIndexPathForTarget(rootDir, targetStandard);
+  if (indexedPath) {
+    return normalizeDeltaTechRelativePath(indexedPath);
+  }
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(targetStandard)) {
+    throw new Error("input field '$.tech_path' is required when target_standard is not a kebab-case standard id");
+  }
+  return `${targetStandard}.yaml`;
+}
+function buildDeltaTechArtifact(rootDir, input) {
+  const targetStandard = asString2(input.target_standard, "$.target_standard");
+  const operations = asRecord2(input.operations ?? {}, "$.operations");
+  const relativePath = resolveDeltaTechRelativePath(rootDir, targetStandard, input);
+  const standardBlock = asOptionalRecord(input.standard, "$.standard");
+  const artifact = {
+    schema: "strict-spec-driven/delta-tech/v1",
+    schema_version: 1,
+    artifact_type: "delta_tech",
+    schema_file: "templates/strict-spec-driven/schemas/delta-tech.yaml",
+    target_standard: targetStandard
+  };
+  if (standardBlock) {
+    artifact.standard = {
+      title: asString2(standardBlock.title, "$.standard.title"),
+      category: asString2(standardBlock.category, "$.standard.category")
+    };
+  }
+  artifact.operations = {
+    ADDED: asRecord2(operations.ADDED ?? {}, "$.operations.ADDED"),
+    MODIFIED: asRecord2(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
+    REMOVED: asRecord2(operations.REMOVED ?? {}, "$.operations.REMOVED")
+  };
+  return { relativePath, artifact };
+}
+function buildTarget(rootDir, changeDir, changeName, artifact, input) {
+  switch (artifact) {
+    case "proposal":
+      return {
+        artifact: buildProposalArtifact(changeName, input),
+        artifactType: "change_proposal",
+        absolutePath: path6.join(changeDir, "proposal.yaml")
+      };
+    case "design":
+      return {
+        artifact: buildDesignArtifact(changeName, input),
+        artifactType: "change_design",
+        absolutePath: path6.join(changeDir, "design.yaml")
+      };
+    case "questions":
+      return {
+        artifact: buildQuestionsArtifact(changeName, input),
+        artifactType: "question_list",
+        absolutePath: path6.join(changeDir, "questions.yaml")
+      };
+    case "tasks":
+      return {
+        artifact: buildTaskListArtifact(changeName, input),
+        artifactType: "task_list",
+        absolutePath: path6.join(changeDir, "tasks.yaml")
+      };
+    case "delta-spec": {
+      const deltaSpec = buildDeltaSpecArtifact(rootDir, input);
+      return {
+        artifact: deltaSpec.artifact,
+        artifactType: "delta_spec",
+        absolutePath: path6.join(changeDir, "specs", deltaSpec.relativePath)
+      };
+    }
+    case "delta-tech": {
+      const deltaTech = buildDeltaTechArtifact(rootDir, input);
+      return {
+        artifact: deltaTech.artifact,
+        artifactType: "delta_tech",
+        absolutePath: path6.join(changeDir, "tech", deltaTech.relativePath)
+      };
+    }
+  }
+}
+function isGeneratableArtifact(value) {
+  return GENERATABLE_ARTIFACTS.includes(value);
+}
+function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel) {
+  const reservation = reserveChangeContainer(rootDir, changeName);
+  try {
+    return writeGeneratedArtifactIntoContainer(rootDir, reservation.changeDir, changeName, artifact, input, inputLabel);
+  } catch (error) {
+    unwindChangeContainer(reservation);
+    throw error;
+  }
+}
+function writeGeneratedArtifactIntoContainer(rootDir, changeDir, changeName, artifact, input, inputLabel) {
+  const target = buildTarget(rootDir, changeDir, changeName, artifact, input);
+  const artifactPath = normalizeRepoRelativePath(rootDir, target.absolutePath);
+  const replaced = existsSync6(target.absolutePath);
+  if (!replaced && (artifact === "delta-spec" || artifact === "delta-tech")) {
+    const candidate = asRecord2(target.artifact, "$generated");
+    const operations = asRecord2(candidate.operations ?? {}, "$generated.operations");
+    const operationEntries = Object.values(operations).flatMap((value) => isRecord(value) ? Object.keys(value) : []);
+    const definesTarget = artifact === "delta-spec" ? candidate.spec !== undefined : candidate.standard !== undefined;
+    if (!definesTarget && operationEntries.length === 0) {
+      throw new Error(`new ${artifact} artifacts require an operation or new-target metadata; named removals cannot create an empty artifact`);
+    }
+  }
+  const preWriteDiagnostics = validateGeneratedArtifact(target.artifactType, target.artifact, artifactPath);
+  if (preWriteDiagnostics.length > 0) {
+    throw new Error(formatGenerationDiagnostics(artifact, inputLabel, preWriteDiagnostics, target.artifactType));
+  }
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "strict-change",
+      artifactId: `${changeName}/${artifact}`,
+      schemaId: target.artifactType,
+      familyRoot: changeDir,
+      absolutePath: target.absolutePath,
+      operation: replaced ? "update" : "create",
+      candidate: target.artifact,
+      validateCandidate: (candidate, context) => validateGeneratedArtifact(target.artifactType, candidate, context.artifactPath).map((entry) => ({
+        code: entry.source,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual
+      }))
+    }]
+  });
+  if (!mutation.valid) {
+    throw new Error([
+      `failed to write ${artifact} artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`,
+      ...formatRecoveryAssets(target.artifactType)
+    ].join(`
+`));
+  }
+  const writtenArtifact = parseYamlDocument(readFileSync7(target.absolutePath, "utf8"), { source: artifactPath });
+  const diagnostics = validateGeneratedArtifact(target.artifactType, writtenArtifact, artifactPath);
+  if (diagnostics.length > 0) {
+    throw new Error(`written ${artifact} artifact is invalid: ${formatDiagnostics(diagnostics)}`);
+  }
+  const identifiers = resolveYamlArtifactIdentifiers(target.artifactType);
+  if (artifact === "tasks") {
+    const readiness = computeTaskListReadiness(writtenArtifact, artifactPath);
+    return {
+      changeName,
+      artifact,
+      artifactPath,
+      replaced,
+      valid: true,
+      diagnostics: readiness,
+      ready: readiness.length === 0,
+      ...identifiers
+    };
+  }
+  return {
+    changeName,
+    artifact,
+    artifactPath,
+    replaced,
+    valid: true,
+    diagnostics: [],
+    ...identifiers
+  };
+}
+function generateChangeArtifactFromInput(rootDir, changeName, artifact, input) {
+  return writeGeneratedArtifact(rootDir, changeName, artifact, input, "command input");
+}
+
 // src/cli/command-metadata-entries.ts
+var TASK_SELECTOR_FLAGS = TASK_SECTION_SELECTORS.map(({ flag, section }) => ({
+  name: `--${flag}`,
+  arity: "boolean",
+  description: `Tasks artifact only: opens one ${section} task group. Takes no value. The following --task, --text, --status, --command, --before, and --after belong to this group until the next selector. Exactly one --task is required per group.`,
+  repeatable: true,
+  repeatSemantics: "Repeat a selector once per task, including another task in the same section; never repeat a task id within one invocation."
+}));
+var TASK_GROUP_GUIDANCE = `For tasks, choose ${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(", ")} (no value) to open each task group, followed by --task <id>; --text is required for a new task and optional for an existing task. Repeat a selector for each additional task. --remove, --validation-task, and --unit-test-task are global and may be used without a selector. Read strict-spec-cli generate --help or --help --json for complete task editing, placement, gate, deletion, and result semantics.`;
 var CHANGE_NAME_ARG = {
   name: "change-name",
   description: "Kebab-case name of the strict change under .strict-spec-driven/changes/.",
@@ -16131,7 +17100,7 @@ var COMMAND_METADATA_ENTRIES = {
     name: "generate",
     group: "generation",
     summary: "Write or merge a change planning artifact from named arguments.",
-    mcpDescription: "Mutates strict workflow state by generating or updating a change planning artifact.",
+    mcpDescription: `Mutates strict workflow state by generating or updating a change planning artifact. ${TASK_GROUP_GUIDANCE}`,
     usage: [
       "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
       "",
@@ -16140,9 +17109,18 @@ var COMMAND_METADATA_ENTRIES = {
       "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>]",
       "  strict-spec-cli generate <change-name> design --delete",
       "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
-      "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
+      `  strict-spec-cli generate <change-name> tasks [(${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(" | ")}) --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete`,
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
-      "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
+      "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
+      "",
+      "Task examples (run in order in a project with strict workflow state; recorded --command values are not executed by generate):",
+      '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the scoped behavior."',
+      '  strict-spec-cli generate example-change tasks --testing --task run-tests --text "Run the project tests." --command "bun test/run.ts"',
+      '  strict-spec-cli generate example-change tasks --verification --task verify-scope --text "Verify the scope."',
+      "  strict-spec-cli generate example-change tasks --validation-task run-tests --unit-test-task run-tests",
+      '  strict-spec-cli generate example-change tasks --implementation --task prerequisite --text "Prepare the prerequisite." --before implement-work --implementation --task follow-up --text "Finish the implementation." --after implement-work',
+      '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the revised scope."',
+      '  strict-spec-cli generate example-change tasks --remove follow-up --verification --task follow-up --text "Review the final result."'
     ].join(`
 `) + `
 `,
@@ -16448,19 +17426,12 @@ var COMMAND_METADATA_ENTRIES = {
         repeatable: true,
         repeatSemantics: "At most once per question group."
       },
-      {
-        name: "--section",
-        arity: "value",
-        valueLabel: "<Implementation|Testing|Verification>",
-        description: "Opens a tasks group; the following --task, --text, --status, --command, --before, and --after belong to it.",
-        repeatable: true,
-        repeatSemantics: "Repeat once per task."
-      },
+      ...TASK_SELECTOR_FLAGS,
       {
         name: "--task",
         arity: "value",
         valueLabel: "<id>",
-        description: "Kebab-case task id, upserted by (section, task id).",
+        description: "Kebab-case task id, required exactly once after a fixed task selector; upserted by (section, task id). Repeat the selector to start another task group.",
         repeatable: true
       },
       {
@@ -16684,6 +17655,7 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error, unsupported argument, or a rejected merge." }
     ],
     notes: [
+      TASK_GROUP_GUIDANCE,
       "The change need not exist yet. The first successful generate call creates the change container and the artifact it authors in one atomic operation, and a rejected or failed call removes every path it created, so a failed first write leaves no change behind and a failed later write leaves the existing change untouched.",
       "A target artifact that does not exist is created from typed defaults merged with the supplied named arguments; no placeholder file is ever written. Creating questions.yaml seeds the requirement-interrogation set open, which is workflow-required state rather than placeholder content.",
       "valid reports write success; ready (tasks only) reports completeness. A ready: false result is a successful write, not a failure, and is resolved by adding the missing tasks rather than by rebuilding the list.",
@@ -18869,8 +19841,8 @@ function buildRootHelpPayload(commandNames) {
 }
 
 // src/cli/output.ts
-function writeJson(result) {
-  process.stdout.write(JSON.stringify(result) + `
+function writeJson(result2) {
+  process.stdout.write(JSON.stringify(result2) + `
 `);
 }
 function writeOut(text) {
@@ -19125,16 +20097,16 @@ function runInit(argv = []) {
     }
     return 1;
   }
-  const result = initializeStrictScaffold(process.cwd());
-  for (const warning of result.warnings) {
+  const result2 = initializeStrictScaffold(process.cwd());
+  for (const warning of result2.warnings) {
     writeErr(`${warning}
 `);
   }
-  writeOut(`Initialized ${result.rootDir}
+  writeOut(`Initialized ${result2.rootDir}
 `);
-  writeOut(`Created ${result.created.length} scaffold file(s).
+  writeOut(`Created ${result2.created.length} scaffold file(s).
 `);
-  writeOut(`Skipped ${result.skipped.length} existing scaffold file(s).
+  writeOut(`Skipped ${result2.skipped.length} existing scaffold file(s).
 `);
   return 0;
 }
@@ -19152,11 +20124,11 @@ function runPropose(argv) {
     return 1;
   }
   try {
-    const result = initializeStrictChangeScaffold(process.cwd(), changeName);
-    writeOut(result.created ? `Created strict change at ${result.changeDir}/
-` : `Reused existing empty strict change at ${result.changeDir}/
+    const result2 = initializeStrictChangeScaffold(process.cwd(), changeName);
+    writeOut(result2.created ? `Created strict change at ${result2.changeDir}/
+` : `Reused existing empty strict change at ${result2.changeDir}/
 `);
-    writeOut(`- ${result.specsDir}
+    writeOut(`- ${result2.specsDir}
 `);
     writeOut(`No planning artifacts were written; author each one with:
 `);
@@ -19173,951 +20145,6 @@ function runPropose(argv) {
 // src/cli/cmd-generation.ts
 import { existsSync as existsSync7, readFileSync as readFileSync8 } from "fs";
 import path7 from "path";
-
-// src/propose-generation.ts
-import { existsSync as existsSync6, readFileSync as readFileSync7 } from "fs";
-import path6 from "path";
-
-// src/yaml-mutation.ts
-import {
-  existsSync as existsSync5,
-  mkdirSync as mkdirSync3,
-  readFileSync as readFileSync6,
-  realpathSync,
-  renameSync as renameSync2,
-  rmSync as rmSync3,
-  rmdirSync,
-  statSync as statSync4,
-  writeFileSync as writeFileSync3
-} from "fs";
-import path5 from "path";
-var nodeFileSystem = {
-  exists: existsSync5,
-  read: (filePath) => readFileSync6(filePath, "utf8"),
-  mkdir: (directoryPath) => mkdirSync3(directoryPath),
-  writeExclusive: (filePath, content) => writeFileSync3(filePath, content, { encoding: "utf8", flag: "wx" }),
-  rename: renameSync2,
-  remove: (filePath) => rmSync3(filePath, { force: true }),
-  removeEmptyDirectory: rmdirSync
-};
-var transactionSequence = 0;
-function toPosix2(value) {
-  return value.split(path5.sep).join("/");
-}
-function isWithin(parentPath, candidatePath) {
-  const relative = path5.relative(parentPath, candidatePath);
-  return relative === "" || !relative.startsWith(`..${path5.sep}`) && relative !== ".." && !path5.isAbsolute(relative);
-}
-function nearestExistingPath(candidatePath) {
-  let cursor = candidatePath;
-  while (!existsSync5(cursor)) {
-    const parent = path5.dirname(cursor);
-    if (parent === cursor)
-      return cursor;
-    cursor = parent;
-  }
-  return cursor;
-}
-function physicalConfinementDiagnostic(rootDir, familyRoot, absolutePath, artifactPath) {
-  try {
-    const realRoot = realpathSync(rootDir);
-    const familyAnchor = nearestExistingPath(familyRoot);
-    const realFamilyAnchor = realpathSync(familyAnchor);
-    if (!isWithin(realRoot, realFamilyAnchor)) {
-      return diagnostic(artifactPath, "planning", "family-root-symlink-escape", "$.familyRoot", "declared artifact-family location resolves outside the repository root");
-    }
-    if (existsSync5(familyRoot) && !statSync4(familyRoot).isDirectory()) {
-      return diagnostic(artifactPath, "planning", "family-root-not-directory", "$.familyRoot", "declared artifact-family location must be a directory");
-    }
-    const realFamilyBoundary = existsSync5(familyRoot) ? realpathSync(familyRoot) : realFamilyAnchor;
-    const targetAnchor = nearestExistingPath(existsSync5(absolutePath) ? absolutePath : path5.dirname(absolutePath));
-    const realTargetAnchor = realpathSync(targetAnchor);
-    if (!isWithin(realFamilyBoundary, realTargetAnchor)) {
-      return diagnostic(artifactPath, "planning", "target-symlink-escape", "$.absolutePath", "mutation target resolves outside its declared repository-owned artifact family");
-    }
-    return null;
-  } catch (error) {
-    return diagnostic(artifactPath, "planning", "path-resolution-failed", "$.absolutePath", "failed to resolve the physical mutation target path", { actual: errorCode(error) });
-  }
-}
-function compareMutations(left, right) {
-  return [left.artifactFamily, left.artifactId, left.artifactPath, left.operation].join("\x00").localeCompare([right.artifactFamily, right.artifactId, right.artifactPath, right.operation].join("\x00"));
-}
-function compareDiagnostics(left, right) {
-  return [left.artifactPath, left.phase, left.code, left.fieldPath, left.message].join("\x00").localeCompare([right.artifactPath, right.phase, right.code, right.fieldPath, right.message].join("\x00"));
-}
-function diagnostic(artifactPath, phase, code, fieldPath, message, details = {}) {
-  return { artifactPath, phase, code, fieldPath, message, ...details };
-}
-function validationDiagnostic(issue, defaultArtifactPath, phase, defaultCode) {
-  return {
-    artifactPath: issue.artifactPath ?? defaultArtifactPath,
-    phase,
-    code: issue.code ?? defaultCode,
-    fieldPath: issue.fieldPath,
-    message: issue.message,
-    ...issue.expected !== undefined ? { expected: issue.expected } : {},
-    ...issue.actual !== undefined ? { actual: issue.actual } : {}
-  };
-}
-function isMeaningfulArtifact(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    return false;
-  return Object.keys(value).length > 0;
-}
-function result(planned, diagnostics, committed, identifiersByArtifactPath = new Map) {
-  return {
-    valid: committed && diagnostics.length === 0,
-    committed,
-    exitStatus: committed && diagnostics.length === 0 ? 0 : 1,
-    changes: [...planned].sort(compareMutations).map((mutation) => ({
-      artifactFamily: mutation.artifactFamily,
-      artifactId: mutation.artifactId,
-      schemaId: mutation.schemaId,
-      artifactPath: mutation.artifactPath,
-      operation: mutation.operation,
-      role: mutation.role,
-      changed: mutation.changed,
-      ...resolveYamlArtifactIdentifiers(mutation.schemaId)
-    })),
-    diagnostics: [...diagnostics].sort(compareDiagnostics).map((entry) => ({
-      ...identifiersByArtifactPath.get(entry.artifactPath),
-      ...entry
-    }))
-  };
-}
-function errorCode(error) {
-  if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
-    return error.code;
-  }
-  return error instanceof Error ? error.name : "unknown-error";
-}
-function createOwnedDirectories(rootDir, directoryPath, fileSystem, createdDirectories) {
-  const missing = [];
-  let cursor = directoryPath;
-  while (cursor !== rootDir && !fileSystem.exists(cursor)) {
-    if (!isWithin(rootDir, cursor)) {
-      throw new Error("directory escaped the repository root");
-    }
-    missing.push(cursor);
-    cursor = path5.dirname(cursor);
-  }
-  for (const missingDirectory of missing.reverse()) {
-    fileSystem.mkdir(missingDirectory);
-    createdDirectories.push(missingDirectory);
-  }
-}
-function removeCreatedDirectories(createdDirectories, fileSystem) {
-  for (const directoryPath of [...createdDirectories].reverse()) {
-    try {
-      fileSystem.removeEmptyDirectory(directoryPath);
-    } catch {}
-  }
-}
-function siblingWorkPath(targetPath, transactionId, index, suffix) {
-  return path5.join(path5.dirname(targetPath), `.${path5.basename(targetPath)}.strict-spec-${transactionId}-${index}.${suffix}`);
-}
-function rollbackEntries(entries, fileSystem, transactionId) {
-  const diagnostics = [];
-  for (const entry of [...entries].reverse()) {
-    const { mutation } = entry;
-    try {
-      if (entry.targetInstalled && fileSystem.exists(mutation.absolutePath)) {
-        fileSystem.remove(mutation.absolutePath);
-      }
-      if (entry.backupCreated && entry.backupPath && fileSystem.exists(entry.backupPath)) {
-        fileSystem.rename(entry.backupPath, mutation.absolutePath);
-      } else if (entry.backupCreated && mutation.previousContent !== null) {
-        const restorePath = siblingWorkPath(mutation.absolutePath, transactionId, 0, "restore");
-        if (fileSystem.exists(restorePath))
-          fileSystem.remove(restorePath);
-        fileSystem.writeExclusive(restorePath, mutation.previousContent);
-        fileSystem.rename(restorePath, mutation.absolutePath);
-      }
-      if (entry.temporaryPath && fileSystem.exists(entry.temporaryPath)) {
-        fileSystem.remove(entry.temporaryPath);
-      }
-    } catch (error) {
-      diagnostics.push(diagnostic(mutation.artifactPath, "rollback", "rollback-failed", "$", "failed to restore the pre-mutation filesystem state", { actual: errorCode(error) }));
-    }
-  }
-  return diagnostics;
-}
-function commitYamlMutation(options) {
-  const fileSystem = options.fileSystem ?? nodeFileSystem;
-  const rootDir = path5.resolve(options.rootDir);
-  const diagnostics = [];
-  const seenPaths = new Set;
-  const planned = [];
-  const transactionId = `${process.pid}-${++transactionSequence}`;
-  const identifiersByArtifactPath = new Map;
-  for (const request of options.mutations) {
-    const identifiers = resolveYamlArtifactIdentifiers(request.schemaId);
-    if (Object.keys(identifiers).length === 0)
-      continue;
-    const artifactPath = toPosix2(path5.relative(rootDir, path5.resolve(request.absolutePath)));
-    identifiersByArtifactPath.set(request.artifactId, identifiers);
-    if (artifactPath)
-      identifiersByArtifactPath.set(artifactPath, identifiers);
-  }
-  if (options.mutations.length === 0) {
-    diagnostics.push(diagnostic("<transaction>", "planning", "empty-transaction", "$.mutations", "a YAML mutation transaction must contain at least one artifact operation"));
-    return result(planned, diagnostics, false, identifiersByArtifactPath);
-  }
-  for (const request of options.mutations) {
-    const familyRoot = path5.resolve(rootDir, request.familyRoot);
-    const absolutePath = path5.resolve(request.absolutePath);
-    const artifactPath = toPosix2(path5.relative(rootDir, absolutePath));
-    const artifactLabel = artifactPath && !artifactPath.startsWith("../") ? artifactPath : request.artifactId;
-    if (!isWithin(rootDir, familyRoot) || !isWithin(familyRoot, absolutePath) || absolutePath === familyRoot) {
-      diagnostics.push(diagnostic(artifactLabel, "planning", "path-outside-family", "$.absolutePath", "mutation target must be a file inside its declared repository-owned artifact family", { expected: toPosix2(path5.relative(rootDir, familyRoot)), actual: artifactPath }));
-      continue;
-    }
-    const confinementDiagnostic = physicalConfinementDiagnostic(rootDir, familyRoot, absolutePath, artifactPath);
-    if (confinementDiagnostic) {
-      diagnostics.push(confinementDiagnostic);
-      continue;
-    }
-    if (seenPaths.has(absolutePath)) {
-      diagnostics.push(diagnostic(artifactPath, "planning", "duplicate-target", "$.absolutePath", "a mutation transaction may name each target path only once"));
-      continue;
-    }
-    seenPaths.add(absolutePath);
-    let exists = false;
-    let previousContent = null;
-    try {
-      exists = fileSystem.exists(absolutePath);
-      previousContent = exists ? fileSystem.read(absolutePath) : null;
-    } catch (error) {
-      diagnostics.push(diagnostic(artifactPath, "planning", "target-read-failed", "$", "failed to read the current YAML artifact before planning its mutation", { actual: errorCode(error) }));
-      continue;
-    }
-    let serializedCandidate;
-    let validatedCandidate = request.candidate;
-    if (request.operation === "create" && exists) {
-      diagnostics.push(diagnostic(artifactPath, "planning", "target-exists", "$", "create requires an absent target"));
-    } else if ((request.operation === "update" || request.operation === "delete") && !exists) {
-      diagnostics.push(diagnostic(artifactPath, "planning", "target-missing", "$", `${request.operation} requires an existing target`));
-    }
-    if (request.content !== undefined && (request.role !== "generated" || request.candidate !== undefined)) {
-      diagnostics.push(diagnostic(artifactPath, "planning", "content-not-generated", "$.content", "pre-serialized content is accepted only for a generated participant carrying no YAML candidate"));
-    } else if (request.operation !== "delete" && request.content !== undefined) {
-      serializedCandidate = request.content;
-    } else if (request.operation !== "delete") {
-      if (!isMeaningfulArtifact(request.candidate)) {
-        diagnostics.push(diagnostic(artifactPath, "validation", "empty-candidate", "$", "create and update require a non-empty YAML mapping candidate"));
-      } else if (!request.validateCandidate) {
-        diagnostics.push(diagnostic(artifactPath, "validation", "missing-candidate-validator", "$", "create and update require complete-candidate schema validation"));
-      } else {
-        try {
-          serializedCandidate = stringifyYamlDocument(request.candidate);
-          const serializedArtifact = parseYamlDocument(serializedCandidate, { source: artifactPath });
-          validatedCandidate = serializedArtifact;
-          for (const issue of request.validateCandidate(serializedArtifact, { artifactPath, schemaId: request.schemaId })) {
-            diagnostics.push(validationDiagnostic(issue, artifactPath, "validation", "candidate-invalid"));
-          }
-        } catch (error) {
-          diagnostics.push(diagnostic(artifactPath, "validation", "candidate-validation-failed", "$", "failed to serialize or validate the complete YAML candidate", { actual: errorCode(error) }));
-        }
-      }
-    } else if (request.candidate !== undefined || request.validateCandidate !== undefined || request.content !== undefined) {
-      diagnostics.push(diagnostic(artifactPath, "planning", "delete-with-edit", "$", "whole-artifact deletion cannot be combined with candidate edits or validation"));
-    }
-    planned.push({
-      artifactFamily: request.artifactFamily,
-      artifactId: request.artifactId,
-      schemaId: request.schemaId,
-      artifactPath,
-      absolutePath,
-      operation: request.operation,
-      role: request.role ?? "artifact",
-      candidate: validatedCandidate,
-      serializedCandidate,
-      previousContent,
-      changed: request.operation === "delete" ? exists : previousContent !== serializedCandidate
-    });
-  }
-  planned.sort(compareMutations);
-  if (diagnostics.length === 0 && options.validateRelationships) {
-    const candidateByIdentity = new Map(planned.map((mutation) => [`${mutation.artifactFamily}\x00${mutation.artifactId}`, mutation.candidate]));
-    try {
-      const relationshipIssues = options.validateRelationships({
-        mutations: planned,
-        getCandidate: (artifactFamily, artifactId) => candidateByIdentity.get(`${artifactFamily}\x00${artifactId}`)
-      });
-      for (const issue of relationshipIssues) {
-        diagnostics.push(validationDiagnostic(issue, "<transaction>", "validation", "relationship-invalid"));
-      }
-    } catch (error) {
-      diagnostics.push(diagnostic("<transaction>", "validation", "relationship-validation-failed", "$.relationships", "failed to validate YAML mutation relationships and side effects", { actual: errorCode(error) }));
-    }
-  }
-  if (diagnostics.length > 0) {
-    return result(planned, diagnostics, false, identifiersByArtifactPath);
-  }
-  const activeMutations = planned.filter((mutation) => mutation.changed);
-  if (activeMutations.length === 0) {
-    return result(planned, [], true, identifiersByArtifactPath);
-  }
-  const createdDirectories = [];
-  const entries = activeMutations.map((mutation) => ({
-    mutation,
-    targetInstalled: false,
-    backupCreated: false
-  }));
-  try {
-    for (const [index, entry] of entries.entries()) {
-      if (entry.mutation.operation === "delete")
-        continue;
-      createOwnedDirectories(rootDir, path5.dirname(entry.mutation.absolutePath), fileSystem, createdDirectories);
-      const temporaryPath = siblingWorkPath(entry.mutation.absolutePath, transactionId, index, "stage");
-      if (fileSystem.exists(temporaryPath))
-        fileSystem.remove(temporaryPath);
-      entry.temporaryPath = temporaryPath;
-      fileSystem.writeExclusive(temporaryPath, entry.mutation.serializedCandidate ?? "");
-    }
-  } catch (error) {
-    diagnostics.push(diagnostic("<transaction>", "staging", "stage-failed", "$", "failed to stage the complete YAML mutation transaction", { actual: errorCode(error) }));
-    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
-    removeCreatedDirectories(createdDirectories, fileSystem);
-    return result(planned, diagnostics, false, identifiersByArtifactPath);
-  }
-  try {
-    for (const [index, entry] of entries.entries()) {
-      const { mutation } = entry;
-      if (mutation.operation === "update" || mutation.operation === "delete") {
-        const backupPath = siblingWorkPath(mutation.absolutePath, transactionId, index, "backup");
-        if (fileSystem.exists(backupPath))
-          fileSystem.remove(backupPath);
-        fileSystem.rename(mutation.absolutePath, backupPath);
-        entry.backupPath = backupPath;
-        entry.backupCreated = true;
-      }
-      if (mutation.operation === "create" || mutation.operation === "update") {
-        fileSystem.rename(entry.temporaryPath ?? "", mutation.absolutePath);
-        entry.targetInstalled = true;
-        entry.temporaryPath = undefined;
-      }
-    }
-  } catch (error) {
-    diagnostics.push(diagnostic("<transaction>", "commit", "commit-failed", "$", "failed to commit the complete YAML mutation transaction", { actual: errorCode(error) }));
-    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
-    removeCreatedDirectories(createdDirectories, fileSystem);
-    return result(planned, diagnostics, false, identifiersByArtifactPath);
-  }
-  try {
-    for (const entry of entries) {
-      if (entry.backupPath && fileSystem.exists(entry.backupPath)) {
-        fileSystem.remove(entry.backupPath);
-      }
-    }
-  } catch (error) {
-    diagnostics.push(diagnostic("<transaction>", "commit", "cleanup-failed", "$", "failed to remove transaction backups after commit", { actual: errorCode(error) }));
-    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
-    removeCreatedDirectories(createdDirectories, fileSystem);
-    return result(planned, diagnostics, false, identifiersByArtifactPath);
-  }
-  return result(planned, [], true, identifiersByArtifactPath);
-}
-
-// src/propose-generation.ts
-var STRICT_WORKFLOW_DIR2 = ".strict-spec-driven";
-var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks", "delta-spec", "delta-tech"];
-var TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"];
-var TASK_STATUS_VALUES = ["pending", "complete"];
-function normalizeRepoRelativePath(rootDir, absolutePath) {
-  return path6.relative(rootDir, absolutePath).split(path6.sep).join("/");
-}
-function isRecord(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-function asRecord2(value, fieldPath) {
-  if (!isRecord(value)) {
-    throw new Error(`input field '${fieldPath}' must be an object`);
-  }
-  return value;
-}
-function asOptionalRecord(value, fieldPath) {
-  if (value === undefined)
-    return;
-  return asRecord2(value, fieldPath);
-}
-function asString2(value, fieldPath) {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`input field '${fieldPath}' must be a non-empty string`);
-  }
-  return value;
-}
-function asOptionalString(value, fieldPath) {
-  if (value === undefined)
-    return;
-  return asString2(value, fieldPath);
-}
-function asStringArray2(value, fieldPath, options = {}) {
-  if (!Array.isArray(value)) {
-    throw new Error(`input field '${fieldPath}' must be an array of strings`);
-  }
-  if (options.minItems !== undefined && value.length < options.minItems) {
-    throw new Error(`input field '${fieldPath}' must contain at least ${options.minItems} item(s)`);
-  }
-  return value.map((item, index) => asString2(item, `${fieldPath}[${index}]`));
-}
-function asOptionalStringArray(value, fieldPath) {
-  if (value === undefined)
-    return;
-  return asStringArray2(value, fieldPath);
-}
-function validateGeneratedArtifact(artifactType, artifact, artifactPath) {
-  const schema2 = loadBundledSchemaByArtifactType(artifactType);
-  const result2 = validateArtifact(schema2, artifact, artifactPath);
-  return result2.diagnostics;
-}
-function formatDiagnostics(diagnostics) {
-  return diagnostics.map((diagnostic2) => `${diagnostic2.artifactPath} ${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
-}
-function mapGeneratedFieldToInputField(artifact, fieldPath) {
-  if (fieldPath === "$")
-    return "$";
-  const directPrefixes = {
-    proposal: ["$.summary", "$.scope", "$.unchanged_behavior", "$.roadmap"],
-    design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
-    questions: ["$.open", "$.resolved"],
-    tasks: ["$.sections", "$.testing_gates"],
-    "delta-spec": ["$.target_spec", "$.operations"],
-    "delta-tech": ["$.target_standard", "$.standard", "$.operations"]
-  };
-  for (const prefix of directPrefixes[artifact]) {
-    if (fieldPath === prefix || fieldPath.startsWith(`${prefix}.`) || fieldPath.startsWith(`${prefix}[`)) {
-      return fieldPath;
-    }
-  }
-  if (artifact === "proposal") {
-    if (fieldPath === "$.change.status")
-      return "$.status";
-    if (fieldPath === "$.change.id")
-      return "<change-name>";
-  }
-  if (artifact === "design" || artifact === "questions" || artifact === "tasks") {
-    if (fieldPath === "$.change")
-      return "<change-name>";
-  }
-  if (artifact === "questions") {
-    const openStatusMatch = fieldPath.match(/^\$\.open\[(\d+)\]\.status$/);
-    if (openStatusMatch)
-      return `$.open[${openStatusMatch[1]}]`;
-    const resolvedStatusMatch = fieldPath.match(/^\$\.resolved\[(\d+)\]\.status$/);
-    if (resolvedStatusMatch)
-      return `$.resolved[${resolvedStatusMatch[1]}]`;
-  }
-  if ((artifact === "delta-spec" || artifact === "delta-tech") && fieldPath === "$.schema_file") {
-    return "<generated schema_file>";
-  }
-  if (fieldPath === "$.schema" || fieldPath === "$.schema_version" || fieldPath === "$.artifact_type" || fieldPath === "$.schema_file") {
-    return `<generated ${fieldPath.slice(2)}>`;
-  }
-  return fieldPath;
-}
-function formatRecoveryAssets(artifactType) {
-  const identifiers = resolveYamlArtifactIdentifiers(artifactType);
-  if (identifiers.schemaKey === undefined)
-    return [];
-  const inspect = [
-    `schema-show ${path6.posix.basename(identifiers.schemaKey, ".yaml")}`,
-    ...identifiers.exampleKey === undefined ? [] : [`sample-show ${path6.posix.basename(identifiers.exampleKey, ".yaml")}`]
-  ];
-  return [
-    `Artifact kind ${identifiers.artifactKind ?? artifactType}; schema ${identifiers.schemaKey}${identifiers.schemaFilePath === undefined ? "" : ` (cached at ${identifiers.schemaFilePath})`}.`,
-    `Inspect the contract with: ${inspect.join(", ")}`
-  ];
-}
-function formatGenerationDiagnostics(artifact, inputLabel, diagnostics, artifactType) {
-  const lines = diagnostics.map((diagnostic2) => {
-    const inputField = mapGeneratedFieldToInputField(artifact, diagnostic2.fieldPath);
-    const details = [
-      diagnostic2.message,
-      diagnostic2.expected ? `expected ${diagnostic2.expected}` : undefined,
-      diagnostic2.actual ? `actual ${diagnostic2.actual}` : undefined,
-      `generated field ${diagnostic2.fieldPath}`
-    ].filter((value) => Boolean(value));
-    return `- ${inputField}: ${details.join("; ")}`;
-  });
-  return [
-    `${inputLabel} is invalid for ${artifact}; fix these field(s):`,
-    ...lines,
-    ...formatRecoveryAssets(artifactType)
-  ].join(`
-`);
-}
-function buildProposalArtifact(changeName, input) {
-  const summary = asRecord2(input.summary, "$.summary");
-  const scope = asRecord2(input.scope, "$.scope");
-  const status = asOptionalString(input.status, "$.status") ?? "proposed";
-  const artifact = {
-    schema: "strict-spec-driven/change-proposal/v1",
-    schema_version: 1,
-    artifact_type: "change_proposal",
-    schema_file: "templates/strict-spec-driven/schemas/change-proposal.yaml",
-    change: {
-      id: changeName,
-      status
-    },
-    summary: {
-      what: asStringArray2(summary.what, "$.summary.what", { minItems: 1 }),
-      why: asStringArray2(summary.why, "$.summary.why", { minItems: 1 })
-    },
-    scope: {
-      in: asStringArray2(scope.in, "$.scope.in"),
-      out: asStringArray2(scope.out, "$.scope.out")
-    },
-    unchanged_behavior: asStringArray2(input.unchanged_behavior, "$.unchanged_behavior")
-  };
-  const roadmap = asOptionalRecord(input.roadmap, "$.roadmap");
-  if (roadmap) {
-    artifact.roadmap = {
-      milestone: asString2(roadmap.milestone, "$.roadmap.milestone"),
-      planned_change: asString2(roadmap.planned_change, "$.roadmap.planned_change")
-    };
-  }
-  return artifact;
-}
-function buildDesignArtifact(changeName, input) {
-  const decisions = asRecord2(input.decisions, "$.decisions");
-  for (const [decisionId, decision] of Object.entries(decisions)) {
-    const decisionRecord = asRecord2(decision, `$.decisions.${decisionId}`);
-    decisions[decisionId] = {
-      decision: asString2(decisionRecord.decision, `$.decisions.${decisionId}.decision`),
-      rationale: asString2(decisionRecord.rationale, `$.decisions.${decisionId}.rationale`)
-    };
-  }
-  const alternativesInput = input.alternatives;
-  if (!Array.isArray(alternativesInput)) {
-    throw new Error("input field '$.alternatives' must be an array");
-  }
-  const alternatives = alternativesInput.map((alternative, index) => {
-    const record = asRecord2(alternative, `$.alternatives[${index}]`);
-    return {
-      option: asString2(record.option, `$.alternatives[${index}].option`),
-      reason: asString2(record.reason, `$.alternatives[${index}].reason`)
-    };
-  });
-  return {
-    schema: "strict-spec-driven/change-design/v1",
-    schema_version: 1,
-    artifact_type: "change_design",
-    schema_file: "templates/strict-spec-driven/schemas/change-design.yaml",
-    change: changeName,
-    approach: asStringArray2(input.approach, "$.approach", { minItems: 1 }),
-    decisions,
-    alternatives,
-    risks: asOptionalStringArray(input.risks, "$.risks") ?? []
-  };
-}
-var QUESTION_KIND_VALUES = new Set(["requirement", "technical"]);
-var ANSWERED_BY_VALUES = new Set(["human", "roadmap", "assumption"]);
-function applyQuestionAttribution(target, record, fieldPath) {
-  if (record.kind !== undefined) {
-    const kind = asString2(record.kind, `${fieldPath}.kind`);
-    if (!QUESTION_KIND_VALUES.has(kind)) {
-      throw new Error(`input field '${fieldPath}.kind' must be one of: requirement, technical`);
-    }
-    target.kind = kind;
-  }
-  if (record.answered_by !== undefined) {
-    const answeredBy = asString2(record.answered_by, `${fieldPath}.answered_by`);
-    if (!ANSWERED_BY_VALUES.has(answeredBy)) {
-      throw new Error(`input field '${fieldPath}.answered_by' must be one of: human, roadmap, assumption`);
-    }
-    target.answered_by = answeredBy;
-  }
-  return target;
-}
-function normalizeOpenQuestion(question, index) {
-  const record = asRecord2(question, `$.open[${index}]`);
-  return applyQuestionAttribution({
-    id: asString2(record.id, `$.open[${index}].id`),
-    question: asString2(record.question, `$.open[${index}].question`),
-    context: asString2(record.context, `$.open[${index}].context`),
-    status: "open"
-  }, record, `$.open[${index}]`);
-}
-function normalizeResolvedQuestion(question, index) {
-  const record = asRecord2(question, `$.resolved[${index}]`);
-  return applyQuestionAttribution({
-    id: asString2(record.id, `$.resolved[${index}].id`),
-    question: asString2(record.question, `$.resolved[${index}].question`),
-    context: asString2(record.context, `$.resolved[${index}].context`),
-    answer: asString2(record.answer, `$.resolved[${index}].answer`),
-    status: "resolved"
-  }, record, `$.resolved[${index}]`);
-}
-function buildQuestionsArtifact(changeName, input) {
-  const open = input.open ?? [];
-  const resolved = input.resolved ?? [];
-  if (!Array.isArray(open)) {
-    throw new Error("input field '$.open' must be an array");
-  }
-  if (!Array.isArray(resolved)) {
-    throw new Error("input field '$.resolved' must be an array");
-  }
-  return {
-    schema: "strict-spec-driven/question-list/v1",
-    schema_version: 1,
-    artifact_type: "question_list",
-    schema_file: "templates/strict-spec-driven/schemas/question-list.yaml",
-    change: changeName,
-    open: open.map(normalizeOpenQuestion),
-    resolved: resolved.map(normalizeResolvedQuestion)
-  };
-}
-function normalizeTaskRecord(task, fieldPath) {
-  const record = asRecord2(task, fieldPath);
-  const status = asOptionalString(record.status, `${fieldPath}.status`) ?? "pending";
-  if (!TASK_STATUS_VALUES.includes(status)) {
-    throw new Error(`input field '${fieldPath}.status' must be one of: ${TASK_STATUS_VALUES.join(", ")}`);
-  }
-  const normalized = {
-    text: asString2(record.text, `${fieldPath}.text`),
-    status
-  };
-  const command = asOptionalString(record.command, `${fieldPath}.command`);
-  if (command !== undefined) {
-    normalized.command = command;
-  }
-  return normalized;
-}
-function buildTaskListArtifact(changeName, input) {
-  const sectionsInput = asRecord2(input.sections, "$.sections");
-  const gatesInput = asRecord2(input.testing_gates, "$.testing_gates");
-  const sections = {};
-  for (const sectionName of TASK_SECTION_NAMES) {
-    const sectionInput = sectionsInput[sectionName];
-    if (sectionInput === undefined)
-      continue;
-    const sectionRecord = asRecord2(sectionInput, `$.sections.${sectionName}`);
-    const taskEntries = Object.entries(sectionRecord);
-    if (taskEntries.length === 0)
-      continue;
-    const sectionTasks = {};
-    for (const [taskId, task] of taskEntries) {
-      sectionTasks[taskId] = normalizeTaskRecord(task, `$.sections.${sectionName}.${taskId}`);
-    }
-    sections[sectionName] = sectionTasks;
-  }
-  const unknownSections = Object.keys(sectionsInput).filter((name) => !TASK_SECTION_NAMES.includes(name));
-  if (unknownSections.length > 0) {
-    throw new Error(`input field '$.sections' has unknown section(s): ${unknownSections.join(", ")}`);
-  }
-  return {
-    schema: "strict-spec-driven/task-list/v2",
-    schema_version: 2,
-    artifact_type: "task_list",
-    schema_file: "templates/strict-spec-driven/schemas/task-list.yaml",
-    change: changeName,
-    sections,
-    testing_gates: {
-      validation_task: asGateReference(gatesInput.validation_task, "$.testing_gates.validation_task"),
-      unit_test_task: asGateReference(gatesInput.unit_test_task, "$.testing_gates.unit_test_task")
-    }
-  };
-}
-function asGateReference(value, fieldPath) {
-  if (typeof value !== "string") {
-    throw new Error(`input field '${fieldPath}' must be a string`);
-  }
-  return value;
-}
-function computeTaskListReadiness(artifact, artifactPath) {
-  const shape = isRecord(artifact) ? artifact : {};
-  const sections = shape.sections ?? {};
-  const testingTaskIds = Object.keys(sections.Testing ?? {});
-  const diagnostics = [];
-  for (const sectionName of TASK_SECTION_NAMES) {
-    if (Object.keys(sections[sectionName] ?? {}).length === 0) {
-      diagnostics.push({
-        source: "reference",
-        artifactPath,
-        fieldPath: `$.sections.${sectionName}`,
-        message: `task list has no ${sectionName} task yet; add at least one before verify`
-      });
-    }
-  }
-  for (const gate of ["validation_task", "unit_test_task"]) {
-    const reference = shape.testing_gates?.[gate];
-    if (typeof reference !== "string" || reference.length === 0) {
-      diagnostics.push({
-        source: "reference",
-        artifactPath,
-        fieldPath: `$.testing_gates.${gate}`,
-        message: `testing gate '${gate}' is not set yet; set it with --${gate.replaceAll("_", "-")}`
-      });
-      continue;
-    }
-    if (!testingTaskIds.includes(reference)) {
-      diagnostics.push({
-        source: "reference",
-        artifactPath,
-        fieldPath: `$.testing_gates.${gate}`,
-        message: `testing gate '${gate}' references '${reference}', which is not a task in the Testing section`
-      });
-    }
-  }
-  return diagnostics;
-}
-function normalizeDeltaSpecRelativePath(relativePath) {
-  let normalized = relativePath.replaceAll("\\", "/");
-  const strictSpecsPrefix = `${STRICT_WORKFLOW_DIR2}/specs/`;
-  if (normalized.startsWith(strictSpecsPrefix)) {
-    normalized = normalized.slice(strictSpecsPrefix.length);
-  }
-  if (path6.isAbsolute(normalized)) {
-    throw new Error("input field '$.spec_path' must be relative to the strict specs directory");
-  }
-  const parts = normalized.split("/");
-  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path6.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
-    throw new Error("input field '$.spec_path' must be a normalized YAML path under the strict specs directory");
-  }
-  return normalized;
-}
-function readSpecIndexPathForTarget(rootDir, targetSpec) {
-  const indexPath = path6.join(rootDir, STRICT_WORKFLOW_DIR2, "specs", "INDEX.yaml");
-  if (!existsSync6(indexPath))
-    return;
-  const index = parseYamlDocument(readFileSync7(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
-  const match = (index.specs ?? []).find((candidate) => candidate.id === targetSpec);
-  return typeof match?.path === "string" ? match.path : undefined;
-}
-function resolveDeltaSpecRelativePath(rootDir, targetSpec, input) {
-  const explicitPath = asOptionalString(input.spec_path, "$.spec_path");
-  if (explicitPath) {
-    return normalizeDeltaSpecRelativePath(explicitPath);
-  }
-  const indexedPath = readSpecIndexPathForTarget(rootDir, targetSpec);
-  if (indexedPath) {
-    return normalizeDeltaSpecRelativePath(indexedPath);
-  }
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(targetSpec)) {
-    throw new Error("input field '$.spec_path' is required when target_spec is not a kebab-case spec id");
-  }
-  return `${targetSpec}.yaml`;
-}
-function buildDeltaSpecArtifact(rootDir, input) {
-  const targetSpec = asString2(input.target_spec, "$.target_spec");
-  const operations = asRecord2(input.operations ?? {}, "$.operations");
-  const relativePath = resolveDeltaSpecRelativePath(rootDir, targetSpec, input);
-  const specBlock = asOptionalRecord(input.spec, "$.spec");
-  const artifact = {
-    schema: "strict-spec-driven/delta-spec/v1",
-    schema_version: 1,
-    artifact_type: "delta_spec",
-    schema_file: "templates/strict-spec-driven/schemas/delta-spec.yaml",
-    target_spec: targetSpec
-  };
-  if (specBlock) {
-    artifact.spec = {
-      title: asString2(specBlock.title, "$.spec.title"),
-      path: asString2(specBlock.path, "$.spec.path")
-    };
-  }
-  artifact.operations = {
-    ADDED: asRecord2(operations.ADDED ?? {}, "$.operations.ADDED"),
-    MODIFIED: asRecord2(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
-    REMOVED: asRecord2(operations.REMOVED ?? {}, "$.operations.REMOVED")
-  };
-  return { relativePath, artifact };
-}
-function normalizeDeltaTechRelativePath(relativePath) {
-  let normalized = relativePath.replaceAll("\\", "/");
-  const strictTechPrefix = `${STRICT_WORKFLOW_DIR2}/tech/`;
-  if (normalized.startsWith(strictTechPrefix)) {
-    normalized = normalized.slice(strictTechPrefix.length);
-  }
-  if (path6.isAbsolute(normalized)) {
-    throw new Error("input field '$.tech_path' must be relative to the strict tech directory");
-  }
-  const parts = normalized.split("/");
-  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path6.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
-    throw new Error("input field '$.tech_path' must be a normalized YAML path under the strict tech directory");
-  }
-  return normalized;
-}
-function readTechIndexPathForTarget(rootDir, targetStandard) {
-  const indexPath = path6.join(rootDir, STRICT_WORKFLOW_DIR2, "tech", "INDEX.yaml");
-  if (!existsSync6(indexPath))
-    return;
-  const index = parseYamlDocument(readFileSync7(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
-  const match = (index.standards ?? []).find((candidate) => candidate.id === targetStandard);
-  return typeof match?.path === "string" ? match.path : undefined;
-}
-function resolveDeltaTechRelativePath(rootDir, targetStandard, input) {
-  const explicitPath = asOptionalString(input.tech_path, "$.tech_path");
-  if (explicitPath) {
-    return normalizeDeltaTechRelativePath(explicitPath);
-  }
-  const indexedPath = readTechIndexPathForTarget(rootDir, targetStandard);
-  if (indexedPath) {
-    return normalizeDeltaTechRelativePath(indexedPath);
-  }
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(targetStandard)) {
-    throw new Error("input field '$.tech_path' is required when target_standard is not a kebab-case standard id");
-  }
-  return `${targetStandard}.yaml`;
-}
-function buildDeltaTechArtifact(rootDir, input) {
-  const targetStandard = asString2(input.target_standard, "$.target_standard");
-  const operations = asRecord2(input.operations ?? {}, "$.operations");
-  const relativePath = resolveDeltaTechRelativePath(rootDir, targetStandard, input);
-  const standardBlock = asOptionalRecord(input.standard, "$.standard");
-  const artifact = {
-    schema: "strict-spec-driven/delta-tech/v1",
-    schema_version: 1,
-    artifact_type: "delta_tech",
-    schema_file: "templates/strict-spec-driven/schemas/delta-tech.yaml",
-    target_standard: targetStandard
-  };
-  if (standardBlock) {
-    artifact.standard = {
-      title: asString2(standardBlock.title, "$.standard.title"),
-      category: asString2(standardBlock.category, "$.standard.category")
-    };
-  }
-  artifact.operations = {
-    ADDED: asRecord2(operations.ADDED ?? {}, "$.operations.ADDED"),
-    MODIFIED: asRecord2(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
-    REMOVED: asRecord2(operations.REMOVED ?? {}, "$.operations.REMOVED")
-  };
-  return { relativePath, artifact };
-}
-function buildTarget(rootDir, changeDir, changeName, artifact, input) {
-  switch (artifact) {
-    case "proposal":
-      return {
-        artifact: buildProposalArtifact(changeName, input),
-        artifactType: "change_proposal",
-        absolutePath: path6.join(changeDir, "proposal.yaml")
-      };
-    case "design":
-      return {
-        artifact: buildDesignArtifact(changeName, input),
-        artifactType: "change_design",
-        absolutePath: path6.join(changeDir, "design.yaml")
-      };
-    case "questions":
-      return {
-        artifact: buildQuestionsArtifact(changeName, input),
-        artifactType: "question_list",
-        absolutePath: path6.join(changeDir, "questions.yaml")
-      };
-    case "tasks":
-      return {
-        artifact: buildTaskListArtifact(changeName, input),
-        artifactType: "task_list",
-        absolutePath: path6.join(changeDir, "tasks.yaml")
-      };
-    case "delta-spec": {
-      const deltaSpec = buildDeltaSpecArtifact(rootDir, input);
-      return {
-        artifact: deltaSpec.artifact,
-        artifactType: "delta_spec",
-        absolutePath: path6.join(changeDir, "specs", deltaSpec.relativePath)
-      };
-    }
-    case "delta-tech": {
-      const deltaTech = buildDeltaTechArtifact(rootDir, input);
-      return {
-        artifact: deltaTech.artifact,
-        artifactType: "delta_tech",
-        absolutePath: path6.join(changeDir, "tech", deltaTech.relativePath)
-      };
-    }
-  }
-}
-function isGeneratableArtifact(value) {
-  return GENERATABLE_ARTIFACTS.includes(value);
-}
-function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel) {
-  const reservation = reserveChangeContainer(rootDir, changeName);
-  try {
-    return writeGeneratedArtifactIntoContainer(rootDir, reservation.changeDir, changeName, artifact, input, inputLabel);
-  } catch (error) {
-    unwindChangeContainer(reservation);
-    throw error;
-  }
-}
-function writeGeneratedArtifactIntoContainer(rootDir, changeDir, changeName, artifact, input, inputLabel) {
-  const target = buildTarget(rootDir, changeDir, changeName, artifact, input);
-  const artifactPath = normalizeRepoRelativePath(rootDir, target.absolutePath);
-  const replaced = existsSync6(target.absolutePath);
-  if (!replaced && (artifact === "delta-spec" || artifact === "delta-tech")) {
-    const candidate = asRecord2(target.artifact, "$generated");
-    const operations = asRecord2(candidate.operations ?? {}, "$generated.operations");
-    const operationEntries = Object.values(operations).flatMap((value) => isRecord(value) ? Object.keys(value) : []);
-    const definesTarget = artifact === "delta-spec" ? candidate.spec !== undefined : candidate.standard !== undefined;
-    if (!definesTarget && operationEntries.length === 0) {
-      throw new Error(`new ${artifact} artifacts require an operation or new-target metadata; named removals cannot create an empty artifact`);
-    }
-  }
-  const preWriteDiagnostics = validateGeneratedArtifact(target.artifactType, target.artifact, artifactPath);
-  if (preWriteDiagnostics.length > 0) {
-    throw new Error(formatGenerationDiagnostics(artifact, inputLabel, preWriteDiagnostics, target.artifactType));
-  }
-  const mutation = commitYamlMutation({
-    rootDir,
-    mutations: [{
-      artifactFamily: "strict-change",
-      artifactId: `${changeName}/${artifact}`,
-      schemaId: target.artifactType,
-      familyRoot: changeDir,
-      absolutePath: target.absolutePath,
-      operation: replaced ? "update" : "create",
-      candidate: target.artifact,
-      validateCandidate: (candidate, context) => validateGeneratedArtifact(target.artifactType, candidate, context.artifactPath).map((entry) => ({
-        code: entry.source,
-        fieldPath: entry.fieldPath,
-        message: entry.message,
-        expected: entry.expected,
-        actual: entry.actual
-      }))
-    }]
-  });
-  if (!mutation.valid) {
-    throw new Error([
-      `failed to write ${artifact} artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`,
-      ...formatRecoveryAssets(target.artifactType)
-    ].join(`
-`));
-  }
-  const writtenArtifact = parseYamlDocument(readFileSync7(target.absolutePath, "utf8"), { source: artifactPath });
-  const diagnostics = validateGeneratedArtifact(target.artifactType, writtenArtifact, artifactPath);
-  if (diagnostics.length > 0) {
-    throw new Error(`written ${artifact} artifact is invalid: ${formatDiagnostics(diagnostics)}`);
-  }
-  const identifiers = resolveYamlArtifactIdentifiers(target.artifactType);
-  if (artifact === "tasks") {
-    const readiness = computeTaskListReadiness(writtenArtifact, artifactPath);
-    return {
-      changeName,
-      artifact,
-      artifactPath,
-      replaced,
-      valid: true,
-      diagnostics: readiness,
-      ready: readiness.length === 0,
-      ...identifiers
-    };
-  }
-  return {
-    changeName,
-    artifact,
-    artifactPath,
-    replaced,
-    valid: true,
-    diagnostics: [],
-    ...identifiers
-  };
-}
-function generateChangeArtifactFromInput(rootDir, changeName, artifact, input) {
-  return writeGeneratedArtifact(rootDir, changeName, artifact, input, "command input");
-}
 
 // src/requirement-questions.ts
 var CANONICAL_REQUIREMENT_QUESTIONS = [
@@ -20166,19 +20193,7 @@ function buildSeededRequirementQuestions() {
 var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
 var BOOLEAN_FLAGS = new Set(["delete"]);
 function usage() {
-  return [
-    "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
-    "",
-    "Examples:",
-    "  strict-spec-cli generate <change-name> proposal [--what <text>] [--why <text>] [--in <text>] [--out <text>] [--unchanged <text>] [--remove-what <substring>] [--remove-why <substring>] [--remove-in <substring>] [--remove-out <substring>] [--remove-unchanged <substring>]",
-    "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>] | --delete",
-    "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]... [--remove-question <id>]",
-    "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
-    "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]... [--remove-requirement <id>] [--remove-scenario <requirement-id>:<scenario-id>] | --target-spec <id> --delete",
-    "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]... [--remove-rule <id>] | --target-standard <id> --delete"
-  ].join(`
-`) + `
-`;
+  return getCommandUsage("generate");
 }
 function parseFlagMap(argv, rootDir) {
   const flags = {};
@@ -20660,12 +20675,13 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
   return input;
 }
 var TASK_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-function parseTaskCommandInput(argv, rootDir) {
+function parseTaskCommandInput(argv, rootDir, changeName) {
   const input = { removals: [], groups: [] };
   let current;
+  const selectors = TASK_SECTION_SELECTORS.map(({ flag }) => `--${flag}`).join(", ");
   function setField(field, value, flagName) {
     if (!current) {
-      throw new Error("missing required argument --section before --" + flagName);
+      throw new Error(`start a task group with one of ${selectors} before --${flagName}; see strict-spec-cli generate --help`);
     }
     if (current[field] !== undefined) {
       throw new Error(`--${flagName} may only be supplied once per task`);
@@ -20680,10 +20696,10 @@ function parseTaskCommandInput(argv, rootDir) {
     const rawName = token.slice(2);
     const equalsAt = rawName.indexOf("=");
     const name = equalsAt === -1 ? rawName : rawName.slice(0, equalsAt);
-    const inlineValue = equalsAt === -1 ? undefined : resolveStringValue(rawName.slice(equalsAt + 1), rootDir);
+    const inlineValue = equalsAt === -1 ? undefined : rawName.slice(equalsAt + 1);
     const readValue = () => {
       if (inlineValue !== undefined)
-        return inlineValue;
+        return resolveStringValue(inlineValue, rootDir);
       const value = argv[index + 1];
       if (value === undefined || value.startsWith("--")) {
         throw new Error(`missing value for --${name}`);
@@ -20692,7 +20708,14 @@ function parseTaskCommandInput(argv, rootDir) {
       return resolveStringValue(value, rootDir);
     };
     if (name === "section") {
-      current = { section: readValue() };
+      throw new Error(`--section was removed; use one of ${selectors} (no value). To write .strict-spec-driven/changes/${changeName}/tasks.yaml, for example: strict-spec-cli generate ${changeName} tasks --${TASK_SECTION_SELECTORS[0].flag} --task implement-work --text "Implement the scoped behavior."; see strict-spec-cli generate --help`);
+    }
+    const selector = TASK_SECTION_SELECTORS.find(({ flag }) => flag === name);
+    if (selector) {
+      if (inlineValue !== undefined || argv[index + 1] !== undefined && !argv[index + 1].startsWith("--")) {
+        throw new Error(`--${name} takes no value; follow it with --task <id>; see strict-spec-cli generate --help`);
+      }
+      current = { section: selector.section };
       input.groups.push(current);
       continue;
     }
@@ -20792,7 +20815,7 @@ function placeTaskInSection(sectionTasks, taskId, anchorId, side) {
   return reordered;
 }
 function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
-  const commandInput = parseTaskCommandInput(argv, rootDir);
+  const commandInput = parseTaskCommandInput(argv, rootDir, changeName);
   const input = existingTaskListInput(rootDir, changeName);
   const sections = isRecord2(input.sections) ? input.sections : {};
   const gates = isRecord2(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
@@ -20808,9 +20831,6 @@ function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
   }
   const seenThisInvocation = new Set;
   for (const group of commandInput.groups) {
-    if (!TASK_SECTION_NAMES.includes(group.section)) {
-      throw new Error(`unknown section '${group.section}'; expected one of: ${TASK_SECTION_NAMES.join(", ")}`);
-    }
     if (!group.id)
       throw new Error(`missing required argument --task for section '${group.section}'`);
     if (!TASK_ID_PATTERN.test(group.id)) {
@@ -33693,7 +33713,7 @@ var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
 var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
 var COMMAND_PREFIX = "strict-spec-cli";
 var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
-var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;
+var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>`;
 var READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
 var NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
 var CHECK_WORKFLOW_STATE_COMMAND = `${COMMAND_PREFIX} check-workflow-state`;
@@ -33792,7 +33812,7 @@ var STRICT_WORKFLOW_SHARED_ELEMENTS = [
 ];
 var TASK_GENERATOR_PATTERNS = [
   /generate\s+<change(?:-name)?>\s+tasks/,
-  /tasks\s+--section\s+</
+  /tasks\s+--(?:implementation|testing|verification)\b/
 ];
 var TASK_SECTION_NAMES_IN_PROSE = ["Implementation", "Testing", "Verification"];
 function directsTaskListAuthoring(content) {

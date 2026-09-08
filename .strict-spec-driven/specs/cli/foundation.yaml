@@ -3001,3 +3001,55 @@ requirements:
         - GIVEN: the uninstall path completes with a success exit status
         - WHEN: the installed skills are inspected afterwards
         - THEN: no packaged or retired skill from this repository is still installed
+  cli-tasks-use-fixed-section-selectors:
+    strength: MUST
+    statement: The generate tasks command MUST select task groups using only the valueless --implementation, --testing, and --verification flags, mapping respectively to the existing Implementation, Testing, and Verification sections. Each selector opens one task group containing exactly one --task; subsequent task fields belong to that group, and repeating a selector starts another group. The command MUST preserve existing task-list/v2 storage, non-destructive updates, ordering and placement, removal and cross-section moves, testing gates, deletion protections, and valid/ready result semantics. Invalid selector or group syntax MUST fail without creating or changing an artifact.
+    scenarios:
+      each-selector-authors-its-fixed-section:
+        - GIVEN: A change exists and task ids are new.
+        - WHEN: The caller separately supplies each fixed selector with --task and --text.
+        - THEN: Each call writes its task only under the corresponding canonical section, without storing a caller-defined section or requiring a section-name value.
+      repeated-selectors-open-distinct-groups:
+        - GIVEN: A change exists.
+        - WHEN: A call supplies --implementation --task impl-a --text A, then --implementation --task impl-b --text B, then --testing --task test-a --text T.
+        - THEN: The two implementation tasks retain their supplied order and the testing task is recorded under Testing; task fields do not leak between groups.
+      invalid-group-syntax-is-atomic:
+        - GIVEN: A task artifact exists, or the change has no task artifact yet.
+        - WHEN: A call supplies a selector value such as --testing=true, an unsupported selector, task fields before any selector, a group without --task, or duplicate fields within one group, including after an otherwise valid group.
+        - THEN: The command exits non-zero with actionable syntax diagnostics, leaves existing files unchanged, and leaves an absent target absent.
+      fixed-selectors-preserve-existing-task-operations:
+        - GIVEN: A task list has complete and pending tasks, commands, and testing gates.
+        - WHEN: Calls use the fixed selectors for text-only updates and same-section placement, use --remove followed by a fixed selector to move a task, and perform gate-only edits or protected deletion requests.
+        - THEN: Existing field preservation, anchor rules and apply order, removal-before-upsert behavior, gate references and validation, deletion protections, and valid/ready output meaning remain unchanged.
+  cli-tasks-reject-retired-section-argument:
+    strength: MUST
+    statement: The generate tasks command MUST reject the retired --section argument in both separate-value and inline-value forms, with no compatibility alias or implicit conversion. Its diagnostic MUST name the three supported fixed selectors and show a replacement invocation for the addressed change. Rejection MUST leave all pre-existing files unchanged and MUST NOT create a missing task artifact.
+    scenarios:
+      legacy-separate-and-inline-values-are-rejected:
+        - GIVEN: A caller has an old invocation using --section Implementation or --section=Testing.
+        - WHEN: The caller runs that invocation for a named change.
+        - THEN: The command exits non-zero, names --implementation, --testing, and --verification, and shows a replacement command for that change without writing tasks.yaml.
+      mixed-legacy-and-new-groups-do-not-partially-write:
+        - GIVEN: A change has an existing task list or no task artifact.
+        - WHEN: A call combines a valid fixed-selector group with a --section group.
+        - THEN: The entire call fails with the legacy replacement diagnostic, leaving the existing task list byte-identical or the absent target absent.
+  cli-task-authoring-guidance-explains-fixed-selectors:
+    strength: MUST
+    statement: Task-authoring text help, machine-readable help, MCP capability descriptions, and bundled skill guidance MUST consistently teach the fixed selectors and MUST NOT advertise --section as supported. Help MUST explain selector arity and repetition, task-group field ownership, required versus optional task fields, field-preserving updates, inline values, placement, removal and cross-section moves, testing gates including gate-only calls, whole-artifact deletion protections, and valid versus ready. It MUST provide concrete creation and editing examples that match the accepted CLI syntax; bundled skills MUST direct agents to the owning command help and teach the same semantics.
+    scenarios:
+      text-and-json-help-expose-the-three-fixed-groups:
+        - GIVEN: An AI agent learns task authoring by reading generate help.
+        - WHEN: It requests strict-spec-cli generate --help and strict-spec-cli generate --help --json.
+        - THEN: Both surfaces identify the three selectors as valueless and repeatable once per task group, describe task field ownership and required new-task text, and give matching valid examples; the accepted flag inventory excludes --section.
+      help-teaches-edits-gates-and-write-results:
+        - GIVEN: An agent already has a task list.
+        - WHEN: It reads task-authoring help before editing or completing the list.
+        - THEN: Help explains preserved fields, --text= and --command= values, same-section before/after placement, remove-and-restate moves, Testing-only gate references and gate-only edits, protected --delete behavior, and that valid true with ready false is a successful incomplete write.
+      mcp-and-skills-agree-with-cli-help:
+        - GIVEN: An agent discovers task authoring through MCP descriptions or any bundled skill that teaches it.
+        - WHEN: The discovery description and skill instructions are inspected against current generate help.
+        - THEN: MCP describes the same fixed-selector syntax and semantics, and each task-authoring skill points to generate help and uses matching supported examples without teaching --section as accepted.
+      published-examples-run-through-the-cli:
+        - GIVEN: The current help and guidance include concrete task creation and editing examples.
+        - WHEN: Their task-authoring invocations are executed in an isolated change with the documented prerequisites.
+        - THEN: The examples produce the documented sections, edits, gates, and write/completeness results without undocumented arguments or manual YAML writes.

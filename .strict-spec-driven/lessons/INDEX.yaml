@@ -91,6 +91,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/reusing-a-check-s-registry-does-not-reuse-its-er-7ace0f.yaml
+    markdown-command-fixtures-need-mutation-surface-03e282:
+      title: Markdown command fixtures need mutation-surface registration
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/markdown-command-fixtures-need-mutation-surface-03e282.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

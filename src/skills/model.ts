@@ -36,7 +36,7 @@ export const EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
 export const COMMAND_PREFIX = "strict-spec-cli";
 export const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 export const GENERATE_NAMED_ARGS_COMMAND =
-  `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;
+  `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>`;
 export const READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
 export const NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
 export const CHECK_WORKFLOW_STATE_COMMAND = `${COMMAND_PREFIX} check-workflow-state`;
@@ -232,7 +232,7 @@ export const STRICT_WORKFLOW_SHARED_ELEMENTS: ReadonlyArray<{ snippet: string; e
 
 const TASK_GENERATOR_PATTERNS: readonly RegExp[] = [
   /generate\s+<change(?:-name)?>\s+tasks/,
-  /tasks\s+--section\s+</,
+  /tasks\s+--(?:implementation|testing|verification)\b/,
 ];
 
 const TASK_SECTION_NAMES_IN_PROSE: readonly string[] = ["Implementation", "Testing", "Verification"];

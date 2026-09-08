@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: explicit-task-section-flags
+approach:
+  - Update the existing task-group parser in src/cli/cmd-generation.ts and its command metadata in src/cli/command-metadata-entries.ts. Map the three fixed selectors to the existing canonical section names without changing task-list/v2 or persistence. Update all current task-authoring guidance and exercise the shipped CLI and MCP discovery surfaces through existing test suites.
+decisions:
+  fixed-selectors:
+    decision: Each valueless --implementation, --testing, or --verification opens exactly one task group; --task and its text, status, command, before, and after fields belong to that group. Repeat a selector to open another group, including another task in the same section. Selector values, selector-only incomplete groups, task fields without a selector, duplicate task fields, and unsupported selectors fail before writing.
+    rationale: Explicit group starts expose the closed three-part contract while retaining the existing multi-group parsing and task ordering model. Per-group validation prevents a flag from silently changing task ownership.
+  remove-legacy-selector:
+    decision: Reject both --section value and --section=value, even when mixed with valid groups, and provide a runnable replacement example with the change name plus the three supported selector names. Do not accept an alias or silently convert legacy calls.
+    rationale: The requester explicitly chose direct removal; retaining an accepted generic selector would leave two competing interfaces and obscure the fixed contract.
+  complete-discovery-guidance:
+    decision: Use the shared command-metadata registry for text help, JSON help, and derived MCP descriptions. Explain valueless selectors, one selector per task group, new versus existing task fields, multi-group calls, placement, removal and moves, gate-only calls, inline values, whole-artifact deletion, valid versus ready, and concrete examples. Synchronize the six current task-authoring skills and discover any additional live references by repository scan.
+    rationale: The observed problem arose while reading help, so correct parsing alone cannot satisfy the request. Existing MUST rules require argument semantics and discovery surfaces to agree with one authoritative metadata source.
+  preserve-artifact-and-lifecycle:
+    decision: Preserve task-list/v2, canonical section and apply order, field-level merges, removal-before-upsert, same-section placement rules, testing gates and gate-only edits, deletion protections, output keys, and all unrelated artifact generation. Keep historical archives intact. No delta-tech is needed.
+    rationale: The confirmed change concerns CLI expression and its documentation; changing stored artifacts or lifecycle semantics would widen scope and require unnecessary migration.
+alternatives:
+  - option: Keep --section as a compatibility alias.
+    reason: The requester rejected compatibility support and requested direct removal.
+  - option: Only restrict or document the allowed --section values.
+    reason: The current parser already rejects unknown sections, so this would preserve the interface that caused confusion.
+risks:
+  - External scripts and previously installed skill copies using --section will fail after upgrade. Ship replacement diagnostics and updated bundled guidance together; cover stale invocation rejection without writes.
+  - Shared generate metadata also describes unrelated artifacts. Test the task selectors and derived MCP text without changing sibling argument contracts; ensure static guidance assertions fail on a seeded stale example.

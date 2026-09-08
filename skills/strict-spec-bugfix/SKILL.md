@@ -22,7 +22,7 @@ lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 propose: strict-spec-cli propose <change-name>
-generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
 next: strict-spec-cli next <change-name>
 apply: strict-spec-cli apply <change-name>

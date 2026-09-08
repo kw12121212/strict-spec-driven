@@ -1523,6 +1523,43 @@ try {
 
 context.section("[6b] generate command");
 
+// Execute the published examples themselves, so documentation cannot pass by merely mentioning
+// a flag which the parser does not accept. These examples use only quoted strings and plain words.
+const taskHelpRoot = mkdtempSync(path.join(os.tmpdir(), "strict-task-help-"));
+try {
+  context.assert(cli(["init"], { cwd: taskHelpRoot }).status === 0, "initialize task help example workspace");
+  const help = cli(["generate", "--help", "--json"], { cwd: taskHelpRoot });
+  const payload = JSON.parse(help.stdout) as { usage: string[] };
+  const examples = payload.usage.filter((line) => line.trim().startsWith("strict-spec-cli generate example-change tasks "));
+  context.assert(examples.length >= 7, "task help provides creation, gate, multi-group, edit, and move examples");
+  for (const [index, line] of examples.entries()) {
+    const args = (line.trim().match(/"[^"]*"|\S+/g) ?? []).slice(1).map((word) => word.startsWith('"') ? word.slice(1, -1) : word);
+    const result = cli(args, { cwd: taskHelpRoot });
+    context.assert(result.status === 0, `published task example ${index + 1} executes successfully`, result.stderr);
+    if (result.status !== 0) continue;
+    const output = JSON.parse(result.stdout) as { valid: boolean; ready: boolean };
+    context.assert(output.valid === true && output.ready === (index >= 3), `task example ${index + 1} reports documented completeness`);
+  }
+  const artifact = yamlModule.parseYamlDocument<{
+    sections: Record<string, Record<string, { text: string; command?: string }>>;
+    testing_gates: { validation_task: string; unit_test_task: string };
+  }>(readFileSync(path.join(taskHelpRoot, ".strict-spec-driven", "changes", "example-change", "tasks.yaml"), "utf8"));
+  context.assert(
+    Object.keys(artifact.sections).join(",") === "Implementation,Testing,Verification"
+      && Object.keys(artifact.sections.Implementation).join(",") === "prerequisite,implement-work"
+      && artifact.sections.Implementation["implement-work"].text === "Implement the revised scope."
+      && artifact.sections.Verification["follow-up"].text === "Review the final result."
+      && artifact.sections.Testing["run-tests"].command === "bun test/run.ts"
+      && artifact.testing_gates.validation_task === "run-tests"
+      && artifact.testing_gates.unit_test_task === "run-tests",
+    "published task examples produce fixed sections, field ownership, placement, moves, and Testing gates",
+  );
+  const next = cli(["apply", "example-change"], { cwd: taskHelpRoot });
+  context.assert(next.status === 0 && JSON.parse(next.stdout).taskId === "prerequisite", "apply follows the ordering created by published task examples");
+} finally {
+  rmSync(taskHelpRoot, { recursive: true, force: true });
+}
+
 const generateTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-generate-"));
 try {
   const changeName = "scripted-change";
@@ -1696,7 +1733,7 @@ try {
   // typed defaults, so the list starts with exactly the task supplied and no placeholder to remove.
   const firstTask = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
+    "--implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
   ], { cwd: generateTempDir });
   context.assert(firstTask.status === 0, "generate tasks writes the first task", `stderr: ${firstTask.stderr.trim()}`);
   const afterFirstTask = yamlModule.parseYamlDocument<{ sections: Record<string, Record<string, unknown>> }>(
@@ -1711,7 +1748,7 @@ try {
   // A second Implementation task appends, and removing it by id leaves its sibling in place.
   cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "extra-work", "--text", "An extra task to remove by id.",
+    "--implementation", "--task", "extra-work", "--text", "An extra task to remove by id.",
   ], { cwd: generateTempDir });
   const removePlaceholder = cli([
     "generate", changeName, "tasks",
@@ -1741,7 +1778,7 @@ try {
   // Appending a Testing task and setting gates still writes while the list is incomplete.
   const testingTask = cli([
     "generate", changeName, "tasks",
-    "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
+    "--testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
     "--validation-task", "run-tests", "--unit-test-task", "run-tests",
   ], { cwd: generateTempDir });
   context.assert(testingTask.status === 0, "generate tasks appends a Testing task and sets gates", `stderr: ${testingTask.stderr.trim()}`);
@@ -1756,7 +1793,7 @@ try {
   // Completing the task list clears the readiness diagnostics.
   const verificationTask = cli([
     "generate", changeName, "tasks",
-    "--section", "Verification", "--task", "verify-scope", "--text", "Verify the change scope.",
+    "--verification", "--task", "verify-scope", "--text", "Verify the change scope.",
   ], { cwd: generateTempDir });
   const verificationTaskJson = JSON.parse(verificationTask.stdout.trim());
   context.assert(
@@ -1769,7 +1806,7 @@ try {
   const completedTasks = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
   const idempotentTask = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
+    "--implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
   ], { cwd: generateTempDir });
   context.assert(idempotentTask.status === 0, "generate tasks idempotent re-run succeeds", `stderr: ${idempotentTask.stderr.trim()}`);
   context.assert(
@@ -1779,21 +1816,60 @@ try {
 
   // Malformed per-task input fails before writing and leaves the artifact unchanged.
   const beforeInvalidTask = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
-  const invalidTaskCases: Array<[string, string[]]> = [
-    ["unknown section", ["--section", "Nope", "--task", "x", "--text", "y"]],
-    ["invalid status", ["--section", "Testing", "--task", "x", "--text", "y", "--status", "done"]],
-    ["non-kebab task id", ["--section", "Testing", "--task", "Bad_Id", "--text", "y"]],
-    ["duplicate task id in one invocation", ["--section", "Testing", "--task", "dup", "--text", "a", "--section", "Implementation", "--task", "dup", "--text", "b"]],
-    ["cross-section move", ["--section", "Testing", "--task", "do-the-work", "--text", "moved"]],
-    ["missing text", ["--section", "Testing", "--task", "notext"]],
+  const invalidTaskCases: Array<[string, string[], string?]> = [
+    ["unknown selector", ["--custom", "--task", "x", "--text", "y"], "unsupported argument(s): --custom"],
+    ["selector with inline value", ["--testing=true", "--task", "x", "--text", "y"], "--testing takes no value"],
+    ["selector with empty inline value", ["--testing=", "--task", "x", "--text", "y"], "--testing takes no value"],
+    ["selector with file value", ["--testing=@missing.txt", "--task", "x", "--text", "y"], "--testing takes no value"],
+    ["selector with separate value", ["--testing", "Testing", "--task", "x", "--text", "y"], "--testing takes no value"],
+    ["task without selector", ["--task", "x", "--text", "y"], "start a task group with one of --implementation, --testing, --verification"],
+    ["empty task group", ["--implementation", "--testing", "--task", "x", "--text", "y"]],
+    ["selector alone", ["--verification"]],
+    ["duplicate task field", ["--testing", "--task", "x", "--task", "y", "--text", "z"]],
+    ["invalid status", ["--testing", "--task", "x", "--text", "y", "--status", "done"]],
+    ["non-kebab task id", ["--testing", "--task", "Bad_Id", "--text", "y"]],
+    ["duplicate task id in one invocation", ["--testing", "--task", "dup", "--text", "a", "--implementation", "--task", "dup", "--text", "b"]],
+    ["cross-section move", ["--testing", "--task", "do-the-work", "--text", "moved"]],
+    ["missing text", ["--testing", "--task", "notext"]],
   ];
-  for (const [label, argv] of invalidTaskCases) {
+  for (const [label, argv, expected] of invalidTaskCases) {
     const rejected = cli(["generate", changeName, "tasks", ...argv], { cwd: generateTempDir });
     context.assert(rejected.status !== 0, `generate tasks rejects ${label}`, `stderr: ${rejected.stderr.trim()}`);
+    if (expected) context.assert(rejected.stderr.includes(expected), `generate tasks explains ${label}`, rejected.stderr);
     context.assert(
       readFileSync(path.join(changeDir, "tasks.yaml"), "utf8") === beforeInvalidTask,
       `generate tasks rejection for ${label} leaves the artifact unchanged`,
     );
+    // A cross-section move requires the existing task above; all other malformed groups also
+    // reject when there is no artifact to read or restore.
+    if (label !== "cross-section move") {
+      const firstWrite = cli(["generate", "invalid-first-task", "tasks", ...argv], { cwd: generateTempDir });
+      context.assert(firstWrite.status !== 0, `generate tasks rejects ${label} on first write`);
+      context.assert(
+        !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", "invalid-first-task")),
+        `generate tasks ${label} first-write failure leaves no change container`,
+      );
+    }
+  }
+
+  for (const legacy of [["--section", "Implementation"], ["--section=Testing"], ["--section=@missing.txt"]]) {
+    for (const prefix of [[], ["--implementation", "--task", "new-valid", "--text", "Valid group."]]) {
+      for (const target of [changeName, "legacy-first-task"]) {
+        const result = cli(["generate", target, "tasks", ...prefix, ...legacy, "--task", "old-task", "--text", "Old call."], { cwd: generateTempDir });
+        context.assert(
+          result.status !== 0 && result.stderr.includes("--section was removed")
+            && ["--implementation", "--testing", "--verification"].every((flag) => result.stderr.includes(flag))
+            && result.stderr.includes(`strict-spec-cli generate ${target} tasks --implementation --task`),
+          `legacy selector ${legacy[0]} has actionable replacement guidance for ${target}, mixed=${prefix.length > 0}`,
+          result.stderr,
+        );
+        context.assert(
+          readFileSync(path.join(changeDir, "tasks.yaml"), "utf8") === beforeInvalidTask
+            && !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", "legacy-first-task")),
+          "retired task syntax cannot partially write or create an artifact",
+        );
+      }
+    }
   }
 
   const readTasks = () => yamlModule.parseYamlDocument<{
@@ -1804,11 +1880,11 @@ try {
   // the completion and command survive.
   cli([
     "generate", changeName, "tasks",
-    "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts", "--status", "complete",
+    "--testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts", "--status", "complete",
   ], { cwd: generateTempDir });
   const mergeResult = cli([
     "generate", changeName, "tasks",
-    "--section", "Testing", "--task", "run-tests", "--text", "Run the entire suite.",
+    "--testing", "--task", "run-tests", "--text", "Run the entire suite.",
   ], { cwd: generateTempDir });
   context.assert(mergeResult.status === 0, "generate tasks field-level restatement succeeds", `stderr: ${mergeResult.stderr.trim()}`);
   const mergedRunTests = readTasks().sections.Testing["run-tests"];
@@ -1824,7 +1900,7 @@ try {
   const completedBefore = readTasks().sections.Testing["run-tests"];
   const addAlongsideCompleted = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "fresh", "--text", "Fresh start.",
+    "--implementation", "--task", "fresh", "--text", "Fresh start.",
   ], { cwd: generateTempDir });
   context.assert(
     addAlongsideCompleted.status === 0
@@ -1846,7 +1922,7 @@ try {
   // --remove deletes a task; an unknown id is an idempotent no-op reported in the result.
   cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "throwaway", "--text", "Throwaway.",
+    "--implementation", "--task", "throwaway", "--text", "Throwaway.",
   ], { cwd: generateTempDir });
   const removeResult = cli([
     "generate", changeName, "tasks", "--remove", "throwaway", "--remove", "ghost",
@@ -1864,13 +1940,13 @@ try {
   // A section move removes the task from its old section and restates it under the new one.
   const moveResult = cli([
     "generate", changeName, "tasks",
-    "--remove", "rebuilt", "--section", "Verification", "--task", "rebuilt", "--text", "Rebuilt as verification.",
+    "--remove", "fresh", "--verification", "--task", "fresh", "--text", "Moved as verification.",
   ], { cwd: generateTempDir });
   const movedSections = readTasks().sections;
   context.assert(
     moveResult.status === 0
-      && !("rebuilt" in (movedSections.Implementation ?? {}))
-      && "rebuilt" in (movedSections.Verification ?? {}),
+      && !("fresh" in (movedSections.Implementation ?? {}))
+      && "fresh" in (movedSections.Verification ?? {}),
     "generate tasks remove-and-restate moves a task between sections in one call",
     `stderr: ${moveResult.stderr.trim()}`,
   );
@@ -1878,7 +1954,7 @@ try {
   // Values may begin with a dash via the --flag=value form.
   const dashValue = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "dashy", "--text=--delete removes the whole artifact",
+    "--implementation", "--task", "dashy", "--text=--delete removes the whole artifact",
   ], { cwd: generateTempDir });
   context.assert(
     dashValue.status === 0 && readTasks().sections.Implementation["dashy"].text === "--delete removes the whole artifact",
@@ -2757,7 +2833,7 @@ try {
   // Authoring only an Implementation task leaves Testing and Verification empty.
   const emptyRebuild = cli([
     "generate", completenessChange, "tasks",
-    "--section", "Implementation", "--task", "only-impl", "--text", "Only implementation.",
+    "--implementation", "--task", "only-impl", "--text", "Only implementation.",
   ], { cwd: verifyCompletenessDir });
   context.assert(emptyRebuild.status === 0, "verify completeness setup authors only an Implementation task", `stderr: ${emptyRebuild.stderr.trim()}`);
   const emptySectionVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });
@@ -2775,8 +2851,8 @@ try {
   // A fully authored task list in all three sections produces no completeness diagnostics.
   cli([
     "generate", completenessChange, "tasks",
-    "--section", "Testing", "--task", "run-suite", "--text", "Run the suite.", "--command", "bun test/run.ts",
-    "--section", "Verification", "--task", "verify-it", "--text", "Verify the scope.",
+    "--testing", "--task", "run-suite", "--text", "Run the suite.", "--command", "bun test/run.ts",
+    "--verification", "--task", "verify-it", "--text", "Verify the scope.",
     "--validation-task", "run-suite", "--unit-test-task", "run-suite",
   ], { cwd: verifyCompletenessDir });
   const completeVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });

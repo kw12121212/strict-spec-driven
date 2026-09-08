@@ -910,3 +910,15 @@ mutation_surfaces:
     evidence:
       - test/fixtures/guidance-skills/README.md
       - test/fixtures/guidance-skills/strict-spec-fixture-absent-skill-reference/SKILL.md
+  task-selector-fixture-guidance:
+    mechanism: agent-guidance
+    classification: read-only
+    path_patterns:
+      - test/fixtures/task-guidance/retired-section.md
+    operations:
+      - read
+    families:
+      - change-planning-state
+    evidence:
+      - test/fixtures/task-guidance/retired-section.md
+      - test/suites/entrypoint-and-skills.ts

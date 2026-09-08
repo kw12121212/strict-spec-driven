@@ -1,5 +1,15 @@
 import type { CliCommandFlag, CliCommandMetadata } from "./command-metadata.js";
 import { MAINTENANCE_CHECK_TYPES } from "../maintenance-check-types.js";
+import { TASK_SECTION_SELECTORS } from "../propose-generation.js";
+
+const TASK_SELECTOR_FLAGS: CliCommandFlag[] = TASK_SECTION_SELECTORS.map(({ flag, section }) => ({
+  name: `--${flag}`,
+  arity: "boolean",
+  description: `Tasks artifact only: opens one ${section} task group. Takes no value. The following --task, --text, --status, --command, --before, and --after belong to this group until the next selector. Exactly one --task is required per group.`,
+  repeatable: true,
+  repeatSemantics: "Repeat a selector once per task, including another task in the same section; never repeat a task id within one invocation.",
+}));
+const TASK_GROUP_GUIDANCE = `For tasks, choose ${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(", ")} (no value) to open each task group, followed by --task <id>; --text is required for a new task and optional for an existing task. Repeat a selector for each additional task. --remove, --validation-task, and --unit-test-task are global and may be used without a selector. Read strict-spec-cli generate --help or --help --json for complete task editing, placement, gate, deletion, and result semantics.`;
 
 const CHANGE_NAME_ARG = {
   name: "change-name",
@@ -158,7 +168,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "generate",
     group: "generation",
     summary: "Write or merge a change planning artifact from named arguments.",
-    mcpDescription: "Mutates strict workflow state by generating or updating a change planning artifact.",
+    mcpDescription: `Mutates strict workflow state by generating or updating a change planning artifact. ${TASK_GROUP_GUIDANCE}`,
     usage: [
       "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
       "",
@@ -167,9 +177,18 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>]",
       "  strict-spec-cli generate <change-name> design --delete",
       "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
-      "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
+      `  strict-spec-cli generate <change-name> tasks [(${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(" | ")}) --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete`,
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
+      "",
+      "Task examples (run in order in a project with strict workflow state; recorded --command values are not executed by generate):",
+      '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the scoped behavior."',
+      '  strict-spec-cli generate example-change tasks --testing --task run-tests --text "Run the project tests." --command "bun test/run.ts"',
+      '  strict-spec-cli generate example-change tasks --verification --task verify-scope --text "Verify the scope."',
+      "  strict-spec-cli generate example-change tasks --validation-task run-tests --unit-test-task run-tests",
+      '  strict-spec-cli generate example-change tasks --implementation --task prerequisite --text "Prepare the prerequisite." --before implement-work --implementation --task follow-up --text "Finish the implementation." --after implement-work',
+      '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the revised scope."',
+      '  strict-spec-cli generate example-change tasks --remove follow-up --verification --task follow-up --text "Review the final result."',
     ].join("\n") + "\n",
     arguments: [
       CHANGE_NAME_ARG,
@@ -484,20 +503,12 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         repeatable: true,
         repeatSemantics: "At most once per question group.",
       },
-      {
-        name: "--section",
-        arity: "value",
-        valueLabel: "<Implementation|Testing|Verification>",
-        description:
-          "Opens a tasks group; the following --task, --text, --status, --command, --before, and --after belong to it.",
-        repeatable: true,
-        repeatSemantics: "Repeat once per task.",
-      },
+      ...TASK_SELECTOR_FLAGS,
       {
         name: "--task",
         arity: "value",
         valueLabel: "<id>",
-        description: "Kebab-case task id, upserted by (section, task id).",
+        description: "Kebab-case task id, required exactly once after a fixed task selector; upserted by (section, task id). Repeat the selector to start another task group.",
         repeatable: true,
       },
       {
@@ -739,6 +750,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       { code: 1, meaning: "Usage error, unsupported argument, or a rejected merge." },
     ],
     notes: [
+      TASK_GROUP_GUIDANCE,
       "The change need not exist yet. The first successful generate call creates the change container and the artifact it authors in one atomic operation, and a rejected or failed call removes every path it created, so a failed first write leaves no change behind and a failed later write leaves the existing change untouched.",
       "A target artifact that does not exist is created from typed defaults merged with the supplied named arguments; no placeholder file is ever written. Creating questions.yaml seeds the requirement-interrogation set open, which is workflow-required state rather than placeholder content.",
       "valid reports write success; ready (tasks only) reports completeness. A ready: false result is a successful write, not a failure, and is resolved by adding the missing tasks rather than by rebuilding the list.",

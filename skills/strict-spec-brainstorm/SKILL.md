@@ -21,7 +21,7 @@ check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 propose: strict-spec-cli propose <change-name>
-generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
 verify: strict-spec-cli verify <change-name>
 ```
@@ -245,8 +245,13 @@ run `init` from this skill.
     - `strict-spec-cli generate <change-name> design --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
     - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`,
       issuing **one invocation per task** so no task list is hand-written:
-      - first task: `strict-spec-cli generate <change-name> tasks --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the task list starts absent and is created by this first call, so there are no placeholder tasks to remove
-      - each later task: one `--section`/`--task`/`--text` group per call
+      - read `strict-spec-cli generate --help --json` (or `--help`) first.
+        Choose `--implementation`, `--testing`, or `--verification` for the
+        corresponding fixed section. Each takes no value and opens one task group;
+        following task fields belong to that group. Repeat a selector for each task
+        in a multi-task call. Removal and gate flags are global and need no selector.
+      - first task: `strict-spec-cli generate <change-name> tasks --implementation --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the task list starts absent and is created by this first call, so there are no placeholder tasks to remove
+      - each later task: one selector/`--task`/`--text` group per call
       - restating an existing `(section, task-id)` is a field-level merge — it overwrites only the fields you pass, so a task's `status: complete` and `command` survive a text-only edit; a brand-new task still needs `--text`
       - delete a task with `--remove <task-id>` (a repeatable global flag); to move a task between sections, `--remove` it and restate it under the new section in the same call
       - place a task with `--before <task-id>` or `--after <task-id>` instead of

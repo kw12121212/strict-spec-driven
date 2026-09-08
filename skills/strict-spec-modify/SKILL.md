@@ -100,9 +100,13 @@ run `init` from this skill.
      requirement/rule, scenario, removal, and deletion arguments; preserve
      `target_spec` or `target_standard` identity
    - for `tasks.yaml`, use `strict-spec-cli generate <change-name> tasks` to
-     add or update a task — one invocation per task, `--section <name> --task
-     <id> --text "..."` (upserts by section and task id, so
-     other tasks are untouched). Restating a task is a field-level merge that
+     add or update a task. Read `strict-spec-cli generate --help --json` (or `--help`).
+     Choose `--implementation`, `--testing`, or `--verification` for the fixed
+     section; each takes no value and opens one task group whose following fields
+     belong to it. Use one invocation per task, for example `--implementation
+     --task <id> --text "..."`; repeat a selector per task in multi-task calls.
+     The command upserts by section and task id, so
+     other tasks are untouched. Restating a task is a field-level merge that
      overwrites only the fields you pass, so an existing `status: complete` and
      `command` are preserved automatically on a text-only edit — you no longer
      need to re-pass `--status complete`. Delete a task with `--remove <id>`,
@@ -113,7 +117,10 @@ run `init` from this skill.
      existing pending work is anchored rather than appended, and naming an
      existing task id with an anchor moves it there while preserving its
      `status` and `command`. Set gates with
-     `--validation-task`/`--unit-test-task`. Use `--text=...`/`--command=...`
+     `--validation-task`/`--unit-test-task`; both reference Testing task ids.
+     Removal and gate flags are global and need no selector. `valid` reports write
+     success and `ready` reports completeness; `valid: true, ready: false` is a
+     successful incomplete write. Use `--text=...`/`--command=...`
      when a value begins with a dash. Rename a task id by removing the old id
      and restating it under the new id in one invocation. Preserve existing
      `status: complete` entries unless the user explicitly asks to change

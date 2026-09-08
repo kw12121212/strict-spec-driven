@@ -6517,8 +6517,8 @@ var require_dist2 = __commonJS((exports, module) => {
 });
 
 // src/mcp/server.ts
-import { existsSync as existsSync6, statSync as statSync4 } from "fs";
-import path6 from "path";
+import { existsSync as existsSync7, statSync as statSync5 } from "fs";
+import path7 from "path";
 
 // node_modules/zod/v4/classic/external.js
 var exports_external = {};
@@ -36570,6 +36570,18 @@ mutation_surfaces:
     evidence:
       - test/fixtures/guidance-skills/README.md
       - test/fixtures/guidance-skills/strict-spec-fixture-absent-skill-reference/SKILL.md
+  task-selector-fixture-guidance:
+    mechanism: agent-guidance
+    classification: read-only
+    path_patterns:
+      - test/fixtures/task-guidance/retired-section.md
+    operations:
+      - read
+    families:
+      - change-planning-state
+    evidence:
+      - test/fixtures/task-guidance/retired-section.md
+      - test/suites/entrypoint-and-skills.ts
 `
 };
 function getEmbeddedTemplateKeys() {
@@ -39798,7 +39810,37 @@ var MAINTENANCE_CHECK_TYPES = [
   "cli-only-yaml-policy"
 ];
 
+// src/scaffold.ts
+import { copyFileSync, existsSync as existsSync4, mkdirSync as mkdirSync2, readFileSync as readFileSync4, readdirSync, rmSync as rmSync2, statSync as statSync3, writeFileSync as writeFileSync2 } from "fs";
+import path4 from "path";
+import { fileURLToPath as fileURLToPath3 } from "url";
+function getBundledDir2(...segments) {
+  const thisDir = path4.dirname(fileURLToPath3(import.meta.url));
+  const distPath = path4.join(thisDir, "templates", ...segments);
+  if (existsSync4(distPath))
+    return distPath;
+  return path4.join(thisDir, "..", "templates", ...segments);
+}
+var BUNDLED_SCAFFOLD_DIR = getBundledDir2("strict-spec-driven", "scaffold");
+
+// src/propose-generation.ts
+var TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"];
+var TASK_SECTION_SELECTORS = TASK_SECTION_NAMES.map((section) => ({
+  flag: section.toLowerCase(),
+  section
+}));
+var QUESTION_KIND_VALUES = new Set(["requirement", "technical"]);
+var ANSWERED_BY_VALUES = new Set(["human", "roadmap", "assumption"]);
+
 // src/cli/command-metadata-entries.ts
+var TASK_SELECTOR_FLAGS = TASK_SECTION_SELECTORS.map(({ flag, section }) => ({
+  name: `--${flag}`,
+  arity: "boolean",
+  description: `Tasks artifact only: opens one ${section} task group. Takes no value. The following --task, --text, --status, --command, --before, and --after belong to this group until the next selector. Exactly one --task is required per group.`,
+  repeatable: true,
+  repeatSemantics: "Repeat a selector once per task, including another task in the same section; never repeat a task id within one invocation."
+}));
+var TASK_GROUP_GUIDANCE = `For tasks, choose ${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(", ")} (no value) to open each task group, followed by --task <id>; --text is required for a new task and optional for an existing task. Repeat a selector for each additional task. --remove, --validation-task, and --unit-test-task are global and may be used without a selector. Read strict-spec-cli generate --help or --help --json for complete task editing, placement, gate, deletion, and result semantics.`;
 var CHANGE_NAME_ARG = {
   name: "change-name",
   description: "Kebab-case name of the strict change under .strict-spec-driven/changes/.",
@@ -39950,7 +39992,7 @@ var COMMAND_METADATA_ENTRIES = {
     name: "generate",
     group: "generation",
     summary: "Write or merge a change planning artifact from named arguments.",
-    mcpDescription: "Mutates strict workflow state by generating or updating a change planning artifact.",
+    mcpDescription: `Mutates strict workflow state by generating or updating a change planning artifact. ${TASK_GROUP_GUIDANCE}`,
     usage: [
       "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
       "",
@@ -39959,9 +40001,18 @@ var COMMAND_METADATA_ENTRIES = {
       "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>]",
       "  strict-spec-cli generate <change-name> design --delete",
       "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
-      "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
+      `  strict-spec-cli generate <change-name> tasks [(${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(" | ")}) --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete`,
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
-      "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
+      "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
+      "",
+      "Task examples (run in order in a project with strict workflow state; recorded --command values are not executed by generate):",
+      '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the scoped behavior."',
+      '  strict-spec-cli generate example-change tasks --testing --task run-tests --text "Run the project tests." --command "bun test/run.ts"',
+      '  strict-spec-cli generate example-change tasks --verification --task verify-scope --text "Verify the scope."',
+      "  strict-spec-cli generate example-change tasks --validation-task run-tests --unit-test-task run-tests",
+      '  strict-spec-cli generate example-change tasks --implementation --task prerequisite --text "Prepare the prerequisite." --before implement-work --implementation --task follow-up --text "Finish the implementation." --after implement-work',
+      '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the revised scope."',
+      '  strict-spec-cli generate example-change tasks --remove follow-up --verification --task follow-up --text "Review the final result."'
     ].join(`
 `) + `
 `,
@@ -40267,19 +40318,12 @@ var COMMAND_METADATA_ENTRIES = {
         repeatable: true,
         repeatSemantics: "At most once per question group."
       },
-      {
-        name: "--section",
-        arity: "value",
-        valueLabel: "<Implementation|Testing|Verification>",
-        description: "Opens a tasks group; the following --task, --text, --status, --command, --before, and --after belong to it.",
-        repeatable: true,
-        repeatSemantics: "Repeat once per task."
-      },
+      ...TASK_SELECTOR_FLAGS,
       {
         name: "--task",
         arity: "value",
         valueLabel: "<id>",
-        description: "Kebab-case task id, upserted by (section, task id).",
+        description: "Kebab-case task id, required exactly once after a fixed task selector; upserted by (section, task id). Repeat the selector to start another task group.",
         repeatable: true
       },
       {
@@ -40503,6 +40547,7 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error, unsupported argument, or a rejected merge." }
     ],
     notes: [
+      TASK_GROUP_GUIDANCE,
       "The change need not exist yet. The first successful generate call creates the change container and the artifact it authors in one atomic operation, and a rejected or failed call removes every path it created, so a failed first write leaves no change behind and a failed later write leaves the existing change untouched.",
       "A target artifact that does not exist is created from typed defaults merged with the supplied named arguments; no placeholder file is ever written. Creating questions.yaml seeds the requirement-interrogation set open, which is workflow-required state rather than placeholder content.",
       "valid reports write success; ready (tasks only) reports completeness. A ready: false result is a successful write, not a failure, and is resolved by adding the missing tasks rather than by rebuilding the list.",
@@ -42948,8 +42993,8 @@ function registerStrictPrompts(server) {
 }
 
 // src/mcp/resources.ts
-import { existsSync as existsSync4, readdirSync, readFileSync as readFileSync4, statSync as statSync3 } from "fs";
-import path4 from "path";
+import { existsSync as existsSync5, readdirSync as readdirSync2, readFileSync as readFileSync5, statSync as statSync4 } from "fs";
+import path5 from "path";
 var STRICT_DIR = ".strict-spec-driven";
 var SAFE_ID = /^[a-z0-9][a-z0-9-]*$/;
 var CHANGE_ARTIFACTS = new Set(["proposal", "design", "tasks", "questions"]);
@@ -43001,15 +43046,15 @@ function enumerateTemplateIds(projectRoot, resourceName) {
 }
 function listSpecIds(projectRoot) {
   const indexPath = strictPath(projectRoot, "specs/INDEX.yaml");
-  if (!existsSync4(indexPath))
+  if (!existsSync5(indexPath))
     return [];
-  const index = jsYaml.load(readFileSync4(indexPath, "utf8"));
+  const index = jsYaml.load(readFileSync5(indexPath, "utf8"));
   return (index.specs ?? []).map((entry) => entry.id).filter((id) => typeof id === "string" && SAFE_ID.test(id)).sort();
 }
 function listYamlIds(directory) {
-  if (!existsSync4(directory))
+  if (!existsSync5(directory))
     return [];
-  return readdirSync(directory).filter((entry) => entry.endsWith(".yaml") && entry !== "INDEX.yaml").map((entry) => entry.slice(0, -".yaml".length)).filter((id) => SAFE_ID.test(id)).sort();
+  return readdirSync2(directory).filter((entry) => entry.endsWith(".yaml") && entry !== "INDEX.yaml").map((entry) => entry.slice(0, -".yaml".length)).filter((id) => SAFE_ID.test(id)).sort();
 }
 async function readStrictResource(projectRoot, uri) {
   return {
@@ -43058,7 +43103,7 @@ function workflowState(projectRoot) {
   const strictRoot = strictPath(projectRoot, "");
   return {
     strictRoot: STRICT_DIR,
-    exists: existsSync4(strictRoot),
+    exists: existsSync5(strictRoot),
     changes: changeSummary(projectRoot)
   };
 }
@@ -43073,7 +43118,7 @@ function readChangeArtifact(projectRoot, change, artifact) {
   if (!CHANGE_ARTIFACTS.has(artifact))
     throw new Error(`unknown strict change artifact: ${artifact}`);
   const activePath = strictPath(projectRoot, `changes/${change}/${artifact}.yaml`);
-  if (existsSync4(activePath))
+  if (existsSync5(activePath))
     return readAndValidateYaml(activePath);
   const archived = listDirs(strictPath(projectRoot, "changes/archive")).filter((entry) => entry === change || entry.endsWith(`-${change}`)).sort();
   if (archived.length > 0) {
@@ -43094,15 +43139,15 @@ function readStrictIdFile(projectRoot, directory, id) {
   return readYamlArtifact(projectRoot, `${directory}/${id}.yaml`);
 }
 function readYamlArtifact(projectRoot, relativePath) {
-  if (relativePath.includes("..") || path4.isAbsolute(relativePath)) {
+  if (relativePath.includes("..") || path5.isAbsolute(relativePath)) {
     throw new Error(`unsafe strict resource path: ${relativePath}`);
   }
   return readAndValidateYaml(strictPath(projectRoot, relativePath));
 }
 function readAndValidateYaml(filePath) {
-  if (!existsSync4(filePath))
+  if (!existsSync5(filePath))
     throw new Error(`strict resource artifact not found: ${filePath}`);
-  const content = readFileSync4(filePath, "utf8");
+  const content = readFileSync5(filePath, "utf8");
   try {
     jsYaml.load(content);
   } catch (error51) {
@@ -43112,12 +43157,12 @@ function readAndValidateYaml(filePath) {
   return content;
 }
 function strictPath(projectRoot, relativePath) {
-  return path4.join(projectRoot, STRICT_DIR, relativePath);
+  return path5.join(projectRoot, STRICT_DIR, relativePath);
 }
 function listDirs(directory) {
-  if (!existsSync4(directory))
+  if (!existsSync5(directory))
     return [];
-  return readdirSync(directory).filter((entry) => statSync3(path4.join(directory, entry)).isDirectory()).sort();
+  return readdirSync2(directory).filter((entry) => statSync4(path5.join(directory, entry)).isDirectory()).sort();
 }
 function assertSafeId(value) {
   if (!SAFE_ID.test(value))
@@ -43126,9 +43171,9 @@ function assertSafeId(value) {
 
 // src/mcp/tools.ts
 import { spawnSync } from "child_process";
-import { existsSync as existsSync5 } from "fs";
-import path5 from "path";
-import { fileURLToPath as fileURLToPath3 } from "url";
+import { existsSync as existsSync6 } from "fs";
+import path6 from "path";
+import { fileURLToPath as fileURLToPath4 } from "url";
 var emptySchema = exports_external.strictObject({});
 var changeSchema2 = exports_external.strictObject({ change: exports_external.string().min(1) });
 var optionalArtifactKindSchema = exports_external.strictObject({ artifactKind: exports_external.string().min(1).optional() });
@@ -43298,12 +43343,12 @@ var MCP_TOOL_DEFINITIONS = [
   ...MUTATING_TOOL_DEFINITIONS
 ];
 function findCliEntrypoint() {
-  const moduleDir = path5.dirname(fileURLToPath3(import.meta.url));
+  const moduleDir = path6.dirname(fileURLToPath4(import.meta.url));
   const candidates = [
-    path5.join(moduleDir, "strict-spec-driven.js"),
-    path5.join(moduleDir, "..", "strict-spec-cli.js")
+    path6.join(moduleDir, "strict-spec-driven.js"),
+    path6.join(moduleDir, "..", "strict-spec-cli.js")
   ];
-  return candidates.find((candidate) => existsSync5(candidate)) ?? null;
+  return candidates.find((candidate) => existsSync6(candidate)) ?? null;
 }
 var defaultStrictCliCommandRunner = (args, options) => {
   const cliEntrypoint = findCliEntrypoint();
@@ -43402,14 +43447,14 @@ function parseMcpServerArgs(argv, cwd = process.cwd()) {
     throw new McpStartupError("missing_project", "Missing required argument: --project <path>");
   }
   return {
-    projectRoot: validateProjectRoot(path6.resolve(cwd, rawProject))
+    projectRoot: validateProjectRoot(path7.resolve(cwd, rawProject))
   };
 }
 function validateProjectRoot(projectRoot) {
-  if (!existsSync6(projectRoot)) {
+  if (!existsSync7(projectRoot)) {
     throw new McpStartupError("invalid_project", `Invalid project root: ${projectRoot} does not exist`);
   }
-  if (!statSync4(projectRoot).isDirectory()) {
+  if (!statSync5(projectRoot).isDirectory()) {
     throw new McpStartupError("invalid_project", `Invalid project root: ${projectRoot} is not a directory`);
   }
   return projectRoot;

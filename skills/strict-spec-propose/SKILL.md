@@ -28,7 +28,7 @@ lesson-status: strict-spec-cli lesson-status [--category <category>]
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]
 propose: strict-spec-cli propose <change-name>
-generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
 verify: strict-spec-cli verify <change-name>
 ```
@@ -337,17 +337,20 @@ run `init` from this skill.
 6. **Generate `tasks.yaml` with one CLI invocation per task** — run
    `strict-spec-cli generate <change-name> tasks` once for each task so no task
    list is hand-written. Keep concrete task sections for `Implementation`,
-   `Testing`, and `Verification`.
+   `Testing`, and `Verification`. Read `strict-spec-cli generate --help --json`
+   (or `--help`) first. Choose `--implementation`, `--testing`, or `--verification`
+   for the corresponding section. Each takes no value and opens one task group;
+   following task fields belong to it. Repeat a selector for each task in a
+   multi-task call. Removal and gate flags are global and need no selector.
    - first task is one invocation; the task list starts absent and is created by this call:
      ```bash
-     strict-spec-cli generate <change-name> tasks --section Implementation --task <task-id> --text "..."
+     strict-spec-cli generate <change-name> tasks --implementation --task <task-id> --text "..."
      ```
-     No flag rebuilds the list, so a recorded completion can only be dropped by naming it with
-     `--force`, and always requires at least one task group so the list is
-     never rebuilt empty
+     No flag rebuilds the list. Remove a task explicitly with `--remove <task-id>`.
+     Whole-artifact `--delete` is isolated and refuses while completed tasks exist.
    - each later task is one more invocation:
      ```bash
-     strict-spec-cli generate <change-name> tasks --section Testing --task <task-id> --text "..." --command "..."
+     strict-spec-cli generate <change-name> tasks --testing --task <task-id> --text "..." --command "..."
      ```
    - `--status` defaults to `pending`; testing tasks should pass a runnable
      `--command`

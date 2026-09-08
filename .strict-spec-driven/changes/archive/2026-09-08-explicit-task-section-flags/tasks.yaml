@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: explicit-task-section-flags
+sections:
+  Implementation:
+    implement-fixed-task-selectors:
+      text: Update src/cli/cmd-generation.ts to parse the three valueless task-group selectors, reject legacy --section with actionable replacement diagnostics, and preserve task-list mutation, placement, gates, deletion protections, and atomic failure behavior.
+      status: complete
+    update-task-command-discovery:
+      text: Update src/cli/command-metadata-entries.ts and usage surfaces so text help, JSON help, and derived src/mcp/inventory.ts descriptions advertise fixed selectors and document grouping, required fields, edits, placement, removal, gates, examples, and valid versus ready from the shared metadata source.
+      status: complete
+    synchronize-ai-task-guidance:
+      text: Update task-authoring guidance in strict-spec-brainstorm, strict-spec-propose, strict-spec-auto, strict-roadmap-recommend, strict-spec-modify, and strict-spec-apply. Scan current source and operator guidance for other stale task syntax, update live examples, and preserve archived history and unrelated commands.
+      status: complete
+  Testing:
+    lint-typescript:
+      text: Run the repository lint command before the full regression suite.
+      status: complete
+      command: bun run lint
+    validate-types-and-build:
+      text: Rebuild compiled output after source edits and validate strict TypeScript compilation.
+      status: complete
+      command: bun run build
+    validate-bundled-skills:
+      text: Run shipped skill validation and resolve any task-argument guidance drift introduced by the selector change.
+      status: complete
+      command: strict-spec-cli validate-skills
+    register-task-guidance-fixture:
+      text: Register the committed retired-selector Markdown fixture as read-only change-planning test guidance in inventory/yaml-mutation-surfaces.yaml using inventory-edit; validate the inventory and rebuild its regenerated embedded bundle. This closes the uncovered-mutation-path failure found by full regression.
+      status: complete
+      command: bun run check:yaml-inventory
+    regress-task-selectors-and-discovery:
+      text: Extend existing foundation-and-fixtures, change-lifecycle, entrypoint-and-skills, and applicable MCP regression cases to cover all selectors, repeated groups, legacy and malformed input with no writes, field-preserving edits, placement/apply order, gates and removal, and consistent text/JSON/MCP help. Exercise runnable examples and prove stale-guidance detection with a negative case through the same check. Run complete project regression with the configured 78 percent line coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    check-proposal-readiness:
+      text: Confirm the final proposal and task list remain decision-ready, all human requirement answers are resolved, and the delta targets cli-foundation.
+      status: complete
+      command: strict-spec-cli ready explicit-task-section-flags
+    review-archive-readiness:
+      text: Review the final diff against the confirmed scope, verify full regression evidence, check that the ADDED cli-foundation requirement ids do not collide and archive merge will preserve existing requirements, and confirm task-list/v2 and historical artifacts remain unchanged. Record archive readiness without archiving during implementation.
+      status: complete
+    verify-completed-change:
+      text: After completing all preceding work, validate artifact structure, task completion, delta target relationships, and unchanged task behavior.
+      status: complete
+      command: strict-spec-cli verify explicit-task-section-flags
+testing_gates:
+  validation_task: validate-types-and-build
+  unit_test_task: regress-task-selectors-and-discovery

@@ -367,9 +367,9 @@ try {
   // The fixture above deliberately has a completed task; every write merges, so it survives.
   const scriptedTasksGenerate = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
-    "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
-    "--section", "Verification", "--task", "verify-scope", "--text", "Verify the change scope.",
+    "--implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
+    "--testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
+    "--verification", "--task", "verify-scope", "--text", "Verify the change scope.",
     "--validation-task", "run-tests", "--unit-test-task", "run-tests",
   ], { cwd: workflowGuidanceDir });
   context.assert(scriptedTasksGenerate.status === 0, "generate tasks populates the task list from scripted generation", scriptedTasksGenerate.stderr.trim());
@@ -401,7 +401,7 @@ try {
   const beforeAppend = implementationOrder();
   const positionedInsert = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "discovered-prerequisite",
+    "--implementation", "--task", "discovered-prerequisite",
     "--text", "Work discovered mid-change that must run first.",
     "--before", "impl-1",
   ], { cwd: workflowGuidanceDir });
@@ -429,7 +429,7 @@ try {
   // The task completed just above carries status complete, so moving it proves state survives a move.
   const movedTask = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "discovered-prerequisite", "--after", "do-the-work",
+    "--implementation", "--task", "discovered-prerequisite", "--after", "do-the-work",
   ], { cwd: workflowGuidanceDir });
   context.assert(movedTask.status === 0, "generate tasks moves an existing task with --after", movedTask.stderr.trim());
   const movedSections = readTaskSections();
@@ -453,7 +453,7 @@ try {
   // Status never constrains placement: pending impl-1 moves ahead of the completed task.
   const aheadOfCompleted = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "impl-1", "--before", "discovered-prerequisite",
+    "--implementation", "--task", "impl-1", "--before", "discovered-prerequisite",
   ], { cwd: workflowGuidanceDir });
   const aheadSections = readTaskSections();
   const aheadOrder = Object.keys(aheadSections.Implementation);
@@ -470,23 +470,23 @@ try {
   const orderBeforeRejections = implementationOrder();
   const placementRejections: Array<{ args: string[]; label: string; expected: string }> = [
     {
-      args: ["--section", "Implementation", "--task", "do-the-work", "--before", "no-such-task"],
+      args: ["--implementation", "--task", "do-the-work", "--before", "no-such-task"],
       label: "an anchor that is not recorded in the section is refused",
       expected: "does not exist in section",
     },
     {
-      args: ["--section", "Implementation", "--task", "do-the-work", "--before", "run-tests"],
+      args: ["--implementation", "--task", "do-the-work", "--before", "run-tests"],
       label: "an anchor in a different section is refused and names both sections",
       expected: "not 'Implementation'",
     },
     {
-      args: ["--section", "Implementation", "--task", "do-the-work", "--after", "do-the-work"],
+      args: ["--implementation", "--task", "do-the-work", "--after", "do-the-work"],
       label: "an anchor naming the task itself is refused",
       expected: "cannot be placed relative to itself",
     },
     {
       args: [
-        "--section", "Implementation", "--task", "do-the-work",
+        "--implementation", "--task", "do-the-work",
         "--before", "discovered-prerequisite", "--after", "discovered-prerequisite",
       ],
       label: "supplying both positional arguments for one task is refused",
@@ -494,9 +494,9 @@ try {
     },
     {
       args: [
-        "--section", "Implementation", "--task", "earlier-task", "--text", "Anchors forward.",
+        "--implementation", "--task", "earlier-task", "--text", "Anchors forward.",
         "--before", "later-task",
-        "--section", "Implementation", "--task", "later-task", "--text", "Created afterwards.",
+        "--implementation", "--task", "later-task", "--text", "Created afterwards.",
       ],
       label: "an anchor created by a later task group in the same invocation is refused",
       expected: "later --task group",
@@ -518,8 +518,8 @@ try {
 
   const forwardResolves = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "first-created", "--text", "Created first.", "--before", "impl-1",
-    "--section", "Implementation", "--task", "anchored-to-earlier", "--text", "Anchors backwards.",
+    "--implementation", "--task", "first-created", "--text", "Created first.", "--before", "impl-1",
+    "--implementation", "--task", "anchored-to-earlier", "--text", "Anchors backwards.",
     "--after", "first-created",
   ], { cwd: workflowGuidanceDir });
   const resolvedOrder = implementationOrder();
@@ -539,7 +539,7 @@ try {
   const orderBeforeDefault = implementationOrder();
   const defaultAppend = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "appended-task", "--text", "No anchor supplied.",
+    "--implementation", "--task", "appended-task", "--text", "No anchor supplied.",
   ], { cwd: workflowGuidanceDir });
   const defaultOrder = implementationOrder();
   context.assert(
@@ -549,7 +549,7 @@ try {
   );
   const defaultRestate = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "do-the-work", "--text", "Restated without an anchor.",
+    "--implementation", "--task", "do-the-work", "--text", "Restated without an anchor.",
   ], { cwd: workflowGuidanceDir });
   context.assert(
     defaultRestate.status === 0
@@ -834,11 +834,11 @@ function generateReadyFixtureChange(workspaceRoot: string, changeName: string): 
   context.assert(
     projectWorkspaceCli(workspaceRoot, [
       "generate", changeName, "tasks",
-      "--section", "Implementation", "--task", "record-fixture-evidence",
+      "--implementation", "--task", "record-fixture-evidence",
       "--text", "Record the fixture evidence this change documents.", "--status", "complete",
-      "--section", "Testing", "--task", "run-fixture-tests",
+      "--testing", "--task", "run-fixture-tests",
       "--text", "Run the fixture test suite.", "--status", "complete", "--command", "npm test",
-      "--section", "Verification", "--task", "verify-fixture-scope",
+      "--verification", "--task", "verify-fixture-scope",
       "--text", "Verify the fixture change matches its proposal scope.", "--status", "complete",
       "--validation-task", "run-fixture-tests", "--unit-test-task", "run-fixture-tests",
     ]).status === 0,

@@ -144,8 +144,13 @@ run `init` from this skill.
    list order, so a returned `taskId` that does not match your work means the
    list order and the work order have diverged. Work finished out of list order
    is recorded by addressing the task by id with
-   `strict-spec-cli generate <change-name> tasks --section <section> --task <id> --status complete`
-   rather than by running `apply` again. When the remaining tasks are simply in
+   `strict-spec-cli generate <change-name> tasks --implementation --task <id> --status complete`
+   rather than by running `apply` again. Read `strict-spec-cli generate --help --json`
+   (or `--help`) first. Choose `--implementation`, `--testing`, or `--verification`
+   to match the recorded section. Each takes no value and opens one task group;
+   following task fields belong to it, and each additional task needs its own
+   selector. Existing task text and commands survive this status-only edit.
+   When the remaining tasks are simply in
    the wrong sequence, fix the list itself with `--before <task-id>` or
    `--after <task-id>` so later `apply` calls land on the right task.
 

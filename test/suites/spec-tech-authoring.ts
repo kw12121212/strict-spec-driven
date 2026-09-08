@@ -58,16 +58,16 @@ function scaffoldArchiveCompatibilityChange(root: string): void {
   resolveSeededQuestions(root, change);
   cli([
     "generate", change, "tasks",
-    "--section", "Implementation", "--task", "implement", "--text", "Implement deltas", "--status", "complete",
+    "--implementation", "--task", "implement", "--text", "Implement deltas", "--status", "complete",
   ], { cwd: root });
   cli([
     "generate", change, "tasks",
-    "--section", "Testing", "--task", "test", "--text", "Test archive", "--status", "complete", "--command", "true",
+    "--testing", "--task", "test", "--text", "Test archive", "--status", "complete", "--command", "true",
     "--validation-task", "test", "--unit-test-task", "test",
   ], { cwd: root });
   cli([
     "generate", change, "tasks",
-    "--section", "Verification", "--task", "verify", "--text", "Verify archive", "--status", "complete",
+    "--verification", "--task", "verify", "--text", "Verify archive", "--status", "complete",
   ], { cwd: root });
   cli([
     "generate", change, "delta-spec", "--target-spec", "live-spec",

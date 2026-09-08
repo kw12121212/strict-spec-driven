@@ -323,6 +323,33 @@ context.assert(
 const mcpInventory = (await loadDistModule("mcp/inventory.js")) as McpInventoryModule;
 const mcpTools = [...mcpInventory.MCP_READ_ONLY_TOOL_INVENTORY, ...mcpInventory.MCP_MUTATING_TOOL_INVENTORY];
 
+const taskGenerateHelp = JSON.parse(cli(["generate", "--help", "--json"]).stdout) as {
+  flags: Array<{ name: string; arity: string; repeatable?: boolean; description: string }>;
+  notes: string[];
+};
+const taskGenerateText = cli(["generate", "--help"]).stdout;
+const taskGenerateMcp = mcpTools.find((tool) => tool.cliCommand === "generate")?.description ?? "";
+for (const selector of ["--implementation", "--testing", "--verification"]) {
+  const flag = taskGenerateHelp.flags.find((entry) => entry.name === selector);
+  context.assert(
+    flag?.arity === "boolean" && flag.repeatable === true
+      && flag.description.includes("Takes no value") && flag.description.includes("Exactly one --task")
+      && taskGenerateText.includes(flag.description) && taskGenerateMcp.includes(selector),
+    `${selector} is discoverable as a valueless repeatable task-group selector in text/JSON/MCP help`,
+  );
+}
+context.assert(
+  !taskGenerateHelp.flags.some((flag) => flag.name === "--section") && !taskGenerateText.includes("--section")
+    && !taskGenerateMcp.includes("--section"),
+  "task discovery surfaces do not advertise the retired section argument",
+);
+context.assert(
+  taskGenerateMcp.includes("no value") && taskGenerateMcp.includes("Repeat a selector")
+    && taskGenerateMcp.includes("strict-spec-cli generate --help")
+    && taskGenerateHelp.notes.some((note) => note.includes("global") && note.includes("without a selector")),
+  "MCP and JSON help explain grouping and route agents to complete editing and gate semantics",
+);
+
 /**
  * An MCP description opens with the metadata summary and, for a command that authors
  * repository-owned YAML, must carry every asset reference the shared projection reports. The
@@ -1967,7 +1994,7 @@ try {
     "utf8",
   );
 
-  const taskAuthoringLine = "Populate the list with `strict-spec-cli generate <change-name> tasks --section <section>`.";
+  const taskAuthoringLine = "Populate the list with `strict-spec-cli generate <change-name> tasks --implementation`.";
   const placementGuidanceLines = [
     "Place a task with `--before <task-id>` or `--after <task-id>` instead of letting it append;",
     "task order is the order `apply` walks, so a task that must run before existing pending work",
@@ -2979,7 +3006,7 @@ try {
       "",
       "```yaml",
       "propose: strict-spec-cli propose <change-name>",
-      "generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
+      "generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
       "ready: strict-spec-cli ready <change-name>",
       "verify: strict-spec-cli verify <change-name>",
       "```",
@@ -4272,6 +4299,26 @@ function validateSkillsOverPackage(pkg: string, skillText: string): { status: nu
 
 const describeDiagnostics = (diagnostics: SkillDiagnostic[]): string =>
   diagnostics.map((diagnostic) => `${diagnostic.code}@${diagnostic.path}`).join(", ") || "none";
+
+// Reuse the shipped undeclared-argument check; this fixture proves a stale task example cannot
+// silently survive the metadata change, and the corrected form proves the same check accepts it.
+const retiredTaskExample = readFileSync(path.join(ROOT, "test", "fixtures", "task-guidance", "retired-section.md"), "utf8");
+const currentTaskSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
+const staleTaskGuidance = validateSkillsOverPackage("strict-spec-brainstorm", currentTaskSkill + "\n" + retiredTaskExample);
+context.assert(
+  staleTaskGuidance.status !== 0 && staleTaskGuidance.diagnostics.some((diagnostic) =>
+    diagnostic.code === "skill.cli_only_yaml.undeclared_mutation_flag"
+      && diagnostic.path === "skills/strict-spec-brainstorm/SKILL.md#commands.generate"
+      && diagnostic.message?.includes("--section")),
+  "shipped validate-skills rejects a committed stale task example and names its skill and retired argument",
+  describeDiagnostics(staleTaskGuidance.diagnostics),
+);
+const correctedTaskGuidance = validateSkillsOverPackage("strict-spec-brainstorm", currentTaskSkill + "\n" + retiredTaskExample.replace("--section Implementation", "--implementation"));
+context.assert(
+  correctedTaskGuidance.status === 0 && correctedTaskGuidance.diagnostics.length === 0,
+  "the same shipped guidance check accepts the fixed-selector example",
+  describeDiagnostics(correctedTaskGuidance.diagnostics),
+);
 
 for (const { pkg, category, violation } of NEGATIVE_FIXTURES) {
   const fixtureFile = path.join(POLICY_FIXTURE_ROOT, pkg, "SKILL.md");

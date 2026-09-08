@@ -5,7 +5,7 @@ import {
   type GeneratableArtifact,
   type GenerationInputRecord,
   isGeneratableArtifact,
-  TASK_SECTION_NAMES,
+  TASK_SECTION_SELECTORS,
 } from "../propose-generation.js";
 import { buildSeededRequirementQuestions } from "../requirement-questions.js";
 import { parseYamlDocument } from "../yaml.js";
@@ -20,17 +20,7 @@ const BOOLEAN_FLAGS = new Set(["delete"]);
 type FlagMap = Record<string, string[]>;
 
 function usage(): string {
-  return [
-    "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
-    "",
-    "Examples:",
-    "  strict-spec-cli generate <change-name> proposal [--what <text>] [--why <text>] [--in <text>] [--out <text>] [--unchanged <text>] [--remove-what <substring>] [--remove-why <substring>] [--remove-in <substring>] [--remove-out <substring>] [--remove-unchanged <substring>]",
-    "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>] | --delete",
-    "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]... [--remove-question <id>]",
-    "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
-    "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]... [--remove-requirement <id>] [--remove-scenario <requirement-id>:<scenario-id>] | --target-spec <id> --delete",
-    "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]... [--remove-rule <id>] | --target-standard <id> --delete",
-  ].join("\n") + "\n";
+  return getCommandUsage("generate");
 }
 
 function parseFlagMap(argv: string[], rootDir: string): FlagMap {
@@ -723,9 +713,10 @@ type TaskCommandInput = {
   unitTestTask?: string;
 };
 
-function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInput {
+function parseTaskCommandInput(argv: string[], rootDir: string, changeName: string): TaskCommandInput {
   const input: TaskCommandInput = { removals: [], groups: [] };
   let current: TaskGroup | undefined;
+  const selectors = TASK_SECTION_SELECTORS.map(({ flag }) => `--${flag}`).join(", ");
 
   function setField(
     field: "id" | "text" | "status" | "command" | "before" | "after",
@@ -733,7 +724,7 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
     flagName: string,
   ): void {
     if (!current) {
-      throw new Error("missing required argument --section before --" + flagName);
+      throw new Error(`start a task group with one of ${selectors} before --${flagName}; see strict-spec-cli generate --help`);
     }
     if (current[field] !== undefined) {
       throw new Error(`--${flagName} may only be supplied once per task`);
@@ -752,10 +743,10 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
     const rawName = token.slice(2);
     const equalsAt = rawName.indexOf("=");
     const name = equalsAt === -1 ? rawName : rawName.slice(0, equalsAt);
-    const inlineValue = equalsAt === -1 ? undefined : resolveStringValue(rawName.slice(equalsAt + 1), rootDir);
+    const inlineValue = equalsAt === -1 ? undefined : rawName.slice(equalsAt + 1);
 
     const readValue = (): string => {
-      if (inlineValue !== undefined) return inlineValue;
+      if (inlineValue !== undefined) return resolveStringValue(inlineValue, rootDir);
       const value = argv[index + 1];
       if (value === undefined || value.startsWith("--")) {
         throw new Error(`missing value for --${name}`);
@@ -765,7 +756,14 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
     };
 
     if (name === "section") {
-      current = { section: readValue() };
+      throw new Error(`--section was removed; use one of ${selectors} (no value). To write .strict-spec-driven/changes/${changeName}/tasks.yaml, for example: strict-spec-cli generate ${changeName} tasks --${TASK_SECTION_SELECTORS[0]!.flag} --task implement-work --text "Implement the scoped behavior."; see strict-spec-cli generate --help`);
+    }
+    const selector = TASK_SECTION_SELECTORS.find(({ flag }) => flag === name);
+    if (selector) {
+      if (inlineValue !== undefined || (argv[index + 1] !== undefined && !argv[index + 1]!.startsWith("--"))) {
+        throw new Error(`--${name} takes no value; follow it with --task <id>; see strict-spec-cli generate --help`);
+      }
+      current = { section: selector.section };
       input.groups.push(current);
       continue;
     }
@@ -907,7 +905,7 @@ function buildTaskListInputFromArgs(
   argv: string[],
   removalOutcome?: TaskRemovalOutcome,
 ): GenerationInputRecord {
-  const commandInput = parseTaskCommandInput(argv, rootDir);
+  const commandInput = parseTaskCommandInput(argv, rootDir, changeName);
   const input = existingTaskListInput(rootDir, changeName);
   const sections = isRecord(input.sections) ? input.sections : {};
   const gates = isRecord(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
@@ -927,9 +925,6 @@ function buildTaskListInputFromArgs(
 
   const seenThisInvocation = new Set<string>();
   for (const group of commandInput.groups) {
-    if (!(TASK_SECTION_NAMES as readonly string[]).includes(group.section)) {
-      throw new Error(`unknown section '${group.section}'; expected one of: ${TASK_SECTION_NAMES.join(", ")}`);
-    }
     if (!group.id) throw new Error(`missing required argument --task for section '${group.section}'`);
     if (!TASK_ID_PATTERN.test(group.id)) {
       throw new Error(`task id '${group.id}' must be kebab-case (lowercase letters, numbers, and hyphens)`);

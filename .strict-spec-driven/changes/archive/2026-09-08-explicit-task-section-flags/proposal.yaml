@@ -1,0 +1,24 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: explicit-task-section-flags
+  status: proposed
+summary:
+  what:
+    - Replace the generic tasks --section argument with the fixed, valueless --implementation, --testing, and --verification task-group selectors.
+    - Make CLI help and AI-facing guidance sufficient to author tasks correctly using the fixed selectors.
+  why:
+    - While reading command documentation, the requester found that a caller-supplied section name obscures the already fixed three-part tasks.yaml contract. No actual invalid AI invocation was reported.
+scope:
+  in:
+    - Change task argument parsing and diagnostics; reject --section without compatibility support and name its replacement.
+    - Update shared generate command metadata, text and JSON help, derived MCP descriptions, bundled skills, and current operator examples that teach task authoring.
+    - Add CLI behavior and guidance-consistency regression coverage and a cli-foundation delta spec.
+  out:
+    - Change the tasks.yaml schema, introduce custom sections, redesign unrelated CLI artifacts, or add compatibility aliases for --section.
+    - Rewrite historical archived changes or introduce new engineering standards.
+unchanged_behavior:
+  - Keep task-list/v2 section keys, task identifiers and fields, non-destructive upserts, task placement, removal, testing gate semantics, apply ordering, and valid/ready result semantics.
+  - Retain existing artifact path confinement, atomic failure behavior, unrelated generate artifact behavior, and archive merge semantics.
