@@ -4,6 +4,7 @@ import { DocumentSourceError } from "../document-render.js";
 import { handleHelpRequest, parseDocumentGenerateArgs } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeUsage } from "./output.js";
+import { withRerenderedDocuments } from "./generated-document-rerender.js";
 
 const ARCHITECTURE_EDIT_FLAGS = new Set([
   "id", "title", "component", "component-title", "component-responsibility", "boundary", "depends-on",
@@ -102,7 +103,7 @@ function parseArchitectureEditArgs(argv: string[]): ArchitectureAuthorInput {
 export function runArchitectureEdit(argv: string[]): number {
   if (handleHelpRequest("architecture-edit", argv)) return 0;
   try {
-    const result = authorArchitecture(process.cwd(), parseArchitectureEditArgs(argv));
+    const result = withRerenderedDocuments(process.cwd(), authorArchitecture(process.cwd(), parseArchitectureEditArgs(argv)));
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {

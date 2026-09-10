@@ -1,0 +1,45 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: independent-requirement-first-review
+  status: proposed
+summary:
+  what:
+    - 'Add a ''## Review Independence'' section to skills/strict-spec-review/SKILL.md that orders the review as requirement reconstruction first, outside-reviewer code reading second, and a per-acceptance-item verdict table third, and reorder that skill''s ## Steps so the reconstruction step runs before any implementation file, diff, or test file is read.'
+    - Add the same '## Review Independence' section to skills/strict-spec-auto/SKILL.md and rewrite its step 9 review phase to follow the same order, produce the same verdict table, and apply the same archive-blocking rule, so the end-to-end skill cannot review more loosely than the standalone review skill.
+    - Require every reconstructed acceptance item to carry one of exactly three verdicts - satisfied, not satisfied, or unprovable from evidence - each with a file:line implementation reference and a test reference, and forbid a blanket statement that the implementation matches the proposal from standing in for per-item verdicts.
+    - Make 'unprovable from evidence' on a MUST-strength delta-spec requirement a MUST FIX finding that blocks the archive recommendation, and the same verdict on any other acceptance item a SHOULD FIX finding, so an untested MUST requirement can no longer pass on a reviewer's reading of the code.
+    - Add REVIEW_INDEPENDENCE_SKILLS, REVIEW_INDEPENDENCE_HEADING, and REVIEW_INDEPENDENCE_SNIPPETS to src/skills/model.ts and a validateReviewIndependenceGuidance check in src/skills/content.ts, mirroring the existing requirement-interrogation check, so validate-skills reports a deterministic path-specific diagnostic for each missing element in either review-capable skill.
+    - Add a cli-foundation requirement making that validate-skills enforcement a specified behavior rather than an unguarded prose convention, proven by negative cases that remove each required element and observe the shipped validate-skills command fail.
+    - Re-render the stale committed ARCHITECTURE.md from its strict YAML sources, which drifted before this change and fails the repository's complete regression gate at HEAD independently of this work.
+  why:
+    - 'The same agent that implements a change also reviews it, so the review is written from the author''s seat: it explains why the implementation is the way it is instead of testing whether it does what the change was for, and the result is a clean report with only NITS.'
+    - review is the only quality gate between implementation and archive in both strict-spec-review and strict-spec-auto, so a gate that structurally cannot fail means every change reaches archive unreviewed in substance; the defect is structural rather than a single missed incident.
+    - Nothing in the current review guidance requires the reviewer to state what the change was supposed to achieve before reading the code, so the requirement is reconstructed from the diff, and an implementation that drifted from the proposal reads as self-consistent and passes.
+    - A review that reports no findings is today indistinguishable from a review that verified nothing, because the report carries no per-requirement evidence; a verdict table with implementation and test references makes the difference observable from the report alone.
+    - The repository already enforces the parallel requirement-interrogation guidance through validate-skills, so leaving the review-side guidance as unenforced prose would let it be deleted or drift without any check noticing.
+scope:
+  in:
+    - A '## Review Independence' section in skills/strict-spec-review/SKILL.md and skills/strict-spec-auto/SKILL.md stating the reconstruction-before-implementation order, the sources the requirement may be reconstructed from, the prohibition on deriving the requirement from the diff, the outside-reviewer stance, the three verdict values, the evidence-reference duty, and the archive-blocking rule for an unprovable MUST requirement.
+    - 'Reordering the ## Steps of strict-spec-review and the step 9 review phase of strict-spec-auto so requirement reconstruction precedes reading changed files, and the verdict table precedes the findings groups in the report.'
+    - REVIEW_INDEPENDENCE_SKILLS, REVIEW_INDEPENDENCE_HEADING, and REVIEW_INDEPENDENCE_SNIPPETS in src/skills/model.ts, and a validateReviewIndependenceGuidance function in src/skills/content.ts wired into the existing skill content validation path.
+    - A delta spec against cli-foundation adding a requirement that validate-skills rejects a review-capable strict skill package whose guidance omits any required review-independence element, with accepting and rejecting scenarios.
+    - Tests that drive each required snippet through a removal probe counted against whitespace-normalized content, assert the shipped validate-skills command fails naming the offending skill path and missing element, and assert the aligned repository state passes.
+    - Rebuilding dist/ from src/ so the shipped validate-skills command and the dist-based test suite exercise the new check.
+    - Re-rendering ARCHITECTURE.md through strict-spec-cli architecture-generate, admitted into this change on an explicit operator decision because the pre-existing drift blocks the regression evidence archive requires.
+  out:
+    - Running the review in a separate subagent or any other structural isolation of the reviewer from the implementer; the change makes the same agent change stance through guidance, which was the interpretation chosen at proposal time.
+    - Any new CLI command, any new YAML artifact kind, and any persisted review-report file; the verdict table exists only in the review's reported output.
+    - Changes to the existing review checklist, technical-standard compliance rules, complete project regression evidence gate, lesson declaration step, or safe in-scope auto-fix behavior; the new stage is added ahead of them and leaves them intact.
+    - Making review re-open whether the requirement itself is the right requirement, or letting review expand change scope; review judges only whether the implementation satisfies the already-decided requirement.
+    - Any edit to strict-spec-bugfix, strict-spec-archive, strict-spec-apply, strict-spec-ship, or any other bundled skill, so a direct /strict-spec-archive invocation remains able to archive without the new verdict gate.
+    - README.md and README.zh.md prose beyond their existing one-line command-table entry for /strict-spec-review, which stays accurate without edit.
+unchanged_behavior:
+  - validate-skills continues to report the same skillCount and marketplaceCount, because this change adds and removes no skill.
+  - Every snippet already required of strict-spec-review and strict-spec-auto in CORE_STRICT_SKILL_EXPECTATIONS remains present in both skills after the rewrite, and neither skill's forbiddenSnippets list starts matching.
+  - The regression-evidence carve-out that lets a delta-tech or lesson write survive without rerunning the complete project regression command keeps its current meaning in both skills.
+  - isMutationCapableSkill classifies exactly the same set of bundled skills as mutation-capable before and after the rewrite, and the cli-only-yaml-policy content check reports no new violation for either edited skill.
+  - The requirement-interrogation check keeps reporting exactly its current diagnostics for the four proposal-oriented skills, because the new check governs a different section and a different skill set.
+  - Skills other than strict-spec-review and strict-spec-auto are byte-identical after this change.

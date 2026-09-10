@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: rerender-generated-docs-on-source-write
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Archive rewrites the spec index and main specs but never re-renders ARCHITECTURE.md, which is derived from them, so a change that merges a delta spec leaves the document stale. The repository''s regression suite asserts no committed generated document is stale, so the gate goes red and stays red for whoever runs the next change. It happened twice in one session: once as drift inherited from an earlier archive, which blocked an unrelated change until the operator made an explicit scope decision, and again immediately after that change''s own archive.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: After any strict CLI command that writes a generated document's source, the document on disk matches its sources, and the command's result names what it re-rendered. The complete regression gate stays green across an archive instead of being left red for the next change to discover.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The requester hit it twice within one session while running strict-spec-auto, and asked to solve it directly afterwards. Doing nothing means every archive that adds or changes a requirement continues to hand the next change a failing gate that names a file that change never touched.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'The generated documents stay opt-in, so a document absent from disk is never created. The rendered content, section order, and banner do not change: this decides when a render runs, not what it produces. The generated-doc-check maintenance check and the regression assertion both stay in place as the backstop. No opt-out flag and no new command are added.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: Two readings were put to the requester. On how to fix it they chose automatic re-render by the writing command over a non-blocking warning or a blocking error, on the grounds that a generated file is already forbidden to hand-edit, so the command that invalidated it should clean up after itself. On breadth they chose every command that writes a generated-document source — archive, spec-edit, tech-edit, architecture-edit, config-edit, design-edit, and design-init — over fixing archive alone, so the same drift cannot reappear through another command.
+    status: resolved
+    kind: requirement
+    answered_by: human

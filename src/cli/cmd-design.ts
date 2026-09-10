@@ -4,6 +4,7 @@ import { DocumentSourceError } from "../document-render.js";
 import { handleHelpRequest, parseDocumentGenerateArgs } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeUsage } from "./output.js";
+import { withRerenderedDocuments } from "./generated-document-rerender.js";
 
 const DESIGN_EDIT_FLAGS = new Set([
   "id", "title", "token-group", "token", "token-value", "token-property", "component", "component-title",
@@ -84,7 +85,7 @@ function parseDesignEditArgs(argv: string[]): DesignSystemAuthorInput {
 export function runDesignEdit(argv: string[]): number {
   if (handleHelpRequest("design-edit", argv)) return 0;
   try {
-    const result = authorDesignSystem(process.cwd(), parseDesignEditArgs(argv));
+    const result = withRerenderedDocuments(process.cwd(), authorDesignSystem(process.cwd(), parseDesignEditArgs(argv)));
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {
@@ -104,7 +105,7 @@ export function runDesignInit(argv: string[]): number {
   }
 
   try {
-    writeJson(initializeDesignSystemArtifact(process.cwd()));
+    writeJson(withRerenderedDocuments(process.cwd(), initializeDesignSystemArtifact(process.cwd())));
     return 0;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));

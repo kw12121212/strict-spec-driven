@@ -6,9 +6,8 @@ import { buildSeededRequirementQuestions } from "./requirement-questions.js";
 import { MAX_ACTIVE_CHANGE_COUNT, initializeStrictChangeScaffold, listActiveChangeNames } from "./scaffold.js";
 import { syncRoadmap } from "./roadmap.js";
 import type { RoadmapSyncResult } from "./roadmap.js";
-import { generateArchitectureDocument } from "./architecture.js";
-import { generateDesignDocument } from "./design-system.js";
 import { DocumentSourceError, type DocumentRenderResult } from "./document-render.js";
+import { GENERATED_DOCUMENT_TARGETS } from "./generated-documents.js";
 import { listLessons, showLesson } from "./lessons.js";
 import {
   exemptPathReason,
@@ -98,25 +97,6 @@ function runSpecsDirectoryStructureCheck(rootDir: string): MaintenanceFinding[] 
 }
 
 /**
- * The generated documents this check compares. Both renderers already render in memory, compare
- * against disk, and name the sources that went stale in check mode, so the check reuses them rather
- * than reimplementing comparison.
- */
-export const GENERATED_DOCUMENT_TARGETS: {
-  reRenderCommand: string;
-  check: (rootDir: string) => DocumentRenderResult;
-}[] = [
-  {
-    reRenderCommand: "strict-spec-cli architecture-generate",
-    check: (rootDir) => generateArchitectureDocument(rootDir, { check: true }),
-  },
-  {
-    reRenderCommand: "strict-spec-cli design-generate",
-    check: (rootDir) => generateDesignDocument(rootDir, { check: true }),
-  },
-];
-
-/**
  * Reports generated documents that exist on disk and no longer match their strict YAML sources. A
  * document absent from disk is not drift: both generated documents are opt-in, so a project that
  * never rendered one has declined it rather than let it go stale. An unreadable source artifact is
@@ -129,7 +109,7 @@ function runGeneratedDocCheck(rootDir: string): MaintenanceFinding[] {
   for (const target of GENERATED_DOCUMENT_TARGETS) {
     let result: DocumentRenderResult;
     try {
-      result = target.check(rootDir);
+      result = target.render(rootDir, { check: true });
     } catch (error) {
       if (error instanceof DocumentSourceError) continue;
       throw error;

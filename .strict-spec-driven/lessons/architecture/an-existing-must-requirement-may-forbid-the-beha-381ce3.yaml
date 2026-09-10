@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: an-existing-must-requirement-may-forbid-the-beha-381ce3
+  title: An existing MUST requirement may forbid the behavior a new change is adding
+category: architecture
+status: active
+created_at: '2026-09-10T07:02:01.194Z'
+updated_at: '2026-09-10T07:02:01.194Z'
+context: A change wired seven CLI commands to re-render ARCHITECTURE.md and DESIGN.md after a source write. The proposal, design, and delta spec were written and the wiring was half implemented before anything looked at what the main specs already said about those documents.
+observation: 'architecture-cli-authoring-contract and design-system-cli-authoring-contract are both MUST requirements stating the generated documents stay ''generator-owned'', with scenarios requiring the edit commands to report that the generator must reconcile the document. The architecture-edit command metadata said it outright: ''Source mutations never edit or delete ARCHITECTURE.md.'' Adding the new requirement without modifying those two would have merged a main spec that required and forbade the same behavior, and the merge would have succeeded silently because archive merges per requirement id and nothing compares statements across requirements.'
+takeaway: Before implementing a behavior change to an existing command, grep the main specs and the command metadata for the noun the change is about, not just for the command name, and read what is already required of it. A new ADDED requirement never conflicts with anything at merge time, so a contradiction introduced this way is invisible to every gate and only surfaces when a reader trusts the wrong half. The remedy is a MODIFIED delta restating the old requirement with all its scenarios, authored before the code that contradicts it.
+applies_when: Adding behavior to an existing CLI command or artifact, especially when the new behavior writes something a current requirement describes as owned, generated, or never touched by that command.
+occurrences:
+  - origin: rerender-generated-docs-on-source-write
+    date: '2026-09-10'
+    evidence: grep for 'generator-owned' found two MUST requirements forbidding the change under way; both were carried as MODIFIED delta specs against architecture-domain-behavior and design-domain-behavior, and the architecture-edit and design-edit metadata notes were rewritten from 'never edit' to 'never compose'.

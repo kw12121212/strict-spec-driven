@@ -8,6 +8,7 @@ import {
 import { handleHelpRequest } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeUsage } from "./output.js";
+import { withRerenderedDocuments } from "./generated-document-rerender.js";
 
 type FlagMap = Record<string, string[]>;
 
@@ -147,9 +148,12 @@ function runLiveArtifactEdit(
     return 1;
   }
   try {
-    const result = commandName === "spec-edit"
-      ? authorMainSpec(process.cwd(), parseSpecInput(id, flagArgs))
-      : authorMainTech(process.cwd(), parseTechInput(id, flagArgs));
+    const result = withRerenderedDocuments(
+      process.cwd(),
+      commandName === "spec-edit"
+        ? authorMainSpec(process.cwd(), parseSpecInput(id, flagArgs))
+        : authorMainTech(process.cwd(), parseTechInput(id, flagArgs)),
+    );
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {

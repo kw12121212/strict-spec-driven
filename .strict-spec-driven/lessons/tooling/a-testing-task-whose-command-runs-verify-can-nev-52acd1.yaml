@@ -8,7 +8,7 @@ lesson:
 category: tooling
 status: active
 created_at: '2026-08-14T14:05:42.441Z'
-updated_at: '2026-08-14T14:05:42.441Z'
+updated_at: '2026-09-10T07:02:00.992Z'
 context: Authoring tasks.yaml for a strict change, the validation gate task run-strict-validation was given the command 'verify <change-name> && validate-skills' so that one Testing task would cover both artifact shape and skill packaging.
 observation: verify reports every pending task as a task_completion diagnostic, including the validation task that is currently running. The chain therefore exited 1 while every artifact was structurally valid, and the only way to make it exit 0 was to mark the task complete first - which is exactly what running the command was supposed to justify. The diagnostics were all source task_completion; no artifact was ever invalid.
 takeaway: A Testing task's command must be able to pass while that task is still pending. Workflow validators whose scope includes the task list belong in the Verification section, where run-verify already owns them; pair a Testing task with a command scoped to the thing under test, such as validate-skills or the regression command.
@@ -17,3 +17,6 @@ occurrences:
   - origin: delta-tech-preserves-regression-evidence
     date: '2026-08-14'
     evidence: run-strict-validation in .strict-spec-driven/changes/delta-tech-preserves-regression-evidence/tasks.yaml; verify exited 1 with 5 task_completion diagnostics, one of which named run-strict-validation itself, while reporting no schema or reference diagnostic
+  - origin: rerender-generated-docs-on-source-write
+    date: '2026-09-10'
+    evidence: The Verification task run-ready-and-verify recorded 'strict-spec-cli ready X && strict-spec-cli verify X' as its command, and verify reports the task list containing that very task as pending, so the command could not exit zero until after it had been marked complete. The trap is not specific to the Testing section.

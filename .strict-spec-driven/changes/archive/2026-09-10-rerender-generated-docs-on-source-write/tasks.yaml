@@ -1,0 +1,80 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: rerender-generated-docs-on-source-write
+sections:
+  Implementation:
+    record-drift-baseline:
+      text: 'Record the pre-change baseline: run the archive-path drift reproduction by confirming architecture-generate --check passes now, and list the commands the mutation inventory names as owners of a generated-document source, so the wiring set is measured from the inventory rather than assumed.'
+      status: complete
+      command: strict-spec-cli architecture-generate --check
+    add-write-mode-renderer-to-targets:
+      text: Extend GENERATED_DOCUMENT_TARGETS in src/maintenance.ts so each target pairs its existing check-mode renderer with a write-mode renderer, keeping the list the single declaration of what a generated document is, and keep runGeneratedDocCheck reading the same entries.
+      status: complete
+    add-post-write-rerender-helper:
+      text: Add the shared post-write helper that renders every generated document present on disk and stale, skips a target absent from disk, skips a DocumentSourceError exactly as runGeneratedDocCheck does, and returns the re-rendered document paths for the caller to report.
+      status: complete
+    wire-helper-into-archive:
+      text: Call the post-write helper from archive after the spec and tech merge commits, and surface the re-rendered paths in the archive result.
+      status: complete
+    wire-helper-into-spec-and-tech-edit:
+      text: Call the post-write helper from spec-edit and tech-edit after their writes commit, and surface the re-rendered paths in each result.
+      status: complete
+    wire-helper-into-architecture-and-config-edit:
+      text: Call the post-write helper from architecture-edit and config-edit after their writes commit, and surface the re-rendered paths in each result.
+      status: complete
+    wire-helper-into-design-edit-and-init:
+      text: Call the post-write helper from design-edit and design-init after their writes commit, and surface the re-rendered paths in each result.
+      status: complete
+    update-command-metadata:
+      text: Update the shared command-metadata registry so every wired command documents the new result key and its meaning, since the metadata registry is the single source every help surface renders and a result key documented only in code is undiscoverable from --help.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild dist/ from src/ so the shipped commands and the dist-based test suite exercise the new behavior.
+      status: complete
+      command: bun run build
+  Testing:
+    prove-archive-rerenders-stale-document:
+      text: Drive the shipped archive command over a workspace whose ARCHITECTURE.md is stale, and assert that afterwards architecture-generate --check passes and the archive result names the re-rendered path. Stale the document by archiving a change whose delta spec adds a requirement, so the drift is produced by the real merge path rather than by hand-editing the document.
+      status: complete
+    prove-every-wired-command-rerenders:
+      text: For each remaining wired command — spec-edit, tech-edit, architecture-edit, config-edit, design-edit, design-init — drive the shipped CLI over a workspace whose generated document is stale and assert the document matches its sources afterwards and the result names it, so no command is wired by inspection alone.
+      status: complete
+    prove-absent-document-is-not-created:
+      text: Drive a source write over a workspace with no generated document on disk and assert none is created and the result names no re-rendered path, so the opt-in semantics are proven rather than assumed.
+      status: complete
+    prove-unreadable-source-is-skipped:
+      text: Drive a source write over a workspace whose generated document exists but whose source artifact is missing, and assert the command completes with the write committed rather than failing on the unrenderable target.
+      status: complete
+    prove-rejected-write-renders-nothing:
+      text: Drive a rejected source mutation and assert the generated document on disk is byte-identical afterwards, so the render is proven to follow a committed write rather than every invocation.
+      status: complete
+    assert-wired-set-matches-inventory:
+      text: Assert that the set of commands calling the post-write helper is exactly the set the mutation inventory names as owners of a generated-document source, so a later command that gains ownership of a source cannot be added without either wiring it or failing this test.
+      status: complete
+    assert-maintenance-check-unchanged:
+      text: Assert the generated-doc-check maintenance check still reports a stale committed document with its existing finding text and re-render command, so extending the shared target list is proven not to have altered the check that reads it.
+      status: complete
+    run-validation-command:
+      text: Run the strict skill validation surface, which also runs the cli-only-yaml-policy content check per skill.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-project-regression-and-coverage-gate:
+      text: Run the complete project regression suite with the coverage gate, redirecting output to a file and reading the command's own exit status rather than a pipeline's.
+      status: complete
+      command: bash -c 'bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage-gate.log 2>&1; echo EXIT=$?'
+  Verification:
+    confirm-archive-rerender-wiring:
+      text: Confirm archive calls the post-write helper and that the fixture-level archive test proves a stale generated document is re-rendered by that path, so this change's own archive is expected to leave the document current. The real-archive observation is reported at handoff; it cannot be a task command here because architecture-generate --check passes vacuously before the merge that stales the document.
+      status: complete
+    run-ready-and-verify:
+      text: Run the strict change readiness and verification gates for this change.
+      status: complete
+      command: bash -c 'strict-spec-cli ready rerender-generated-docs-on-source-write && strict-spec-cli verify rerender-generated-docs-on-source-write'
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec against cli-foundation merges cleanly on archive, that the added requirement id does not collide with an existing cli-foundation requirement, and that no roadmap reconciliation is expected because this change is not roadmap-backed.
+      status: complete
+testing_gates:
+  validation_task: run-validation-command
+  unit_test_task: run-project-regression-and-coverage-gate

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: independent-requirement-first-review
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'The agent that just implemented the change is the agent that reviews it, so the review is written from the author''s seat: it explains why the implementation is the way it is rather than testing whether it does what the change was for. The reported outcome is a clean review with no MUST FIX and at most NITS, followed by an archive recommendation. The requester described this as the review having become a rubber stamp.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'The review report carries an explicit per-acceptance-item verdict with evidence - for example ''requirement-x: satisfied, evidence src/a.ts:120 and test/b.ts:44'' and ''requirement-y: unprovable from evidence, missing a test covering empty input'' - instead of a single blanket statement that the implementation matches expectations. Seeing per-item verdicts backed by implementation and test references is what tells the operator the review actually verified something.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'No single incident forced this. The trigger is structural: review is the only quality gate between implementation and archive in both strict-spec-review and strict-spec-auto, and a gate staffed by the implementer cannot fail, so the requester does not trust it. Doing nothing means continuing to run the workflow with a gate that is known not to work.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'Four boundaries were named explicitly: no new CLI command, no new YAML artifact kind, and no persisted review-report file, with the verdict table living only in the reported output; every existing review check - the checklist, technical-standard compliance, the complete project regression evidence gate, the lesson declaration, and safe in-scope auto-fix - stays exactly as it is with the new stage added ahead of it; review does not re-litigate whether the requirement itself is correct and does not expand scope; and no bundled skill other than strict-spec-review and strict-spec-auto is modified.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: '''Review from a third party''s perspective'' was ambiguous between a same-agent stance change enforced through skill guidance and structural isolation in a separate subagent that never sees the implementation context. The requester chose the same-agent stance change: the skill prompt forces the agent to reconstruct the requirement from the planning artifacts alone, without reading the diff, and then to read the code as an outside reviewer. A follow-up question established that an unprovable-from-evidence verdict blocks the archive recommendation when it lands on a MUST-strength requirement, and is a non-blocking SHOULD FIX otherwise.'
+    status: resolved
+    kind: requirement
+    answered_by: human

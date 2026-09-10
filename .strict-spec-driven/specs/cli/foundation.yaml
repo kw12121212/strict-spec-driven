@@ -3053,3 +3053,39 @@ requirements:
         - GIVEN: The current help and guidance include concrete task creation and editing examples.
         - WHEN: Their task-authoring invocations are executed in an isolated change with the documented prerequisites.
         - THEN: The examples produce the documented sections, edits, gates, and write/completeness results without undocumented arguments or manual YAML writes.
+  cli-review-independence-skill-content-validation:
+    strength: MUST
+    statement: The validate-skills command MUST reject a strict skill package for review or auto whose guidance omits the review-independence section, the planning artifacts and delta specs the requirement is reconstructed from, the rule that the reconstruction completes before any implementation file, diff, or test file is read, the duty to write down a numbered list of acceptance items during that reconstruction, the prohibition on deriving the requirement from the implementation, the outside-reviewer stance rule, the three verdict values satisfied, not satisfied, and unprovable from evidence, the duty to attach an implementation reference and a test reference to each verdict, the rule that a blanket claim of matching the proposal is not a substitute for per-item verdicts, or the rule that an unprovable verdict on a MUST-strength requirement is a MUST FIX finding that blocks the archive recommendation, reporting deterministic path-specific diagnostics that name the offending skill package and the missing element for each omission.
+    scenarios:
+      review-skill-missing-section-is-rejected:
+        - GIVEN: a review-capable strict skill package whose guidance omits the review-independence section
+        - WHEN: strict skill packaging validation runs
+        - THEN: the command exits non-zero and a diagnostic names that skill package path and reports the missing review-independence section
+      review-skill-missing-element-is-rejected:
+        - GIVEN: a review-capable strict skill package that carries the review-independence section but omits the reconstruct-before-reading-implementation rule, the outside-reviewer stance rule, one of the three verdict values, the evidence-reference duty, or the archive-blocking rule for an unprovable MUST-strength requirement
+        - WHEN: strict skill packaging validation runs
+        - THEN: the command exits non-zero and one diagnostic per omission names the offending skill package path and the missing element
+      aligned-review-skills-pass:
+        - GIVEN: both review-capable strict skill packages document the review-independence section and every required element
+        - WHEN: strict skill packaging validation runs
+        - THEN: no review-independence diagnostic is reported and the existing skill content diagnostics are unchanged
+  cli-generated-documents-rerender-on-source-write:
+    strength: MUST
+    statement: Every strict CLI command that successfully writes an artifact a generated document is rendered from MUST, after that write commits, re-render each generated document that already exists on disk and no longer matches its sources, MUST name the re-rendered document paths in the result it emits, in its structured result where it emits one and in its reported output otherwise, MUST leave a generated document that is absent from disk absent, and MUST skip a target whose source artifact cannot be read, so that a source write never leaves a committed generated document stale.
+    scenarios:
+      stale-document-is-rerendered-by-the-writing-command:
+        - GIVEN: a workflow whose generated document exists on disk and whose sources a command is about to change
+        - WHEN: that command completes a successful source write
+        - THEN: the generated document on disk matches its sources and the command's structured result names the re-rendered document path
+      absent-document-is-not-created:
+        - GIVEN: a workflow whose generated document has never been rendered and is absent from disk
+        - WHEN: a command completes a successful source write
+        - THEN: no generated document is created, and the command's structured result names no re-rendered path
+      unreadable-source-is-skipped:
+        - GIVEN: a workflow whose generated document exists on disk but whose source artifact is missing or unreadable
+        - WHEN: a command completes a successful source write
+        - THEN: the command completes without failing on the unrenderable target and the source write remains committed
+      rejected-write-renders-nothing:
+        - GIVEN: a command invocation whose source mutation is rejected
+        - WHEN: the command exits non-zero without writing the source
+        - THEN: no generated document is re-rendered and the document on disk is left exactly as it was

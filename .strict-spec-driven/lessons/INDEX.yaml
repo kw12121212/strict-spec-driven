@@ -19,6 +19,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/architecture/a-dispatcher-s-read-only-claim-is-only-as-true-a-72bf64.yaml
+    an-existing-must-requirement-may-forbid-the-beha-381ce3:
+      title: An existing MUST requirement may forbid the behavior a new change is adding
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/architecture/an-existing-must-requirement-may-forbid-the-beha-381ce3.yaml
   documentation:
     adding-cli-mutation-guidance-to-a-document-enrol-18d554:
       title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
@@ -30,6 +35,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/documentation/a-skill-s-frontmatter-description-is-routing-tex-a8e3e3.yaml
+    adding-a-required-section-to-a-skill-can-breach-140cae:
+      title: Adding a required section to a skill can breach a per-skill line budget nothing in the change mentions
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/documentation/adding-a-required-section-to-a-skill-can-breach-140cae.yaml
   testing:
     a-self-populating-cache-cannot-be-made-absent-by-49b4d2:
       title: A self-populating cache cannot be made absent by pointing at an empty directory
@@ -195,7 +205,7 @@ categories:
     a-testing-task-whose-command-runs-verify-can-nev-52acd1:
       title: A Testing task whose command runs verify can never pass at its own runtime
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/tooling/a-testing-task-whose-command-runs-verify-can-nev-52acd1.yaml
     a-non-zero-coverage-gate-is-not-always-a-coverag-204e92:
       title: A non-zero coverage gate is not always a coverage failure
@@ -212,3 +222,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-directory-outside-every-scan-root-can-still-be-aefe31.yaml
+    a-failing-regression-gate-may-be-failing-at-head-38dc77:
+      title: A failing regression gate may be failing at HEAD, not because of your change
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-failing-regression-gate-may-be-failing-at-head-38dc77.yaml

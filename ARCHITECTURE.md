@@ -411,7 +411,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | Spec | ID | Requirements |
 | --- | --- | --- |
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 216 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 221 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 118 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
 | [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 |

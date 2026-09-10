@@ -3866,11 +3866,12 @@ context.assert(
 // author could act on it was never named. A per-skill bound fails only the skill that actually
 // grew.
 //
-// Measured across the 24 packages at 5058 lines total, largest strict-spec-auto at 515 and mean
-// 210. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
+// Measured across the 24 packages at 5264 lines total, largest strict-spec-auto at 562 and mean
+// 219. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
 // reach, so raising it is a deliberate decision carrying a new measurement rather than a silent
-// drift upward.
-const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 560;
+// drift upward. It was last re-derived when strict-spec-auto gained the review-independence
+// section: 562 measured plus the same 45-line headroom the previous 515-line measurement carried.
+const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 607;
 const bundledSkillLineCounts = strictSkillNames.map((skillName) => ({
   skillName,
   lines: readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8").split("\n").length - 1,
@@ -4248,7 +4249,7 @@ context.assert(
   "every seeded policy category also has an end-to-end fixture package",
 );
 
-type SkillDiagnostic = { code?: string; path?: string; message?: string };
+type SkillDiagnostic = { code?: string; path?: string; message?: string; expected?: string };
 
 /**
  * Runs the shipped validate-skills against a throwaway root holding the whole bundled skill set
@@ -4454,6 +4455,9 @@ type SkillsModelModule = {
   STRICT_WORKFLOW_SHARED_ELEMENTS: ReadonlyArray<{ snippet: string; element: string }>;
   PREREQUISITES_HEADING: string;
   PREFERRED_HUMAN_LANGUAGE_HEADING: string;
+  REVIEW_INDEPENDENCE_HEADING: string;
+  REVIEW_INDEPENDENCE_SKILLS: ReadonlyArray<string>;
+  REVIEW_INDEPENDENCE_SNIPPETS: ReadonlyArray<{ snippet: string; element: string }>;
 };
 const skillsModel = (await loadDistModule("skills/model.js")) as SkillsModelModule;
 
@@ -4591,6 +4595,107 @@ context.assert(
   !singleStatementProbe.diagnostics.some((diagnostic) => diagnostic.code === "skill.strict_workflow.precondition.restated"),
   "stating the workflow-state guidance only under Prerequisites is not reported as repetition",
   describeDiagnostics(singleStatementProbe.diagnostics),
+);
+
+// --- Review independence ----------------------------------------------------------------------
+// The review-independence contract is guidance the agent reviewing a change reads about reviewing
+// that change, so the check's subject is text this repository writes about itself. Scope therefore
+// comes from an explicit skill-name list rather than a content scan: a scan would read what the
+// section put there, and deleting the section from a skill would drop it out of scope instead of
+// failing it. The probes below drive the shipped validate-skills command over each governed skill.
+
+context.assert(
+  skillsModel.REVIEW_INDEPENDENCE_SKILLS.length > 0
+    && skillsModel.REVIEW_INDEPENDENCE_SNIPPETS.length > 0,
+  "the review-independence skill and element lists are not empty, so the probes below are not vacuous",
+);
+
+// The governed set is enumerated rather than scanned, for the reason recorded in design.yaml, so
+// the staleness a scan would have caught is bounded here instead: a name that no longer resolves to
+// a package has fallen out of scope silently, which reads exactly like compliance.
+const unresolvedReviewSkills = skillsModel.REVIEW_INDEPENDENCE_SKILLS
+  .filter((skillName) => !strictSkillNames.includes(skillName));
+context.assert(
+  unresolvedReviewSkills.length === 0,
+  "every skill named in the review-independence governed set resolves to a package under skills/",
+  unresolvedReviewSkills.join(", "),
+);
+
+for (const reviewSkill of skillsModel.REVIEW_INDEPENDENCE_SKILLS) {
+  const reviewSkillText = readFileSync(path.join(ROOT, "skills", reviewSkill, "SKILL.md"), "utf8");
+
+  // The control: without it, a failure below could be attributable to anything else in the file.
+  const reviewControl = validateSkillsOverPackage(reviewSkill, reviewSkillText);
+  context.assert(
+    reviewControl.status === 0 && reviewControl.diagnostics.length === 0,
+    `the unmodified ${reviewSkill} skill validates cleanly, so the removals below are the only variable`,
+    `status ${reviewControl.status}; ${describeDiagnostics(reviewControl.diagnostics)}`,
+  );
+
+  // Deleting the section must fail, or the whole contract can be dropped in one edit.
+  const sectionStart = reviewSkillText.indexOf(skillsModel.REVIEW_INDEPENDENCE_HEADING);
+  const sectionEnd = reviewSkillText.indexOf(
+    "\n## ",
+    sectionStart + skillsModel.REVIEW_INDEPENDENCE_HEADING.length,
+  );
+  context.assert(
+    sectionStart !== -1 && sectionEnd !== -1,
+    `${reviewSkill} carries a review-independence section for the removal probe to delete`,
+  );
+  const withoutSection = reviewSkillText.slice(0, sectionStart) + reviewSkillText.slice(sectionEnd + 1);
+  const sectionRemoved = validateSkillsOverPackage(reviewSkill, withoutSection);
+  context.assert(
+    sectionRemoved.status !== 0
+      && sectionRemoved.diagnostics.some((diagnostic) =>
+        diagnostic.code === "skill.review_independence.heading.missing"
+        && diagnostic.path === `skills/${reviewSkill}/SKILL.md`),
+    `deleting the review-independence section from ${reviewSkill} makes validate-skills report it and name the skill`,
+    `status ${sectionRemoved.status}; ${describeDiagnostics(sectionRemoved.diagnostics)}`,
+  );
+
+  for (const { snippet, element } of skillsModel.REVIEW_INDEPENDENCE_SNIPPETS) {
+    // The shipped check collapses whitespace before matching, so a phrase the author line-wrapped
+    // is still stated while a literal removal cannot reach it — a probe that stripped literals
+    // would report a missing expectation rather than a broken probe. Counting both ways first
+    // makes that failure name itself.
+    const literalOccurrences = reviewSkillText.split(snippet).length - 1;
+    const normalizedOccurrences =
+      reviewSkillText.replace(/\s+/g, " ").split(snippet.replace(/\s+/g, " ")).length - 1;
+    context.assert(
+      literalOccurrences === normalizedOccurrences && literalOccurrences > 0,
+      `every occurrence of the review-independence phrase for ${element} in ${reviewSkill} is reachable unwrapped`,
+      `literal ${literalOccurrences}, normalized ${normalizedOccurrences}`,
+    );
+
+    const withoutElement = reviewSkillText.replace(flexibleWhitespace(snippet), "REMOVED");
+    context.assert(
+      withoutElement !== reviewSkillText,
+      `${reviewSkill} carries ${element}, so removing it is a real change`,
+    );
+    const elementRemoved = validateSkillsOverPackage(reviewSkill, withoutElement);
+    context.assert(
+      elementRemoved.status !== 0
+        && elementRemoved.diagnostics.some((diagnostic) =>
+          diagnostic.code === "skill.review_independence.element.missing"
+          && diagnostic.path === `skills/${reviewSkill}/SKILL.md`
+          && diagnostic.expected === snippet),
+      `removing ${element} from ${reviewSkill} makes validate-skills report that element missing`,
+      `status ${elementRemoved.status}; ${describeDiagnostics(elementRemoved.diagnostics)}`,
+    );
+  }
+}
+
+// A skill outside the governed list must not be dragged in by prose that merely looks like review
+// guidance, or the explicit scope would be doing nothing that a content scan was not already doing.
+const ungovernedWithReviewProse = probeSkillText.replace(
+  "## Steps\n",
+  "## Steps\n\nRead the changed files and report a verdict for each acceptance item.\n",
+);
+const ungovernedProbe = validateSkillsOverPackage(PROBE_SKILL, ungovernedWithReviewProse);
+context.assert(
+  !ungovernedProbe.diagnostics.some((diagnostic) => diagnostic.code?.startsWith("skill.review_independence.")),
+  "a skill outside the review-independence list is not brought into scope by review-shaped prose",
+  describeDiagnostics(ungovernedProbe.diagnostics),
 );
 
 // --- Exception audit -------------------------------------------------------------------------

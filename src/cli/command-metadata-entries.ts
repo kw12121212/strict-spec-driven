@@ -88,7 +88,10 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       description: "Human-readable lines naming the initialized root and the created and skipped file counts.",
     },
     exitCodes: SUCCESS_EXIT_CODES,
-    notes: ["Existing scaffold files are skipped, never overwritten."],
+    notes: [
+      "Existing scaffold files are skipped, never overwritten.",
+      "Re-renders any generated document the workflow config write staled, printing each rewritten path; a generated document absent from disk is left absent.",
+    ],
   },
 
   "check-workflow-state": {
@@ -134,11 +137,12 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "operation", "rerenderedDocuments"],
       description: "A deterministic workflow-config mutation result with schema and example recovery identifiers.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "The target is always .strict-spec-driven/config.yaml; config creation remains owned by init and whole-config deletion is intentionally unavailable.",
       "Every unnamed field and nested entry is preserved; invalid complete candidates leave the file unchanged.",
     ],
@@ -871,11 +875,12 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation", "rerenderedDocuments"],
       description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "Scalar and keyed restatement affects only the named content; removals are exact.",
       "Creation defaults to .strict-spec-driven/specs/<spec-id>.yaml and persists only after a title and complete requirement validate.",
       "Use schema-show main-spec and sample-show main-spec to inspect the artifact contract.",
@@ -910,11 +915,12 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation", "rerenderedDocuments"],
       description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "Scalar and keyed restatement affects only the named content; rule lists append uniquely and removals are exact.",
       "Creation defaults to .strict-spec-driven/tech/<standard-id>.yaml and persists only after a title, category, and complete rule validate.",
       "Use schema-show main-tech and sample-show main-tech to inspect the artifact contract.",
@@ -946,12 +952,12 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       ...["boundary", "dependency", "implementation", "flow-step", "flow-component", "alternative"].map((name) => ({ name: `--remove-${name}`, arity: "value" as const, valueLabel: "<owner:value>", description: `Remove only the exact named ${name.replaceAll("-", " ")} from its owner.`, repeatable: true, repeatSemantics: "Each occurrence removes one exact nested list value." })),
       { name: "--delete", arity: "boolean", description: "Delete only architecture.yaml; cannot be combined with any edit or removal flag and never deletes ARCHITECTURE.md." },
     ],
-    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether architecture-generate must reconcile ARCHITECTURE.md." },
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument", "rerenderedDocuments"], description: "An artifact-aware mutation result reporting the committed change and any generated document re-rendered for it." },
     exitCodes: [
       { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
       { code: 1, meaning: "Usage, schema, relationship, confinement, or filesystem validation rejected the mutation and preserved prior state." },
     ],
-    notes: ["Source mutations never edit or delete ARCHITECTURE.md; run the reported generator after a changed mutation."],
+    notes: ["Source mutations never compose or delete ARCHITECTURE.md; a changed mutation re-renders an existing stale document through architecture-generate and names it in rerenderedDocuments."],
   },
 
   "architecture-generate": {
@@ -1055,12 +1061,14 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       { name: "--remove-dont", arity: "value", valueLabel: "<exact-text>", description: "Remove one exact prohibited practice.", repeatable: true, repeatSemantics: "Each occurrence removes one exact value." },
       { name: "--delete", arity: "boolean", description: "Delete only design-system.yaml; cannot be combined with edits and never deletes DESIGN.md." },
     ],
-    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether design-generate must reconcile DESIGN.md." },
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument", "rerenderedDocuments"], description: "An artifact-aware mutation result reporting the committed change and any generated document re-rendered for it." },
     exitCodes: [
       { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
       { code: 1, meaning: "Usage, schema, confinement, or filesystem validation rejected the mutation and preserved prior state." },
     ],
-    notes: ["Source mutations never edit or delete DESIGN.md; run the reported generator after a changed mutation."],
+    notes: [
+      "Source mutations never compose or delete DESIGN.md; a changed mutation re-renders an existing stale document through design-generate and names it in rerenderedDocuments.",
+    ],
   },
 
   "design-init": {
@@ -1073,7 +1081,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     flags: [],
     output: {
       format: "json",
-      keys: ["artifactPath", "created", "skipped"],
+      keys: ["artifactPath", "created", "skipped", "rerenderedDocuments"],
       description:
         "A JSON result naming the design-system artifact path and whether this run created it or skipped an existing one.",
     },
@@ -1082,6 +1090,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       { code: 1, meaning: "Usage error or the bundled design-system scaffold asset could not be read." },
     ],
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "There are no flags: an existing artifact is reported as skipped and left byte-identical, never overwritten or merged.",
       "Separate from init on purpose: the design-system artifact is optional, so init does not scaffold it and a project with no user interface never runs this command.",
       "The created artifact is schema-valid but empty of tokens and components; fill it with /strict-spec-design, then render DESIGN.md with design-generate.",
@@ -2706,11 +2715,14 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics"],
+      keys: ["valid", "diagnostics", "rerenderedDocuments"],
       description: "A JSON archive result describing merged artifacts and reconciled roadmap state.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
-    notes: ["An empty specs/ directory is allowed and does not block archive."],
+    notes: [
+      "An empty specs/ directory is allowed and does not block archive.",
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
+    ],
   },
 
   list: {

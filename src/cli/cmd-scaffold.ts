@@ -6,6 +6,7 @@ import {
 import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeErr, writeError, writeOut, writeUsage } from "./output.js";
+import { rerenderStaleGeneratedDocuments } from "../generated-documents.js";
 
 export function runInit(argv: string[] = []): number {
   if (handleHelpRequest("init", argv)) {
@@ -33,6 +34,13 @@ export function runInit(argv: string[] = []): number {
   writeOut(`Initialized ${result.rootDir}\n`);
   writeOut(`Created ${result.created.length} scaffold file(s).\n`);
   writeOut(`Skipped ${result.skipped.length} existing scaffold file(s).\n`);
+  // init owns the workflow config, which ARCHITECTURE.md renders from, so it re-renders on the same
+  // terms as every other source-writing command. In a fresh workspace no generated document exists
+  // and this reports nothing; the call is here so the wired set stays equal to the inventory's set
+  // of source owners rather than equal to it minus a command someone has to keep arguing about.
+  for (const documentPath of rerenderStaleGeneratedDocuments(process.cwd())) {
+    writeOut(`Re-rendered ${documentPath}\n`);
+  }
   return 0;
 }
 

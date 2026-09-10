@@ -1,0 +1,82 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: independent-requirement-first-review
+sections:
+  Implementation:
+    record-review-independence-baseline:
+      text: 'Record the pre-change baseline: the validate-skills summary, and the current step order of skills/strict-spec-review/SKILL.md and the step 9 review phase of skills/strict-spec-auto/SKILL.md, so the reorder is measured against a recorded starting state rather than asserted.'
+      status: complete
+      command: strict-spec-cli validate-skills
+    add-review-independence-model-constants:
+      text: Add REVIEW_INDEPENDENCE_SKILLS, REVIEW_INDEPENDENCE_HEADING, and REVIEW_INDEPENDENCE_SNIPPETS to src/skills/model.ts, modeled on the requirement-interrogation constants, with one snippet/element pair per required review-independence element so each diagnostic names the missing element.
+      status: complete
+    add-review-independence-check:
+      text: Add validateReviewIndependenceGuidance to src/skills/content.ts and wire it into the existing skill content validation path. Take its governed set from the explicit REVIEW_INDEPENDENCE_SKILLS list rather than from a content scan, collapse whitespace before matching as the sibling checks do, and emit one path-specific diagnostic for the missing heading and one per missing snippet.
+      status: complete
+    write-review-independence-section-in-review-skill:
+      text: Add the '## Review Independence' section to skills/strict-spec-review/SKILL.md, stating the reconstruct-before-reading-implementation order, the artifacts the requirement may be reconstructed from, the prohibition on deriving the requirement from the implementation, the outside-reviewer stance, the three verdict values, the implementation-and-test evidence duty, the rule that a blanket match claim is not a substitute for per-item verdicts, and the archive-blocking rule for an unprovable MUST-strength requirement.
+      status: complete
+    reorder-review-skill-steps:
+      text: 'Reorder the ## Steps of skills/strict-spec-review/SKILL.md so requirement reconstruction runs before the step that reads changed files, and so the report step places the verdict table ahead of the MUST FIX, SHOULD FIX, and NITS groups, leaving every existing step, checklist item, and rule intact.'
+      status: complete
+    write-review-independence-section-in-auto-skill:
+      text: Add the same '## Review Independence' section to skills/strict-spec-auto/SKILL.md with identical required elements, so the end-to-end skill states the same contract as the standalone review skill.
+      status: complete
+    rewrite-auto-review-phase:
+      text: Rewrite the step 9 review phase of skills/strict-spec-auto/SKILL.md to reconstruct the requirement before reading changed files, produce the per-item verdict table with evidence, and treat an unprovable verdict on a MUST-strength requirement as a MUST FIX finding that blocks archive, without altering the surrounding proposal, implementation, regression-evidence, tech-sync, or archive steps.
+      status: complete
+    keep-required-phrases-unwrapped:
+      text: Confirm every phrase the new check requires occurs at least once unwrapped on a single line in both edited skills, because the shipped check collapses whitespace before matching while a removal probe strips literals, and a line-wrapped occurrence would silently defeat the negative-case test.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild dist/ from src/ so the shipped validate-skills command and the dist-based test suite exercise the new check rather than the previous compiled output.
+      status: complete
+      command: bun run build
+    raise-per-skill-line-budget:
+      text: Raise BUNDLED_SKILL_LINE_BUDGET_PER_SKILL from 560 to 607 in test/suites/entrypoint-and-skills.ts, re-deriving it as the new largest measurement plus the recorded 45-line headroom, and refresh the stale total, largest, and mean measurements in its comment.
+      status: complete
+    rerender-stale-architecture-document:
+      text: Re-render the committed ARCHITECTURE.md from its strict YAML sources, resolving pre-existing drift that fails the complete regression gate at HEAD. Admitted into this change by explicit operator decision rather than inferred.
+      status: complete
+      command: strict-spec-cli architecture-generate
+  Testing:
+    prove-missing-section-negative-case:
+      text: 'Prove the section check with a negative case: remove the ''## Review Independence'' heading from a review-capable skill fixture, drive the shipped validate-skills command, and assert it exits non-zero naming that skill package path and the missing section.'
+      status: complete
+    prove-each-missing-element-negative-case:
+      text: 'Prove every required element with its own negative case: for each entry in REVIEW_INDEPENDENCE_SNIPPETS, count occurrences in whitespace-normalized content, remove all of them, drive the shipped validate-skills command, and assert it exits non-zero naming the offending skill package path and that specific missing element.'
+      status: complete
+    assert-aligned-repository-passes:
+      text: 'Assert the positive case: with both edited skills in their shipped state, validate-skills reports no review-independence diagnostic, so the check is proven to accept the aligned repository rather than only to reject fixtures.'
+      status: complete
+    assert-existing-skill-validation-unchanged:
+      text: 'Assert the unchanged behavior directly: validate-skills reports the same skillCount and marketplaceCount as the recorded baseline, every existing required snippet for strict-spec-review and strict-spec-auto still matches, neither skill''s forbidden snippets match, the requirement-interrogation diagnostics for the four proposal-oriented skills are unchanged, and isMutationCapableSkill classifies the same set of skills as before.'
+      status: complete
+    assert-unmodified-skills-untouched:
+      text: Assert that no bundled skill other than strict-spec-review and strict-spec-auto changed, by comparing the tracked skills/ tree against HEAD and confirming exactly those two SKILL.md files differ.
+      status: complete
+      command: git diff --name-only HEAD -- skills/
+    run-validation-command:
+      text: Run the strict skill validation surface over the edited skills, which also runs the cli-only-yaml-policy content check per skill and so covers the policy evidence this change needs.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-project-regression-and-coverage-gate:
+      text: Run the complete project regression suite with the coverage gate, redirecting output to a file and reading the command's own exit status rather than a pipeline's.
+      status: complete
+      command: bash -c 'bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage-gate.log 2>&1; echo EXIT=$?'
+  Verification:
+    confirm-verdict-contract-is-stated-once:
+      text: Confirm each required review-independence element is stated once per skill rather than restated in several sections, so the new section does not reintroduce the duplicated shared instruction the skill guidance standard forbids.
+      status: complete
+    run-ready-and-verify:
+      text: Run the strict change readiness and verification gates for this change.
+      status: complete
+      command: bash -c 'strict-spec-cli ready independent-requirement-first-review && strict-spec-cli verify independent-requirement-first-review'
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec against cli-foundation merges cleanly on archive, that the added requirement id does not collide with an existing cli-foundation requirement, and that no roadmap reconciliation is expected because this change is not roadmap-backed.
+      status: complete
+testing_gates:
+  validation_task: run-validation-command
+  unit_test_task: run-project-regression-and-coverage-gate

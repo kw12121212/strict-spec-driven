@@ -553,16 +553,19 @@ function readSeededFindings(workspaceRoot: string, changeName: string): string[]
 const generatedDocumentModule = await loadDistModule<{
   GENERATED_DOCUMENT_TARGETS: {
     reRenderCommand: string;
-    check: (rootDir: string) => { outputPath: string; documentExists: boolean; current: boolean; staleSources: string[] };
+    render: (
+      rootDir: string,
+      options?: { check?: boolean },
+    ) => { outputPath: string; documentExists: boolean; current: boolean; staleSources: string[] };
   }[];
-}>("maintenance.js");
+}>("generated-documents.js");
 // A target whose source artifact this repository never authored throws rather than returning a
 // result, and the shipped check skips exactly that case. Mirroring the skip keeps the test measuring
 // drift instead of crashing on the design system, which this repository has declined.
 const documentRenderModule = await loadDistModule<{ DocumentSourceError: new () => Error }>("document-render.js");
 const checkedDocumentResults = generatedDocumentModule.GENERATED_DOCUMENT_TARGETS.flatMap((target) => {
   try {
-    return [target.check(ROOT)];
+    return [target.render(ROOT, { check: true })];
   } catch (error) {
     if (error instanceof documentRenderModule.DocumentSourceError) return [];
     throw error;
@@ -736,6 +739,288 @@ try {
   rmSync(docBothDir, { recursive: true, force: true });
 }
 
+
+context.section("[24b] source writes re-render stale generated documents");
+
+// The drift this section exists to prevent was found twice in one session: archive merged a delta
+// spec into a main spec, ARCHITECTURE.md went stale, and the regression gate failed for whoever ran
+// the next change against a file that change never touched. Every assertion below drives the shipped
+// CLI, because the wiring lives in the command layer and a module-level call proves nothing about
+// what an operator invoking the command actually gets.
+
+type RerenderResult = { rerenderedDocuments?: string[]; valid?: boolean };
+
+/** Parses a command result, treating unparseable output as an empty result rather than a crash: a
+ * probe that mis-invokes its command must fail its own assertion, not abort the suite before the
+ * assertion that would have named the offending command runs. */
+function parseRerenderResult(stdout: string): RerenderResult {
+  try {
+    return JSON.parse(stdout.trim()) as RerenderResult;
+  } catch {
+    return {};
+  }
+}
+
+/** A workspace with strict state and a freshly rendered ARCHITECTURE.md. */
+function createRenderedWorkspace(): string {
+  const root = mkdtempSync(path.join(os.tmpdir(), "strict-spec-rerender-"));
+  cli(["init"], { cwd: root });
+  cli(["architecture-generate"], { cwd: root });
+  return root;
+}
+
+/** Drifts the architecture artifact so ARCHITECTURE.md no longer matches it. */
+function staleArchitectureDocument(root: string): void {
+  const artifactPath = path.join(root, ".strict-spec-driven", "architecture.yaml");
+  writeFileSync(
+    artifactPath,
+    readFileSync(artifactPath, "utf8").replace("title: Project Architecture", "title: Drifted Architecture"),
+    "utf8",
+  );
+}
+
+const documentIsCurrent = (root: string): boolean =>
+  cli(["architecture-generate", "--check"], { cwd: root }).status === 0;
+
+// 24a: the archive path, which is where the drift was actually produced. Staling the document by
+// hand would prove the helper runs; staling it by merging a delta spec proves the path that failed.
+const archiveRerenderDir = createRenderedWorkspace();
+try {
+  const change = "rerender-probe-change";
+  cli(["propose", change], { cwd: archiveRerenderDir });
+  cli(["generate", change, "proposal", "--what", "Add a probe requirement.", "--why", "Prove the merge stales the document."], { cwd: archiveRerenderDir });
+  cli(["generate", change, "design", "--approach", "Add one requirement through a delta spec."], { cwd: archiveRerenderDir });
+  cli([
+    "generate", change, "delta-spec", "--target-spec", "probe-spec",
+    "--new-spec-path", ".strict-spec-driven/specs/probe.yaml", "--title", "Probe Spec",
+    "--operation", "ADDED", "--requirement", "probe-requirement", "--strength", "MUST",
+    "--statement", "The probe requirement exists so the merge changes the spec index.",
+    "--scenario", "probe-scenario", "--given", "a probe", "--when", "it runs", "--then", "it is observed",
+  ], { cwd: archiveRerenderDir });
+  cli([
+    "generate", change, "tasks",
+    "--implementation", "--task", "do-work", "--text", "Do the work.", "--status", "complete",
+    "--testing", "--task", "run-tests", "--text", "Run the tests.", "--status", "complete",
+    "--verification", "--task", "verify-it", "--text", "Verify it.", "--status", "complete",
+    "--validation-task", "run-tests", "--unit-test-task", "run-tests",
+  ], { cwd: archiveRerenderDir });
+  for (const questionId of [
+    "requirement-problem", "requirement-outcome", "requirement-trigger",
+    "requirement-non-goals", "requirement-interpretation",
+  ]) {
+    cli(["generate", change, "questions", "--resolve", questionId, "--answer", "Recorded for the probe.", "--answered-by", "human"], { cwd: archiveRerenderDir });
+  }
+
+  const archiveRun = cli(["archive", change], { cwd: archiveRerenderDir });
+  const archiveResult = parseRerenderResult(archiveRun.stdout);
+  context.assert(
+    archiveRun.status === 0 && archiveResult.valid === true,
+    "the probe change archives, so the assertions below are about the merge rather than a failed archive",
+    archiveRun.stdout + archiveRun.stderr,
+  );
+  context.assert(
+    documentIsCurrent(archiveRerenderDir),
+    "archiving a change that merges a delta spec leaves ARCHITECTURE.md current instead of stale",
+  );
+  context.assert(
+    (archiveResult.rerenderedDocuments ?? []).includes("ARCHITECTURE.md"),
+    "the archive result names the generated document it re-rendered",
+    JSON.stringify(archiveResult.rerenderedDocuments),
+  );
+} finally {
+  rmSync(archiveRerenderDir, { recursive: true, force: true });
+}
+
+// 24b: every remaining wired command, driven the same way. Wiring one command and reading the rest
+// by eye is how the sixth of them ends up unwired.
+const WIRED_COMMAND_INVOCATIONS: { command: string; argv: string[] }[] = [
+  { command: "spec-edit", argv: ["spec-edit", "probe-spec", "--spec-path", ".strict-spec-driven/specs/probe.yaml", "--title", "Probe Spec", "--requirement", "probe-requirement", "--strength", "MUST", "--statement", "The probe requirement exists.", "--scenario", "probe-scenario", "--given", "a probe", "--when", "it runs", "--then", "it is observed"] },
+  { command: "tech-edit", argv: ["tech-edit", "probe-standard", "--title", "Probe Standard", "--category", "tooling", "--rule", "probe-rule", "--strength", "MUST", "--statement", "The probe rule exists.", "--rationale", "It anchors the probe.", "--method", "review"] },
+  { command: "architecture-edit", argv: ["architecture-edit", "--title", "Probe Architecture Title"] },
+  { command: "config-edit", argv: ["config-edit", "--context", "A probe context line."] },
+  { command: "design-init", argv: ["design-init"] },
+];
+
+for (const { command, argv } of WIRED_COMMAND_INVOCATIONS) {
+  const commandDir = createRenderedWorkspace();
+  try {
+    staleArchitectureDocument(commandDir);
+    context.assert(
+      !documentIsCurrent(commandDir),
+      `the ${command} probe starts from a stale document, so a passing check afterwards means something`,
+    );
+    const run = cli(argv, { cwd: commandDir });
+    context.assert(
+      run.status === 0,
+      `the ${command} probe invocation succeeds, so the re-render assertion is about the write rather than a usage error`,
+      run.stdout + run.stderr,
+    );
+    const result = parseRerenderResult(run.stdout);
+    context.assert(
+      documentIsCurrent(commandDir),
+      `${command} re-renders the stale generated document after its write commits`,
+    );
+    context.assert(
+      (result.rerenderedDocuments ?? []).includes("ARCHITECTURE.md"),
+      `the ${command} result names the generated document it re-rendered`,
+      JSON.stringify(result.rerenderedDocuments),
+    );
+  } finally {
+    rmSync(commandDir, { recursive: true, force: true });
+  }
+}
+
+// design-edit needs the artifact design-init creates, so it is driven as a second write in one
+// workspace rather than given a bespoke fixture.
+const designEditDir = createRenderedWorkspace();
+try {
+  cli(["design-init"], { cwd: designEditDir });
+  staleArchitectureDocument(designEditDir);
+  const run = cli(["design-edit", "--title", "Probe Design Title"], { cwd: designEditDir });
+  const result = parseRerenderResult(run.stdout);
+  context.assert(run.status === 0, "the design-edit probe invocation succeeds", run.stdout + run.stderr);
+  context.assert(documentIsCurrent(designEditDir), "design-edit re-renders the stale generated document");
+  context.assert(
+    (result.rerenderedDocuments ?? []).includes("ARCHITECTURE.md"),
+    "the design-edit result names the generated document it re-rendered",
+    JSON.stringify(result.rerenderedDocuments),
+  );
+} finally {
+  rmSync(designEditDir, { recursive: true, force: true });
+}
+
+// init reports as text rather than JSON, so its report is asserted on the printed output.
+const initRerenderDir = createRenderedWorkspace();
+try {
+  staleArchitectureDocument(initRerenderDir);
+  const run = cli(["init"], { cwd: initRerenderDir });
+  context.assert(documentIsCurrent(initRerenderDir), "init re-renders a stale generated document");
+  context.assert(
+    run.stdout.includes("Re-rendered ARCHITECTURE.md"),
+    "init prints the generated document it re-rendered, since it reports as text rather than JSON",
+    run.stdout,
+  );
+} finally {
+  rmSync(initRerenderDir, { recursive: true, force: true });
+}
+
+// 24c: absence is declined, not stale. Without this the helper could quietly push a root-level
+// document into every project that ever ran spec-edit.
+const absentDocumentDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-rerender-absent-"));
+try {
+  cli(["init"], { cwd: absentDocumentDir });
+  const run = cli(["architecture-edit", "--title", "Probe Architecture Title"], { cwd: absentDocumentDir });
+  const result = parseRerenderResult(run.stdout);
+  context.assert(
+    !existsSync(path.join(absentDocumentDir, "ARCHITECTURE.md")),
+    "a source write does not create a generated document that was never rendered",
+  );
+  context.assert(
+    (result.rerenderedDocuments ?? []).length === 0,
+    "the result names no re-rendered document when none was present to re-render",
+    JSON.stringify(result.rerenderedDocuments),
+  );
+} finally {
+  rmSync(absentDocumentDir, { recursive: true, force: true });
+}
+
+// 24d: a target whose source cannot be read is skipped rather than failing the write that already
+// committed. This repository declines the design system, so that skip is exercised constantly.
+const unreadableSourceDir = createRenderedWorkspace();
+try {
+  const unrenderableDocument = "# Stale design document\n";
+  writeFileSync(path.join(unreadableSourceDir, "DESIGN.md"), unrenderableDocument, "utf8");
+  staleArchitectureDocument(unreadableSourceDir);
+  const run = cli(["config-edit", "--context", "A probe context line."], { cwd: unreadableSourceDir });
+  context.assert(
+    run.status === 0,
+    "a generated document whose source artifact is absent does not fail the command whose write committed",
+    run.stdout + run.stderr,
+  );
+  // Completing is not the same as having written: the scenario requires the source mutation to
+  // survive the skip, and a command that swallowed its own write would still exit zero here.
+  context.assert(
+    readFileSync(path.join(unreadableSourceDir, ".strict-spec-driven", "config.yaml"), "utf8")
+      .includes("A probe context line."),
+    "the source write stays committed when a generated document has no readable source",
+  );
+  context.assert(
+    documentIsCurrent(unreadableSourceDir),
+    "the renderable document is still re-rendered when a sibling target has no readable source",
+  );
+  context.assert(
+    readFileSync(path.join(unreadableSourceDir, "DESIGN.md"), "utf8") === unrenderableDocument,
+    "the document whose source cannot be read is left byte-identical rather than rewritten or removed",
+  );
+} finally {
+  rmSync(unreadableSourceDir, { recursive: true, force: true });
+}
+
+// 24e: the render follows a committed write, not every invocation.
+const rejectedWriteDir = createRenderedWorkspace();
+try {
+  staleArchitectureDocument(rejectedWriteDir);
+  const documentBefore = readFileSync(path.join(rejectedWriteDir, "ARCHITECTURE.md"), "utf8");
+  const run = cli(["spec-edit", "probe-spec", "--strength", "MUST"], { cwd: rejectedWriteDir });
+  context.assert(run.status !== 0, "the rejected-write probe is genuinely rejected", run.stdout + run.stderr);
+  context.assert(
+    readFileSync(path.join(rejectedWriteDir, "ARCHITECTURE.md"), "utf8") === documentBefore,
+    "a rejected source mutation leaves the stale generated document byte-identical",
+  );
+} finally {
+  rmSync(rejectedWriteDir, { recursive: true, force: true });
+}
+
+// 24f: the wired set is compared against the inventory rather than against itself, so a command that
+// later gains ownership of a generated-document source fails here instead of joining silently.
+const generatedDocumentsModule = await loadDistModule<{
+  GENERATED_DOCUMENT_SOURCE_KINDS: ReadonlyArray<string>;
+}>("generated-documents.js");
+const WIRED_SOURCE_WRITING_COMMANDS = [
+  "archive", "architecture-edit", "config-edit", "design-edit", "design-init", "init", "spec-edit", "tech-edit",
+];
+const inventoryOwners = new Set<string>();
+for (const kind of generatedDocumentsModule.GENERATED_DOCUMENT_SOURCE_KINDS) {
+  const shown = cli(["yaml-surface-show", kind], { cwd: ROOT });
+  context.assert(shown.status === 0, `the mutation inventory resolves the generated-document source kind ${kind}`, shown.stderr);
+  const family = (JSON.parse(shown.stdout.trim()) as {
+    family: { operations: Record<string, { commands: string[] }> };
+  }).family;
+  for (const operation of Object.values(family.operations)) {
+    for (const owner of operation.commands) inventoryOwners.add(owner);
+  }
+}
+context.assert(
+  inventoryOwners.size > 0,
+  "the generated-document source kinds resolve to at least one owning command, so the comparison below is not vacuous",
+);
+context.assert(
+  JSON.stringify([...inventoryOwners].sort()) === JSON.stringify([...WIRED_SOURCE_WRITING_COMMANDS].sort()),
+  "every command the inventory names as an owner of a generated-document source is wired to re-render",
+  `inventory: ${[...inventoryOwners].sort().join(", ")}`,
+);
+
+// The comparison above closes one direction: an inventory owner nobody wired. The other direction is
+// a module that re-renders without appearing in the pinned set, which would run unasserted, so the
+// call sites are read back out of the source and compared to the modules the pinned commands live
+// in. Both directions have to fail, or the list becomes the thing nobody checks.
+const RERENDER_CALL_SITE_MODULES = [
+  "cmd-architecture.ts", "cmd-change.ts", "cmd-design.ts", "cmd-scaffold.ts", "cmd-spec-tech.ts", "cmd-workflow.ts",
+];
+const cliDir = path.join(ROOT, "src", "cli");
+const observedCallSiteModules = readdirSync(cliDir)
+  .filter((fileName) => fileName.endsWith(".ts"))
+  .filter((fileName) => {
+    const source = readFileSync(path.join(cliDir, fileName), "utf8");
+    return source.includes("withRerenderedDocuments(") || source.includes("rerenderStaleGeneratedDocuments(");
+  })
+  .filter((fileName) => fileName !== "generated-document-rerender.ts")
+  .sort();
+context.assert(
+  JSON.stringify(observedCallSiteModules) === JSON.stringify([...RERENDER_CALL_SITE_MODULES].sort()),
+  "no command module re-renders generated documents without being named in the pinned wired set",
+  `observed: ${observedCallSiteModules.join(", ")}`,
+);
 
 context.section("[25] maintenance lesson-staleness-check");
 

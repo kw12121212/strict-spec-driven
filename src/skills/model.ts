@@ -309,6 +309,66 @@ export const REQUIREMENT_INTERROGATION_SNIPPETS: ReadonlyArray<RequirementInterr
   { snippet: "state the reason for the pushback", element: "the duty to state the reason for pushback instead of silently re-asking" },
 ];
 
+/**
+ * Skills that review a change the same agent implemented. Each must carry the review-independence
+ * contract, because the reviewer's bias here is structural rather than occasional: the agent that
+ * wrote the code is the agent grading it, and a gate staffed by the author cannot fail.
+ */
+export const REVIEW_INDEPENDENCE_SKILLS = [
+  "strict-spec-review",
+  "strict-spec-auto",
+] as const;
+
+export const REVIEW_INDEPENDENCE_HEADING = "## Review Independence";
+
+/**
+ * The elements the review-independence guidance must carry, checked per review-capable skill.
+ *
+ * Every snippet is a phrase the guidance states rather than a command name it references, because a
+ * command name occurs wherever the skill merely mentions that command. The elements live here rather
+ * than being derived from the guidance text so the check cannot be satisfied by the very section it
+ * governs, and each carries the element name a diagnostic reports, so a skill missing one is told
+ * which contract it dropped rather than which string failed to match.
+ */
+export const REVIEW_INDEPENDENCE_SNIPPETS: ReadonlyArray<RequirementInterrogationExpectation> = [
+  {
+    snippet: "Read only `proposal.yaml`, `design.yaml`, `questions.yaml`, and the delta specs",
+    element: "the planning artifacts and delta specs the requirement is reconstructed from",
+  },
+  {
+    snippet: "before any implementation file, diff, or test file is read",
+    element: "the rule that requirement reconstruction completes before the implementation is read",
+  },
+  {
+    snippet: "a numbered list of acceptance items",
+    element: "the duty to write down a numbered list of acceptance items during reconstruction",
+  },
+  {
+    snippet: "Never derive the requirement from the implementation",
+    element: "the prohibition on deriving the requirement from the implementation",
+  },
+  {
+    snippet: "an outside reviewer who did not write them",
+    element: "the outside-reviewer stance the changed files are read in",
+  },
+  {
+    snippet: "`satisfied`, `not satisfied`, or `unprovable from evidence`",
+    element: "the three verdict values every acceptance item resolves to",
+  },
+  {
+    snippet: "an implementation reference and a test reference",
+    element: "the duty to attach an implementation reference and a test reference to each verdict",
+  },
+  {
+    snippet: "is not a substitute for per-item verdicts",
+    element: "the rule that a blanket claim of matching the proposal is not a substitute for per-item verdicts",
+  },
+  {
+    snippet: "blocks the archive recommendation",
+    element: "the rule that an unprovable verdict on a MUST-strength requirement blocks the archive recommendation",
+  },
+];
+
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
     requiredCommands: {

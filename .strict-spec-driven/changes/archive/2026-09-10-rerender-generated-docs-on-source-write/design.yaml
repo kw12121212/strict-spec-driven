@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: rerender-generated-docs-on-source-write
+approach:
+  - One shared post-write step, declared once and called from every command that owns a generated-document source. src/maintenance.ts already declares what a generated document is — GENERATED_DOCUMENT_TARGETS pairs a re-render command string with a check-mode renderer — so that descriptor gains a write-mode renderer and becomes the single list both the maintenance check and the new step read. A command that finishes a successful source write calls the step, which renders each target that is present on disk and stale, and returns the paths it rewrote for the command to report. Adding a third generated document later means adding one entry, not editing seven commands.
+  - 'The step inherits the maintenance check''s two skip rules rather than inventing its own, because the two must agree: a document absent from disk is declined rather than stale, and a DocumentSourceError from an unreadable or absent source artifact is skipped. If they disagreed, the check would report drift the writer refused to fix, or the writer would create a document the check treats as declined.'
+  - The step runs after the write commits, never before or instead of it. A render failure therefore cannot roll back or corrupt a source mutation that already succeeded, and the write remains the command's contract while the render is the tidying that follows it.
+decisions:
+  writing-command-renders:
+    decision: The command that writes a generated document's source re-renders that document itself, rather than emitting a warning that names the re-render command or exiting non-zero to force the operator to run it.
+    rationale: A generated document already carries a banner forbidding hand edits, so there is no author whose intent a re-render could override — the only question is who runs a command whose output is fully determined. A warning relies on the operator reading it and acting, which is exactly what did not happen for the drift this change exists to fix; a non-zero exit would report failure after the merge already committed, leaving the state changed and the exit code saying otherwise.
+  every-source-writing-command:
+    decision: The step is wired into archive, spec-edit, tech-edit, architecture-edit, config-edit, design-edit, and design-init — every command the mutation inventory names as an owner of a generated-document source — rather than into archive alone.
+    rationale: 'The drift is a property of writing a source, not of archiving: spec-edit stales ARCHITECTURE.md by exactly the same route archive does. Fixing the one command that happened to expose it would leave six doors open onto an identical failure, and the next one to open would again be discovered by whoever runs the following change.'
+  render-after-commit:
+    decision: The re-render runs after the source write has committed, and a render failure is reported without reverting the write.
+    rationale: The write is the command's contract and the render is derived tidying, so failing the whole mutation because a derived document could not be rewritten would trade a stale document for a lost mutation. Running it before the write would render from sources the command is about to change, producing a document stale on arrival.
+  preserve-opt-in-absence:
+    decision: A generated document that does not exist on disk is left absent; the step re-renders only documents already present.
+    rationale: Both documents are opt-in and the maintenance check already reads absence as declined rather than stale. Creating one on the first spec-edit would put an unrequested root-level file into projects that never asked for it, and would then oblige them to keep it current forever.
+  include-init-for-exact-inventory-parity:
+    decision: init is wired alongside the other seven commands, because the mutation inventory names it as an owner of workflow-config, which is a source of ARCHITECTURE.md. Its practical effect is nil in a fresh workspace, where no generated document exists for the helper to find.
+    rationale: 'The wired set is asserted equal to the inventory''s owner set, and an exact equality is only maintainable while it has no exception list: an exception recorded as ''init is different'' would have to be re-argued by whoever next adds a source owner, and is exactly the kind of entry that outlives its reason. Including a command whose helper call is a no-op costs one result key and buys a test that cannot drift.'
+  report-in-whatever-result-the-command-emits:
+    decision: The re-rendered paths are reported in the command's structured JSON result where it emits one, and in its printed output for init, which reports its scaffold outcome as text rather than JSON.
+    rationale: Tying the reporting clause to a JSON result alone would have forced a choice between dropping init from the wired set and giving one scaffold command a JSON result the other output lines do not share. Naming the paths in whatever result the command already emits keeps the visibility the clause exists for — a root-level document changed and the caller can see it — without reshaping one command's output to satisfy the wording.
+alternatives:
+  - option: Have archive alone re-render, since archive is where the drift was observed twice.
+    reason: spec-edit, tech-edit, architecture-edit, config-edit, design-edit, and design-init write the same sources by the same route, so the failure would simply reappear from a command nobody had connected to it.
+  - option: Report the staleness as a non-blocking warning naming the re-render command, matching how roadmap commands report change-artifact drift.
+    reason: That convention exists because a roadmap command writing a change artifact would cross an ownership boundary; here the document is generated output with no owner to displace, and the warning depends on an operator acting on it — which is precisely the step that was missed.
+  - option: Drop the regression assertion that no committed generated document is stale.
+    reason: It is the only thing that detected the drift at all; removing it would convert a visible failure into an invisible one.
+risks:
+  - Seven commands gain a side effect beyond the artifact they are named for, so a caller reading only a command name will not expect a root-level document to change. The result key naming the re-rendered paths is what keeps that from being silent.
+  - 'The step reads the same target list as the maintenance check, so a mistake in that list now has two consequences instead of one: the check stops reporting a document and the writers stop maintaining it. That is the intended coupling, but it makes the list worth a direct test rather than only indirect coverage.'
+  - A source write followed by a failed render leaves the document stale with the write committed, which is the state this change exists to prevent. It is reported rather than silent, and the maintenance check and regression assertion both still catch it.

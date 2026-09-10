@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: design-domain-behavior
+operations:
+  ADDED: {}
+  MODIFIED:
+    design-system-cli-authoring-contract:
+      strength: MUST
+      statement: 'The workflow MUST provide design-edit as an artifact-aware named-argument command for meaningful design-system creation, non-destructive identity, token, component mapping, visual snapshot, and guidance updates, exact named removals, and explicit guarded deletion through the shared atomic mutation boundary; design-init and design synchronization MUST use the same writer, and DESIGN.md MUST remain rendered only by the shared generator: neither command composes the document itself, and after a committed source write each MUST re-render an existing stale DESIGN.md through that generator and name the rewritten path in its result.'
+      scenarios:
+        design-upsert-and-removal-preserve-siblings:
+          - GIVEN: A valid design-system artifact declares multiple token groups, tokens, components, mappings, snapshots, and guidance entries
+          - WHEN: The operator upserts one named value or removes one exact named entry through design-edit
+          - THEN: Only the named target changes, additive values remain duplicate-free, siblings remain unchanged, and an existing stale DESIGN.md is re-rendered through the shared generator with its path named in the result
+        design-init-uses-shared-boundary:
+          - GIVEN: Strict workflow state exists without a design-system artifact
+          - WHEN: The operator runs design-init
+          - THEN: The command creates the schema-valid bundled initial state through the shared mutation boundary, reports an existing artifact as unchanged, leaves no file behind after validation or commit failure, and re-renders an existing stale DESIGN.md through the shared generator
+        design-delete-is-explicit-and-safe:
+          - GIVEN: A design-system artifact and possibly a rendered DESIGN.md exist
+          - WHEN: The operator requests whole-artifact deletion
+          - THEN: The command accepts only isolated delete intent under the declared lifecycle constraints, never deletes the generated document implicitly, and preserves all files on rejection
+  REMOVED: {}

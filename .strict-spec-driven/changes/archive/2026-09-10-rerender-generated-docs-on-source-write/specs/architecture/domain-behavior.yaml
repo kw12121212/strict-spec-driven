@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: architecture-domain-behavior
+operations:
+  ADDED: {}
+  MODIFIED:
+    architecture-cli-authoring-contract:
+      strength: MUST
+      statement: 'The workflow MUST provide architecture-edit as an artifact-aware named-argument command for meaningful architecture creation, non-destructive overview, component, implementation mapping, data-flow, decision, and alternative updates, exact named removals, and explicit guarded deletion through the shared atomic mutation boundary, while keeping ARCHITECTURE.md rendered only by the shared generator: architecture-edit MUST NOT compose the document itself, and after a committed source write it MUST re-render an existing stale ARCHITECTURE.md through that generator and name the rewritten path in its result.'
+      scenarios:
+        architecture-upsert-and-removal-preserve-siblings:
+          - GIVEN: A valid architecture artifact declares multiple components, mappings, data flows, decisions, and alternatives
+          - WHEN: The operator upserts one named entry or removes one exact named entry through architecture-edit
+          - THEN: Only the named target changes, duplicate additions are idempotent, every sibling remains unchanged, and an existing stale ARCHITECTURE.md is re-rendered through the shared generator with its path named in the result
+        architecture-create-requires-meaningful-state:
+          - GIVEN: No architecture artifact exists
+          - WHEN: The operator supplies insufficient, placeholder-only, or invalid architecture authoring arguments
+          - THEN: The command rejects the request, leaves architecture.yaml absent, and re-renders no generated document; sufficient schema-valid semantic input creates it atomically
+        architecture-delete-is-explicit-and-safe:
+          - GIVEN: An architecture artifact and possibly a rendered ARCHITECTURE.md exist
+          - WHEN: The operator requests whole-artifact deletion
+          - THEN: The command accepts only isolated delete intent under the declared lifecycle constraints, never deletes the generated document implicitly, and leaves all files unchanged on rejection
+  REMOVED: {}

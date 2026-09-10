@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: rerender-generated-docs-on-source-write
+  status: proposed
+summary:
+  what:
+    - Add a shared post-write step that, after a strict CLI command successfully writes an artifact a generated document is rendered from, re-renders every generated document that already exists on disk and no longer matches its sources, and reports the re-rendered paths in the command's structured result.
+    - Extend the generated-document target descriptor in src/maintenance.ts so each target pairs its existing check-mode renderer with a write-mode renderer, and have both the maintenance check and the new post-write step read that single list rather than each naming the renderers itself.
+    - 'Preserve the opt-in semantics the maintenance check already applies: a generated document absent from disk is declined rather than stale, so the post-write step re-renders an existing document and never creates one, and an unreadable source artifact is skipped exactly as the check skips it.'
+    - 'Apply that step to every command the mutation inventory names as an owner of a generated-document source: archive and spec-edit for the spec index and main specs, archive and tech-edit for technical standards, architecture-edit for the architecture artifact, config-edit and init for the workflow config, and design-edit and design-init for the design system artifact.'
+    - Modify the architecture and design authoring requirements that state ARCHITECTURE.md and DESIGN.md stay generator-owned, so 'generator-owned' means rendered only through the shared generator rather than never written by a source-writing command, which is the reading this change reverses.
+  why:
+    - Archiving a change that merges a delta spec into a main spec leaves ARCHITECTURE.md stale, because archive rewrites the spec index and main specs but never re-renders the document derived from them. The repository's complete regression suite asserts that no committed generated document is stale, so every such archive leaves the gate red for the next change.
+    - 'This was hit twice in one session: once as pre-existing drift that blocked an unrelated change''s archive evidence and had to be resolved by an explicit scope decision, and again immediately after that change''s own archive merged a requirement into cli-foundation.'
+    - 'The cost lands on whoever runs the next change rather than on whoever caused it: the failure names a generated document the next change never touched, so the first response is to investigate an unrelated file, and the remedy is a command the operator has no reason to know is owed.'
+    - Fixing only archive would leave spec-edit, tech-edit, architecture-edit, config-edit, design-edit, and design-init able to produce the identical drift, so the same failure would reappear from a different door.
+scope:
+  in:
+    - A shared helper that re-renders stale, already-present generated documents after a successful source write, and reports the re-rendered paths.
+    - Extending GENERATED_DOCUMENT_TARGETS with a write-mode renderer so the maintenance check and the post-write step share one declaration of what a generated document is.
+    - Command-metadata updates for the affected commands so the new result key and its meaning are documented where every other output key is.
+    - A delta spec against cli-foundation requiring the post-write re-render behavior, with scenarios covering a stale document being re-rendered, an absent document being left absent, and an unreadable source being skipped.
+    - Tests that drive each affected command through the shipped CLI over a workspace whose generated document is stale, and assert the document matches its sources afterwards and the result names it.
+    - Wiring that helper into archive, spec-edit, tech-edit, architecture-edit, config-edit, init, design-edit, and design-init, and surfacing the re-rendered paths in each command's structured result.
+    - Delta specs against architecture-domain-behavior and design-domain-behavior modifying the two authoring contracts whose current wording forbids exactly the behavior this change introduces.
+  out:
+    - Creating a generated document that does not exist on disk; the documents stay opt-in and a project that never rendered one has declined it.
+    - Any change to the rendered content, section order, or banner of ARCHITECTURE.md or the design document; this change decides when a render runs, never what it produces.
+    - Removing or weakening the generated-doc-check maintenance check or the regression assertion that no committed generated document is stale; both remain as the backstop that proves the post-write step works.
+    - Re-rendering from read-only commands such as architecture-status, design-status, verify, and ready, which write no source and therefore cannot stale a document.
+    - A new CLI command or a flag to opt out of the re-render; the behavior follows the write rather than being selected per invocation.
+unchanged_behavior:
+  - A generated document that is absent from disk stays absent after every affected command runs, so the documents remain opt-in.
+  - The rendered content of ARCHITECTURE.md and the design document is byte-identical to what architecture-generate and design-generate already produce from the same sources.
+  - 'Every affected command keeps its current exit codes, its existing result keys, and its behavior when the write itself fails: a rejected mutation still writes nothing and still reports the same diagnostics.'
+  - The generated-doc-check maintenance check keeps reporting a stale committed document with the same finding text and the same re-render command.
+  - Read-only commands write nothing and render nothing.

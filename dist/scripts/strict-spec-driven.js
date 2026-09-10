@@ -18,13 +18,15 @@ var __toESM = (mod, isNodeMode, target) => {
       return cached;
   }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
-  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
-  for (let key of __getOwnPropNames(mod))
-    if (!__hasOwnProp.call(to, key))
-      __defProp(to, key, {
-        get: __accessProp.bind(mod, key),
-        enumerable: true
-      });
+  const to = isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  if (mod && typeof mod === "object" || typeof mod === "function") {
+    for (let key of __getOwnPropNames(mod))
+      if (!__hasOwnProp.call(to, key))
+        __defProp(to, key, {
+          get: __accessProp.bind(mod, key),
+          enumerable: true
+        });
+  }
   if (canCache)
     cache.set(mod, to);
   return to;
@@ -32,7 +34,7 @@ var __toESM = (mod, isNodeMode, target) => {
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 
 // node_modules/ajv/dist/compile/codegen/code.js
-var require_code = __commonJS((exports) => {
+var require_code = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.regexpCode = exports.getEsmExportName = exports.getProperty = exports.safeStringify = exports.stringify = exports.strConcat = exports.addCodeArg = exports.str = exports._ = exports.nil = exports._Code = exports.Name = exports.IDENTIFIER = exports._CodeOrName = undefined;
 
@@ -91,27 +93,27 @@ var require_code = __commonJS((exports) => {
   exports.nil = new _Code("");
   function _(strs, ...args) {
     const code = [strs[0]];
-    let i2 = 0;
-    while (i2 < args.length) {
-      addCodeArg(code, args[i2]);
-      code.push(strs[++i2]);
+    let i = 0;
+    while (i < args.length) {
+      addCodeArg(code, args[i]);
+      code.push(strs[++i]);
     }
     return new _Code(code);
   }
   exports._ = _;
   var plus = new _Code("+");
-  function str2(strs, ...args) {
+  function str(strs, ...args) {
     const expr = [safeStringify(strs[0])];
-    let i2 = 0;
-    while (i2 < args.length) {
+    let i = 0;
+    while (i < args.length) {
       expr.push(plus);
-      addCodeArg(expr, args[i2]);
-      expr.push(plus, safeStringify(strs[++i2]));
+      addCodeArg(expr, args[i]);
+      expr.push(plus, safeStringify(strs[++i]));
     }
     optimize(expr);
     return new _Code(expr);
   }
-  exports.str = str2;
+  exports.str = str;
   function addCodeArg(code, arg) {
     if (arg instanceof _Code)
       code.push(...arg._items);
@@ -122,17 +124,17 @@ var require_code = __commonJS((exports) => {
   }
   exports.addCodeArg = addCodeArg;
   function optimize(expr) {
-    let i2 = 1;
-    while (i2 < expr.length - 1) {
-      if (expr[i2] === plus) {
-        const res = mergeExprItems(expr[i2 - 1], expr[i2 + 1]);
+    let i = 1;
+    while (i < expr.length - 1) {
+      if (expr[i] === plus) {
+        const res = mergeExprItems(expr[i - 1], expr[i + 1]);
         if (res !== undefined) {
-          expr.splice(i2 - 1, 3, res);
+          expr.splice(i - 1, 3, res);
           continue;
         }
-        expr[i2++] = "+";
+        expr[i++] = "+";
       }
-      i2++;
+      i++;
     }
   }
   function mergeExprItems(a, b) {
@@ -154,7 +156,7 @@ var require_code = __commonJS((exports) => {
     return;
   }
   function strConcat(c1, c2) {
-    return c2.emptyStr() ? c1 : c1.emptyStr() ? c2 : str2`${c1}${c2}`;
+    return c2.emptyStr() ? c1 : c1.emptyStr() ? c2 : str`${c1}${c2}`;
   }
   exports.strConcat = strConcat;
   function interpolate(x) {
@@ -186,7 +188,7 @@ var require_code = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/codegen/scope.js
-var require_scope = __commonJS((exports) => {
+var require_scope = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.ValueScope = exports.ValueScopeName = exports.Scope = exports.varKinds = exports.UsedValueState = undefined;
   var code_1 = require_code();
@@ -198,9 +200,9 @@ var require_scope = __commonJS((exports) => {
     }
   }
   var UsedValueState;
-  (function(UsedValueState2) {
-    UsedValueState2[UsedValueState2["Started"] = 0] = "Started";
-    UsedValueState2[UsedValueState2["Completed"] = 1] = "Completed";
+  (function(UsedValueState) {
+    UsedValueState[UsedValueState["Started"] = 0] = "Started";
+    UsedValueState[UsedValueState["Completed"] = 1] = "Completed";
   })(UsedValueState || (exports.UsedValueState = UsedValueState = {}));
   exports.varKinds = {
     const: new code_1.Name("const"),
@@ -332,7 +334,7 @@ var require_scope = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/codegen/index.js
-var require_codegen = __commonJS((exports) => {
+var require_codegen = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.or = exports.and = exports.not = exports.CodeGen = exports.operators = exports.varKinds = exports.ValueScopeName = exports.ValueScope = exports.Scope = exports.Name = exports.regexpCode = exports.stringify = exports.getProperty = exports.nil = exports.strConcat = exports.str = exports._ = undefined;
   var code_1 = require_code();
@@ -519,27 +521,27 @@ var require_codegen = __commonJS((exports) => {
     }
     optimizeNodes() {
       const { nodes } = this;
-      let i2 = nodes.length;
-      while (i2--) {
-        const n = nodes[i2].optimizeNodes();
+      let i = nodes.length;
+      while (i--) {
+        const n = nodes[i].optimizeNodes();
         if (Array.isArray(n))
-          nodes.splice(i2, 1, ...n);
+          nodes.splice(i, 1, ...n);
         else if (n)
-          nodes[i2] = n;
+          nodes[i] = n;
         else
-          nodes.splice(i2, 1);
+          nodes.splice(i, 1);
       }
       return nodes.length > 0 ? this : undefined;
     }
     optimizeNames(names, constants) {
       const { nodes } = this;
-      let i2 = nodes.length;
-      while (i2--) {
-        const n = nodes[i2];
+      let i = nodes.length;
+      while (i--) {
+        const n = nodes[i];
         if (n.optimizeNames(names, constants))
           continue;
         subtractNames(names, n.names);
-        nodes.splice(i2, 1);
+        nodes.splice(i, 1);
       }
       return nodes.length > 0 ? this : undefined;
     }
@@ -862,8 +864,8 @@ var require_codegen = __commonJS((exports) => {
       const name = this._scope.toName(nameOrPrefix);
       if (this.opts.es5) {
         const arr = iterable instanceof code_1.Name ? iterable : this.var("_arr", iterable);
-        return this.forRange("_i", 0, (0, code_1._)`${arr}.length`, (i2) => {
-          this.var(name, (0, code_1._)`${arr}[${i2}]`);
+        return this.forRange("_i", 0, (0, code_1._)`${arr}.length`, (i) => {
+          this.var(name, (0, code_1._)`${arr}[${i}]`);
           forBody(name);
         });
       }
@@ -1042,7 +1044,7 @@ var require_codegen = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/util.js
-var require_util = __commonJS((exports) => {
+var require_util = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.checkStrictMode = exports.getErrorPath = exports.Type = exports.useFunc = exports.setEvaluated = exports.evaluatedPropsToName = exports.mergeEvaluated = exports.eachItem = exports.unescapeJsonPointer = exports.escapeJsonPointer = exports.escapeFragment = exports.unescapeFragment = exports.schemaRefOrVal = exports.schemaHasRulesButRef = exports.schemaHasRules = exports.checkUnknownRules = exports.alwaysValidSchema = exports.toHash = undefined;
   var codegen_1 = require_codegen();
@@ -1054,72 +1056,72 @@ var require_util = __commonJS((exports) => {
     return hash;
   }
   exports.toHash = toHash;
-  function alwaysValidSchema(it, schema2) {
-    if (typeof schema2 == "boolean")
-      return schema2;
-    if (Object.keys(schema2).length === 0)
+  function alwaysValidSchema(it, schema) {
+    if (typeof schema == "boolean")
+      return schema;
+    if (Object.keys(schema).length === 0)
       return true;
-    checkUnknownRules(it, schema2);
-    return !schemaHasRules(schema2, it.self.RULES.all);
+    checkUnknownRules(it, schema);
+    return !schemaHasRules(schema, it.self.RULES.all);
   }
   exports.alwaysValidSchema = alwaysValidSchema;
-  function checkUnknownRules(it, schema2 = it.schema) {
+  function checkUnknownRules(it, schema = it.schema) {
     const { opts, self } = it;
     if (!opts.strictSchema)
       return;
-    if (typeof schema2 === "boolean")
+    if (typeof schema === "boolean")
       return;
     const rules = self.RULES.keywords;
-    for (const key in schema2) {
+    for (const key in schema) {
       if (!rules[key])
         checkStrictMode(it, `unknown keyword: "${key}"`);
     }
   }
   exports.checkUnknownRules = checkUnknownRules;
-  function schemaHasRules(schema2, rules) {
-    if (typeof schema2 == "boolean")
-      return !schema2;
-    for (const key in schema2)
+  function schemaHasRules(schema, rules) {
+    if (typeof schema == "boolean")
+      return !schema;
+    for (const key in schema)
       if (rules[key])
         return true;
     return false;
   }
   exports.schemaHasRules = schemaHasRules;
-  function schemaHasRulesButRef(schema2, RULES) {
-    if (typeof schema2 == "boolean")
-      return !schema2;
-    for (const key in schema2)
+  function schemaHasRulesButRef(schema, RULES) {
+    if (typeof schema == "boolean")
+      return !schema;
+    for (const key in schema)
       if (key !== "$ref" && RULES.all[key])
         return true;
     return false;
   }
   exports.schemaHasRulesButRef = schemaHasRulesButRef;
-  function schemaRefOrVal({ topSchemaRef, schemaPath }, schema2, keyword, $data) {
+  function schemaRefOrVal({ topSchemaRef, schemaPath }, schema, keyword, $data) {
     if (!$data) {
-      if (typeof schema2 == "number" || typeof schema2 == "boolean")
-        return schema2;
-      if (typeof schema2 == "string")
-        return (0, codegen_1._)`${schema2}`;
+      if (typeof schema == "number" || typeof schema == "boolean")
+        return schema;
+      if (typeof schema == "string")
+        return (0, codegen_1._)`${schema}`;
     }
     return (0, codegen_1._)`${topSchemaRef}${schemaPath}${(0, codegen_1.getProperty)(keyword)}`;
   }
   exports.schemaRefOrVal = schemaRefOrVal;
-  function unescapeFragment(str2) {
-    return unescapeJsonPointer(decodeURIComponent(str2));
+  function unescapeFragment(str) {
+    return unescapeJsonPointer(decodeURIComponent(str));
   }
   exports.unescapeFragment = unescapeFragment;
-  function escapeFragment(str2) {
-    return encodeURIComponent(escapeJsonPointer(str2));
+  function escapeFragment(str) {
+    return encodeURIComponent(escapeJsonPointer(str));
   }
   exports.escapeFragment = escapeFragment;
-  function escapeJsonPointer(str2) {
-    if (typeof str2 == "number")
-      return `${str2}`;
-    return str2.replace(/~/g, "~0").replace(/\//g, "~1");
+  function escapeJsonPointer(str) {
+    if (typeof str == "number")
+      return `${str}`;
+    return str.replace(/~/g, "~0").replace(/\//g, "~1");
   }
   exports.escapeJsonPointer = escapeJsonPointer;
-  function unescapeJsonPointer(str2) {
-    return str2.replace(/~1/g, "/").replace(/~0/g, "~");
+  function unescapeJsonPointer(str) {
+    return str.replace(/~1/g, "/").replace(/~0/g, "~");
   }
   exports.unescapeJsonPointer = unescapeJsonPointer;
   function eachItem(xs, f) {
@@ -1182,9 +1184,9 @@ var require_util = __commonJS((exports) => {
   }
   exports.useFunc = useFunc;
   var Type;
-  (function(Type2) {
-    Type2[Type2["Num"] = 0] = "Num";
-    Type2[Type2["Str"] = 1] = "Str";
+  (function(Type) {
+    Type[Type["Num"] = 0] = "Num";
+    Type[Type["Str"] = 1] = "Str";
   })(Type || (exports.Type = Type = {}));
   function getErrorPath(dataProp, dataPropType, jsPropertySyntax) {
     if (dataProp instanceof codegen_1.Name) {
@@ -1206,7 +1208,7 @@ var require_util = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/names.js
-var require_names = __commonJS((exports) => {
+var require_names = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var names = {
@@ -1231,7 +1233,7 @@ var require_names = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/errors.js
-var require_errors = __commonJS((exports) => {
+var require_errors = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.extendErrors = exports.resetErrorsCount = exports.reportExtraError = exports.reportError = exports.keyword$DataError = exports.keywordError = undefined;
   var codegen_1 = require_codegen();
@@ -1273,8 +1275,8 @@ var require_errors = __commonJS((exports) => {
     if (errsCount === undefined)
       throw new Error("ajv implementation error");
     const err = gen.name("err");
-    gen.forRange("i", errsCount, names_1.default.errors, (i2) => {
-      gen.const(err, (0, codegen_1._)`${names_1.default.vErrors}[${i2}]`);
+    gen.forRange("i", errsCount, names_1.default.errors, (i) => {
+      gen.const(err, (0, codegen_1._)`${names_1.default.vErrors}[${i}]`);
       gen.if((0, codegen_1._)`${err}.instancePath === undefined`, () => gen.assign((0, codegen_1._)`${err}.instancePath`, (0, codegen_1.strConcat)(names_1.default.instancePath, it.errorPath)));
       gen.assign((0, codegen_1._)`${err}.schemaPath`, (0, codegen_1.str)`${it.errSchemaPath}/${keyword}`);
       if (it.opts.verbose) {
@@ -1349,7 +1351,7 @@ var require_errors = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/boolSchema.js
-var require_boolSchema = __commonJS((exports) => {
+var require_boolSchema = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.boolOrEmptySchema = exports.topBoolOrEmptySchema = undefined;
   var errors_1 = require_errors();
@@ -1359,10 +1361,10 @@ var require_boolSchema = __commonJS((exports) => {
     message: "boolean schema is false"
   };
   function topBoolOrEmptySchema(it) {
-    const { gen, schema: schema2, validateName } = it;
-    if (schema2 === false) {
+    const { gen, schema, validateName } = it;
+    if (schema === false) {
       falseSchemaError(it, false);
-    } else if (typeof schema2 == "object" && schema2.$async === true) {
+    } else if (typeof schema == "object" && schema.$async === true) {
       gen.return(names_1.default.data);
     } else {
       gen.assign((0, codegen_1._)`${validateName}.errors`, null);
@@ -1371,8 +1373,8 @@ var require_boolSchema = __commonJS((exports) => {
   }
   exports.topBoolOrEmptySchema = topBoolOrEmptySchema;
   function boolOrEmptySchema(it, valid) {
-    const { gen, schema: schema2 } = it;
-    if (schema2 === false) {
+    const { gen, schema } = it;
+    if (schema === false) {
       gen.var(valid, false);
       falseSchemaError(it);
     } else {
@@ -1397,7 +1399,7 @@ var require_boolSchema = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/rules.js
-var require_rules = __commonJS((exports) => {
+var require_rules = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getRules = exports.isJSONType = undefined;
   var _jsonTypes = ["string", "number", "integer", "boolean", "null", "object", "array"];
@@ -1425,27 +1427,27 @@ var require_rules = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/applicability.js
-var require_applicability = __commonJS((exports) => {
+var require_applicability = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.shouldUseRule = exports.shouldUseGroup = exports.schemaHasRulesForType = undefined;
-  function schemaHasRulesForType({ schema: schema2, self }, type2) {
-    const group = self.RULES.types[type2];
-    return group && group !== true && shouldUseGroup(schema2, group);
+  function schemaHasRulesForType({ schema, self }, type) {
+    const group = self.RULES.types[type];
+    return group && group !== true && shouldUseGroup(schema, group);
   }
   exports.schemaHasRulesForType = schemaHasRulesForType;
-  function shouldUseGroup(schema2, group) {
-    return group.rules.some((rule) => shouldUseRule(schema2, rule));
+  function shouldUseGroup(schema, group) {
+    return group.rules.some((rule) => shouldUseRule(schema, rule));
   }
   exports.shouldUseGroup = shouldUseGroup;
-  function shouldUseRule(schema2, rule) {
+  function shouldUseRule(schema, rule) {
     var _a;
-    return schema2[rule.keyword] !== undefined || ((_a = rule.definition.implements) === null || _a === undefined ? undefined : _a.some((kwd) => schema2[kwd] !== undefined));
+    return schema[rule.keyword] !== undefined || ((_a = rule.definition.implements) === null || _a === undefined ? undefined : _a.some((kwd) => schema[kwd] !== undefined));
   }
   exports.shouldUseRule = shouldUseRule;
 });
 
 // node_modules/ajv/dist/compile/validate/dataType.js
-var require_dataType = __commonJS((exports) => {
+var require_dataType = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.reportTypeError = exports.checkDataTypes = exports.checkDataType = exports.coerceAndCheckDataType = exports.getJSONTypes = exports.getSchemaTypes = exports.DataType = undefined;
   var rules_1 = require_rules();
@@ -1454,21 +1456,21 @@ var require_dataType = __commonJS((exports) => {
   var codegen_1 = require_codegen();
   var util_1 = require_util();
   var DataType;
-  (function(DataType2) {
-    DataType2[DataType2["Correct"] = 0] = "Correct";
-    DataType2[DataType2["Wrong"] = 1] = "Wrong";
+  (function(DataType) {
+    DataType[DataType["Correct"] = 0] = "Correct";
+    DataType[DataType["Wrong"] = 1] = "Wrong";
   })(DataType || (exports.DataType = DataType = {}));
-  function getSchemaTypes(schema2) {
-    const types = getJSONTypes(schema2.type);
+  function getSchemaTypes(schema) {
+    const types = getJSONTypes(schema.type);
     const hasNull = types.includes("null");
     if (hasNull) {
-      if (schema2.nullable === false)
+      if (schema.nullable === false)
         throw new Error("type: null contradicts nullable: false");
     } else {
-      if (!types.length && schema2.nullable !== undefined) {
+      if (!types.length && schema.nullable !== undefined) {
         throw new Error('"nullable" cannot be used without "type"');
       }
-      if (schema2.nullable === true)
+      if (schema.nullable === true)
         types.push("null");
     }
     return types;
@@ -1600,8 +1602,8 @@ var require_dataType = __commonJS((exports) => {
   }
   exports.checkDataTypes = checkDataTypes;
   var typeError = {
-    message: ({ schema: schema2 }) => `must be ${schema2}`,
-    params: ({ schema: schema2, schemaValue }) => typeof schema2 == "string" ? (0, codegen_1._)`{type: ${schema2}}` : (0, codegen_1._)`{type: ${schemaValue}}`
+    message: ({ schema }) => `must be ${schema}`,
+    params: ({ schema, schemaValue }) => typeof schema == "string" ? (0, codegen_1._)`{type: ${schema}}` : (0, codegen_1._)`{type: ${schemaValue}}`
   };
   function reportTypeError(it) {
     const cxt = getTypeErrorContext(it);
@@ -1609,16 +1611,16 @@ var require_dataType = __commonJS((exports) => {
   }
   exports.reportTypeError = reportTypeError;
   function getTypeErrorContext(it) {
-    const { gen, data, schema: schema2 } = it;
-    const schemaCode = (0, util_1.schemaRefOrVal)(it, schema2, "type");
+    const { gen, data, schema } = it;
+    const schemaCode = (0, util_1.schemaRefOrVal)(it, schema, "type");
     return {
       gen,
       keyword: "type",
       data,
-      schema: schema2.type,
+      schema: schema.type,
       schemaCode,
       schemaValue: schemaCode,
-      parentSchema: schema2,
+      parentSchema: schema,
       params: {},
       it
     };
@@ -1626,7 +1628,7 @@ var require_dataType = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/defaults.js
-var require_defaults = __commonJS((exports) => {
+var require_defaults = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.assignDefaults = undefined;
   var codegen_1 = require_codegen();
@@ -1638,7 +1640,7 @@ var require_defaults = __commonJS((exports) => {
         assignDefault(it, key, properties[key].default);
       }
     } else if (ty === "array" && Array.isArray(items)) {
-      items.forEach((sch, i2) => assignDefault(it, i2, sch.default));
+      items.forEach((sch, i) => assignDefault(it, i, sch.default));
     }
   }
   exports.assignDefaults = assignDefaults;
@@ -1660,7 +1662,7 @@ var require_defaults = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/code.js
-var require_code2 = __commonJS((exports) => {
+var require_code2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateUnion = exports.validateArray = exports.usePattern = exports.callValidateCode = exports.schemaProperties = exports.allSchemaProperties = exports.noPropertyInData = exports.propertyInData = exports.isOwnProperty = exports.hasPropFunc = exports.reportMissingProp = exports.checkMissingProp = exports.checkReportMissingProp = undefined;
   var codegen_1 = require_codegen();
@@ -1752,10 +1754,10 @@ var require_code2 = __commonJS((exports) => {
     return valid;
     function validateItems(notValid) {
       const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-      gen.forRange("i", 0, len, (i2) => {
+      gen.forRange("i", 0, len, (i) => {
         cxt.subschema({
           keyword,
-          dataProp: i2,
+          dataProp: i,
           dataPropType: util_1.Type.Num
         }, valid);
         gen.if((0, codegen_1.not)(valid), notValid);
@@ -1764,18 +1766,18 @@ var require_code2 = __commonJS((exports) => {
   }
   exports.validateArray = validateArray;
   function validateUnion(cxt) {
-    const { gen, schema: schema2, keyword, it } = cxt;
-    if (!Array.isArray(schema2))
+    const { gen, schema, keyword, it } = cxt;
+    if (!Array.isArray(schema))
       throw new Error("ajv implementation error");
-    const alwaysValid = schema2.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
+    const alwaysValid = schema.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
     if (alwaysValid && !it.opts.unevaluated)
       return;
     const valid = gen.let("valid", false);
     const schValid = gen.name("_valid");
-    gen.block(() => schema2.forEach((_sch, i2) => {
+    gen.block(() => schema.forEach((_sch, i) => {
       const schCxt = cxt.subschema({
         keyword,
-        schemaProp: i2,
+        schemaProp: i,
         compositeRule: true
       }, schValid);
       gen.assign(valid, (0, codegen_1._)`${valid} || ${schValid}`);
@@ -1789,7 +1791,7 @@ var require_code2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/keyword.js
-var require_keyword = __commonJS((exports) => {
+var require_keyword = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateKeywordUsage = exports.validSchemaType = exports.funcKeywordCode = exports.macroKeywordCode = undefined;
   var codegen_1 = require_codegen();
@@ -1797,8 +1799,8 @@ var require_keyword = __commonJS((exports) => {
   var code_1 = require_code2();
   var errors_1 = require_errors();
   function macroKeywordCode(cxt, def) {
-    const { gen, keyword, schema: schema2, parentSchema, it } = cxt;
-    const macroSchema = def.macro.call(it.self, schema2, parentSchema, it);
+    const { gen, keyword, schema, parentSchema, it } = cxt;
+    const macroSchema = def.macro.call(it.self, schema, parentSchema, it);
     const schemaRef = useKeyword(gen, keyword, macroSchema);
     if (it.opts.validateSchema !== false)
       it.self.validateSchema(macroSchema, true);
@@ -1815,9 +1817,9 @@ var require_keyword = __commonJS((exports) => {
   exports.macroKeywordCode = macroKeywordCode;
   function funcKeywordCode(cxt, def) {
     var _a;
-    const { gen, keyword, schema: schema2, parentSchema, $data, it } = cxt;
+    const { gen, keyword, schema, parentSchema, $data, it } = cxt;
     checkAsyncKeyword(it, def);
-    const validate = !$data && def.compile ? def.compile.call(it.self, schema2, parentSchema, it) : def.validate;
+    const validate = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
     const validateRef = useKeyword(gen, keyword, validate);
     const valid = gen.let("valid");
     cxt.block$data(valid, validateKeyword);
@@ -1852,8 +1854,8 @@ var require_keyword = __commonJS((exports) => {
       gen.assign(valid, (0, codegen_1._)`${_await}${(0, code_1.callValidateCode)(cxt, validateRef, passCxt, passSchema)}`, def.modifying);
     }
     function reportErrs(errors) {
-      var _a2;
-      gen.if((0, codegen_1.not)((_a2 = def.valid) !== null && _a2 !== undefined ? _a2 : valid), errors);
+      var _a;
+      gen.if((0, codegen_1.not)((_a = def.valid) !== null && _a !== undefined ? _a : valid), errors);
     }
   }
   exports.funcKeywordCode = funcKeywordCode;
@@ -1877,20 +1879,20 @@ var require_keyword = __commonJS((exports) => {
       throw new Error(`keyword "${keyword}" failed to compile`);
     return gen.scopeValue("keyword", typeof result == "function" ? { ref: result } : { ref: result, code: (0, codegen_1.stringify)(result) });
   }
-  function validSchemaType(schema2, schemaType, allowUndefined = false) {
-    return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema2) : st === "object" ? schema2 && typeof schema2 == "object" && !Array.isArray(schema2) : typeof schema2 == st || allowUndefined && typeof schema2 == "undefined");
+  function validSchemaType(schema, schemaType, allowUndefined = false) {
+    return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema) : st === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st || allowUndefined && typeof schema == "undefined");
   }
   exports.validSchemaType = validSchemaType;
-  function validateKeywordUsage({ schema: schema2, opts, self, errSchemaPath }, def, keyword) {
+  function validateKeywordUsage({ schema, opts, self, errSchemaPath }, def, keyword) {
     if (Array.isArray(def.keyword) ? !def.keyword.includes(keyword) : def.keyword !== keyword) {
       throw new Error("ajv implementation error");
     }
     const deps = def.dependencies;
-    if (deps === null || deps === undefined ? undefined : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema2, kwd))) {
+    if (deps === null || deps === undefined ? undefined : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema, kwd))) {
       throw new Error(`parent schema must have dependencies of ${keyword}: ${deps.join(",")}`);
     }
     if (def.validateSchema) {
-      const valid = def.validateSchema(schema2[keyword]);
+      const valid = def.validateSchema(schema[keyword]);
       if (!valid) {
         const msg = `keyword "${keyword}" value is invalid at path "${errSchemaPath}": ` + self.errorsText(def.validateSchema.errors);
         if (opts.validateSchema === "log")
@@ -1904,13 +1906,13 @@ var require_keyword = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/subschema.js
-var require_subschema = __commonJS((exports) => {
+var require_subschema = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.extendSubschemaMode = exports.extendSubschemaData = exports.getSubschema = undefined;
   var codegen_1 = require_codegen();
   var util_1 = require_util();
-  function getSubschema(it, { keyword, schemaProp, schema: schema2, schemaPath, errSchemaPath, topSchemaRef }) {
-    if (keyword !== undefined && schema2 !== undefined) {
+  function getSubschema(it, { keyword, schemaProp, schema, schemaPath, errSchemaPath, topSchemaRef }) {
+    if (keyword !== undefined && schema !== undefined) {
       throw new Error('both "keyword" and "schema" passed, only one allowed');
     }
     if (keyword !== undefined) {
@@ -1925,12 +1927,12 @@ var require_subschema = __commonJS((exports) => {
         errSchemaPath: `${it.errSchemaPath}/${keyword}/${(0, util_1.escapeFragment)(schemaProp)}`
       };
     }
-    if (schema2 !== undefined) {
+    if (schema !== undefined) {
       if (schemaPath === undefined || errSchemaPath === undefined || topSchemaRef === undefined) {
         throw new Error('"schemaPath", "errSchemaPath" and "topSchemaRef" are required with "schema"');
       }
       return {
-        schema: schema2,
+        schema,
         schemaPath,
         topSchemaRef,
         errSchemaPath
@@ -1984,20 +1986,20 @@ var require_subschema = __commonJS((exports) => {
 });
 
 // node_modules/fast-deep-equal/index.js
-var require_fast_deep_equal = __commonJS((exports, module) => {
+var require_fast_deep_equal = __commonJS(function(exports, module) {
   module.exports = function equal(a, b) {
     if (a === b)
       return true;
     if (a && b && typeof a == "object" && typeof b == "object") {
       if (a.constructor !== b.constructor)
         return false;
-      var length, i2, keys;
+      var length, i, keys;
       if (Array.isArray(a)) {
         length = a.length;
         if (length != b.length)
           return false;
-        for (i2 = length;i2-- !== 0; )
-          if (!equal(a[i2], b[i2]))
+        for (i = length;i-- !== 0; )
+          if (!equal(a[i], b[i]))
             return false;
         return true;
       }
@@ -2011,11 +2013,11 @@ var require_fast_deep_equal = __commonJS((exports, module) => {
       length = keys.length;
       if (length !== Object.keys(b).length)
         return false;
-      for (i2 = length;i2-- !== 0; )
-        if (!Object.prototype.hasOwnProperty.call(b, keys[i2]))
+      for (i = length;i-- !== 0; )
+        if (!Object.prototype.hasOwnProperty.call(b, keys[i]))
           return false;
-      for (i2 = length;i2-- !== 0; ) {
-        var key = keys[i2];
+      for (i = length;i-- !== 0; ) {
+        var key = keys[i];
         if (!equal(a[key], b[key]))
           return false;
       }
@@ -2026,8 +2028,8 @@ var require_fast_deep_equal = __commonJS((exports, module) => {
 });
 
 // node_modules/json-schema-traverse/index.js
-var require_json_schema_traverse = __commonJS((exports, module) => {
-  var traverse = module.exports = function(schema2, opts, cb) {
+var require_json_schema_traverse = __commonJS(function(exports, module) {
+  var traverse = module.exports = function(schema, opts, cb) {
     if (typeof opts == "function") {
       cb = opts;
       opts = {};
@@ -2035,7 +2037,7 @@ var require_json_schema_traverse = __commonJS((exports, module) => {
     cb = opts.cb || cb;
     var pre = typeof cb == "function" ? cb : cb.pre || function() {};
     var post = cb.post || function() {};
-    _traverse(opts, pre, post, schema2, "", schema2);
+    _traverse(opts, pre, post, schema, "", schema);
   };
   traverse.keywords = {
     additionalItems: true,
@@ -2081,35 +2083,35 @@ var require_json_schema_traverse = __commonJS((exports, module) => {
     maxProperties: true,
     minProperties: true
   };
-  function _traverse(opts, pre, post, schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
-    if (schema2 && typeof schema2 == "object" && !Array.isArray(schema2)) {
-      pre(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
-      for (var key in schema2) {
-        var sch = schema2[key];
+  function _traverse(opts, pre, post, schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
+    if (schema && typeof schema == "object" && !Array.isArray(schema)) {
+      pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+      for (var key in schema) {
+        var sch = schema[key];
         if (Array.isArray(sch)) {
           if (key in traverse.arrayKeywords) {
-            for (var i2 = 0;i2 < sch.length; i2++)
-              _traverse(opts, pre, post, sch[i2], jsonPtr + "/" + key + "/" + i2, rootSchema, jsonPtr, key, schema2, i2);
+            for (var i = 0;i < sch.length; i++)
+              _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema, i);
           }
         } else if (key in traverse.propsKeywords) {
           if (sch && typeof sch == "object") {
             for (var prop in sch)
-              _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema2, prop);
+              _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);
           }
         } else if (key in traverse.keywords || opts.allKeys && !(key in traverse.skipKeywords)) {
-          _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema2);
+          _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema);
         }
       }
-      post(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+      post(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
     }
   }
-  function escapeJsonPtr(str2) {
-    return str2.replace(/~/g, "~0").replace(/\//g, "~1");
+  function escapeJsonPtr(str) {
+    return str.replace(/~/g, "~0").replace(/\//g, "~1");
   }
 });
 
 // node_modules/ajv/dist/compile/resolve.js
-var require_resolve = __commonJS((exports) => {
+var require_resolve = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getSchemaRefs = exports.resolveUrl = exports.normalizeId = exports._getFullPath = exports.getFullPath = exports.inlineRef = undefined;
   var util_1 = require_util();
@@ -2133,14 +2135,14 @@ var require_resolve = __commonJS((exports) => {
     "enum",
     "const"
   ]);
-  function inlineRef(schema2, limit = true) {
-    if (typeof schema2 == "boolean")
+  function inlineRef(schema, limit = true) {
+    if (typeof schema == "boolean")
       return true;
     if (limit === true)
-      return !hasRef(schema2);
+      return !hasRef(schema);
     if (!limit)
       return false;
-    return countKeys(schema2) <= limit;
+    return countKeys(schema) <= limit;
   }
   exports.inlineRef = inlineRef;
   var REF_KEYWORDS = new Set([
@@ -2150,11 +2152,11 @@ var require_resolve = __commonJS((exports) => {
     "$dynamicRef",
     "$dynamicAnchor"
   ]);
-  function hasRef(schema2) {
-    for (const key in schema2) {
+  function hasRef(schema) {
+    for (const key in schema) {
       if (REF_KEYWORDS.has(key))
         return true;
-      const sch = schema2[key];
+      const sch = schema[key];
       if (Array.isArray(sch) && sch.some(hasRef))
         return true;
       if (typeof sch == "object" && hasRef(sch))
@@ -2162,16 +2164,16 @@ var require_resolve = __commonJS((exports) => {
     }
     return false;
   }
-  function countKeys(schema2) {
+  function countKeys(schema) {
     let count = 0;
-    for (const key in schema2) {
+    for (const key in schema) {
       if (key === "$ref")
         return Infinity;
       count++;
       if (SIMPLE_INLINED.has(key))
         continue;
-      if (typeof schema2[key] == "object") {
-        (0, util_1.eachItem)(schema2[key], (sch) => count += countKeys(sch));
+      if (typeof schema[key] == "object") {
+        (0, util_1.eachItem)(schema[key], (sch) => count += countKeys(sch));
       }
       if (count === Infinity)
         return Infinity;
@@ -2201,16 +2203,16 @@ var require_resolve = __commonJS((exports) => {
   }
   exports.resolveUrl = resolveUrl;
   var ANCHOR = /^[a-z_][-a-z0-9._]*$/i;
-  function getSchemaRefs(schema2, baseId) {
-    if (typeof schema2 == "boolean")
+  function getSchemaRefs(schema, baseId) {
+    if (typeof schema == "boolean")
       return {};
     const { schemaId, uriResolver } = this.opts;
-    const schId = normalizeId(schema2[schemaId] || baseId);
+    const schId = normalizeId(schema[schemaId] || baseId);
     const baseIds = { "": schId };
     const pathPrefix = getFullPath(uriResolver, schId, false);
     const localRefs = {};
     const schemaRefs = new Set;
-    traverse(schema2, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
+    traverse(schema, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
       if (parentJsonPtr === undefined)
         return;
       const fullPath = pathPrefix + jsonPtr;
@@ -2262,7 +2264,7 @@ var require_resolve = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/index.js
-var require_validate = __commonJS((exports) => {
+var require_validate = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getData = exports.KeywordCxt = exports.validateFunctionCode = undefined;
   var boolSchema_1 = require_boolSchema();
@@ -2288,15 +2290,15 @@ var require_validate = __commonJS((exports) => {
     validateFunction(it, () => (0, boolSchema_1.topBoolOrEmptySchema)(it));
   }
   exports.validateFunctionCode = validateFunctionCode;
-  function validateFunction({ gen, validateName, schema: schema2, schemaEnv, opts }, body) {
+  function validateFunction({ gen, validateName, schema, schemaEnv, opts }, body) {
     if (opts.code.es5) {
       gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${names_1.default.valCxt}`, schemaEnv.$async, () => {
-        gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema2, opts)}`);
+        gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema, opts)}`);
         destructureValCxtES5(gen, opts);
         gen.code(body);
       });
     } else {
-      gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema2, opts)).code(body));
+      gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema, opts)).code(body));
     }
   }
   function destructureValCxt(opts) {
@@ -2320,9 +2322,9 @@ var require_validate = __commonJS((exports) => {
     });
   }
   function topSchemaObjCode(it) {
-    const { schema: schema2, opts, gen } = it;
+    const { schema, opts, gen } = it;
     validateFunction(it, () => {
-      if (opts.$comment && schema2.$comment)
+      if (opts.$comment && schema.$comment)
         commentKeyword(it);
       checkNoDefault(it);
       gen.let(names_1.default.vErrors, null);
@@ -2340,8 +2342,8 @@ var require_validate = __commonJS((exports) => {
     gen.if((0, codegen_1._)`${it.evaluated}.dynamicProps`, () => gen.assign((0, codegen_1._)`${it.evaluated}.props`, (0, codegen_1._)`undefined`));
     gen.if((0, codegen_1._)`${it.evaluated}.dynamicItems`, () => gen.assign((0, codegen_1._)`${it.evaluated}.items`, (0, codegen_1._)`undefined`));
   }
-  function funcSourceUrl(schema2, opts) {
-    const schId = typeof schema2 == "object" && schema2[opts.schemaId];
+  function funcSourceUrl(schema, opts) {
+    const schId = typeof schema == "object" && schema[opts.schemaId];
     return schId && (opts.code.source || opts.code.process) ? (0, codegen_1._)`/*# sourceURL=${schId} */` : codegen_1.nil;
   }
   function subschemaCode(it, valid) {
@@ -2354,10 +2356,10 @@ var require_validate = __commonJS((exports) => {
     }
     (0, boolSchema_1.boolOrEmptySchema)(it, valid);
   }
-  function schemaCxtHasRules({ schema: schema2, self }) {
-    if (typeof schema2 == "boolean")
-      return !schema2;
-    for (const key in schema2)
+  function schemaCxtHasRules({ schema, self }) {
+    if (typeof schema == "boolean")
+      return !schema;
+    for (const key in schema)
       if (self.RULES.all[key])
         return true;
     return false;
@@ -2366,8 +2368,8 @@ var require_validate = __commonJS((exports) => {
     return typeof it.schema != "boolean";
   }
   function subSchemaObjCode(it, valid) {
-    const { schema: schema2, gen, opts } = it;
-    if (opts.$comment && schema2.$comment)
+    const { schema, gen, opts } = it;
+    if (opts.$comment && schema.$comment)
       commentKeyword(it);
     updateContext(it);
     checkAsyncSchema(it);
@@ -2387,14 +2389,14 @@ var require_validate = __commonJS((exports) => {
     schemaKeywords(it, types, !checkedTypes, errsCount);
   }
   function checkRefsAndKeywords(it) {
-    const { schema: schema2, errSchemaPath, opts, self } = it;
-    if (schema2.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema2, self.RULES)) {
+    const { schema, errSchemaPath, opts, self } = it;
+    if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema, self.RULES)) {
       self.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
     }
   }
   function checkNoDefault(it) {
-    const { schema: schema2, opts } = it;
-    if (schema2.default !== undefined && opts.useDefaults && opts.strictSchema) {
+    const { schema, opts } = it;
+    if (schema.default !== undefined && opts.useDefaults && opts.strictSchema) {
       (0, util_1.checkStrictMode)(it, "default is ignored in the schema root");
     }
   }
@@ -2407,8 +2409,8 @@ var require_validate = __commonJS((exports) => {
     if (it.schema.$async && !it.schemaEnv.$async)
       throw new Error("async schema in sync schema");
   }
-  function commentKeyword({ gen, schemaEnv, schema: schema2, errSchemaPath, opts }) {
-    const msg = schema2.$comment;
+  function commentKeyword({ gen, schemaEnv, schema, errSchemaPath, opts }) {
+    const msg = schema.$comment;
     if (opts.$comment === true) {
       gen.code((0, codegen_1._)`${names_1.default.self}.logger.log(${msg})`);
     } else if (typeof opts.$comment == "function") {
@@ -2435,9 +2437,9 @@ var require_validate = __commonJS((exports) => {
       gen.assign((0, codegen_1._)`${evaluated}.items`, items);
   }
   function schemaKeywords(it, types, typeErrors, errsCount) {
-    const { gen, schema: schema2, data, allErrors, opts, self } = it;
+    const { gen, schema, data, allErrors, opts, self } = it;
     const { RULES } = self;
-    if (schema2.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema2, RULES))) {
+    if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema, RULES))) {
       gen.block(() => keywordCode(it, "$ref", RULES.all.$ref.definition));
       return;
     }
@@ -2449,7 +2451,7 @@ var require_validate = __commonJS((exports) => {
       groupKeywords(RULES.post);
     });
     function groupKeywords(group) {
-      if (!(0, applicability_1.shouldUseGroup)(schema2, group))
+      if (!(0, applicability_1.shouldUseGroup)(schema, group))
         return;
       if (group.type) {
         gen.if((0, dataType_2.checkDataType)(group.type, data, opts.strictNumbers));
@@ -2467,12 +2469,12 @@ var require_validate = __commonJS((exports) => {
     }
   }
   function iterateKeywords(it, group) {
-    const { gen, schema: schema2, opts: { useDefaults } } = it;
+    const { gen, schema, opts: { useDefaults } } = it;
     if (useDefaults)
       (0, defaults_1.assignDefaults)(it, group.type);
     gen.block(() => {
       for (const rule of group.rules) {
-        if ((0, applicability_1.shouldUseRule)(schema2, rule)) {
+        if ((0, applicability_1.shouldUseRule)(schema, rule)) {
           keywordCode(it, rule.keyword, rule.definition, group.type);
         }
       }
@@ -2510,9 +2512,9 @@ var require_validate = __commonJS((exports) => {
     for (const keyword in rules) {
       const rule = rules[keyword];
       if (typeof rule == "object" && (0, applicability_1.shouldUseRule)(it.schema, rule)) {
-        const { type: type2 } = rule.definition;
-        if (type2.length && !type2.some((t) => hasApplicableType(ts, t))) {
-          strictTypesError(it, `missing type "${type2.join(",")}" for keyword "${keyword}"`);
+        const { type } = rule.definition;
+        if (type.length && !type.some((t) => hasApplicableType(ts, t))) {
+          strictTypesError(it, `missing type "${type.join(",")}" for keyword "${keyword}"`);
         }
       }
     }
@@ -2767,7 +2769,7 @@ var require_validate = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/runtime/validation_error.js
-var require_validation_error = __commonJS((exports) => {
+var require_validation_error = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
 
   class ValidationError extends Error {
@@ -2781,7 +2783,7 @@ var require_validation_error = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/ref_error.js
-var require_ref_error = __commonJS((exports) => {
+var require_ref_error = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var resolve_1 = require_resolve();
 
@@ -2796,7 +2798,7 @@ var require_ref_error = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/index.js
-var require_compile = __commonJS((exports) => {
+var require_compile = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.resolveSchema = exports.getCompilingSchema = exports.resolveRef = exports.compileSchema = exports.SchemaEnv = undefined;
   var codegen_1 = require_codegen();
@@ -2811,17 +2813,17 @@ var require_compile = __commonJS((exports) => {
       var _a;
       this.refs = {};
       this.dynamicAnchors = {};
-      let schema2;
+      let schema;
       if (typeof env.schema == "object")
-        schema2 = env.schema;
+        schema = env.schema;
       this.schema = env.schema;
       this.schemaId = env.schemaId;
       this.root = env.root || this;
-      this.baseId = (_a = env.baseId) !== null && _a !== undefined ? _a : (0, resolve_1.normalizeId)(schema2 === null || schema2 === undefined ? undefined : schema2[env.schemaId || "$id"]);
+      this.baseId = (_a = env.baseId) !== null && _a !== undefined ? _a : (0, resolve_1.normalizeId)(schema === null || schema === undefined ? undefined : schema[env.schemaId || "$id"]);
       this.schemaPath = env.schemaPath;
       this.localRefs = env.localRefs;
       this.meta = env.meta;
-      this.$async = schema2 === null || schema2 === undefined ? undefined : schema2.$async;
+      this.$async = schema === null || schema === undefined ? undefined : schema.$async;
       this.refs = {};
     }
   }
@@ -2919,10 +2921,10 @@ var require_compile = __commonJS((exports) => {
       return schOrFunc;
     let _sch = resolve.call(this, root, ref);
     if (_sch === undefined) {
-      const schema2 = (_a = root.localRefs) === null || _a === undefined ? undefined : _a[ref];
+      const schema = (_a = root.localRefs) === null || _a === undefined ? undefined : _a[ref];
       const { schemaId } = this.opts;
-      if (schema2)
-        _sch = new SchemaEnv({ schema: schema2, schemaId, root, baseId });
+      if (schema)
+        _sch = new SchemaEnv({ schema, schemaId, root, baseId });
     }
     if (_sch === undefined)
       return;
@@ -2970,12 +2972,12 @@ var require_compile = __commonJS((exports) => {
     if (!schOrRef.validate)
       compileSchema.call(this, schOrRef);
     if (id === (0, resolve_1.normalizeId)(ref)) {
-      const { schema: schema2 } = schOrRef;
+      const { schema } = schOrRef;
       const { schemaId } = this.opts;
-      const schId = schema2[schemaId];
+      const schId = schema[schemaId];
       if (schId)
         baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
-      return new SchemaEnv({ schema: schema2, schemaId, root, baseId });
+      return new SchemaEnv({ schema, schemaId, root, baseId });
     }
     return getJsonPointer.call(this, p, schOrRef);
   }
@@ -2987,29 +2989,29 @@ var require_compile = __commonJS((exports) => {
     "dependencies",
     "definitions"
   ]);
-  function getJsonPointer(parsedRef, { baseId, schema: schema2, root }) {
+  function getJsonPointer(parsedRef, { baseId, schema, root }) {
     var _a;
     if (((_a = parsedRef.fragment) === null || _a === undefined ? undefined : _a[0]) !== "/")
       return;
     for (const part of parsedRef.fragment.slice(1).split("/")) {
-      if (typeof schema2 === "boolean")
+      if (typeof schema === "boolean")
         return;
-      const partSchema = schema2[(0, util_1.unescapeFragment)(part)];
+      const partSchema = schema[(0, util_1.unescapeFragment)(part)];
       if (partSchema === undefined)
         return;
-      schema2 = partSchema;
-      const schId = typeof schema2 === "object" && schema2[this.opts.schemaId];
+      schema = partSchema;
+      const schId = typeof schema === "object" && schema[this.opts.schemaId];
       if (!PREVENT_SCOPE_CHANGE.has(part) && schId) {
         baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
       }
     }
     let env;
-    if (typeof schema2 != "boolean" && schema2.$ref && !(0, util_1.schemaHasRulesButRef)(schema2, this.RULES)) {
-      const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema2.$ref);
+    if (typeof schema != "boolean" && schema.$ref && !(0, util_1.schemaHasRulesButRef)(schema, this.RULES)) {
+      const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema.$ref);
       env = resolveSchema.call(this, root, $ref);
     }
     const { schemaId } = this.opts;
-    env = env || new SchemaEnv({ schema: schema2, schemaId, root, baseId });
+    env = env || new SchemaEnv({ schema, schemaId, root, baseId });
     if (env.schema !== env.root.schema)
       return env;
     return;
@@ -3017,7 +3019,7 @@ var require_compile = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/refs/data.json
-var require_data = __commonJS((exports, module) => {
+var require_data = __commonJS(function(exports, module) {
   module.exports = {
     $id: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#",
     description: "Meta-schema for $data reference (JSON AnySchema extension proposal)",
@@ -3034,30 +3036,30 @@ var require_data = __commonJS((exports, module) => {
 });
 
 // node_modules/fast-uri/lib/utils.js
-var require_utils = __commonJS((exports, module) => {
+var require_utils = __commonJS(function(exports, module) {
   var isUUID = RegExp.prototype.test.bind(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/iu);
   var isIPv4 = RegExp.prototype.test.bind(/^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)$/u);
   function stringArrayToHexStripped(input) {
     let acc = "";
     let code = 0;
-    let i2 = 0;
-    for (i2 = 0;i2 < input.length; i2++) {
-      code = input[i2].charCodeAt(0);
+    let i = 0;
+    for (i = 0;i < input.length; i++) {
+      code = input[i].charCodeAt(0);
       if (code === 48) {
         continue;
       }
       if (!(code >= 48 && code <= 57 || code >= 65 && code <= 70 || code >= 97 && code <= 102)) {
         return "";
       }
-      acc += input[i2];
+      acc += input[i];
       break;
     }
-    for (i2 += 1;i2 < input.length; i2++) {
-      code = input[i2].charCodeAt(0);
+    for (i += 1;i < input.length; i++) {
+      code = input[i].charCodeAt(0);
       if (!(code >= 48 && code <= 57 || code >= 65 && code <= 70 || code >= 97 && code <= 102)) {
         return "";
       }
-      acc += input[i2];
+      acc += input[i];
     }
     return acc;
   }
@@ -3087,8 +3089,8 @@ var require_utils = __commonJS((exports, module) => {
     let endipv6Encountered = false;
     let endIpv6 = false;
     let consume = consumeHextets;
-    for (let i2 = 0;i2 < input.length; i2++) {
-      const cursor = input[i2];
+    for (let i = 0;i < input.length; i++) {
+      const cursor = input[i];
       if (cursor === "[" || cursor === "]") {
         continue;
       }
@@ -3103,7 +3105,7 @@ var require_utils = __commonJS((exports, module) => {
           output.error = true;
           break;
         }
-        if (i2 > 0 && input[i2 - 1] === ":") {
+        if (i > 0 && input[i - 1] === ":") {
           endipv6Encountered = true;
         }
         address.push(":");
@@ -3147,16 +3149,16 @@ var require_utils = __commonJS((exports, module) => {
       return { host, isIPV6: false };
     }
   }
-  function findToken(str2, token) {
+  function findToken(str, token) {
     let ind = 0;
-    for (let i2 = 0;i2 < str2.length; i2++) {
-      if (str2[i2] === token)
+    for (let i = 0;i < str.length; i++) {
+      if (str[i] === token)
         ind++;
     }
     return ind;
   }
-  function removeDotSegments(path3) {
-    let input = path3;
+  function removeDotSegments(path) {
+    let input = path;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -3289,7 +3291,7 @@ var require_utils = __commonJS((exports, module) => {
 });
 
 // node_modules/fast-uri/lib/schemes.js
-var require_schemes = __commonJS((exports, module) => {
+var require_schemes = __commonJS(function(exports, module) {
   var { isUUID } = require_utils();
   var URN_REG = /([\da-z][\d\-a-z]{0,31}):((?:[\w!$'()*+,\-.:;=@]|%[\da-f]{2})+)/iu;
   var supportedSchemeNames = [
@@ -3346,8 +3348,8 @@ var require_schemes = __commonJS((exports, module) => {
       wsComponent.secure = undefined;
     }
     if (wsComponent.resourceName) {
-      const [path3, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path3 && path3 !== "/" ? path3 : undefined;
+      const [path, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path && path !== "/" ? path : undefined;
       wsComponent.query = query;
       wsComponent.resourceName = undefined;
     }
@@ -3463,7 +3465,7 @@ var require_schemes = __commonJS((exports, module) => {
 });
 
 // node_modules/fast-uri/index.js
-var require_fast_uri = __commonJS((exports, module) => {
+var require_fast_uri = __commonJS(function(exports, module) {
   var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizeComponentEncoding, isIPv4, nonSimpleDomain } = require_utils();
   var { SCHEMES, getSchemeHandler } = require_schemes();
   function normalize(uri, options) {
@@ -3714,7 +3716,7 @@ var require_fast_uri = __commonJS((exports, module) => {
 });
 
 // node_modules/ajv/dist/runtime/uri.js
-var require_uri = __commonJS((exports) => {
+var require_uri = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var uri = require_fast_uri();
   uri.code = 'require("ajv/dist/runtime/uri").default';
@@ -3722,7 +3724,7 @@ var require_uri = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/core.js
-var require_core = __commonJS((exports) => {
+var require_core = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = undefined;
   var validate_1 = require_validate();
@@ -3758,7 +3760,7 @@ var require_core = __commonJS((exports) => {
   var util_1 = require_util();
   var $dataRefSchema = require_data();
   var uri_1 = require_uri();
-  var defaultRegExp = (str2, flags) => new RegExp(str2, flags);
+  var defaultRegExp = (str, flags) => new RegExp(str, flags);
   defaultRegExp.code = "new RegExp";
   var META_IGNORE_OPTIONS = ["removeAdditional", "useDefaults", "coerceTypes"];
   var EXT_SCOPE_NAMES = new Set([
@@ -3889,16 +3891,16 @@ var require_core = __commonJS((exports) => {
         this.errors = v.errors;
       return valid;
     }
-    compile(schema2, _meta) {
-      const sch = this._addSchema(schema2, _meta);
+    compile(schema, _meta) {
+      const sch = this._addSchema(schema, _meta);
       return sch.validate || this._compileSchemaEnv(sch);
     }
-    compileAsync(schema2, meta) {
+    compileAsync(schema, meta) {
       if (typeof this.opts.loadSchema != "function") {
         throw new Error("options.loadSchema should be a function");
       }
       const { loadSchema } = this.opts;
-      return runCompileAsync.call(this, schema2, meta);
+      return runCompileAsync.call(this, schema, meta);
       async function runCompileAsync(_schema, _meta) {
         await loadMetaSchema.call(this, _schema.$schema);
         const sch = this._addSchema(_schema, _meta);
@@ -3943,34 +3945,34 @@ var require_core = __commonJS((exports) => {
         }
       }
     }
-    addSchema(schema2, key, _meta, _validateSchema = this.opts.validateSchema) {
-      if (Array.isArray(schema2)) {
-        for (const sch of schema2)
+    addSchema(schema, key, _meta, _validateSchema = this.opts.validateSchema) {
+      if (Array.isArray(schema)) {
+        for (const sch of schema)
           this.addSchema(sch, undefined, _meta, _validateSchema);
         return this;
       }
       let id;
-      if (typeof schema2 === "object") {
+      if (typeof schema === "object") {
         const { schemaId } = this.opts;
-        id = schema2[schemaId];
+        id = schema[schemaId];
         if (id !== undefined && typeof id != "string") {
           throw new Error(`schema ${schemaId} must be string`);
         }
       }
       key = (0, resolve_1.normalizeId)(key || id);
       this._checkUnique(key);
-      this.schemas[key] = this._addSchema(schema2, _meta, key, _validateSchema, true);
+      this.schemas[key] = this._addSchema(schema, _meta, key, _validateSchema, true);
       return this;
     }
-    addMetaSchema(schema2, key, _validateSchema = this.opts.validateSchema) {
-      this.addSchema(schema2, key, true, _validateSchema);
+    addMetaSchema(schema, key, _validateSchema = this.opts.validateSchema) {
+      this.addSchema(schema, key, true, _validateSchema);
       return this;
     }
-    validateSchema(schema2, throwOrLogError) {
-      if (typeof schema2 == "boolean")
+    validateSchema(schema, throwOrLogError) {
+      if (typeof schema == "boolean")
         return true;
       let $schema;
-      $schema = schema2.$schema;
+      $schema = schema.$schema;
       if ($schema !== undefined && typeof $schema != "string") {
         throw new Error("$schema must be a string");
       }
@@ -3980,7 +3982,7 @@ var require_core = __commonJS((exports) => {
         this.errors = null;
         return true;
       }
-      const valid = this.validate($schema, schema2);
+      const valid = this.validate($schema, schema);
       if (!valid && throwOrLogError) {
         const message = "schema is invalid: " + this.errorsText();
         if (this.opts.validateSchema === "log")
@@ -4084,9 +4086,9 @@ var require_core = __commonJS((exports) => {
       delete RULES.keywords[keyword];
       delete RULES.all[keyword];
       for (const group of RULES.rules) {
-        const i2 = group.rules.findIndex((rule) => rule.keyword === keyword);
-        if (i2 >= 0)
-          group.rules.splice(i2, 1);
+        const i = group.rules.findIndex((rule) => rule.keyword === keyword);
+        if (i >= 0)
+          group.rules.splice(i, 1);
       }
       return this;
     }
@@ -4114,9 +4116,9 @@ var require_core = __commonJS((exports) => {
           if (typeof rule != "object")
             continue;
           const { $data } = rule.definition;
-          const schema2 = keywords[key];
-          if ($data && schema2)
-            keywords[key] = schemaOrData(schema2);
+          const schema = keywords[key];
+          if ($data && schema)
+            keywords[key] = schemaOrData(schema);
         }
       }
       return metaSchema;
@@ -4134,23 +4136,23 @@ var require_core = __commonJS((exports) => {
         }
       }
     }
-    _addSchema(schema2, meta, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
+    _addSchema(schema, meta, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
       let id;
       const { schemaId } = this.opts;
-      if (typeof schema2 == "object") {
-        id = schema2[schemaId];
+      if (typeof schema == "object") {
+        id = schema[schemaId];
       } else {
         if (this.opts.jtd)
           throw new Error("schema must be object");
-        else if (typeof schema2 != "boolean")
+        else if (typeof schema != "boolean")
           throw new Error("schema must be object or boolean");
       }
-      let sch = this._cache.get(schema2);
+      let sch = this._cache.get(schema);
       if (sch !== undefined)
         return sch;
       baseId = (0, resolve_1.normalizeId)(id || baseId);
-      const localRefs = resolve_1.getSchemaRefs.call(this, schema2, baseId);
-      sch = new compile_1.SchemaEnv({ schema: schema2, schemaId, meta, baseId, localRefs });
+      const localRefs = resolve_1.getSchemaRefs.call(this, schema, baseId);
+      sch = new compile_1.SchemaEnv({ schema, schemaId, meta, baseId, localRefs });
       this._cache.set(sch.schema, sch);
       if (addSchema && !baseId.startsWith("#")) {
         if (baseId)
@@ -4158,7 +4160,7 @@ var require_core = __commonJS((exports) => {
         this.refs[baseId] = sch;
       }
       if (validateSchema)
-        this.validateSchema(schema2, true);
+        this.validateSchema(schema, true);
       return sch;
     }
     _checkUnique(id) {
@@ -4290,9 +4292,9 @@ var require_core = __commonJS((exports) => {
     (_a = definition.implements) === null || _a === undefined || _a.forEach((kwd) => this.addKeyword(kwd));
   }
   function addBeforeRule(ruleGroup, rule, before) {
-    const i2 = ruleGroup.rules.findIndex((_rule) => _rule.keyword === before);
-    if (i2 >= 0) {
-      ruleGroup.rules.splice(i2, 0, rule);
+    const i = ruleGroup.rules.findIndex((_rule) => _rule.keyword === before);
+    if (i >= 0) {
+      ruleGroup.rules.splice(i, 0, rule);
     } else {
       ruleGroup.rules.push(rule);
       this.logger.warn(`rule ${before} is not defined`);
@@ -4309,13 +4311,13 @@ var require_core = __commonJS((exports) => {
   var $dataRef = {
     $ref: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#"
   };
-  function schemaOrData(schema2) {
-    return { anyOf: [schema2, $dataRef] };
+  function schemaOrData(schema) {
+    return { anyOf: [schema, $dataRef] };
   }
 });
 
 // node_modules/ajv/dist/vocabularies/core/id.js
-var require_id = __commonJS((exports) => {
+var require_id = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var def = {
     keyword: "id",
@@ -4327,7 +4329,7 @@ var require_id = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/core/ref.js
-var require_ref = __commonJS((exports) => {
+var require_ref = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.callRef = exports.getValidate = undefined;
   var ref_error_1 = require_ref_error();
@@ -4446,11 +4448,11 @@ var require_ref = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/core/index.js
-var require_core2 = __commonJS((exports) => {
+var require_core2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var id_1 = require_id();
   var ref_1 = require_ref();
-  var core2 = [
+  var core = [
     "$schema",
     "$id",
     "$defs",
@@ -4460,11 +4462,11 @@ var require_core2 = __commonJS((exports) => {
     id_1.default,
     ref_1.default
   ];
-  exports.default = core2;
+  exports.default = core;
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitNumber.js
-var require_limitNumber = __commonJS((exports) => {
+var require_limitNumber = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var ops = codegen_1.operators;
@@ -4493,7 +4495,7 @@ var require_limitNumber = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/multipleOf.js
-var require_multipleOf = __commonJS((exports) => {
+var require_multipleOf = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var error = {
@@ -4518,18 +4520,18 @@ var require_multipleOf = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/runtime/ucs2length.js
-var require_ucs2length = __commonJS((exports) => {
+var require_ucs2length = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
-  function ucs2length(str2) {
-    const len = str2.length;
+  function ucs2length(str) {
+    const len = str.length;
     let length = 0;
     let pos = 0;
     let value;
     while (pos < len) {
       length++;
-      value = str2.charCodeAt(pos++);
+      value = str.charCodeAt(pos++);
       if (value >= 55296 && value <= 56319 && pos < len) {
-        value = str2.charCodeAt(pos);
+        value = str.charCodeAt(pos);
         if ((value & 64512) === 56320)
           pos++;
       }
@@ -4541,7 +4543,7 @@ var require_ucs2length = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitLength.js
-var require_limitLength = __commonJS((exports) => {
+var require_limitLength = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -4570,7 +4572,7 @@ var require_limitLength = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/pattern.js
-var require_pattern = __commonJS((exports) => {
+var require_pattern = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
   var util_1 = require_util();
@@ -4586,7 +4588,7 @@ var require_pattern = __commonJS((exports) => {
     $data: true,
     error,
     code(cxt) {
-      const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
+      const { gen, data, $data, schema, schemaCode, it } = cxt;
       const u = it.opts.unicodeRegExp ? "u" : "";
       if ($data) {
         const { regExp } = it.opts.code;
@@ -4595,7 +4597,7 @@ var require_pattern = __commonJS((exports) => {
         gen.try(() => gen.assign(valid, (0, codegen_1._)`${regExpCode}(${schemaCode}, ${u}).test(${data})`), () => gen.assign(valid, false));
         cxt.fail$data((0, codegen_1._)`!${valid}`);
       } else {
-        const regExp = (0, code_1.usePattern)(cxt, schema2);
+        const regExp = (0, code_1.usePattern)(cxt, schema);
         cxt.fail$data((0, codegen_1._)`!${regExp}.test(${data})`);
       }
     }
@@ -4604,7 +4606,7 @@ var require_pattern = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitProperties.js
-var require_limitProperties = __commonJS((exports) => {
+var require_limitProperties = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var error = {
@@ -4630,7 +4632,7 @@ var require_limitProperties = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/required.js
-var require_required = __commonJS((exports) => {
+var require_required = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
   var codegen_1 = require_codegen();
@@ -4646,11 +4648,11 @@ var require_required = __commonJS((exports) => {
     $data: true,
     error,
     code(cxt) {
-      const { gen, schema: schema2, schemaCode, data, $data, it } = cxt;
+      const { gen, schema, schemaCode, data, $data, it } = cxt;
       const { opts } = it;
-      if (!$data && schema2.length === 0)
+      if (!$data && schema.length === 0)
         return;
-      const useLoop = schema2.length >= opts.loopRequired;
+      const useLoop = schema.length >= opts.loopRequired;
       if (it.allErrors)
         allErrorsMode();
       else
@@ -4658,7 +4660,7 @@ var require_required = __commonJS((exports) => {
       if (opts.strictRequired) {
         const props = cxt.parentSchema.properties;
         const { definedProperties } = cxt.it;
-        for (const requiredKey of schema2) {
+        for (const requiredKey of schema) {
           if ((props === null || props === undefined ? undefined : props[requiredKey]) === undefined && !definedProperties.has(requiredKey)) {
             const schemaPath = it.schemaEnv.baseId + it.errSchemaPath;
             const msg = `required property "${requiredKey}" is not defined at "${schemaPath}" (strictRequired)`;
@@ -4670,7 +4672,7 @@ var require_required = __commonJS((exports) => {
         if (useLoop || $data) {
           cxt.block$data(codegen_1.nil, loopAllRequired);
         } else {
-          for (const prop of schema2) {
+          for (const prop of schema) {
             (0, code_1.checkReportMissingProp)(cxt, prop);
           }
         }
@@ -4682,7 +4684,7 @@ var require_required = __commonJS((exports) => {
           cxt.block$data(valid, () => loopUntilMissing(missing, valid));
           cxt.ok(valid);
         } else {
-          gen.if((0, code_1.checkMissingProp)(cxt, schema2, missing));
+          gen.if((0, code_1.checkMissingProp)(cxt, schema, missing));
           (0, code_1.reportMissingProp)(cxt, missing);
           gen.else();
         }
@@ -4709,7 +4711,7 @@ var require_required = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitItems.js
-var require_limitItems = __commonJS((exports) => {
+var require_limitItems = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var error = {
@@ -4735,7 +4737,7 @@ var require_limitItems = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/runtime/equal.js
-var require_equal = __commonJS((exports) => {
+var require_equal = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var equal = require_fast_deep_equal();
   equal.code = 'require("ajv/dist/runtime/equal").default';
@@ -4743,15 +4745,15 @@ var require_equal = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/uniqueItems.js
-var require_uniqueItems = __commonJS((exports) => {
+var require_uniqueItems = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var dataType_1 = require_dataType();
   var codegen_1 = require_codegen();
   var util_1 = require_util();
   var equal_1 = require_equal();
   var error = {
-    message: ({ params: { i: i2, j } }) => (0, codegen_1.str)`must NOT have duplicate items (items ## ${j} and ${i2} are identical)`,
-    params: ({ params: { i: i2, j } }) => (0, codegen_1._)`{i: ${i2}, j: ${j}}`
+    message: ({ params: { i, j } }) => (0, codegen_1.str)`must NOT have duplicate items (items ## ${j} and ${i} are identical)`,
+    params: ({ params: { i, j } }) => (0, codegen_1._)`{i: ${i}, j: ${j}}`
   };
   var def = {
     keyword: "uniqueItems",
@@ -4760,29 +4762,29 @@ var require_uniqueItems = __commonJS((exports) => {
     $data: true,
     error,
     code(cxt) {
-      const { gen, data, $data, schema: schema2, parentSchema, schemaCode, it } = cxt;
-      if (!$data && !schema2)
+      const { gen, data, $data, schema, parentSchema, schemaCode, it } = cxt;
+      if (!$data && !schema)
         return;
       const valid = gen.let("valid");
       const itemTypes = parentSchema.items ? (0, dataType_1.getSchemaTypes)(parentSchema.items) : [];
       cxt.block$data(valid, validateUniqueItems, (0, codegen_1._)`${schemaCode} === false`);
       cxt.ok(valid);
       function validateUniqueItems() {
-        const i2 = gen.let("i", (0, codegen_1._)`${data}.length`);
+        const i = gen.let("i", (0, codegen_1._)`${data}.length`);
         const j = gen.let("j");
-        cxt.setParams({ i: i2, j });
+        cxt.setParams({ i, j });
         gen.assign(valid, true);
-        gen.if((0, codegen_1._)`${i2} > 1`, () => (canOptimize() ? loopN : loopN2)(i2, j));
+        gen.if((0, codegen_1._)`${i} > 1`, () => (canOptimize() ? loopN : loopN2)(i, j));
       }
       function canOptimize() {
         return itemTypes.length > 0 && !itemTypes.some((t) => t === "object" || t === "array");
       }
-      function loopN(i2, j) {
+      function loopN(i, j) {
         const item = gen.name("item");
         const wrongType = (0, dataType_1.checkDataTypes)(itemTypes, item, it.opts.strictNumbers, dataType_1.DataType.Wrong);
         const indices = gen.const("indices", (0, codegen_1._)`{}`);
-        gen.for((0, codegen_1._)`;${i2}--;`, () => {
-          gen.let(item, (0, codegen_1._)`${data}[${i2}]`);
+        gen.for((0, codegen_1._)`;${i}--;`, () => {
+          gen.let(item, (0, codegen_1._)`${data}[${i}]`);
           gen.if(wrongType, (0, codegen_1._)`continue`);
           if (itemTypes.length > 1)
             gen.if((0, codegen_1._)`typeof ${item} == "string"`, (0, codegen_1._)`${item} += "_"`);
@@ -4790,13 +4792,13 @@ var require_uniqueItems = __commonJS((exports) => {
             gen.assign(j, (0, codegen_1._)`${indices}[${item}]`);
             cxt.error();
             gen.assign(valid, false).break();
-          }).code((0, codegen_1._)`${indices}[${item}] = ${i2}`);
+          }).code((0, codegen_1._)`${indices}[${item}] = ${i}`);
         });
       }
-      function loopN2(i2, j) {
+      function loopN2(i, j) {
         const eql = (0, util_1.useFunc)(gen, equal_1.default);
         const outer = gen.name("outer");
-        gen.label(outer).for((0, codegen_1._)`;${i2}--;`, () => gen.for((0, codegen_1._)`${j} = ${i2}; ${j}--;`, () => gen.if((0, codegen_1._)`${eql}(${data}[${i2}], ${data}[${j}])`, () => {
+        gen.label(outer).for((0, codegen_1._)`;${i}--;`, () => gen.for((0, codegen_1._)`${j} = ${i}; ${j}--;`, () => gen.if((0, codegen_1._)`${eql}(${data}[${i}], ${data}[${j}])`, () => {
           cxt.error();
           gen.assign(valid, false).break(outer);
         })));
@@ -4807,7 +4809,7 @@ var require_uniqueItems = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/const.js
-var require_const = __commonJS((exports) => {
+var require_const = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -4821,11 +4823,11 @@ var require_const = __commonJS((exports) => {
     $data: true,
     error,
     code(cxt) {
-      const { gen, data, $data, schemaCode, schema: schema2 } = cxt;
-      if ($data || schema2 && typeof schema2 == "object") {
+      const { gen, data, $data, schemaCode, schema } = cxt;
+      if ($data || schema && typeof schema == "object") {
         cxt.fail$data((0, codegen_1._)`!${(0, util_1.useFunc)(gen, equal_1.default)}(${data}, ${schemaCode})`);
       } else {
-        cxt.fail((0, codegen_1._)`${schema2} !== ${data}`);
+        cxt.fail((0, codegen_1._)`${schema} !== ${data}`);
       }
     }
   };
@@ -4833,7 +4835,7 @@ var require_const = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/enum.js
-var require_enum = __commonJS((exports) => {
+var require_enum = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -4848,10 +4850,10 @@ var require_enum = __commonJS((exports) => {
     $data: true,
     error,
     code(cxt) {
-      const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
-      if (!$data && schema2.length === 0)
+      const { gen, data, $data, schema, schemaCode, it } = cxt;
+      if (!$data && schema.length === 0)
         throw new Error("enum must have non-empty array");
-      const useLoop = schema2.length >= it.opts.loopEnum;
+      const useLoop = schema.length >= it.opts.loopEnum;
       let eql;
       const getEql = () => eql !== null && eql !== undefined ? eql : eql = (0, util_1.useFunc)(gen, equal_1.default);
       let valid;
@@ -4859,19 +4861,19 @@ var require_enum = __commonJS((exports) => {
         valid = gen.let("valid");
         cxt.block$data(valid, loopEnum);
       } else {
-        if (!Array.isArray(schema2))
+        if (!Array.isArray(schema))
           throw new Error("ajv implementation error");
         const vSchema = gen.const("vSchema", schemaCode);
-        valid = (0, codegen_1.or)(...schema2.map((_x, i2) => equalCode(vSchema, i2)));
+        valid = (0, codegen_1.or)(...schema.map((_x, i) => equalCode(vSchema, i)));
       }
       cxt.pass(valid);
       function loopEnum() {
         gen.assign(valid, false);
         gen.forOf("v", schemaCode, (v) => gen.if((0, codegen_1._)`${getEql()}(${data}, ${v})`, () => gen.assign(valid, true).break()));
       }
-      function equalCode(vSchema, i2) {
-        const sch = schema2[i2];
-        return typeof sch === "object" && sch !== null ? (0, codegen_1._)`${getEql()}(${data}, ${vSchema}[${i2}])` : (0, codegen_1._)`${data} === ${sch}`;
+      function equalCode(vSchema, i) {
+        const sch = schema[i];
+        return typeof sch === "object" && sch !== null ? (0, codegen_1._)`${getEql()}(${data}, ${vSchema}[${i}])` : (0, codegen_1._)`${data} === ${sch}`;
       }
     }
   };
@@ -4879,7 +4881,7 @@ var require_enum = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/index.js
-var require_validation = __commonJS((exports) => {
+var require_validation = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var limitNumber_1 = require_limitNumber();
   var multipleOf_1 = require_multipleOf();
@@ -4909,7 +4911,7 @@ var require_validation = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
-var require_additionalItems = __commonJS((exports) => {
+var require_additionalItems = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateAdditionalItems = undefined;
   var codegen_1 = require_codegen();
@@ -4935,20 +4937,20 @@ var require_additionalItems = __commonJS((exports) => {
     }
   };
   function validateAdditionalItems(cxt, items) {
-    const { gen, schema: schema2, data, keyword, it } = cxt;
+    const { gen, schema, data, keyword, it } = cxt;
     it.items = true;
     const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-    if (schema2 === false) {
+    if (schema === false) {
       cxt.setParams({ len: items.length });
       cxt.pass((0, codegen_1._)`${len} <= ${items.length}`);
-    } else if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
+    } else if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
       const valid = gen.var("valid", (0, codegen_1._)`${len} <= ${items.length}`);
       gen.if((0, codegen_1.not)(valid), () => validateItems(valid));
       cxt.ok(valid);
     }
     function validateItems(valid) {
-      gen.forRange("i", items.length, len, (i2) => {
-        cxt.subschema({ keyword, dataProp: i2, dataPropType: util_1.Type.Num }, valid);
+      gen.forRange("i", items.length, len, (i) => {
+        cxt.subschema({ keyword, dataProp: i, dataPropType: util_1.Type.Num }, valid);
         if (!it.allErrors)
           gen.if((0, codegen_1.not)(valid), () => gen.break());
       });
@@ -4959,7 +4961,7 @@ var require_additionalItems = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/items.js
-var require_items = __commonJS((exports) => {
+var require_items = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateTuple = undefined;
   var codegen_1 = require_codegen();
@@ -4971,11 +4973,11 @@ var require_items = __commonJS((exports) => {
     schemaType: ["object", "array", "boolean"],
     before: "uniqueItems",
     code(cxt) {
-      const { schema: schema2, it } = cxt;
-      if (Array.isArray(schema2))
-        return validateTuple(cxt, "additionalItems", schema2);
+      const { schema, it } = cxt;
+      if (Array.isArray(schema))
+        return validateTuple(cxt, "additionalItems", schema);
       it.items = true;
-      if ((0, util_1.alwaysValidSchema)(it, schema2))
+      if ((0, util_1.alwaysValidSchema)(it, schema))
         return;
       cxt.ok((0, code_1.validateArray)(cxt));
     }
@@ -4988,13 +4990,13 @@ var require_items = __commonJS((exports) => {
     }
     const valid = gen.name("valid");
     const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-    schArr.forEach((sch, i2) => {
+    schArr.forEach((sch, i) => {
       if ((0, util_1.alwaysValidSchema)(it, sch))
         return;
-      gen.if((0, codegen_1._)`${len} > ${i2}`, () => cxt.subschema({
+      gen.if((0, codegen_1._)`${len} > ${i}`, () => cxt.subschema({
         keyword,
-        schemaProp: i2,
-        dataProp: i2
+        schemaProp: i,
+        dataProp: i
       }, valid));
       cxt.ok(valid);
     });
@@ -5013,7 +5015,7 @@ var require_items = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/prefixItems.js
-var require_prefixItems = __commonJS((exports) => {
+var require_prefixItems = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var items_1 = require_items();
   var def = {
@@ -5027,7 +5029,7 @@ var require_prefixItems = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/items2020.js
-var require_items2020 = __commonJS((exports) => {
+var require_items2020 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -5044,10 +5046,10 @@ var require_items2020 = __commonJS((exports) => {
     before: "uniqueItems",
     error,
     code(cxt) {
-      const { schema: schema2, parentSchema, it } = cxt;
+      const { schema, parentSchema, it } = cxt;
       const { prefixItems } = parentSchema;
       it.items = true;
-      if ((0, util_1.alwaysValidSchema)(it, schema2))
+      if ((0, util_1.alwaysValidSchema)(it, schema))
         return;
       if (prefixItems)
         (0, additionalItems_1.validateAdditionalItems)(cxt, prefixItems);
@@ -5059,7 +5061,7 @@ var require_items2020 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/contains.js
-var require_contains = __commonJS((exports) => {
+var require_contains = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -5075,7 +5077,7 @@ var require_contains = __commonJS((exports) => {
     trackErrors: true,
     error,
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, data, it } = cxt;
+      const { gen, schema, parentSchema, data, it } = cxt;
       let min;
       let max;
       const { minContains, maxContains } = parentSchema;
@@ -5096,7 +5098,7 @@ var require_contains = __commonJS((exports) => {
         cxt.fail();
         return;
       }
-      if ((0, util_1.alwaysValidSchema)(it, schema2)) {
+      if ((0, util_1.alwaysValidSchema)(it, schema)) {
         let cond = (0, codegen_1._)`${len} >= ${min}`;
         if (max !== undefined)
           cond = (0, codegen_1._)`${cond} && ${len} <= ${max}`;
@@ -5122,10 +5124,10 @@ var require_contains = __commonJS((exports) => {
         validateItems(schValid, () => gen.if(schValid, () => checkLimits(count)));
       }
       function validateItems(_valid, block) {
-        gen.forRange("i", 0, len, (i2) => {
+        gen.forRange("i", 0, len, (i) => {
           cxt.subschema({
             keyword: "contains",
-            dataProp: i2,
+            dataProp: i,
             dataPropType: util_1.Type.Num,
             compositeRule: true
           }, _valid);
@@ -5150,7 +5152,7 @@ var require_contains = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/dependencies.js
-var require_dependencies = __commonJS((exports) => {
+var require_dependencies = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateSchemaDeps = exports.validatePropertyDeps = exports.error = undefined;
   var codegen_1 = require_codegen();
@@ -5177,14 +5179,14 @@ var require_dependencies = __commonJS((exports) => {
       validateSchemaDeps(cxt, schDeps);
     }
   };
-  function splitDependencies({ schema: schema2 }) {
+  function splitDependencies({ schema }) {
     const propertyDeps = {};
     const schemaDeps = {};
-    for (const key in schema2) {
+    for (const key in schema) {
       if (key === "__proto__")
         continue;
-      const deps = Array.isArray(schema2[key]) ? propertyDeps : schemaDeps;
-      deps[key] = schema2[key];
+      const deps = Array.isArray(schema[key]) ? propertyDeps : schemaDeps;
+      deps[key] = schema[key];
     }
     return [propertyDeps, schemaDeps];
   }
@@ -5235,7 +5237,7 @@ var require_dependencies = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/propertyNames.js
-var require_propertyNames = __commonJS((exports) => {
+var require_propertyNames = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -5249,8 +5251,8 @@ var require_propertyNames = __commonJS((exports) => {
     schemaType: ["object", "boolean"],
     error,
     code(cxt) {
-      const { gen, schema: schema2, data, it } = cxt;
-      if ((0, util_1.alwaysValidSchema)(it, schema2))
+      const { gen, schema, data, it } = cxt;
+      if ((0, util_1.alwaysValidSchema)(it, schema))
         return;
       const valid = gen.name("valid");
       gen.forIn("key", data, (key) => {
@@ -5275,7 +5277,7 @@ var require_propertyNames = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
-var require_additionalProperties = __commonJS((exports) => {
+var require_additionalProperties = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
   var codegen_1 = require_codegen();
@@ -5293,12 +5295,12 @@ var require_additionalProperties = __commonJS((exports) => {
     trackErrors: true,
     error,
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, data, errsCount, it } = cxt;
+      const { gen, schema, parentSchema, data, errsCount, it } = cxt;
       if (!errsCount)
         throw new Error("ajv implementation error");
       const { allErrors, opts } = it;
       it.props = true;
-      if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema2))
+      if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema))
         return;
       const props = (0, code_1.allSchemaProperties)(parentSchema.properties);
       const patProps = (0, code_1.allSchemaProperties)(parentSchema.patternProperties);
@@ -5331,18 +5333,18 @@ var require_additionalProperties = __commonJS((exports) => {
         gen.code((0, codegen_1._)`delete ${data}[${key}]`);
       }
       function additionalPropertyCode(key) {
-        if (opts.removeAdditional === "all" || opts.removeAdditional && schema2 === false) {
+        if (opts.removeAdditional === "all" || opts.removeAdditional && schema === false) {
           deleteAdditional(key);
           return;
         }
-        if (schema2 === false) {
+        if (schema === false) {
           cxt.setParams({ additionalProperty: key });
           cxt.error();
           if (!allErrors)
             gen.break();
           return;
         }
-        if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
+        if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
           const valid = gen.name("valid");
           if (opts.removeAdditional === "failing") {
             applyAdditionalSchema(key, valid, false);
@@ -5378,7 +5380,7 @@ var require_additionalProperties = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/properties.js
-var require_properties = __commonJS((exports) => {
+var require_properties = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var validate_1 = require_validate();
   var code_1 = require_code2();
@@ -5389,18 +5391,18 @@ var require_properties = __commonJS((exports) => {
     type: "object",
     schemaType: "object",
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, data, it } = cxt;
+      const { gen, schema, parentSchema, data, it } = cxt;
       if (it.opts.removeAdditional === "all" && parentSchema.additionalProperties === undefined) {
         additionalProperties_1.default.code(new validate_1.KeywordCxt(it, additionalProperties_1.default, "additionalProperties"));
       }
-      const allProps = (0, code_1.allSchemaProperties)(schema2);
+      const allProps = (0, code_1.allSchemaProperties)(schema);
       for (const prop of allProps) {
         it.definedProperties.add(prop);
       }
       if (it.opts.unevaluated && allProps.length && it.props !== true) {
         it.props = util_1.mergeEvaluated.props(gen, (0, util_1.toHash)(allProps), it.props);
       }
-      const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema2[p]));
+      const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema[p]));
       if (properties.length === 0)
         return;
       const valid = gen.name("valid");
@@ -5418,7 +5420,7 @@ var require_properties = __commonJS((exports) => {
         cxt.ok(valid);
       }
       function hasDefault(prop) {
-        return it.opts.useDefaults && !it.compositeRule && schema2[prop].default !== undefined;
+        return it.opts.useDefaults && !it.compositeRule && schema[prop].default !== undefined;
       }
       function applyPropertySchema(prop) {
         cxt.subschema({
@@ -5433,7 +5435,7 @@ var require_properties = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/patternProperties.js
-var require_patternProperties = __commonJS((exports) => {
+var require_patternProperties = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
   var codegen_1 = require_codegen();
@@ -5444,10 +5446,10 @@ var require_patternProperties = __commonJS((exports) => {
     type: "object",
     schemaType: "object",
     code(cxt) {
-      const { gen, schema: schema2, data, parentSchema, it } = cxt;
+      const { gen, schema, data, parentSchema, it } = cxt;
       const { opts } = it;
-      const patterns = (0, code_1.allSchemaProperties)(schema2);
-      const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema2[p]));
+      const patterns = (0, code_1.allSchemaProperties)(schema);
+      const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema[p]));
       if (patterns.length === 0 || alwaysValidPatterns.length === patterns.length && (!it.opts.unevaluated || it.props === true)) {
         return;
       }
@@ -5504,7 +5506,7 @@ var require_patternProperties = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/not.js
-var require_not = __commonJS((exports) => {
+var require_not = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var util_1 = require_util();
   var def = {
@@ -5512,8 +5514,8 @@ var require_not = __commonJS((exports) => {
     schemaType: ["object", "boolean"],
     trackErrors: true,
     code(cxt) {
-      const { gen, schema: schema2, it } = cxt;
-      if ((0, util_1.alwaysValidSchema)(it, schema2)) {
+      const { gen, schema, it } = cxt;
+      if ((0, util_1.alwaysValidSchema)(it, schema)) {
         cxt.fail();
         return;
       }
@@ -5532,7 +5534,7 @@ var require_not = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/anyOf.js
-var require_anyOf = __commonJS((exports) => {
+var require_anyOf = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
   var def = {
@@ -5546,7 +5548,7 @@ var require_anyOf = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/oneOf.js
-var require_oneOf = __commonJS((exports) => {
+var require_oneOf = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -5560,12 +5562,12 @@ var require_oneOf = __commonJS((exports) => {
     trackErrors: true,
     error,
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, it } = cxt;
-      if (!Array.isArray(schema2))
+      const { gen, schema, parentSchema, it } = cxt;
+      if (!Array.isArray(schema))
         throw new Error("ajv implementation error");
       if (it.opts.discriminator && parentSchema.discriminator)
         return;
-      const schArr = schema2;
+      const schArr = schema;
       const valid = gen.let("valid", false);
       const passing = gen.let("passing", null);
       const schValid = gen.name("_valid");
@@ -5573,23 +5575,23 @@ var require_oneOf = __commonJS((exports) => {
       gen.block(validateOneOf);
       cxt.result(valid, () => cxt.reset(), () => cxt.error(true));
       function validateOneOf() {
-        schArr.forEach((sch, i2) => {
+        schArr.forEach((sch, i) => {
           let schCxt;
           if ((0, util_1.alwaysValidSchema)(it, sch)) {
             gen.var(schValid, true);
           } else {
             schCxt = cxt.subschema({
               keyword: "oneOf",
-              schemaProp: i2,
+              schemaProp: i,
               compositeRule: true
             }, schValid);
           }
-          if (i2 > 0) {
-            gen.if((0, codegen_1._)`${schValid} && ${valid}`).assign(valid, false).assign(passing, (0, codegen_1._)`[${passing}, ${i2}]`).else();
+          if (i > 0) {
+            gen.if((0, codegen_1._)`${schValid} && ${valid}`).assign(valid, false).assign(passing, (0, codegen_1._)`[${passing}, ${i}]`).else();
           }
           gen.if(schValid, () => {
             gen.assign(valid, true);
-            gen.assign(passing, i2);
+            gen.assign(passing, i);
             if (schCxt)
               cxt.mergeEvaluated(schCxt, codegen_1.Name);
           });
@@ -5601,21 +5603,21 @@ var require_oneOf = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/allOf.js
-var require_allOf = __commonJS((exports) => {
+var require_allOf = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var util_1 = require_util();
   var def = {
     keyword: "allOf",
     schemaType: "array",
     code(cxt) {
-      const { gen, schema: schema2, it } = cxt;
-      if (!Array.isArray(schema2))
+      const { gen, schema, it } = cxt;
+      if (!Array.isArray(schema))
         throw new Error("ajv implementation error");
       const valid = gen.name("valid");
-      schema2.forEach((sch, i2) => {
+      schema.forEach((sch, i) => {
         if ((0, util_1.alwaysValidSchema)(it, sch))
           return;
-        const schCxt = cxt.subschema({ keyword: "allOf", schemaProp: i2 }, valid);
+        const schCxt = cxt.subschema({ keyword: "allOf", schemaProp: i }, valid);
         cxt.ok(valid);
         cxt.mergeEvaluated(schCxt);
       });
@@ -5625,7 +5627,7 @@ var require_allOf = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/if.js
-var require_if = __commonJS((exports) => {
+var require_if = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var util_1 = require_util();
@@ -5684,14 +5686,14 @@ var require_if = __commonJS((exports) => {
     }
   };
   function hasSchema(it, keyword) {
-    const schema2 = it.schema[keyword];
-    return schema2 !== undefined && !(0, util_1.alwaysValidSchema)(it, schema2);
+    const schema = it.schema[keyword];
+    return schema !== undefined && !(0, util_1.alwaysValidSchema)(it, schema);
   }
   exports.default = def;
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/thenElse.js
-var require_thenElse = __commonJS((exports) => {
+var require_thenElse = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var util_1 = require_util();
   var def = {
@@ -5706,7 +5708,7 @@ var require_thenElse = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/index.js
-var require_applicator = __commonJS((exports) => {
+var require_applicator = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var additionalItems_1 = require_additionalItems();
   var prefixItems_1 = require_prefixItems();
@@ -5749,7 +5751,7 @@ var require_applicator = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/format/format.js
-var require_format = __commonJS((exports) => {
+var require_format = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var error = {
@@ -5763,7 +5765,7 @@ var require_format = __commonJS((exports) => {
     $data: true,
     error,
     code(cxt, ruleType) {
-      const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
+      const { gen, data, $data, schema, schemaCode, it } = cxt;
       const { opts, errSchemaPath, schemaEnv, self } = it;
       if (!opts.validateFormats)
         return;
@@ -5793,7 +5795,7 @@ var require_format = __commonJS((exports) => {
         }
       }
       function validateFormat() {
-        const formatDef = self.formats[schema2];
+        const formatDef = self.formats[schema];
         if (!formatDef) {
           unknownFormat();
           return;
@@ -5810,12 +5812,12 @@ var require_format = __commonJS((exports) => {
           }
           throw new Error(unknownMsg());
           function unknownMsg() {
-            return `unknown format "${schema2}" ignored in schema at path "${errSchemaPath}"`;
+            return `unknown format "${schema}" ignored in schema at path "${errSchemaPath}"`;
           }
         }
         function getFormat(fmtDef) {
-          const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema2)}` : undefined;
-          const fmt = gen.scopeValue("formats", { key: schema2, ref: fmtDef, code });
+          const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema)}` : undefined;
+          const fmt = gen.scopeValue("formats", { key: schema, ref: fmtDef, code });
           if (typeof fmtDef == "object" && !(fmtDef instanceof RegExp)) {
             return [fmtDef.type || "string", fmtDef.validate, (0, codegen_1._)`${fmt}.validate`];
           }
@@ -5836,7 +5838,7 @@ var require_format = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/format/index.js
-var require_format2 = __commonJS((exports) => {
+var require_format2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var format_1 = require_format();
   var format = [format_1.default];
@@ -5844,7 +5846,7 @@ var require_format2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/metadata.js
-var require_metadata = __commonJS((exports) => {
+var require_metadata = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.contentVocabulary = exports.metadataVocabulary = undefined;
   exports.metadataVocabulary = [
@@ -5864,7 +5866,7 @@ var require_metadata = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/draft7.js
-var require_draft7 = __commonJS((exports) => {
+var require_draft7 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var core_1 = require_core2();
   var validation_1 = require_validation();
@@ -5883,18 +5885,18 @@ var require_draft7 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/discriminator/types.js
-var require_types = __commonJS((exports) => {
+var require_types = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.DiscrError = undefined;
   var DiscrError;
-  (function(DiscrError2) {
-    DiscrError2["Tag"] = "tag";
-    DiscrError2["Mapping"] = "mapping";
+  (function(DiscrError) {
+    DiscrError["Tag"] = "tag";
+    DiscrError["Mapping"] = "mapping";
   })(DiscrError || (exports.DiscrError = DiscrError = {}));
 });
 
 // node_modules/ajv/dist/vocabularies/discriminator/index.js
-var require_discriminator = __commonJS((exports) => {
+var require_discriminator = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
   var types_1 = require_types();
@@ -5911,15 +5913,15 @@ var require_discriminator = __commonJS((exports) => {
     schemaType: "object",
     error,
     code(cxt) {
-      const { gen, data, schema: schema2, parentSchema, it } = cxt;
+      const { gen, data, schema, parentSchema, it } = cxt;
       const { oneOf } = parentSchema;
       if (!it.opts.discriminator) {
         throw new Error("discriminator: requires discriminator option");
       }
-      const tagName = schema2.propertyName;
+      const tagName = schema.propertyName;
       if (typeof tagName != "string")
         throw new Error("discriminator: requires propertyName");
-      if (schema2.mapping)
+      if (schema.mapping)
         throw new Error("discriminator: mapping is not supported");
       if (!oneOf)
         throw new Error("discriminator: requires oneOf keyword");
@@ -5949,8 +5951,8 @@ var require_discriminator = __commonJS((exports) => {
         const oneOfMapping = {};
         const topRequired = hasRequired(parentSchema);
         let tagRequired = true;
-        for (let i2 = 0;i2 < oneOf.length; i2++) {
-          let sch = oneOf[i2];
+        for (let i = 0;i < oneOf.length; i++) {
+          let sch = oneOf[i];
           if ((sch === null || sch === undefined ? undefined : sch.$ref) && !(0, util_1.schemaHasRulesButRef)(sch, it.self.RULES)) {
             const ref = sch.$ref;
             sch = compile_1.resolveRef.call(it.self, it.schemaEnv.root, it.baseId, ref);
@@ -5964,7 +5966,7 @@ var require_discriminator = __commonJS((exports) => {
             throw new Error(`discriminator: oneOf subschemas (or referenced schemas) must have "properties/${tagName}"`);
           }
           tagRequired = tagRequired && (topRequired || hasRequired(sch));
-          addMappings(propSch, i2);
+          addMappings(propSch, i);
         }
         if (!tagRequired)
           throw new Error(`discriminator: "${tagName}" must be required`);
@@ -5972,22 +5974,22 @@ var require_discriminator = __commonJS((exports) => {
         function hasRequired({ required }) {
           return Array.isArray(required) && required.includes(tagName);
         }
-        function addMappings(sch, i2) {
+        function addMappings(sch, i) {
           if (sch.const) {
-            addMapping(sch.const, i2);
+            addMapping(sch.const, i);
           } else if (sch.enum) {
             for (const tagValue of sch.enum) {
-              addMapping(tagValue, i2);
+              addMapping(tagValue, i);
             }
           } else {
             throw new Error(`discriminator: "properties/${tagName}" must have "const" or "enum"`);
           }
         }
-        function addMapping(tagValue, i2) {
+        function addMapping(tagValue, i) {
           if (typeof tagValue != "string" || tagValue in oneOfMapping) {
             throw new Error(`discriminator: "${tagName}" values must be unique strings`);
           }
-          oneOfMapping[tagValue] = i2;
+          oneOfMapping[tagValue] = i;
         }
       }
     }
@@ -5996,7 +5998,7 @@ var require_discriminator = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/refs/json-schema-draft-07.json
-var require_json_schema_draft_07 = __commonJS((exports, module) => {
+var require_json_schema_draft_07 = __commonJS(function(exports, module) {
   module.exports = {
     $schema: "http://json-schema.org/draft-07/schema#",
     $id: "http://json-schema.org/draft-07/schema#",
@@ -6151,7 +6153,7 @@ var require_json_schema_draft_07 = __commonJS((exports, module) => {
 });
 
 // node_modules/ajv/dist/ajv.js
-var require_ajv = __commonJS((exports, module) => {
+var require_ajv = __commonJS(function(exports, module) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.MissingRefError = exports.ValidationError = exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = exports.Ajv = undefined;
   var core_1 = require_core();
@@ -6219,7 +6221,7 @@ var require_ajv = __commonJS((exports, module) => {
 });
 
 // node_modules/ajv-formats/dist/formats.js
-var require_formats = __commonJS((exports) => {
+var require_formats = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.formatNames = exports.fastFormats = exports.fullFormats = undefined;
   function fmtDef(validate, compare) {
@@ -6270,8 +6272,8 @@ var require_formats = __commonJS((exports) => {
   }
   var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
   var DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  function date(str2) {
-    const matches = DATE.exec(str2);
+  function date(str) {
+    const matches = DATE.exec(str);
     if (!matches)
       return false;
     const year = +matches[1];
@@ -6290,8 +6292,8 @@ var require_formats = __commonJS((exports) => {
   }
   var TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
   function getTime(strictTimeZone) {
-    return function time(str2) {
-      const matches = TIME.exec(str2);
+    return function time(str) {
+      const matches = TIME.exec(str);
       if (!matches)
         return false;
       const hr = +matches[1];
@@ -6337,8 +6339,8 @@ var require_formats = __commonJS((exports) => {
   var DATE_TIME_SEPARATOR = /t|\s/i;
   function getDateTime(strictTimeZone) {
     const time = getTime(strictTimeZone);
-    return function date_time(str2) {
-      const dateTime = str2.split(DATE_TIME_SEPARATOR);
+    return function date_time(str) {
+      const dateTime = str.split(DATE_TIME_SEPARATOR);
       return dateTime.length === 2 && date(dateTime[0]) && time(dateTime[1]);
     };
   }
@@ -6363,13 +6365,13 @@ var require_formats = __commonJS((exports) => {
   }
   var NOT_URI_FRAGMENT = /\/|:/;
   var URI = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
-  function uri(str2) {
-    return NOT_URI_FRAGMENT.test(str2) && URI.test(str2);
+  function uri(str) {
+    return NOT_URI_FRAGMENT.test(str) && URI.test(str);
   }
   var BYTE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/gm;
-  function byte(str2) {
+  function byte(str) {
     BYTE.lastIndex = 0;
-    return BYTE.test(str2);
+    return BYTE.test(str);
   }
   var MIN_INT32 = -(2 ** 31);
   var MAX_INT32 = 2 ** 31 - 1;
@@ -6383,11 +6385,11 @@ var require_formats = __commonJS((exports) => {
     return true;
   }
   var Z_ANCHOR = /[^\\]\\Z/;
-  function regex(str2) {
-    if (Z_ANCHOR.test(str2))
+  function regex(str) {
+    if (Z_ANCHOR.test(str))
       return false;
     try {
-      new RegExp(str2);
+      new RegExp(str);
       return true;
     } catch (e) {
       return false;
@@ -6396,7 +6398,7 @@ var require_formats = __commonJS((exports) => {
 });
 
 // node_modules/ajv-formats/dist/limit.js
-var require_limit = __commonJS((exports) => {
+var require_limit = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.formatLimitDefinition = undefined;
   var ajv_1 = require_ajv();
@@ -6465,7 +6467,7 @@ var require_limit = __commonJS((exports) => {
 });
 
 // node_modules/ajv-formats/dist/index.js
-var require_dist = __commonJS((exports, module) => {
+var require_dist = __commonJS(function(exports, module) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var formats_1 = require_formats();
   var limit_1 = require_limit();
@@ -12604,12 +12606,12 @@ function compileMap() {
       fallback: []
     }
   }, index, length;
-  function collectType(type2) {
-    if (type2.multi) {
-      result.multi[type2.kind].push(type2);
-      result.multi["fallback"].push(type2);
+  function collectType(type) {
+    if (type.multi) {
+      result.multi[type.kind].push(type);
+      result.multi["fallback"].push(type);
     } else {
-      result[type2.kind][type2.tag] = result["fallback"][type2.tag] = type2;
+      result[type.kind][type.tag] = result["fallback"][type.tag] = type;
     }
   }
   for (index = 0, length = arguments.length;index < length; index += 1) {
@@ -12620,7 +12622,7 @@ function compileMap() {
 function Schema$1(definition) {
   return this.extend(definition);
 }
-Schema$1.prototype.extend = function extend2(definition) {
+Schema$1.prototype.extend = function extend(definition) {
   var implicit = [];
   var explicit = [];
   if (definition instanceof type) {
@@ -13027,9 +13029,9 @@ var BASE64_MAP = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 function resolveYamlBinary(data) {
   if (data === null)
     return false;
-  var code, idx, bitlen = 0, max = data.length, map2 = BASE64_MAP;
+  var code, idx, bitlen = 0, max = data.length, map = BASE64_MAP;
   for (idx = 0;idx < max; idx++) {
-    code = map2.indexOf(data.charAt(idx));
+    code = map.indexOf(data.charAt(idx));
     if (code > 64)
       continue;
     if (code < 0)
@@ -13039,14 +13041,14 @@ function resolveYamlBinary(data) {
   return bitlen % 8 === 0;
 }
 function constructYamlBinary(data) {
-  var idx, tailbits, input = data.replace(/[\r\n=]/g, ""), max = input.length, map2 = BASE64_MAP, bits = 0, result = [];
+  var idx, tailbits, input = data.replace(/[\r\n=]/g, ""), max = input.length, map = BASE64_MAP, bits = 0, result = [];
   for (idx = 0;idx < max; idx++) {
     if (idx % 4 === 0 && idx) {
       result.push(bits >> 16 & 255);
       result.push(bits >> 8 & 255);
       result.push(bits & 255);
     }
-    bits = bits << 6 | map2.indexOf(input.charAt(idx));
+    bits = bits << 6 | map.indexOf(input.charAt(idx));
   }
   tailbits = max % 4 * 6;
   if (tailbits === 0) {
@@ -13062,32 +13064,32 @@ function constructYamlBinary(data) {
   return new Uint8Array(result);
 }
 function representYamlBinary(object) {
-  var result = "", bits = 0, idx, tail, max = object.length, map2 = BASE64_MAP;
+  var result = "", bits = 0, idx, tail, max = object.length, map = BASE64_MAP;
   for (idx = 0;idx < max; idx++) {
     if (idx % 3 === 0 && idx) {
-      result += map2[bits >> 18 & 63];
-      result += map2[bits >> 12 & 63];
-      result += map2[bits >> 6 & 63];
-      result += map2[bits & 63];
+      result += map[bits >> 18 & 63];
+      result += map[bits >> 12 & 63];
+      result += map[bits >> 6 & 63];
+      result += map[bits & 63];
     }
     bits = (bits << 8) + object[idx];
   }
   tail = max % 3;
   if (tail === 0) {
-    result += map2[bits >> 18 & 63];
-    result += map2[bits >> 12 & 63];
-    result += map2[bits >> 6 & 63];
-    result += map2[bits & 63];
+    result += map[bits >> 18 & 63];
+    result += map[bits >> 12 & 63];
+    result += map[bits >> 6 & 63];
+    result += map[bits & 63];
   } else if (tail === 2) {
-    result += map2[bits >> 10 & 63];
-    result += map2[bits >> 4 & 63];
-    result += map2[bits << 2 & 63];
-    result += map2[64];
+    result += map[bits >> 10 & 63];
+    result += map[bits >> 4 & 63];
+    result += map[bits << 2 & 63];
+    result += map[64];
   } else if (tail === 1) {
-    result += map2[bits >> 2 & 63];
-    result += map2[bits << 4 & 63];
-    result += map2[64];
-    result += map2[64];
+    result += map[bits >> 2 & 63];
+    result += map[bits << 4 & 63];
+    result += map[64];
+    result += map[64];
   }
   return result;
 }
@@ -13516,7 +13518,7 @@ function writeFoldedLines(state, count) {
   }
 }
 function readPlainScalar(state, nodeIndent, withinFlowCollection) {
-  var preceding, following, captureStart, captureEnd, hasPendingContent, _line, _lineStart, _lineIndent, _kind = state.kind, _result = state.result, ch;
+  var preceding, following, captureStart, captureEnd, hasPendingContent, _line, _lineStart, _lineIndent, { kind: _kind, result: _result } = state, ch;
   ch = state.input.charCodeAt(state.position);
   if (is_WS_OR_EOL(ch) || is_FLOW_INDICATOR(ch) || ch === 35 || ch === 38 || ch === 42 || ch === 33 || ch === 124 || ch === 62 || ch === 39 || ch === 34 || ch === 37 || ch === 64 || ch === 96) {
     return false;
@@ -13846,7 +13848,7 @@ function readBlockScalar(state, nodeIndent) {
   return true;
 }
 function readBlockSequence(state, nodeIndent) {
-  var _line, _tag = state.tag, _anchor = state.anchor, _result = [], following, detected = false, ch;
+  var _line, { tag: _tag, anchor: _anchor } = state, _result = [], following, detected = false, ch;
   if (state.firstTabInLine !== -1)
     return false;
   if (state.anchor !== null) {
@@ -13895,7 +13897,7 @@ function readBlockSequence(state, nodeIndent) {
   return false;
 }
 function readBlockMapping(state, nodeIndent, flowIndent) {
-  var following, allowCompact, _line, _keyLine, _keyLineStart, _keyPos, _tag = state.tag, _anchor = state.anchor, _result = {}, overridableKeys = Object.create(null), keyTag = null, keyNode = null, valueNode = null, atExplicitKey = false, detected = false, ch;
+  var following, allowCompact, _line, _keyLine, _keyLineStart, _keyPos, { tag: _tag, anchor: _anchor } = state, _result = {}, overridableKeys = Object.create(null), keyTag = null, keyNode = null, valueNode = null, atExplicitKey = false, detected = false, ch;
   if (state.firstTabInLine !== -1)
     return false;
   if (state.anchor !== null) {
@@ -14117,7 +14119,7 @@ function readAlias(state) {
   return true;
 }
 function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact) {
-  var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex, typeQuantity, typeList, type2, flowIndent, blockIndent;
+  var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex, typeQuantity, typeList, type, flowIndent, blockIndent;
   if (state.listener !== null) {
     state.listener("open", state);
   }
@@ -14199,10 +14201,10 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
       throwError(state, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state.kind + '"');
     }
     for (typeIndex = 0, typeQuantity = state.implicitTypes.length;typeIndex < typeQuantity; typeIndex += 1) {
-      type2 = state.implicitTypes[typeIndex];
-      if (type2.resolve(state.result)) {
-        state.result = type2.construct(state.result);
-        state.tag = type2.tag;
+      type = state.implicitTypes[typeIndex];
+      if (type.resolve(state.result)) {
+        state.result = type.construct(state.result);
+        state.tag = type.tag;
         if (state.anchor !== null) {
           state.anchorMap[state.anchor] = state.result;
         }
@@ -14211,27 +14213,27 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
     }
   } else if (state.tag !== "!") {
     if (_hasOwnProperty$1.call(state.typeMap[state.kind || "fallback"], state.tag)) {
-      type2 = state.typeMap[state.kind || "fallback"][state.tag];
+      type = state.typeMap[state.kind || "fallback"][state.tag];
     } else {
-      type2 = null;
+      type = null;
       typeList = state.typeMap.multi[state.kind || "fallback"];
       for (typeIndex = 0, typeQuantity = typeList.length;typeIndex < typeQuantity; typeIndex += 1) {
         if (state.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
-          type2 = typeList[typeIndex];
+          type = typeList[typeIndex];
           break;
         }
       }
     }
-    if (!type2) {
+    if (!type) {
       throwError(state, "unknown tag !<" + state.tag + ">");
     }
-    if (state.result !== null && type2.kind !== state.kind) {
-      throwError(state, "unacceptable node kind for !<" + state.tag + '> tag; it should be "' + type2.kind + '", not "' + state.kind + '"');
+    if (state.result !== null && type.kind !== state.kind) {
+      throwError(state, "unacceptable node kind for !<" + state.tag + '> tag; it should be "' + type.kind + '", not "' + state.kind + '"');
     }
-    if (!type2.resolve(state.result, state.tag)) {
+    if (!type.resolve(state.result, state.tag)) {
       throwError(state, "cannot resolve a node with !<" + state.tag + "> explicit tag");
     } else {
-      state.result = type2.construct(state.result, state.tag);
+      state.result = type.construct(state.result, state.tag);
       if (state.anchor !== null) {
         state.anchorMap[state.anchor] = state.result;
       }
@@ -14435,21 +14437,21 @@ var DEPRECATED_BOOLEANS_SYNTAX = [
   "OFF"
 ];
 var DEPRECATED_BASE60_SYNTAX = /^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/;
-function compileStyleMap(schema2, map2) {
-  var result, keys, index, length, tag, style, type2;
-  if (map2 === null)
+function compileStyleMap(schema, map) {
+  var result, keys, index, length, tag, style, type;
+  if (map === null)
     return {};
   result = {};
-  keys = Object.keys(map2);
+  keys = Object.keys(map);
   for (index = 0, length = keys.length;index < length; index += 1) {
     tag = keys[index];
-    style = String(map2[tag]);
+    style = String(map[tag]);
     if (tag.slice(0, 2) === "!!") {
       tag = "tag:yaml.org,2002:" + tag.slice(2);
     }
-    type2 = schema2.compiledTypeMap["fallback"][tag];
-    if (type2 && _hasOwnProperty.call(type2.styleAliases, style)) {
-      style = type2.styleAliases[style];
+    type = schema.compiledTypeMap["fallback"][tag];
+    if (type && _hasOwnProperty.call(type.styleAliases, style)) {
+      style = type.styleAliases[style];
     }
     result[tag] = style;
   }
@@ -14519,11 +14521,11 @@ function generateNextLine(state, level) {
   return `
 ` + common.repeat(" ", state.indent * level);
 }
-function testImplicitResolving(state, str2) {
-  var index, length, type2;
+function testImplicitResolving(state, str) {
+  var index, length, type;
   for (index = 0, length = state.implicitTypes.length;index < length; index += 1) {
-    type2 = state.implicitTypes[index];
-    if (type2.resolve(str2)) {
+    type = state.implicitTypes[index];
+    if (type.resolve(str)) {
       return true;
     }
   }
@@ -14569,7 +14571,7 @@ var STYLE_LITERAL = 3;
 var STYLE_FOLDED = 4;
 var STYLE_DOUBLE = 5;
 function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, testAmbiguousType, quotingType, forceQuotes, inblock) {
-  var i2;
+  var i;
   var char = 0;
   var prevChar = null;
   var hasLineBreak = false;
@@ -14578,8 +14580,8 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
   var previousLineBreak = -1;
   var plain = isPlainSafeFirst(codePointAt(string, 0)) && isPlainSafeLast(codePointAt(string, string.length - 1));
   if (singleLineOnly || forceQuotes) {
-    for (i2 = 0;i2 < string.length; char >= 65536 ? i2 += 2 : i2++) {
-      char = codePointAt(string, i2);
+    for (i = 0;i < string.length; char >= 65536 ? i += 2 : i++) {
+      char = codePointAt(string, i);
       if (!isPrintable(char)) {
         return STYLE_DOUBLE;
       }
@@ -14587,13 +14589,13 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
       prevChar = char;
     }
   } else {
-    for (i2 = 0;i2 < string.length; char >= 65536 ? i2 += 2 : i2++) {
-      char = codePointAt(string, i2);
+    for (i = 0;i < string.length; char >= 65536 ? i += 2 : i++) {
+      char = codePointAt(string, i);
       if (char === CHAR_LINE_FEED) {
         hasLineBreak = true;
         if (shouldTrackWidth) {
-          hasFoldableLine = hasFoldableLine || i2 - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ";
-          previousLineBreak = i2;
+          hasFoldableLine = hasFoldableLine || i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ";
+          previousLineBreak = i;
         }
       } else if (!isPrintable(char)) {
         return STYLE_DOUBLE;
@@ -14601,7 +14603,7 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
       plain = plain && isPlainSafe(char, prevChar, inblock);
       prevChar = char;
     }
-    hasFoldableLine = hasFoldableLine || shouldTrackWidth && (i2 - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ");
+    hasFoldableLine = hasFoldableLine || shouldTrackWidth && (i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ");
   }
   if (!hasLineBreak && !hasFoldableLine) {
     if (plain && !forceQuotes && !testAmbiguousType(string)) {
@@ -14630,8 +14632,8 @@ function writeScalar(state, string, level, iskey, inblock) {
     var indent = state.indent * Math.max(1, level);
     var lineWidth = state.lineWidth === -1 ? -1 : Math.max(Math.min(state.lineWidth, 40), state.lineWidth - indent);
     var singleLineOnly = iskey || state.flowLevel > -1 && level >= state.flowLevel;
-    function testAmbiguity(string2) {
-      return testImplicitResolving(state, string2);
+    function testAmbiguity(string) {
+      return testImplicitResolving(state, string);
     }
     switch (chooseScalarStyle(string, singleLineOnly, state.indent, lineWidth, testAmbiguity, state.quotingType, state.forceQuotes && !iskey, inblock)) {
       case STYLE_PLAIN:
@@ -14717,13 +14719,13 @@ function escapeString(string) {
   var result = "";
   var char = 0;
   var escapeSeq;
-  for (var i2 = 0;i2 < string.length; char >= 65536 ? i2 += 2 : i2++) {
-    char = codePointAt(string, i2);
+  for (var i = 0;i < string.length; char >= 65536 ? i += 2 : i++) {
+    char = codePointAt(string, i);
     escapeSeq = ESCAPE_SEQUENCES[char];
     if (!escapeSeq && isPrintable(char)) {
-      result += string[i2];
+      result += string[i];
       if (char >= 65536)
-        result += string[i2 + 1];
+        result += string[i + 1];
     } else {
       result += escapeSeq || encodeHex(char);
     }
@@ -14845,28 +14847,28 @@ function writeBlockMapping(state, level, object, compact) {
   state.dump = _result || "{}";
 }
 function detectType(state, object, explicit) {
-  var _result, typeList, index, length, type2, style;
+  var _result, typeList, index, length, type, style;
   typeList = explicit ? state.explicitTypes : state.implicitTypes;
   for (index = 0, length = typeList.length;index < length; index += 1) {
-    type2 = typeList[index];
-    if ((type2.instanceOf || type2.predicate) && (!type2.instanceOf || typeof object === "object" && object instanceof type2.instanceOf) && (!type2.predicate || type2.predicate(object))) {
+    type = typeList[index];
+    if ((type.instanceOf || type.predicate) && (!type.instanceOf || typeof object === "object" && object instanceof type.instanceOf) && (!type.predicate || type.predicate(object))) {
       if (explicit) {
-        if (type2.multi && type2.representName) {
-          state.tag = type2.representName(object);
+        if (type.multi && type.representName) {
+          state.tag = type.representName(object);
         } else {
-          state.tag = type2.tag;
+          state.tag = type.tag;
         }
       } else {
         state.tag = "?";
       }
-      if (type2.represent) {
-        style = state.styleMap[type2.tag] || type2.defaultStyle;
-        if (_toString.call(type2.represent) === "[object Function]") {
-          _result = type2.represent(object, style);
-        } else if (_hasOwnProperty.call(type2.represent, style)) {
-          _result = type2.represent[style](object, style);
+      if (type.represent) {
+        style = state.styleMap[type.tag] || type.defaultStyle;
+        if (_toString.call(type.represent) === "[object Function]") {
+          _result = type.represent(object, style);
+        } else if (_hasOwnProperty.call(type.represent, style)) {
+          _result = type.represent[style](object, style);
         } else {
-          throw new exception("!<" + type2.tag + '> tag resolver accepts not "' + style + '" style');
+          throw new exception("!<" + type.tag + '> tag resolver accepts not "' + style + '" style');
         }
         state.dump = _result;
       }
@@ -14881,13 +14883,13 @@ function writeNode(state, level, object, block, compact, iskey, isblockseq) {
   if (!detectType(state, object, false)) {
     detectType(state, object, true);
   }
-  var type2 = _toString.call(state.dump);
+  var type = _toString.call(state.dump);
   var inblock = block;
   var tagStr;
   if (block) {
     block = state.flowLevel < 0 || state.flowLevel > level;
   }
-  var objectOrArray = type2 === "[object Object]" || type2 === "[object Array]", duplicateIndex, duplicate;
+  var objectOrArray = type === "[object Object]" || type === "[object Array]", duplicateIndex, duplicate;
   if (objectOrArray) {
     duplicateIndex = state.duplicates.indexOf(object);
     duplicate = duplicateIndex !== -1;
@@ -14901,7 +14903,7 @@ function writeNode(state, level, object, block, compact, iskey, isblockseq) {
     if (objectOrArray && duplicate && !state.usedDuplicates[duplicateIndex]) {
       state.usedDuplicates[duplicateIndex] = true;
     }
-    if (type2 === "[object Object]") {
+    if (type === "[object Object]") {
       if (block && Object.keys(state.dump).length !== 0) {
         writeBlockMapping(state, level, state.dump, compact);
         if (duplicate) {
@@ -14913,7 +14915,7 @@ function writeNode(state, level, object, block, compact, iskey, isblockseq) {
           state.dump = "&ref_" + duplicateIndex + " " + state.dump;
         }
       }
-    } else if (type2 === "[object Array]") {
+    } else if (type === "[object Array]") {
       if (block && state.dump.length !== 0) {
         if (state.noArrayIndent && !isblockseq && level > 0) {
           writeBlockSequence(state, level - 1, state.dump, compact);
@@ -14929,16 +14931,16 @@ function writeNode(state, level, object, block, compact, iskey, isblockseq) {
           state.dump = "&ref_" + duplicateIndex + " " + state.dump;
         }
       }
-    } else if (type2 === "[object String]") {
+    } else if (type === "[object String]") {
       if (state.tag !== "?") {
         writeScalar(state, state.dump, level, iskey, inblock);
       }
-    } else if (type2 === "[object Undefined]") {
+    } else if (type === "[object Undefined]") {
       return false;
     } else {
       if (state.skipInvalid)
         return false;
-      throw new exception("unacceptable kind of an object to dump " + type2);
+      throw new exception("unacceptable kind of an object to dump " + type);
     }
     if (state.tag !== null && state.tag !== "?") {
       tagStr = encodeURI(state.tag[0] === "!" ? state.tag.slice(1) : state.tag).replace(/!/g, "%21");
@@ -15704,8 +15706,8 @@ function createSchemaValidator() {
   resolveFormatsPlugin()(validator);
   return validator;
 }
-function compileSchema(schema2) {
-  return createSchemaValidator().compile(schema2);
+function compileSchema(schema) {
+  return createSchemaValidator().compile(schema);
 }
 function getBundledSchemaPath(schemaFile) {
   return path3.join(BUNDLED_SCHEMA_DIR, schemaFile);
@@ -15742,8 +15744,8 @@ function loadBundledSchemaBySchemaId(schemaId) {
   }
   return loadBundledSchema(entry.schema_file);
 }
-function validateWithSchema(schema2, artifact, artifactPath) {
-  const validator = compileSchema(schema2);
+function validateWithSchema(schema, artifact, artifactPath) {
+  const validator = compileSchema(schema);
   const valid = validator(artifact) === true;
   const diagnostics = normalizeDiagnostics((validator.errors ?? []).map((error) => schemaErrorToDiagnostic(error, artifactPath)));
   return { valid: valid && diagnostics.length === 0, diagnostics };
@@ -15800,8 +15802,8 @@ function runReferenceChecks(artifact, artifactPath, rules) {
   }
   return normalizeDiagnostics(diagnostics);
 }
-function validateArtifact(schema2, artifact, artifactPath, options = {}) {
-  const schemaResult = validateWithSchema(schema2, artifact, artifactPath);
+function validateArtifact(schema, artifact, artifactPath, options = {}) {
+  const schemaResult = validateWithSchema(schema, artifact, artifactPath);
   const duplicateDiagnostics = runDuplicateIdChecks(artifact, artifactPath, options.duplicateIdRules ?? []);
   const referenceDiagnostics = runReferenceChecks(artifact, artifactPath, options.referenceRules ?? []);
   const diagnostics = normalizeDiagnostics([
@@ -16389,12 +16391,12 @@ function asOptionalStringArray(value, fieldPath) {
   return asStringArray2(value, fieldPath);
 }
 function validateGeneratedArtifact(artifactType, artifact, artifactPath) {
-  const schema2 = loadBundledSchemaByArtifactType(artifactType);
-  const result2 = validateArtifact(schema2, artifact, artifactPath);
-  return result2.diagnostics;
+  const schema = loadBundledSchemaByArtifactType(artifactType);
+  const result = validateArtifact(schema, artifact, artifactPath);
+  return result.diagnostics;
 }
 function formatDiagnostics(diagnostics) {
-  return diagnostics.map((diagnostic2) => `${diagnostic2.artifactPath} ${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
+  return diagnostics.map((diagnostic) => `${diagnostic.artifactPath} ${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
 }
 function mapGeneratedFieldToInputField(artifact, fieldPath) {
   if (fieldPath === "$")
@@ -16452,13 +16454,13 @@ function formatRecoveryAssets(artifactType) {
   ];
 }
 function formatGenerationDiagnostics(artifact, inputLabel, diagnostics, artifactType) {
-  const lines = diagnostics.map((diagnostic2) => {
-    const inputField = mapGeneratedFieldToInputField(artifact, diagnostic2.fieldPath);
+  const lines = diagnostics.map((diagnostic) => {
+    const inputField = mapGeneratedFieldToInputField(artifact, diagnostic.fieldPath);
     const details = [
-      diagnostic2.message,
-      diagnostic2.expected ? `expected ${diagnostic2.expected}` : undefined,
-      diagnostic2.actual ? `actual ${diagnostic2.actual}` : undefined,
-      `generated field ${diagnostic2.fieldPath}`
+      diagnostic.message,
+      diagnostic.expected ? `expected ${diagnostic.expected}` : undefined,
+      diagnostic.actual ? `actual ${diagnostic.actual}` : undefined,
+      `generated field ${diagnostic.fieldPath}`
     ].filter((value) => Boolean(value));
     return `- ${inputField}: ${details.join("; ")}`;
   });
@@ -17021,7 +17023,10 @@ var COMMAND_METADATA_ENTRIES = {
       description: "Human-readable lines naming the initialized root and the created and skipped file counts."
     },
     exitCodes: SUCCESS_EXIT_CODES,
-    notes: ["Existing scaffold files are skipped, never overwritten."]
+    notes: [
+      "Existing scaffold files are skipped, never overwritten.",
+      "Re-renders any generated document the workflow config write staled, printing each rewritten path; a generated document absent from disk is left absent."
+    ]
   },
   "check-workflow-state": {
     name: "check-workflow-state",
@@ -17067,11 +17072,12 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "operation", "rerenderedDocuments"],
       description: "A deterministic workflow-config mutation result with schema and example recovery identifiers."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "The target is always .strict-spec-driven/config.yaml; config creation remains owned by init and whole-config deletion is intentionally unavailable.",
       "Every unnamed field and nested entry is preserved; invalid complete candidates leave the file unchanged."
     ]
@@ -17776,11 +17782,12 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation", "rerenderedDocuments"],
       description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "Scalar and keyed restatement affects only the named content; removals are exact.",
       "Creation defaults to .strict-spec-driven/specs/<spec-id>.yaml and persists only after a title and complete requirement validate.",
       "Use schema-show main-spec and sample-show main-spec to inspect the artifact contract."
@@ -17815,11 +17822,12 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation", "rerenderedDocuments"],
       description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "Scalar and keyed restatement affects only the named content; rule lists append uniquely and removals are exact.",
       "Creation defaults to .strict-spec-driven/tech/<standard-id>.yaml and persists only after a title, category, and complete rule validate.",
       "Use schema-show main-tech and sample-show main-tech to inspect the artifact contract."
@@ -17851,12 +17859,12 @@ var COMMAND_METADATA_ENTRIES = {
       ...["boundary", "dependency", "implementation", "flow-step", "flow-component", "alternative"].map((name) => ({ name: `--remove-${name}`, arity: "value", valueLabel: "<owner:value>", description: `Remove only the exact named ${name.replaceAll("-", " ")} from its owner.`, repeatable: true, repeatSemantics: "Each occurrence removes one exact nested list value." })),
       { name: "--delete", arity: "boolean", description: "Delete only architecture.yaml; cannot be combined with any edit or removal flag and never deletes ARCHITECTURE.md." }
     ],
-    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether architecture-generate must reconcile ARCHITECTURE.md." },
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument", "rerenderedDocuments"], description: "An artifact-aware mutation result reporting the committed change and any generated document re-rendered for it." },
     exitCodes: [
       { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
       { code: 1, meaning: "Usage, schema, relationship, confinement, or filesystem validation rejected the mutation and preserved prior state." }
     ],
-    notes: ["Source mutations never edit or delete ARCHITECTURE.md; run the reported generator after a changed mutation."]
+    notes: ["Source mutations never compose or delete ARCHITECTURE.md; a changed mutation re-renders an existing stale document through architecture-generate and names it in rerenderedDocuments."]
   },
   "architecture-generate": {
     name: "architecture-generate",
@@ -17957,12 +17965,14 @@ var COMMAND_METADATA_ENTRIES = {
       { name: "--remove-dont", arity: "value", valueLabel: "<exact-text>", description: "Remove one exact prohibited practice.", repeatable: true, repeatSemantics: "Each occurrence removes one exact value." },
       { name: "--delete", arity: "boolean", description: "Delete only design-system.yaml; cannot be combined with edits and never deletes DESIGN.md." }
     ],
-    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether design-generate must reconcile DESIGN.md." },
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument", "rerenderedDocuments"], description: "An artifact-aware mutation result reporting the committed change and any generated document re-rendered for it." },
     exitCodes: [
       { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
       { code: 1, meaning: "Usage, schema, confinement, or filesystem validation rejected the mutation and preserved prior state." }
     ],
-    notes: ["Source mutations never edit or delete DESIGN.md; run the reported generator after a changed mutation."]
+    notes: [
+      "Source mutations never compose or delete DESIGN.md; a changed mutation re-renders an existing stale document through design-generate and names it in rerenderedDocuments."
+    ]
   },
   "design-init": {
     name: "design-init",
@@ -17975,7 +17985,7 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["artifactPath", "created", "skipped"],
+      keys: ["artifactPath", "created", "skipped", "rerenderedDocuments"],
       description: "A JSON result naming the design-system artifact path and whether this run created it or skipped an existing one."
     },
     exitCodes: [
@@ -17983,6 +17993,7 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error or the bundled design-system scaffold asset could not be read." }
     ],
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "There are no flags: an existing artifact is reported as skipped and left byte-identical, never overwritten or merged.",
       "Separate from init on purpose: the design-system artifact is optional, so init does not scaffold it and a project with no user interface never runs this command.",
       "The created artifact is schema-valid but empty of tokens and components; fill it with /strict-spec-design, then render DESIGN.md with design-generate."
@@ -19580,11 +19591,14 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics"],
+      keys: ["valid", "diagnostics", "rerenderedDocuments"],
       description: "A JSON archive result describing merged artifacts and reconciled roadmap state."
     },
     exitCodes: VALIDITY_EXIT_CODES,
-    notes: ["An empty specs/ directory is allowed and does not block archive."]
+    notes: [
+      "An empty specs/ directory is allowed and does not block archive.",
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent."
+    ]
   },
   list: {
     name: "list",
@@ -19757,8 +19771,8 @@ function formatCommandHelp(commandName) {
   if (metadata.flags.length > 0) {
     lines.push("", "Flags:");
     lines.push(...formatDefinitionList(metadata.flags.map((flag) => {
-      const repeat2 = flag.repeatSemantics ? ` ${flag.repeatSemantics}` : "";
-      return [formatFlagLabel(flag), `${flag.description}${repeat2} ${formatFlagQualifiers(flag)}`];
+      const repeat = flag.repeatSemantics ? ` ${flag.repeatSemantics}` : "";
+      return [formatFlagLabel(flag), `${flag.description}${repeat} ${formatFlagQualifiers(flag)}`];
     })));
   }
   lines.push("", "Output:", `  ${metadata.output.description}`);
@@ -19841,8 +19855,8 @@ function buildRootHelpPayload(commandNames) {
 }
 
 // src/cli/output.ts
-function writeJson(result2) {
-  process.stdout.write(JSON.stringify(result2) + `
+function writeJson(result) {
+  process.stdout.write(JSON.stringify(result) + `
 `);
 }
 function writeOut(text) {
@@ -19901,7 +19915,7 @@ function resolveHelpRequest(argv) {
     return { requested: false, json: false };
   }
   let help = false;
-  let json2 = false;
+  let json = false;
   for (const token of argv) {
     if (token === "--help" || token === "-h") {
       if (help)
@@ -19910,14 +19924,14 @@ function resolveHelpRequest(argv) {
       continue;
     }
     if (token === "--json") {
-      if (json2)
+      if (json)
         return { requested: false, json: false };
-      json2 = true;
+      json = true;
       continue;
     }
     return { requested: false, json: false };
   }
-  return help ? { requested: true, json: json2 } : { requested: false, json: false };
+  return help ? { requested: true, json } : { requested: false, json: false };
 }
 function handleHelpRequest(commandName, argv) {
   const request = resolveHelpRequest(argv);
@@ -20079,6 +20093,906 @@ function createCliCommandTable(registry) {
   return commands;
 }
 
+// src/architecture.ts
+import { existsSync as existsSync9, readFileSync as readFileSync9, statSync as statSync6 } from "fs";
+import path9 from "path";
+
+// src/cli/fs.ts
+import { existsSync as existsSync7, readdirSync as readdirSync2, statSync as statSync5 } from "fs";
+import path7 from "path";
+function normalizeRepoRelativePath2(rootDir, absolutePath) {
+  return path7.relative(rootDir, absolutePath).split(path7.sep).join("/");
+}
+function listDirectoryNames(directoryPath) {
+  if (!existsSync7(directoryPath) || !statSync5(directoryPath).isDirectory()) {
+    return [];
+  }
+  return readdirSync2(directoryPath, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+}
+function listYamlFiles(directoryPath) {
+  if (!existsSync7(directoryPath) || !statSync5(directoryPath).isDirectory()) {
+    return [];
+  }
+  const files = [];
+  function walk(currentPath) {
+    const entries = readdirSync2(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const fullPath = path7.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+      if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+        files.push(fullPath);
+      }
+    }
+  }
+  walk(directoryPath);
+  return files;
+}
+function listFilesRecursive(directoryPath) {
+  if (!existsSync7(directoryPath) || !statSync5(directoryPath).isDirectory()) {
+    return [];
+  }
+  const files = [];
+  function walk(currentPath) {
+    const entries = readdirSync2(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const fullPath = path7.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+      if (entry.isFile()) {
+        files.push(fullPath);
+      }
+    }
+  }
+  walk(directoryPath);
+  return files;
+}
+
+// src/document-render.ts
+import { existsSync as existsSync8, mkdirSync as mkdirSync4, readFileSync as readFileSync8, writeFileSync as writeFileSync4 } from "fs";
+import path8 from "path";
+var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
+
+class DocumentSourceError extends Error {
+}
+function asStringArray3(value) {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+}
+function asText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+function asRecord3(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+function readYamlIfPresent(absolutePath, artifactPath) {
+  if (!existsSync8(absolutePath))
+    return null;
+  try {
+    return parseYamlDocument(readFileSync8(absolutePath, "utf8"), { source: artifactPath });
+  } catch {
+    return null;
+  }
+}
+function renderBulletList(values) {
+  return values.map((value) => `- ${value}`);
+}
+function trimTrailingBlankLines(lines) {
+  const result = [...lines];
+  while (result.length > 0 && result[result.length - 1] === "") {
+    result.pop();
+  }
+  return result;
+}
+function blocksToDocument(blocks) {
+  return blocks.map((block) => block.lines.join(`
+`)).join(`
+
+`) + `
+`;
+}
+function splitDocumentIntoBlockTexts(content, blocks) {
+  const lines = content.split(`
+`);
+  const startIndexes = [0];
+  let searchFrom = 0;
+  for (const block of blocks.slice(1)) {
+    const headingIndex = lines.indexOf(block.heading, searchFrom);
+    if (headingIndex === -1)
+      return null;
+    startIndexes.push(headingIndex);
+    searchFrom = headingIndex + 1;
+  }
+  return startIndexes.map((startIndex, position) => {
+    const endIndex = position + 1 < startIndexes.length ? startIndexes[position + 1] : lines.length;
+    return lines.slice(startIndex, endIndex).join(`
+`).replace(/\n+$/, "");
+  });
+}
+function allSources(blocks) {
+  return [...new Set(blocks.flatMap((block) => block.sources))];
+}
+function collectStaleSources(blocks, diskContent) {
+  const diskBlockTexts = splitDocumentIntoBlockTexts(diskContent, blocks);
+  if (!diskBlockTexts) {
+    return allSources(blocks);
+  }
+  const stale = new Set;
+  blocks.forEach((block, index) => {
+    if (block.lines.join(`
+`) === diskBlockTexts[index])
+      return;
+    block.sources.forEach((source) => stale.add(source));
+  });
+  return stale.size > 0 ? [...stale] : allSources(blocks);
+}
+function renderBlocksToDocument(rootDir, blocks, options) {
+  const content = blocksToDocument(blocks);
+  const sources = allSources(blocks);
+  const relativeOutputPath = (options.outputPath ?? options.defaultOutputPath).replaceAll("\\", "/");
+  if (path8.isAbsolute(relativeOutputPath)) {
+    throw new DocumentSourceError(`${options.documentLabel} output path must be repo-relative, got '${relativeOutputPath}'`);
+  }
+  const absoluteOutputPath = path8.resolve(rootDir, relativeOutputPath);
+  const normalizedOutputPath = normalizeRepoRelativePath2(rootDir, absoluteOutputPath);
+  if (normalizedOutputPath === ".." || normalizedOutputPath.startsWith("../")) {
+    throw new DocumentSourceError(`${options.documentLabel} output path cannot traverse outside the repository, got '${relativeOutputPath}'`);
+  }
+  if (options.check) {
+    const base = { outputPath: normalizedOutputPath, mode: "check", written: false, sources };
+    if (!existsSync8(absoluteOutputPath)) {
+      return { ...base, documentExists: false, current: false, staleSources: sources };
+    }
+    const diskContent = readFileSync8(absoluteOutputPath, "utf8");
+    if (diskContent === content) {
+      return { ...base, documentExists: true, current: true, staleSources: [] };
+    }
+    return { ...base, documentExists: true, current: false, staleSources: collectStaleSources(blocks, diskContent) };
+  }
+  mkdirSync4(path8.dirname(absoluteOutputPath), { recursive: true });
+  writeFileSync4(absoluteOutputPath, content, "utf8");
+  return {
+    outputPath: normalizedOutputPath,
+    mode: "write",
+    written: true,
+    documentExists: true,
+    current: true,
+    sources,
+    staleSources: []
+  };
+}
+
+// src/architecture.ts
+var ARCHITECTURE_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR3}/architecture.yaml`;
+var WORKFLOW_CONFIG_PATH = `${STRICT_WORKFLOW_DIR3}/config.yaml`;
+var SPEC_INDEX_PATH = `${STRICT_WORKFLOW_DIR3}/specs/INDEX.yaml`;
+var TECH_DIR_PATH = `${STRICT_WORKFLOW_DIR3}/tech/`;
+var EXCLUDED_TECH_BASENAMES = new Set(["INDEX.yaml"]);
+var DEFAULT_ARCHITECTURE_DOCUMENT_PATH = "ARCHITECTURE.md";
+var ARCHITECTURE_AUTHORING_ENTRY_POINT = "/strict-spec-architecture";
+function getArchitectureArtifactPath(rootDir) {
+  return path9.join(rootDir, STRICT_WORKFLOW_DIR3, "architecture.yaml");
+}
+function loadArchitectureArtifact(rootDir) {
+  const absolutePath = getArchitectureArtifactPath(rootDir);
+  if (!existsSync9(absolutePath)) {
+    throw new DocumentSourceError(`architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${ARCHITECTURE_AUTHORING_ENTRY_POINT} to author it`);
+  }
+  let artifact;
+  try {
+    artifact = parseYamlDocument(readFileSync9(absolutePath, "utf8"), { source: ARCHITECTURE_ARTIFACT_PATH });
+  } catch (error) {
+    throw new DocumentSourceError(`architecture artifact is not valid YAML: ${ARCHITECTURE_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const schema = loadBundledSchemaByArtifactType("architecture");
+  const result = validateArtifact(schema, artifact, ARCHITECTURE_ARTIFACT_PATH);
+  return { artifact: artifact ?? {}, diagnostics: result.diagnostics };
+}
+function listTechFiles(techDir) {
+  if (!existsSync9(techDir) || !statSync6(techDir).isDirectory())
+    return [];
+  return listFilesRecursive(techDir).filter((filePath) => {
+    const basename = path9.basename(filePath);
+    return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES.has(basename);
+  }).sort();
+}
+function renderHeaderBlock(artifact) {
+  const title = asText(artifact.architecture?.title) || "Project Architecture";
+  return {
+    id: "header",
+    heading: null,
+    sources: [ARCHITECTURE_ARTIFACT_PATH],
+    lines: [
+      `# ${title}`,
+      "",
+      "> **Generated file — do not edit by hand.**",
+      "> Rendered by `strict-spec-cli architecture-generate` from these source artifacts:",
+      `> - \`${ARCHITECTURE_ARTIFACT_PATH}\``,
+      `> - \`${WORKFLOW_CONFIG_PATH}\``,
+      `> - \`${SPEC_INDEX_PATH}\``,
+      `> - \`${TECH_DIR_PATH}\``,
+      ">",
+      "> Change the sources and re-render; edits made here are discarded by the next render."
+    ]
+  };
+}
+function renderOverviewBlock(rootDir) {
+  const config = readYamlIfPresent(path9.join(rootDir, STRICT_WORKFLOW_DIR3, "config.yaml"), WORKFLOW_CONFIG_PATH);
+  const context = asText(config?.context);
+  return {
+    id: "overview",
+    heading: "## Overview",
+    sources: [WORKFLOW_CONFIG_PATH],
+    lines: [
+      "## Overview",
+      "",
+      ...context ? context.split(`
+`).map((line) => line.trimEnd()) : [`_No project context is recorded in \`${WORKFLOW_CONFIG_PATH}\`._`]
+    ]
+  };
+}
+function renderComponentsBlock(artifact) {
+  const components = asRecord3(artifact.components);
+  const lines = ["## Components", ""];
+  if (Object.keys(components).length === 0) {
+    lines.push(`_No components are declared in \`${ARCHITECTURE_ARTIFACT_PATH}\`._`);
+  }
+  for (const [componentId, rawComponent] of Object.entries(components)) {
+    const component = asRecord3(rawComponent);
+    lines.push(`### ${asText(component.title) || componentId} (\`${componentId}\`)`, "");
+    lines.push(asText(component.responsibility), "");
+    const boundaries = asStringArray3(component.boundaries);
+    if (boundaries.length > 0) {
+      lines.push("**Boundaries**", "", ...renderBulletList(boundaries), "");
+    }
+    const dependsOn = asStringArray3(component.depends_on);
+    if (dependsOn.length > 0) {
+      lines.push(`**Depends on:** ${dependsOn.map((value) => `\`${value}\``).join(", ")}`, "");
+    }
+    const implementation = asStringArray3(asRecord3(component.mapping).implementation);
+    if (implementation.length > 0) {
+      lines.push("**Implementation**", "", ...renderBulletList(implementation.map((value) => `\`${value}\``)), "");
+    }
+  }
+  return { id: "components", heading: "## Components", sources: [ARCHITECTURE_ARTIFACT_PATH], lines: trimTrailingBlankLines(lines) };
+}
+function renderDataFlowsBlock(artifact) {
+  const dataFlows = asRecord3(artifact.data_flows);
+  const lines = ["## Data Flows", ""];
+  if (Object.keys(dataFlows).length === 0) {
+    lines.push(`_No data flows are declared in \`${ARCHITECTURE_ARTIFACT_PATH}\`._`);
+  }
+  for (const [flowId, rawFlow] of Object.entries(dataFlows)) {
+    const flow = asRecord3(rawFlow);
+    lines.push(`### ${asText(flow.title) || flowId} (\`${flowId}\`)`, "");
+    lines.push(`**Trigger:** ${asText(flow.trigger)}`, "");
+    const components = asStringArray3(flow.components);
+    if (components.length > 0) {
+      lines.push(`**Components:** ${components.map((value) => `\`${value}\``).join(" → ")}`, "");
+    }
+    const steps = asStringArray3(flow.steps);
+    if (steps.length > 0) {
+      lines.push(...steps.map((step, index) => `${index + 1}. ${step}`), "");
+    }
+  }
+  return { id: "data-flows", heading: "## Data Flows", sources: [ARCHITECTURE_ARTIFACT_PATH], lines: trimTrailingBlankLines(lines) };
+}
+function renderDecisionsBlock(artifact) {
+  const decisions = asRecord3(artifact.decisions);
+  const lines = ["## Architecture Decisions", ""];
+  if (Object.keys(decisions).length === 0) {
+    lines.push(`_No architecture decisions are declared in \`${ARCHITECTURE_ARTIFACT_PATH}\`._`);
+  }
+  for (const [decisionId, rawDecision] of Object.entries(decisions)) {
+    const decision = asRecord3(rawDecision);
+    lines.push(`### ${asText(decision.title) || decisionId} (\`${decisionId}\`)`, "");
+    lines.push(`**Status:** ${asText(decision.status)}`, "");
+    lines.push(asText(decision.statement), "");
+    lines.push(`**Rationale:** ${asText(decision.rationale)}`, "");
+    const alternatives = asStringArray3(decision.alternatives);
+    if (alternatives.length > 0) {
+      lines.push("**Alternatives considered**", "", ...renderBulletList(alternatives), "");
+    }
+  }
+  return {
+    id: "decisions",
+    heading: "## Architecture Decisions",
+    sources: [ARCHITECTURE_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderSpecificationSurfaceBlock(rootDir) {
+  const index = readYamlIfPresent(path9.join(rootDir, STRICT_WORKFLOW_DIR3, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
+  const rawSpecs = index?.specs;
+  const specs = Array.isArray(rawSpecs) ? rawSpecs : [];
+  const lines = [
+    "## Specification Surface",
+    "",
+    `Projected from \`${SPEC_INDEX_PATH}\` and the main specs it references.`,
+    ""
+  ];
+  if (specs.length === 0) {
+    lines.push(`_No strict main specs are registered in \`${SPEC_INDEX_PATH}\`._`);
+    return {
+      id: "specification-surface",
+      heading: "## Specification Surface",
+      sources: [SPEC_INDEX_PATH],
+      lines: trimTrailingBlankLines(lines)
+    };
+  }
+  lines.push("| Spec | ID | Requirements |", "| --- | --- | --- |");
+  for (const rawSpec of specs) {
+    const spec = asRecord3(rawSpec);
+    const specId = asText(spec.id);
+    const specPath = asText(spec.path);
+    const specTitle = asText(spec.title) || specId;
+    const mainSpec = specPath ? readYamlIfPresent(path9.join(rootDir, specPath), specPath) : null;
+    const requirementCount = mainSpec ? Object.keys(asRecord3(mainSpec.requirements)).length : null;
+    const titleCell = specPath ? `[${specTitle}](${specPath})` : specTitle;
+    lines.push(`| ${titleCell} | \`${specId}\` | ${requirementCount ?? "—"} |`);
+  }
+  return {
+    id: "specification-surface",
+    heading: "## Specification Surface",
+    sources: [SPEC_INDEX_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderTechnicalStandardsBlock(rootDir) {
+  const techFiles = listTechFiles(path9.join(rootDir, STRICT_WORKFLOW_DIR3, "tech"));
+  const lines = [
+    "## Technical Standards",
+    "",
+    `Projected from \`${TECH_DIR_PATH}\`. MUST rules are binding; SHOULD rules are the default.`,
+    ""
+  ];
+  if (techFiles.length === 0) {
+    lines.push(`_No technical standards are declared in \`${TECH_DIR_PATH}\`._`);
+    return {
+      id: "technical-standards",
+      heading: "## Technical Standards",
+      sources: [TECH_DIR_PATH],
+      lines: trimTrailingBlankLines(lines)
+    };
+  }
+  for (const techFile of techFiles) {
+    const artifactPath = normalizeRepoRelativePath2(rootDir, techFile);
+    const standardDoc = readYamlIfPresent(techFile, artifactPath);
+    if (!standardDoc)
+      continue;
+    const standard = asRecord3(standardDoc.standard);
+    const standardId = asText(standard.id);
+    const title = asText(standard.title) || standardId;
+    const category = asText(standard.category);
+    lines.push(`### [${title}](${artifactPath}) (\`${standardId}\`) — ${category}`, "");
+    for (const [ruleId, rawRule] of Object.entries(asRecord3(standardDoc.rules))) {
+      const rule = asRecord3(rawRule);
+      lines.push(`- **${asText(rule.strength)}** \`${ruleId}\` — ${asText(rule.statement)}`);
+    }
+    lines.push("");
+  }
+  return {
+    id: "technical-standards",
+    heading: "## Technical Standards",
+    sources: [TECH_DIR_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function buildArchitectureBlocks(rootDir, artifact) {
+  return [
+    renderHeaderBlock(artifact),
+    renderOverviewBlock(rootDir),
+    renderComponentsBlock(artifact),
+    renderDataFlowsBlock(artifact),
+    renderDecisionsBlock(artifact),
+    renderSpecificationSurfaceBlock(rootDir),
+    renderTechnicalStandardsBlock(rootDir)
+  ];
+}
+function generateArchitectureDocument(rootDir, options = {}) {
+  const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
+  if (diagnostics.length > 0) {
+    const details = diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
+    throw new DocumentSourceError(`architecture artifact does not validate: ${ARCHITECTURE_ARTIFACT_PATH}: ${details}`);
+  }
+  const blocks = buildArchitectureBlocks(rootDir, artifact);
+  return renderBlocksToDocument(rootDir, blocks, {
+    check: options.check,
+    outputPath: options.outputPath,
+    defaultOutputPath: DEFAULT_ARCHITECTURE_DOCUMENT_PATH,
+    documentLabel: "architecture document"
+  });
+}
+function getArchitectureStatus(rootDir) {
+  const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
+  const components = asRecord3(artifact.components);
+  const mappingDrift = [];
+  for (const [componentId, rawComponent] of Object.entries(components)) {
+    const implementation = asStringArray3(asRecord3(asRecord3(rawComponent).mapping).implementation);
+    for (const mappedPath of implementation) {
+      if (!existsSync9(path9.join(rootDir, mappedPath))) {
+        mappingDrift.push({ component: componentId, path: mappedPath });
+      }
+    }
+  }
+  return {
+    artifactPath: ARCHITECTURE_ARTIFACT_PATH,
+    exists: true,
+    valid: diagnostics.length === 0,
+    diagnostics,
+    componentCount: Object.keys(components).length,
+    dataFlowCount: Object.keys(asRecord3(artifact.data_flows)).length,
+    decisionCount: Object.keys(asRecord3(artifact.decisions)).length,
+    mappingDrift
+  };
+}
+
+// src/design-system.ts
+import { existsSync as existsSync11, readFileSync as readFileSync10 } from "fs";
+import path11 from "path";
+
+// src/design-system-author.ts
+import { existsSync as existsSync10 } from "fs";
+import path10 from "path";
+var DESIGN_SCHEMA_ID = "strict-spec-driven/design-system/v1";
+var DESIGN_ARTIFACT_PATH = ".strict-spec-driven/design-system.yaml";
+var TOKEN_GROUPS = new Set(["colors", "typography", "layout", "elevation", "shapes"]);
+function asRecord4(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+function strings(value) {
+  return Array.isArray(value) ? value.filter((entry) => typeof entry === "string") : [];
+}
+function appendUnique(existing, additions) {
+  return [...new Set([...existing, ...additions])];
+}
+function splitPair(value, label) {
+  const delimiter = value.indexOf(":");
+  if (delimiter <= 0 || delimiter === value.length - 1)
+    throw new Error(`${label} requires owner:value, received '${value}'`);
+  return [value.slice(0, delimiter), value.slice(delimiter + 1)];
+}
+function splitProperty(value) {
+  const delimiter = value.indexOf("=");
+  if (delimiter <= 0 || delimiter === value.length - 1)
+    throw new Error(`token and component token properties require name=value, received '${value}'`);
+  return [value.slice(0, delimiter), value.slice(delimiter + 1)];
+}
+function hasEditIntent(input) {
+  return input.id !== undefined || input.title !== undefined || input.token !== undefined || input.component !== undefined || input.overview !== undefined || input.dos.length > 0 || input.donts.length > 0 || input.removeTokens.length > 0 || input.removeComponents.length > 0 || input.removeComponentTokens.length > 0 || input.removeImplementations.length > 0 || input.removeSnapshots.length > 0 || input.removeDos.length > 0 || input.removeDonts.length > 0;
+}
+function validateCandidate(value, artifactPath) {
+  return validateArtifact(loadBundledSchemaByArtifactType("design_system"), value, artifactPath).diagnostics.map((entry) => ({
+    code: entry.source,
+    fieldPath: entry.fieldPath,
+    message: entry.message,
+    expected: entry.expected,
+    actual: entry.actual
+  }));
+}
+function commitDesignSystemCandidate(rootDir, candidate, operation) {
+  const absolutePath = path10.join(rootDir, DESIGN_ARTIFACT_PATH);
+  return commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "design-system-state",
+      artifactId: "design-system",
+      schemaId: DESIGN_SCHEMA_ID,
+      familyRoot: path10.join(rootDir, ".strict-spec-driven"),
+      absolutePath,
+      operation,
+      candidate,
+      validateCandidate: (value, context) => validateCandidate(value, context.artifactPath)
+    }]
+  });
+}
+function initializeDesignSystemThroughMutation(rootDir) {
+  const candidate = parseYamlDocument(readBundledScaffoldTemplate("design-system.yaml"), { source: DESIGN_ARTIFACT_PATH });
+  return commitDesignSystemCandidate(rootDir, candidate, "create");
+}
+function baseArtifact(input) {
+  if (input.id === undefined || input.title === undefined || input.overview === undefined) {
+    throw new Error("new design-system artifacts require --id, --title, and --overview");
+  }
+  return {
+    schema: DESIGN_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "design_system",
+    schema_file: "templates/strict-spec-driven/schemas/design-system.yaml",
+    design_system: { id: input.id, title: input.title },
+    tokens: {},
+    components: {},
+    guidance: { overview: input.overview }
+  };
+}
+function authorDesignSystem(rootDir, input) {
+  const absolutePath = path10.join(rootDir, DESIGN_ARTIFACT_PATH);
+  const exists = existsSync10(absolutePath);
+  const operation = input.delete ? "delete" : exists ? "update" : "create";
+  if (input.delete && hasEditIntent(input))
+    throw new Error("--delete cannot be combined with design-system editing flags");
+  if (!input.delete && !hasEditIntent(input))
+    throw new Error("design-edit requires semantic fields, named removals, or --delete");
+  let candidate;
+  if (!input.delete) {
+    candidate = exists ? parseYamlFile(absolutePath) : baseArtifact(input);
+    const header = asRecord4(candidate.design_system);
+    if (input.id !== undefined)
+      header.id = input.id;
+    if (input.title !== undefined)
+      header.title = input.title;
+    candidate.design_system = header;
+    const tokens = asRecord4(candidate.tokens);
+    if (input.token !== undefined) {
+      if (!TOKEN_GROUPS.has(input.token.group))
+        throw new Error(`unknown token group '${input.token.group}'`);
+      const group = asRecord4(tokens[input.token.group]);
+      if (input.token.group === "typography") {
+        if (input.token.properties.length === 0)
+          throw new Error("typography tokens require at least one --token-property name=value");
+        const entry = asRecord4(group[input.token.name]);
+        for (const property of input.token.properties) {
+          const [name, value] = splitProperty(property);
+          if (!["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing"].includes(name)) {
+            throw new Error(`unsupported typography property '${name}'`);
+          }
+          entry[name] = value;
+        }
+        group[input.token.name] = entry;
+      } else {
+        if (input.token.value === undefined)
+          throw new Error("scalar token groups require --token-value");
+        group[input.token.name] = input.token.value;
+      }
+      tokens[input.token.group] = group;
+    }
+    for (const encoded of input.removeTokens) {
+      const [groupName, tokenName] = splitPair(encoded, "--remove-token");
+      const group = asRecord4(tokens[groupName]);
+      delete group[tokenName];
+      if (Object.keys(group).length === 0)
+        delete tokens[groupName];
+      else
+        tokens[groupName] = group;
+    }
+    candidate.tokens = tokens;
+    const components = asRecord4(candidate.components);
+    if (input.component !== undefined) {
+      const current = asRecord4(components[input.component.id]);
+      if (Object.keys(current).length === 0 && input.component.title === undefined)
+        throw new Error("a new design component requires --component-title");
+      const component = { ...current };
+      if (input.component.title !== undefined)
+        component.title = input.component.title;
+      if (input.component.description !== undefined)
+        component.description = input.component.description;
+      const tokenMappings = asRecord4(component.tokens);
+      for (const encoded of input.component.tokens) {
+        const [name, value] = splitProperty(encoded);
+        tokenMappings[name] = value;
+      }
+      component.tokens = tokenMappings;
+      const mapping = asRecord4(component.mapping);
+      mapping.implementation = appendUnique(strings(mapping.implementation), input.component.implementation);
+      mapping.snapshots = appendUnique(strings(mapping.snapshots), input.component.snapshots);
+      component.mapping = mapping;
+      components[input.component.id] = component;
+    }
+    for (const id of input.removeComponents)
+      delete components[id];
+    for (const encoded of input.removeComponentTokens) {
+      const [componentId, tokenName] = splitPair(encoded, "--remove-component-token");
+      const component = asRecord4(components[componentId]);
+      const tokenMappings = asRecord4(component.tokens);
+      delete tokenMappings[tokenName];
+      component.tokens = tokenMappings;
+      components[componentId] = component;
+    }
+    for (const [values, field, label] of [
+      [input.removeImplementations, "implementation", "--remove-implementation"],
+      [input.removeSnapshots, "snapshots", "--remove-snapshot"]
+    ]) {
+      for (const encoded of values) {
+        const [componentId, value] = splitPair(encoded, label);
+        const component = asRecord4(components[componentId]);
+        const mapping = asRecord4(component.mapping);
+        mapping[field] = strings(mapping[field]).filter((entry) => entry !== value);
+        component.mapping = mapping;
+        components[componentId] = component;
+      }
+    }
+    candidate.components = components;
+    const guidance = asRecord4(candidate.guidance);
+    if (input.overview !== undefined)
+      guidance.overview = input.overview;
+    guidance.do = input.removeDos.reduce((values, value) => values.filter((entry) => entry !== value), appendUnique(strings(guidance.do), input.dos));
+    guidance.dont = input.removeDonts.reduce((values, value) => values.filter((entry) => entry !== value), appendUnique(strings(guidance.dont), input.donts));
+    candidate.guidance = guidance;
+  }
+  const mutation = candidate === undefined ? commitYamlMutation({
+    rootDir,
+    mutations: [{ artifactFamily: "design-system-state", artifactId: "design-system", schemaId: DESIGN_SCHEMA_ID, familyRoot: path10.join(rootDir, ".strict-spec-driven"), absolutePath, operation }]
+  }) : commitDesignSystemCandidate(rootDir, candidate, operation);
+  const changed = mutation.changes.some((entry) => entry.changed);
+  return {
+    ...mutation,
+    artifactPath: DESIGN_ARTIFACT_PATH,
+    operation,
+    generatedDocument: { path: "DESIGN.md", command: "strict-spec-cli design-generate", required: changed }
+  };
+}
+
+// src/design-system.ts
+var DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR3}/design-system.yaml`;
+var DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
+var DESIGN_AUTHORING_ENTRY_POINT = "/strict-spec-design";
+var TOKEN_GROUPS2 = [
+  { key: "colors", heading: "## Colors" },
+  { key: "typography", heading: "## Typography" },
+  { key: "layout", heading: "## Layout" },
+  { key: "elevation", heading: "## Elevation & Depth" },
+  { key: "shapes", heading: "## Shapes" }
+];
+function getDesignSystemArtifactPath(rootDir) {
+  return path11.join(rootDir, STRICT_WORKFLOW_DIR3, "design-system.yaml");
+}
+function initializeDesignSystemArtifact(rootDir) {
+  const absolutePath = getDesignSystemArtifactPath(rootDir);
+  if (existsSync11(absolutePath)) {
+    return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: false, skipped: true };
+  }
+  const mutation = initializeDesignSystemThroughMutation(rootDir);
+  if (!mutation.valid) {
+    throw new Error(`failed to initialize design-system artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.fieldPath}: ${entry.message}`).join("; ")}`);
+  }
+  return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: true, skipped: false };
+}
+function loadDesignSystemArtifact(rootDir) {
+  const absolutePath = getDesignSystemArtifactPath(rootDir);
+  if (!existsSync11(absolutePath)) {
+    throw new DocumentSourceError(`design-system artifact is missing: ${DESIGN_SYSTEM_ARTIFACT_PATH}; run ${DESIGN_AUTHORING_ENTRY_POINT} to author it`);
+  }
+  let artifact;
+  try {
+    artifact = parseYamlDocument(readFileSync10(absolutePath, "utf8"), { source: DESIGN_SYSTEM_ARTIFACT_PATH });
+  } catch (error) {
+    throw new DocumentSourceError(`design-system artifact is not valid YAML: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const schema = loadBundledSchemaByArtifactType("design_system");
+  const result = validateArtifact(schema, artifact, DESIGN_SYSTEM_ARTIFACT_PATH);
+  return { artifact: artifact ?? {}, diagnostics: result.diagnostics };
+}
+function declaredTokenGroups(artifact) {
+  const tokens = asRecord3(artifact.tokens);
+  return TOKEN_GROUPS2.map((group) => ({
+    key: group.key,
+    heading: group.heading,
+    entries: asRecord3(tokens[group.key])
+  })).filter((group) => Object.keys(group.entries).length > 0);
+}
+function renderHeaderBlock2(artifact) {
+  const title = asText(artifact.design_system?.title) || "Design System";
+  const groups = declaredTokenGroups(artifact);
+  const frontMatter = {};
+  for (const group of groups) {
+    frontMatter[group.key] = group.entries;
+  }
+  const frontMatterLines = groups.length > 0 ? stringifyYamlDocument(frontMatter).replace(/\n+$/, "").split(`
+`) : [];
+  return {
+    id: "header",
+    heading: null,
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: [
+      "---",
+      ...frontMatterLines,
+      "---",
+      "",
+      `# ${title}`,
+      "",
+      "> **Generated file — do not edit by hand.**",
+      "> Rendered by `strict-spec-cli design-generate` from these source artifacts:",
+      `> - \`${DESIGN_SYSTEM_ARTIFACT_PATH}\``,
+      ">",
+      "> Change the sources and re-render; edits made here are discarded by the next render."
+    ]
+  };
+}
+function renderOverviewBlock2(artifact) {
+  const overview = asText(artifact.guidance?.overview);
+  return {
+    id: "overview",
+    heading: "## Overview",
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: [
+      "## Overview",
+      "",
+      ...overview ? overview.split(`
+`).map((line) => line.trimEnd()) : [`_No design overview is recorded in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`]
+    ]
+  };
+}
+function renderScalarTokenBlock(groupKey, heading, entries) {
+  const lines = [heading, "", "| Token | Value |", "| --- | --- |"];
+  for (const [tokenId, value] of Object.entries(entries)) {
+    lines.push(`| \`${tokenId}\` | \`${String(value)}\` |`);
+  }
+  return {
+    id: `tokens-${groupKey}`,
+    heading,
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderTypographyBlock(heading, entries) {
+  const lines = [heading, ""];
+  for (const [tokenId, rawValue] of Object.entries(entries)) {
+    const value = asRecord3(rawValue);
+    lines.push(`### \`${tokenId}\``, "");
+    for (const [field, fieldValue] of Object.entries(value)) {
+      lines.push(`- **${field}:** \`${String(fieldValue)}\``);
+    }
+    lines.push("");
+  }
+  return {
+    id: "tokens-typography",
+    heading,
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderComponentsBlock2(artifact) {
+  const components = asRecord3(artifact.components);
+  const lines = ["## Components", ""];
+  if (Object.keys(components).length === 0) {
+    lines.push(`_No components are declared in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`);
+  }
+  for (const [componentId, rawComponent] of Object.entries(components)) {
+    const component = asRecord3(rawComponent);
+    lines.push(`### ${asText(component.title) || componentId} (\`${componentId}\`)`, "");
+    const description = asText(component.description);
+    if (description) {
+      lines.push(description, "");
+    }
+    const componentTokens = asRecord3(component.tokens);
+    if (Object.keys(componentTokens).length > 0) {
+      lines.push("| Property | Token |", "| --- | --- |");
+      for (const [property, token] of Object.entries(componentTokens)) {
+        lines.push(`| \`${property}\` | \`${String(token)}\` |`);
+      }
+      lines.push("");
+    }
+    const mapping = asRecord3(component.mapping);
+    const implementation = asStringArray3(mapping.implementation);
+    if (implementation.length > 0) {
+      lines.push("**Implementation**", "", ...renderBulletList(implementation.map((value) => `\`${value}\``)), "");
+    }
+    const snapshots = asStringArray3(mapping.snapshots);
+    if (snapshots.length > 0) {
+      lines.push("**Visual regression snapshots**", "", ...renderBulletList(snapshots.map((value) => `\`${value}\``)), "");
+    }
+  }
+  return {
+    id: "components",
+    heading: "## Components",
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderGuidanceBlock(artifact) {
+  const dos = asStringArray3(artifact.guidance?.do);
+  const donts = asStringArray3(artifact.guidance?.dont);
+  const lines = ["## Do's and Don'ts", ""];
+  if (dos.length === 0 && donts.length === 0) {
+    lines.push(`_No design guidance is declared in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`);
+  }
+  if (dos.length > 0) {
+    lines.push("**Do**", "", ...renderBulletList(dos), "");
+  }
+  if (donts.length > 0) {
+    lines.push("**Don't**", "", ...renderBulletList(donts), "");
+  }
+  return {
+    id: "guidance",
+    heading: "## Do's and Don'ts",
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function buildDesignSystemBlocks(artifact) {
+  const blocks = [renderHeaderBlock2(artifact), renderOverviewBlock2(artifact)];
+  for (const group of declaredTokenGroups(artifact)) {
+    blocks.push(group.key === "typography" ? renderTypographyBlock(group.heading, group.entries) : renderScalarTokenBlock(group.key, group.heading, group.entries));
+  }
+  blocks.push(renderComponentsBlock2(artifact), renderGuidanceBlock(artifact));
+  return blocks;
+}
+function generateDesignDocument(rootDir, options = {}) {
+  const { artifact, diagnostics } = loadDesignSystemArtifact(rootDir);
+  if (diagnostics.length > 0) {
+    const details = diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
+    throw new DocumentSourceError(`design-system artifact does not validate: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${details}`);
+  }
+  const blocks = buildDesignSystemBlocks(artifact);
+  return renderBlocksToDocument(rootDir, blocks, {
+    check: options.check,
+    outputPath: options.outputPath,
+    defaultOutputPath: DEFAULT_DESIGN_DOCUMENT_PATH,
+    documentLabel: "design document"
+  });
+}
+function getDesignSystemStatus(rootDir) {
+  const { artifact, diagnostics } = loadDesignSystemArtifact(rootDir);
+  const tokens = asRecord3(artifact.tokens);
+  const components = asRecord3(artifact.components);
+  const mappingDrift = [];
+  let tokenCount = 0;
+  let tokenGroupCount = 0;
+  for (const group of TOKEN_GROUPS2) {
+    const entries = asRecord3(tokens[group.key]);
+    const entryCount = Object.keys(entries).length;
+    if (entryCount === 0)
+      continue;
+    tokenGroupCount += 1;
+    tokenCount += entryCount;
+  }
+  for (const [componentId, rawComponent] of Object.entries(components)) {
+    const mapping = asRecord3(asRecord3(rawComponent).mapping);
+    for (const mappedPath of asStringArray3(mapping.implementation)) {
+      if (!existsSync11(path11.join(rootDir, mappedPath))) {
+        mappingDrift.push({ component: componentId, path: mappedPath, kind: "implementation" });
+      }
+    }
+    for (const snapshotPath of asStringArray3(mapping.snapshots)) {
+      if (!existsSync11(path11.join(rootDir, snapshotPath))) {
+        mappingDrift.push({ component: componentId, path: snapshotPath, kind: "snapshot" });
+      }
+    }
+  }
+  return {
+    artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH,
+    exists: true,
+    valid: diagnostics.length === 0,
+    diagnostics,
+    tokenGroupCount,
+    tokenCount,
+    componentCount: Object.keys(components).length,
+    mappingDrift
+  };
+}
+
+// src/generated-documents.ts
+var GENERATED_DOCUMENT_TARGETS = [
+  {
+    reRenderCommand: "strict-spec-cli architecture-generate",
+    render: (rootDir, options) => generateArchitectureDocument(rootDir, options)
+  },
+  {
+    reRenderCommand: "strict-spec-cli design-generate",
+    render: (rootDir, options) => generateDesignDocument(rootDir, options)
+  }
+];
+function rerenderStaleGeneratedDocuments(rootDir) {
+  const rerendered = [];
+  for (const target of GENERATED_DOCUMENT_TARGETS) {
+    let status;
+    try {
+      status = target.render(rootDir, { check: true });
+    } catch (error) {
+      if (error instanceof DocumentSourceError)
+        continue;
+      throw error;
+    }
+    if (!status.documentExists || status.current)
+      continue;
+    rerendered.push(target.render(rootDir).outputPath);
+  }
+  return rerendered;
+}
+
 // src/cli/cmd-scaffold.ts
 function runInit(argv = []) {
   if (handleHelpRequest("init", argv)) {
@@ -20097,17 +21011,21 @@ function runInit(argv = []) {
     }
     return 1;
   }
-  const result2 = initializeStrictScaffold(process.cwd());
-  for (const warning of result2.warnings) {
+  const result = initializeStrictScaffold(process.cwd());
+  for (const warning of result.warnings) {
     writeErr(`${warning}
 `);
   }
-  writeOut(`Initialized ${result2.rootDir}
+  writeOut(`Initialized ${result.rootDir}
 `);
-  writeOut(`Created ${result2.created.length} scaffold file(s).
+  writeOut(`Created ${result.created.length} scaffold file(s).
 `);
-  writeOut(`Skipped ${result2.skipped.length} existing scaffold file(s).
+  writeOut(`Skipped ${result.skipped.length} existing scaffold file(s).
 `);
+  for (const documentPath of rerenderStaleGeneratedDocuments(process.cwd())) {
+    writeOut(`Re-rendered ${documentPath}
+`);
+  }
   return 0;
 }
 function runPropose(argv) {
@@ -20124,11 +21042,11 @@ function runPropose(argv) {
     return 1;
   }
   try {
-    const result2 = initializeStrictChangeScaffold(process.cwd(), changeName);
-    writeOut(result2.created ? `Created strict change at ${result2.changeDir}/
-` : `Reused existing empty strict change at ${result2.changeDir}/
+    const result = initializeStrictChangeScaffold(process.cwd(), changeName);
+    writeOut(result.created ? `Created strict change at ${result.changeDir}/
+` : `Reused existing empty strict change at ${result.changeDir}/
 `);
-    writeOut(`- ${result2.specsDir}
+    writeOut(`- ${result.specsDir}
 `);
     writeOut(`No planning artifacts were written; author each one with:
 `);
@@ -20143,8 +21061,8 @@ function runPropose(argv) {
 }
 
 // src/cli/cmd-generation.ts
-import { existsSync as existsSync7, readFileSync as readFileSync8 } from "fs";
-import path7 from "path";
+import { existsSync as existsSync12, readFileSync as readFileSync11 } from "fs";
+import path12 from "path";
 
 // src/requirement-questions.ts
 var CANONICAL_REQUIREMENT_QUESTIONS = [
@@ -20190,7 +21108,7 @@ function buildSeededRequirementQuestions() {
 }
 
 // src/cli/cmd-generation.ts
-var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR4 = ".strict-spec-driven";
 var BOOLEAN_FLAGS = new Set(["delete"]);
 function usage() {
   return getCommandUsage("generate");
@@ -20221,8 +21139,8 @@ function resolveStringValue(value, rootDir) {
   if (!value.startsWith("@") || value === "@") {
     return value;
   }
-  const inputPath = path7.resolve(rootDir, value.slice(1));
-  return readFileSync8(inputPath, "utf8");
+  const inputPath = path12.resolve(rootDir, value.slice(1));
+  return readFileSync11(inputPath, "utf8");
 }
 var PROPOSAL_ARGUMENTS = [
   "what",
@@ -20294,10 +21212,10 @@ function isRecord2(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function readYamlIfExists(rootDir, repoRelativePath) {
-  const absolutePath = path7.join(rootDir, repoRelativePath);
-  if (!existsSync7(absolutePath))
+  const absolutePath = path12.join(rootDir, repoRelativePath);
+  if (!existsSync12(absolutePath))
     return;
-  return parseYamlDocument(readFileSync8(absolutePath, "utf8"), { source: repoRelativePath });
+  return parseYamlDocument(readFileSync11(absolutePath, "utf8"), { source: repoRelativePath });
 }
 function deepEqual(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
@@ -20384,7 +21302,7 @@ function upsertListItem(collection, item, id, fieldName, session) {
   return next;
 }
 function existingProposalInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/proposal.yaml`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/proposal.yaml`);
   const summary = isRecord2(artifact?.summary) ? artifact.summary : {};
   const scope = isRecord2(artifact?.scope) ? artifact.scope : {};
   const change = isRecord2(artifact?.change) ? artifact.change : {};
@@ -20454,7 +21372,7 @@ function buildProposalInput(rootDir, changeName, flags) {
   return input;
 }
 function existingDesignInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/design.yaml`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/design.yaml`);
   return {
     approach: Array.isArray(artifact?.approach) ? artifact.approach : [],
     decisions: isRecord2(artifact?.decisions) ? artifact.decisions : {},
@@ -20589,7 +21507,7 @@ function parseQuestionCommandInput(argv, rootDir) {
   return input;
 }
 function existingQuestionsInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/questions.yaml`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/questions.yaml`);
   if (!artifact) {
     return { open: buildSeededRequirementQuestions(), resolved: [] };
   }
@@ -20626,13 +21544,13 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
       if (item.answer !== undefined) {
         throw new Error(`--answer is only valid with --resolved for question '${item.id}'`);
       }
-      const inherited2 = [...open, ...resolved].find((candidate) => candidate.id === item.id);
+      const inherited = [...open, ...resolved].find((candidate) => candidate.id === item.id);
       resolved = resolved.filter((candidate) => candidate.id !== item.id);
       open = upsertListItem(open, withQuestionAttribution({
         id: item.id,
         question: item.question,
         context: item.context
-      }, item, inherited2), item.id, "open question", session);
+      }, item, inherited), item.id, "open question", session);
       continue;
     }
     if (item.kind === "resolve") {
@@ -20757,7 +21675,7 @@ function parseTaskCommandInput(argv, rootDir, changeName) {
   return input;
 }
 function existingTaskListInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/tasks.yaml`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/tasks.yaml`);
   const gates = isRecord2(artifact?.testing_gates) ? artifact.testing_gates : {};
   return {
     sections: isRecord2(artifact?.sections) ? artifact.sections : {},
@@ -20768,7 +21686,7 @@ function existingTaskListInput(rootDir, changeName) {
   };
 }
 function completedTaskIds(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/tasks.yaml`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/tasks.yaml`);
   const sections = isRecord2(artifact?.sections) ? artifact.sections : {};
   const completed = [];
   for (const sectionTasks of Object.values(sections)) {
@@ -20875,14 +21793,14 @@ function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
 }
 function normalizeDeltaSpecRelativePath2(relativePath) {
   let normalized = relativePath.replaceAll("\\", "/");
-  const strictSpecsPrefix = `${STRICT_WORKFLOW_DIR3}/specs/`;
+  const strictSpecsPrefix = `${STRICT_WORKFLOW_DIR4}/specs/`;
   if (normalized.startsWith(strictSpecsPrefix)) {
     normalized = normalized.slice(strictSpecsPrefix.length);
   }
   return normalized;
 }
 function readSpecIndexPathForTarget2(rootDir, targetSpec) {
-  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/specs/INDEX.yaml`);
+  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/specs/INDEX.yaml`);
   const match = (index?.specs ?? []).find((candidate) => candidate.id === targetSpec);
   return typeof match?.path === "string" ? normalizeDeltaSpecRelativePath2(match.path) : undefined;
 }
@@ -20897,7 +21815,7 @@ function resolveDeltaExistingPath(rootDir, targetSpec, specPath) {
 }
 function existingDeltaInput(rootDir, changeName, targetSpec, specPath) {
   const relativeSpecPath = resolveDeltaExistingPath(rootDir, targetSpec, specPath);
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/specs/${relativeSpecPath}`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/specs/${relativeSpecPath}`);
   if (!artifact) {
     return emptyDeltaInput(targetSpec, relativeSpecPath);
   }
@@ -21141,14 +22059,14 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
 }
 function normalizeDeltaTechRelativePath2(relativePath) {
   let normalized = relativePath.replaceAll("\\", "/");
-  const strictTechPrefix = `${STRICT_WORKFLOW_DIR3}/tech/`;
+  const strictTechPrefix = `${STRICT_WORKFLOW_DIR4}/tech/`;
   if (normalized.startsWith(strictTechPrefix)) {
     normalized = normalized.slice(strictTechPrefix.length);
   }
   return normalized;
 }
 function readTechIndexPathForTarget2(rootDir, targetStandard) {
-  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/tech/INDEX.yaml`);
+  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/tech/INDEX.yaml`);
   const match = (index?.standards ?? []).find((candidate) => candidate.id === targetStandard);
   return typeof match?.path === "string" ? normalizeDeltaTechRelativePath2(match.path) : undefined;
 }
@@ -21170,7 +22088,7 @@ function emptyDeltaTechInput(targetStandard, techPath) {
 }
 function existingDeltaTechInput(rootDir, changeName, targetStandard, techPath) {
   const relativeTechPath = resolveDeltaTechExistingPath(rootDir, targetStandard, techPath);
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/tech/${relativeTechPath}`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/tech/${relativeTechPath}`);
   if (!artifact) {
     return emptyDeltaTechInput(targetStandard, relativeTechPath);
   }
@@ -21382,7 +22300,7 @@ var DELETE_REFUSALS = {
   proposal: "proposal.yaml is required for every change and is merged rather than rebuilt; restate the fields you want to change instead"
 };
 function resolveDeleteTarget(rootDir, changeName, artifact, flags) {
-  const changeDir = `${STRICT_WORKFLOW_DIR3}/changes/${changeName}`;
+  const changeDir = `${STRICT_WORKFLOW_DIR4}/changes/${changeName}`;
   if (artifact === "delta-spec") {
     const targetSpec = requiredOne(flags, "target-spec");
     return `${changeDir}/specs/${resolveDeltaExistingPath(rootDir, targetSpec, optionalOne(flags, "spec-path"))}`;
@@ -21418,8 +22336,8 @@ function runArtifactDelete(rootDir, changeName, artifact, argv) {
     }
   }
   const artifactPath = resolveDeleteTarget(rootDir, changeName, artifact, flags);
-  const absolutePath = path7.join(rootDir, artifactPath);
-  const deleted = existsSync7(absolutePath);
+  const absolutePath = path12.join(rootDir, artifactPath);
+  const deleted = existsSync12(absolutePath);
   if (deleted) {
     const mutation = commitYamlMutation({
       rootDir,
@@ -21427,7 +22345,7 @@ function runArtifactDelete(rootDir, changeName, artifact, argv) {
         artifactFamily: artifact === "delta-spec" || artifact === "delta-tech" ? "change-delta-state" : "change-planning-state",
         artifactId: `${changeName}/${artifact}`,
         schemaId: DELETE_SCHEMA_IDS[artifact],
-        familyRoot: path7.join(rootDir, STRICT_WORKFLOW_DIR3, "changes", changeName),
+        familyRoot: path12.join(rootDir, STRICT_WORKFLOW_DIR4, "changes", changeName),
         absolutePath,
         operation: "delete"
       }]
@@ -21483,12 +22401,12 @@ function runGenerate(argv) {
     }
     const removalOutcome = { removed: [], unmatched: [] };
     const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs, removalOutcome);
-    const result2 = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
+    const result = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
     if (removalOutcome.removed.length > 0)
-      result2.removedTasks = removalOutcome.removed;
+      result.removedTasks = removalOutcome.removed;
     if (removalOutcome.unmatched.length > 0)
-      result2.unmatchedRemovals = removalOutcome.unmatched;
-    writeJson(result2);
+      result.unmatchedRemovals = removalOutcome.unmatched;
+    writeJson(result);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -21498,12 +22416,12 @@ function runGenerate(argv) {
 }
 
 // src/cli/cmd-change.ts
-import { existsSync as existsSync18, rmSync as rmSync4, statSync as statSync11 } from "fs";
-import path19 from "path";
+import { existsSync as existsSync22, rmSync as rmSync4, statSync as statSync12 } from "fs";
+import path23 from "path";
 
 // src/apply.ts
-import { existsSync as existsSync8, readFileSync as readFileSync9 } from "fs";
-import path8 from "path";
+import { existsSync as existsSync13, readFileSync as readFileSync12 } from "fs";
+import path13 from "path";
 function applyTask(tasksYamlContent) {
   const artifact = parseYamlDocument(tasksYamlContent);
   let totalTasks = 0;
@@ -21540,14 +22458,14 @@ function applyTask(tasksYamlContent) {
   };
 }
 function readChangeTasks(rootDir, changeName) {
-  const tasksPath = path8.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
-  if (!existsSync8(tasksPath)) {
+  const tasksPath = path13.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
+  if (!existsSync13(tasksPath)) {
     throw new Error(`change '${changeName}' not found`);
   }
-  return readFileSync9(tasksPath, "utf8");
+  return readFileSync12(tasksPath, "utf8");
 }
 function writeChangeTasks(rootDir, changeName, content) {
-  const tasksPath = path8.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
+  const tasksPath = path13.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
   const artifactPath = `.strict-spec-driven/changes/${changeName}/tasks.yaml`;
   const candidate = parseYamlDocument(content, { source: artifactPath });
   const mutation = commitYamlMutation({
@@ -21556,7 +22474,7 @@ function writeChangeTasks(rootDir, changeName, content) {
       artifactFamily: "change-planning-state",
       artifactId: `${changeName}/tasks`,
       schemaId: "task_list",
-      familyRoot: path8.join(rootDir, ".strict-spec-driven", "changes", changeName),
+      familyRoot: path13.join(rootDir, ".strict-spec-driven", "changes", changeName),
       absolutePath: tasksPath,
       operation: "update",
       candidate,
@@ -21579,22 +22497,22 @@ function writeChangeTasks(rootDir, changeName, content) {
 
 // src/archive.ts
 import {
-  existsSync as existsSync15,
-  mkdirSync as mkdirSync4,
-  readdirSync as readdirSync5,
-  readFileSync as readFileSync14,
+  existsSync as existsSync20,
+  mkdirSync as mkdirSync5,
+  readdirSync as readdirSync6,
+  readFileSync as readFileSync17,
   renameSync as renameSync3,
-  writeFileSync as writeFileSync4
+  writeFileSync as writeFileSync5
 } from "fs";
-import path16 from "path";
+import path21 from "path";
 
 // src/roadmap.ts
-import { existsSync as existsSync13, statSync as statSync8 } from "fs";
-import path14 from "path";
+import { existsSync as existsSync18, statSync as statSync10 } from "fs";
+import path19 from "path";
 
 // src/roadmap/model.ts
-var STRICT_WORKFLOW_DIR4 = ".strict-spec-driven";
-var ROADMAP_DIR = `${STRICT_WORKFLOW_DIR4}/roadmap`;
+var STRICT_WORKFLOW_DIR5 = ".strict-spec-driven";
+var ROADMAP_DIR = `${STRICT_WORKFLOW_DIR5}/roadmap`;
 var ROADMAP_INDEX_PATH = `${ROADMAP_DIR}/INDEX.yaml`;
 var ROADMAP_MILESTONES_DIR = `${ROADMAP_DIR}/milestones`;
 var ROADMAP_ARCHIVE_DIR = `${ROADMAP_DIR}/archive`;
@@ -21677,19 +22595,19 @@ function cloneDefaultMilestoneIntakeQuestions() {
 }
 
 // src/roadmap/shared.ts
-import { existsSync as existsSync9, readdirSync as readdirSync2, statSync as statSync5 } from "fs";
-import path10 from "path";
+import { existsSync as existsSync14, readdirSync as readdirSync3, statSync as statSync7 } from "fs";
+import path15 from "path";
 
 // src/diagnostics.ts
-import path9 from "node:path";
+import path14 from "node:path";
 function toPosix3(value) {
-  return value.split(path9.sep).join("/");
+  return value.split(path14.sep).join("/");
 }
 function buildDeterministicSortKey(parts) {
   return parts.map((part) => part == null ? "" : String(part)).join("|");
 }
-function sortByDeterministicKey(values2, getParts) {
-  return values2.sort((left, right) => {
+function sortByDeterministicKey(values, getParts) {
+  return values.sort((left, right) => {
     const leftKey = buildDeterministicSortKey(getParts(left));
     const rightKey = buildDeterministicSortKey(getParts(right));
     return leftKey.localeCompare(rightKey);
@@ -21697,15 +22615,15 @@ function sortByDeterministicKey(values2, getParts) {
 }
 
 // src/roadmap/shared.ts
-function normalizeRepoRelativePath2(rootDir, absolutePath) {
-  return toPosix3(path10.relative(rootDir, absolutePath));
+function normalizeRepoRelativePath3(rootDir, absolutePath) {
+  return toPosix3(path15.relative(rootDir, absolutePath));
 }
 function resolveStrictWorkflowPath(rootDir, workflowRelativePath) {
   const normalized = toPosix3(workflowRelativePath);
-  if (normalized.startsWith(`${STRICT_WORKFLOW_DIR4}/`)) {
-    return path10.join(rootDir, normalized);
+  if (normalized.startsWith(`${STRICT_WORKFLOW_DIR5}/`)) {
+    return path15.join(rootDir, normalized);
   }
-  return path10.join(rootDir, STRICT_WORKFLOW_DIR4, normalized);
+  return path15.join(rootDir, STRICT_WORKFLOW_DIR5, normalized);
 }
 function ensureTrailingNewline(value) {
   return value.endsWith(`
@@ -21716,54 +22634,54 @@ function makeDiagnostic(source, artifactPath, fieldPath, message, expected, actu
   return { source, artifactPath, fieldPath, message, expected, actual };
 }
 function sortDiagnostics(diagnostics) {
-  return sortByDeterministicKey(diagnostics, (diagnostic2) => [
-    diagnostic2.source,
-    diagnostic2.artifactPath,
-    diagnostic2.fieldPath,
-    diagnostic2.message,
-    diagnostic2.expected ?? "",
-    diagnostic2.actual ?? ""
+  return sortByDeterministicKey(diagnostics, (diagnostic) => [
+    diagnostic.source,
+    diagnostic.artifactPath,
+    diagnostic.fieldPath,
+    diagnostic.message,
+    diagnostic.expected ?? "",
+    diagnostic.actual ?? ""
   ]);
 }
-function diagnosticKey(diagnostic2) {
+function diagnosticKey(diagnostic) {
   return [
-    diagnostic2.source,
-    diagnostic2.artifactPath,
-    diagnostic2.fieldPath,
-    diagnostic2.message,
-    diagnostic2.expected ?? "",
-    diagnostic2.actual ?? ""
+    diagnostic.source,
+    diagnostic.artifactPath,
+    diagnostic.fieldPath,
+    diagnostic.message,
+    diagnostic.expected ?? "",
+    diagnostic.actual ?? ""
   ].join("\x00");
 }
-function isRepairableRoadmapDiagnostic(diagnostic2) {
-  return diagnostic2.source === "reference" && diagnostic2.message === MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE || isRetiredMilestoneStatusDiagnostic(diagnostic2);
+function isRepairableRoadmapDiagnostic(diagnostic) {
+  return diagnostic.source === "reference" && diagnostic.message === MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE || isRetiredMilestoneStatusDiagnostic(diagnostic);
 }
-function isRetiredMilestoneStatusDiagnostic(diagnostic2) {
-  return diagnostic2.source === "schema" && diagnostic2.message === RETIRED_MILESTONE_STATUS_MESSAGE && diagnostic2.actual === RETIRED_MILESTONE_STATUS;
+function isRetiredMilestoneStatusDiagnostic(diagnostic) {
+  return diagnostic.source === "schema" && diagnostic.message === RETIRED_MILESTONE_STATUS_MESSAGE && diagnostic.actual === RETIRED_MILESTONE_STATUS;
 }
 function partitionRepairableDiagnostics(diagnostics) {
   const blocking = [];
   const repairable = [];
-  for (const diagnostic2 of diagnostics) {
-    if (isRepairableRoadmapDiagnostic(diagnostic2))
-      repairable.push(diagnostic2);
+  for (const diagnostic of diagnostics) {
+    if (isRepairableRoadmapDiagnostic(diagnostic))
+      repairable.push(diagnostic);
     else
-      blocking.push(diagnostic2);
+      blocking.push(diagnostic);
   }
   return { blocking, repairable };
 }
 function isRecord3(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
-function listYamlFiles(directoryPath) {
-  if (!existsSync9(directoryPath) || !statSync5(directoryPath).isDirectory()) {
+function listYamlFiles2(directoryPath) {
+  if (!existsSync14(directoryPath) || !statSync7(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync2(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync3(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path10.join(currentPath, entry.name);
+      const fullPath = path15.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -21777,9 +22695,9 @@ function listYamlFiles(directoryPath) {
   return files;
 }
 function isRepoRelativePath(value) {
-  if (path10.isAbsolute(value))
+  if (path15.isAbsolute(value))
     return false;
-  const normalized = path10.posix.normalize(toPosix3(value));
+  const normalized = path15.posix.normalize(toPosix3(value));
   return normalized !== ".." && !normalized.startsWith("../");
 }
 function isDeclaredRoadmapStatus(value) {
@@ -21796,8 +22714,8 @@ function readYamlFile(filePath) {
 }
 
 // src/roadmap/load.ts
-import { existsSync as existsSync10, readFileSync as readFileSync11, statSync as statSync6 } from "fs";
-import path11 from "path";
+import { existsSync as existsSync15, readFileSync as readFileSync14, statSync as statSync8 } from "fs";
+import path16 from "path";
 
 // src/roadmap/validate.ts
 var MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
@@ -21828,15 +22746,15 @@ function validateStringArray(parent, key, artifactPath, fieldPath, diagnostics) 
     diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "value must be a string sequence", "string[]", String(value)));
     return null;
   }
-  const result2 = [];
+  const result = [];
   for (const [index, entry] of value.entries()) {
     if (typeof entry !== "string" || entry.length === 0) {
       diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}[${index}]`, "sequence item must be a non-empty string", "non-empty string", String(entry)));
       continue;
     }
-    result2.push(entry);
+    result.push(entry);
   }
-  return result2;
+  return result;
 }
 function validateOptionalString(parent, key, artifactPath, fieldPath, diagnostics) {
   if (!(key in parent) || parent[key] === undefined)
@@ -21862,7 +22780,7 @@ function validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics) {
     diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must contain at least one question", "one or more intake question entries", "empty sequence"));
     return null;
   }
-  const result2 = [];
+  const result = [];
   const seenIds = new Set;
   for (const [index, entry] of value.entries()) {
     const fieldPath = `$.intake_questions[${index}]`;
@@ -21884,10 +22802,10 @@ function validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics) {
       seenIds.add(id);
     }
     if (id && question && context && impact && recommendation && QUESTION_ID_PATTERN.test(id)) {
-      result2.push({ id, question, context, impact, recommendation });
+      result.push({ id, question, context, impact, recommendation });
     }
   }
-  return result2.length > 0 ? result2 : null;
+  return result.length > 0 ? result : null;
 }
 function validateRoadmapIndexArtifact(artifact, artifactPath, diagnostics) {
   if (!isRecord3(artifact)) {
@@ -22065,7 +22983,7 @@ function validateExternalRefsMetadata(value, artifactPath, fieldPath, diagnostic
     diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "external_refs must be a sequence", "external reference[]", String(value)));
     return null;
   }
-  const result2 = [];
+  const result = [];
   let valid = true;
   for (const [index, entry] of value.entries()) {
     const entryPath = `${fieldPath}[${index}]`;
@@ -22086,9 +23004,9 @@ function validateExternalRefsMetadata(value, artifactPath, fieldPath, diagnostic
       valid = false;
       continue;
     }
-    result2.push({ label, target });
+    result.push({ label, target });
   }
-  return valid ? result2 : null;
+  return valid ? result : null;
 }
 function validateTeamMetadata(value, artifactPath, diagnostics) {
   if (!isRecord3(value)) {
@@ -22348,11 +23266,11 @@ function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
 
 // src/roadmap/load.ts
 function isInsideDirectory(filePath, directoryPath) {
-  const relativePath = path11.relative(directoryPath, filePath);
-  return relativePath.length > 0 && !relativePath.startsWith("..") && !path11.isAbsolute(relativePath);
+  const relativePath = path16.relative(directoryPath, filePath);
+  return relativePath.length > 0 && !relativePath.startsWith("..") && !path16.isAbsolute(relativePath);
 }
 function listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir) {
-  return listYamlFiles(roadmapDir).filter((filePath) => {
+  return listYamlFiles2(roadmapDir).filter((filePath) => {
     if (filePath === indexPath)
       return false;
     if (isInsideDirectory(filePath, milestonesDir))
@@ -22368,16 +23286,16 @@ function appendLegacyInlinePlannedChangeDiagnostic(artifactPath, plannedChangeId
 function loadRoadmap(rootDir, options = {}) {
   const warnings = [];
   const diagnostics = [];
-  const roadmapDir = path11.join(rootDir, ROADMAP_DIR);
-  const archiveDir = path11.join(rootDir, ROADMAP_ARCHIVE_DIR);
-  const indexPath = path11.join(rootDir, ROADMAP_INDEX_PATH);
-  const milestonesDir = path11.join(rootDir, ROADMAP_MILESTONES_DIR);
-  if (!existsSync10(roadmapDir) || !statSync6(roadmapDir).isDirectory()) {
+  const roadmapDir = path16.join(rootDir, ROADMAP_DIR);
+  const archiveDir = path16.join(rootDir, ROADMAP_ARCHIVE_DIR);
+  const indexPath = path16.join(rootDir, ROADMAP_INDEX_PATH);
+  const milestonesDir = path16.join(rootDir, ROADMAP_MILESTONES_DIR);
+  if (!existsSync15(roadmapDir) || !statSync8(roadmapDir).isDirectory()) {
     diagnostics.push(makeDiagnostic("schema", ROADMAP_DIR, "$", "strict roadmap directory not found", ROADMAP_DIR, "missing"));
     return { warnings, diagnostics, indexArtifact: null, milestones: [], plannedChanges: [] };
   }
   let indexArtifact = null;
-  if (existsSync10(indexPath)) {
+  if (existsSync15(indexPath)) {
     try {
       indexArtifact = validateRoadmapIndexArtifact(readYamlFile(indexPath), ROADMAP_INDEX_PATH, diagnostics);
     } catch (error) {
@@ -22391,15 +23309,15 @@ function loadRoadmap(rootDir, options = {}) {
   } else {
     diagnostics.push(makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "roadmap index is missing", ROADMAP_INDEX_PATH, "missing"));
   }
-  const milestoneFiles = listYamlFiles(milestonesDir);
+  const milestoneFiles = listYamlFiles2(milestonesDir);
   if (milestoneFiles.length === 0) {
     warnings.push("roadmap/milestones/ is empty");
   }
   const milestones = [];
   for (const absolutePath of milestoneFiles) {
-    const artifactPath = normalizeRepoRelativePath2(rootDir, absolutePath);
+    const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
     try {
-      const raw = readFileSync11(absolutePath, "utf8");
+      const raw = readFileSync14(absolutePath, "utf8");
       const artifact = validateMilestoneArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
       if (!artifact)
         continue;
@@ -22407,13 +23325,13 @@ function loadRoadmap(rootDir, options = {}) {
       if (!options.allowInlinePlannedChanges && inlinePlannedChangeIds.length > 0) {
         appendLegacyInlinePlannedChangeDiagnostic(artifactPath, inlinePlannedChangeIds, diagnostics);
       }
-      const relativeMilestonePath = toPosix3(path11.relative(milestonesDir, absolutePath));
+      const relativeMilestonePath = toPosix3(path16.relative(milestonesDir, absolutePath));
       milestones.push({
         absolutePath,
         artifactPath,
-        file: path11.basename(relativeMilestonePath),
+        file: path16.basename(relativeMilestonePath),
         relativeMilestonePath,
-        repoRelativePath: normalizeRepoRelativePath2(rootDir, absolutePath),
+        repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
         raw,
         artifact
       });
@@ -22428,19 +23346,19 @@ function loadRoadmap(rootDir, options = {}) {
   }
   const plannedChanges = [];
   for (const absolutePath of listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir)) {
-    const artifactPath = normalizeRepoRelativePath2(rootDir, absolutePath);
+    const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
     try {
-      const raw = readFileSync11(absolutePath, "utf8");
+      const raw = readFileSync14(absolutePath, "utf8");
       const artifact = validateStandalonePlannedChangeArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
       if (!artifact)
         continue;
-      const relativeRoadmapPath = toPosix3(path11.relative(roadmapDir, absolutePath));
+      const relativeRoadmapPath = toPosix3(path16.relative(roadmapDir, absolutePath));
       plannedChanges.push({
         absolutePath,
         artifactPath,
-        file: path11.basename(relativeRoadmapPath),
+        file: path16.basename(relativeRoadmapPath),
         relativeRoadmapPath,
-        repoRelativePath: normalizeRepoRelativePath2(rootDir, absolutePath),
+        repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
         raw,
         artifact
       });
@@ -22462,12 +23380,12 @@ function loadRoadmap(rootDir, options = {}) {
   };
 }
 function loadArchivedPlannedChangeIds(rootDir) {
-  const archivePlannedChangesDir = path11.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
+  const archivePlannedChangesDir = path16.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
   const ids = new Set;
-  if (!existsSync10(archivePlannedChangesDir) || !statSync6(archivePlannedChangesDir).isDirectory()) {
+  if (!existsSync15(archivePlannedChangesDir) || !statSync8(archivePlannedChangesDir).isDirectory()) {
     return ids;
   }
-  for (const absolutePath of listYamlFiles(archivePlannedChangesDir)) {
+  for (const absolutePath of listYamlFiles2(archivePlannedChangesDir)) {
     try {
       const parsed = readYamlFile(absolutePath);
       if (!isRecord3(parsed))
@@ -22485,8 +23403,8 @@ function loadArchivedPlannedChangeIds(rootDir) {
 }
 
 // src/roadmap/status.ts
-import { existsSync as existsSync11, readdirSync as readdirSync3, statSync as statSync7 } from "fs";
-import path12 from "path";
+import { existsSync as existsSync16, readdirSync as readdirSync4, statSync as statSync9 } from "fs";
+import path17 from "path";
 var MISSING_ORDER_SORT_VALUE = Number.MAX_SAFE_INTEGER;
 function roadmapMilestoneId(milestone) {
   const milestoneField = milestone.artifact.milestone;
@@ -22507,20 +23425,20 @@ function sortMilestonesByRoadmapOrder(milestones) {
   return milestones.slice().sort(compareMilestonesByRoadmapOrder);
 }
 function getChangeStateIndex(rootDir) {
-  const changesDir = path12.join(rootDir, STRICT_WORKFLOW_DIR4, "changes");
+  const changesDir = path17.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
   const active = new Set;
   const archived = new Set;
-  if (!existsSync11(changesDir) || !statSync7(changesDir).isDirectory()) {
+  if (!existsSync16(changesDir) || !statSync9(changesDir).isDirectory()) {
     return { active, archived };
   }
-  for (const entry of readdirSync3(changesDir, { withFileTypes: true })) {
+  for (const entry of readdirSync4(changesDir, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name === "archive")
       continue;
     active.add(entry.name);
   }
-  const archiveDir = path12.join(changesDir, "archive");
-  if (existsSync11(archiveDir) && statSync7(archiveDir).isDirectory()) {
-    for (const entry of readdirSync3(archiveDir, { withFileTypes: true })) {
+  const archiveDir = path17.join(changesDir, "archive");
+  if (existsSync16(archiveDir) && statSync9(archiveDir).isDirectory()) {
+    for (const entry of readdirSync4(archiveDir, { withFileTypes: true })) {
       if (!entry.isDirectory())
         continue;
       const match = entry.name.match(/^\d{4}-\d{2}-\d{2}-(.+)$/);
@@ -22725,7 +23643,7 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
       id,
       entry,
       source: "inline",
-      path: toPosix3(path12.join("roadmap", "milestones", milestone.relativeMilestonePath))
+      path: toPosix3(path17.join("roadmap", "milestones", milestone.relativeMilestonePath))
     });
   }
   for (const plannedChange of standalonePlannedChanges) {
@@ -22733,7 +23651,7 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
     merged.set(id, {
       id,
       source: "standalone",
-      path: toPosix3(path12.join("roadmap", plannedChange.relativeRoadmapPath)),
+      path: toPosix3(path17.join("roadmap", plannedChange.relativeRoadmapPath)),
       loadedPlannedChange: plannedChange,
       entry: {
         status: plannedChange.artifact.status,
@@ -22748,13 +23666,13 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
 function buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, []), displayOrdinal = 0) {
   const plannedChanges = plannedChangeEntries.map(({ id, entry, source, path: plannedChangePath }) => {
     const state = derivePlannedChangeState(changeStates, id);
-    const derivedStatus2 = derivePlannedChangeDeclaredStatus(state);
-    const mismatches2 = [];
+    const derivedStatus = derivePlannedChangeDeclaredStatus(state);
+    const mismatches = [];
     if (state === "ambiguous") {
-      mismatches2.push("planned change exists in both active and archived strict change state; resolve the duplicate history");
+      mismatches.push("planned change exists in both active and archived strict change state; resolve the duplicate history");
     }
-    if (entry.status !== derivedStatus2) {
-      mismatches2.push(`declared planned change status '${entry.status}' does not match derived planned change status '${derivedStatus2}'`);
+    if (entry.status !== derivedStatus) {
+      mismatches.push(`declared planned change status '${entry.status}' does not match derived planned change status '${derivedStatus}'`);
     }
     return {
       id,
@@ -22764,9 +23682,9 @@ function buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds,
       dependsOn: [...entry.depends_on],
       archivedDependsOn: entry.depends_on.filter((dependencyId) => archivedPlannedChangeIds.has(dependencyId)),
       declaredStatus: entry.status,
-      derivedStatus: derivedStatus2,
+      derivedStatus,
       state,
-      mismatches: mismatches2
+      mismatches
     };
   });
   const derivedStatus = deriveEffectiveMilestoneStatus(milestone, plannedChanges.map((entry) => entry.state));
@@ -22775,7 +23693,7 @@ function buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds,
     mismatches.push(`declared status '${milestone.artifact.status}' does not match derived status '${derivedStatus}'`);
   }
   return {
-    path: toPosix3(path12.join("roadmap", "milestones", milestone.relativeMilestonePath)),
+    path: toPosix3(path17.join("roadmap", "milestones", milestone.relativeMilestonePath)),
     id: milestone.artifact.milestone.id,
     title: milestone.artifact.milestone.title,
     ...typeof milestone.artifact.order === "number" ? { order: milestone.artifact.order } : {},
@@ -22795,7 +23713,7 @@ function orderMilestoneStatuses(rootDir, roadmap, statuses, roadmapIndexPath) {
       const normalizedPath = toPosix3(entry.path);
       const status = statuses.get(normalizedPath);
       const absolutePath = resolveStrictWorkflowPath(rootDir, normalizedPath);
-      if (!existsSync11(absolutePath)) {
+      if (!existsSync16(absolutePath)) {
         diagnostics.push(makeDiagnostic("reference", roadmapIndexPath, `$.milestones.${entry.id}.path`, "roadmap index entry references a missing milestone file", "existing roadmap milestone file", normalizedPath));
         continue;
       }
@@ -22814,7 +23732,7 @@ function orderMilestoneStatuses(rootDir, roadmap, statuses, roadmapIndexPath) {
     }
   }
   for (const milestone of roadmap.milestones) {
-    const milestonePath = toPosix3(path12.join("roadmap", "milestones", milestone.relativeMilestonePath));
+    const milestonePath = toPosix3(path17.join("roadmap", "milestones", milestone.relativeMilestonePath));
     if (seenPaths.has(milestonePath))
       continue;
     if (roadmap.indexArtifact) {
@@ -22822,15 +23740,15 @@ function orderMilestoneStatuses(rootDir, roadmap, statuses, roadmapIndexPath) {
     }
   }
   return sortMilestonesByRoadmapOrder(roadmap.milestones).map((milestone, index) => {
-    const milestonePath = toPosix3(path12.join("roadmap", "milestones", milestone.relativeMilestonePath));
+    const milestonePath = toPosix3(path17.join("roadmap", "milestones", milestone.relativeMilestonePath));
     const status = statuses.get(milestonePath);
     return status ? { ...status, displayOrdinal: index + 1 } : null;
   }).filter((status) => status !== null);
 }
 
 // src/roadmap/sync.ts
-import { existsSync as existsSync12, readFileSync as readFileSync12 } from "fs";
-import path13 from "path";
+import { existsSync as existsSync17, readFileSync as readFileSync15 } from "fs";
+import path18 from "path";
 function validateRoadmapMutationCandidate(schemaId, candidate, artifactPath) {
   const diagnostics = [];
   if (schemaId === ROADMAP_INDEX_SCHEMA_ID) {
@@ -22850,9 +23768,9 @@ function validateRoadmapMutationCandidate(schemaId, candidate, artifactPath) {
   }));
 }
 function commitRoadmapMutations(rootDir, mutations) {
-  const familyRoot = path13.join(rootDir, ROADMAP_DIR);
+  const familyRoot = path18.join(rootDir, ROADMAP_DIR);
   const requests = mutations.map((mutation) => {
-    const operation = mutation.operation ?? (existsSync12(mutation.absolutePath) ? "update" : "create");
+    const operation = mutation.operation ?? (existsSync17(mutation.absolutePath) ? "update" : "create");
     return {
       artifactFamily: "roadmap-state",
       artifactId: mutation.artifactId,
@@ -22869,8 +23787,8 @@ function commitRoadmapMutations(rootDir, mutations) {
   });
   return commitYamlMutation({ rootDir, mutations: requests });
 }
-function roadmapMutationDiagnostics(result2) {
-  return result2.diagnostics.map((entry) => ({
+function roadmapMutationDiagnostics(result) {
+  return result.diagnostics.map((entry) => ({
     source: entry.code === "schema" || entry.code === "semantic" || entry.code === "reference" ? entry.code : "semantic",
     artifactPath: entry.artifactPath,
     fieldPath: entry.fieldPath,
@@ -22879,8 +23797,8 @@ function roadmapMutationDiagnostics(result2) {
     actual: entry.actual
   }));
 }
-function roadmapUpdatedFiles(rootDir, result2) {
-  return result2.changes.filter((change) => change.changed).map((change) => normalizeRepoRelativePath2(rootDir, path13.join(rootDir, change.artifactPath))).sort((left, right) => left.localeCompare(right));
+function roadmapUpdatedFiles(rootDir, result) {
+  return result.changes.filter((change) => change.changed).map((change) => normalizeRepoRelativePath3(rootDir, path18.join(rootDir, change.artifactPath))).sort((left, right) => left.localeCompare(right));
 }
 function resolveCanonicalMilestoneStatus(declared, derived) {
   if (normalizeMilestoneStatus(declared) === derived)
@@ -22963,7 +23881,7 @@ function buildCanonicalPlannedChangeArtifact(plannedChange, status) {
   };
 }
 function materializedPlannedChangePath(rootDir, milestone, plannedChangeId) {
-  return path13.join(rootDir, ROADMAP_DIR, "planned-changes", canonicalPlannedChangeFileName(milestone.artifact.milestone.id, plannedChangeId));
+  return path18.join(rootDir, ROADMAP_DIR, "planned-changes", canonicalPlannedChangeFileName(milestone.artifact.milestone.id, plannedChangeId));
 }
 function extractMilestoneId(artifact) {
   const milestoneField = artifact.milestone;
@@ -22990,7 +23908,7 @@ function buildRoadmapIndexArtifact(milestones) {
   for (const milestone of milestoneEntries) {
     milestonesMap[extractMilestoneId(milestone.artifact)] = {
       title: extractMilestoneTitle(milestone.artifact),
-      path: toPosix3(path13.join("roadmap", "milestones", milestone.relativeMilestonePath)),
+      path: toPosix3(path18.join("roadmap", "milestones", milestone.relativeMilestonePath)),
       status: milestone.artifact.status
     };
   }
@@ -23058,14 +23976,14 @@ function appendDiagnostics(lines, diagnostics) {
   if (diagnostics.length === 0)
     return;
   lines.push("Diagnostics:");
-  for (const diagnostic2 of diagnostics) {
-    lines.push(`- [${diagnostic2.source}] ${diagnostic2.artifactPath} ${diagnostic2.fieldPath}`);
-    lines.push(`  message: ${diagnostic2.message}`);
-    if (diagnostic2.expected !== undefined) {
-      lines.push(`  expected: ${diagnostic2.expected}`);
+  for (const diagnostic of diagnostics) {
+    lines.push(`- [${diagnostic.source}] ${diagnostic.artifactPath} ${diagnostic.fieldPath}`);
+    lines.push(`  message: ${diagnostic.message}`);
+    if (diagnostic.expected !== undefined) {
+      lines.push(`  expected: ${diagnostic.expected}`);
     }
-    if (diagnostic2.actual !== undefined) {
-      lines.push(`  actual: ${diagnostic2.actual}`);
+    if (diagnostic.actual !== undefined) {
+      lines.push(`  actual: ${diagnostic.actual}`);
     }
   }
   lines.push("");
@@ -23106,15 +24024,15 @@ function loadRoadmapStatusContext(rootDir) {
     archivedPlannedChangeIds
   };
 }
-function formatRoadmapOverview(result2) {
-  const lines = [`Roadmap overview (${result2.valid ? "valid" : "invalid"})`, ""];
-  appendWarnings(lines, result2.warnings);
-  appendDiagnostics(lines, result2.diagnostics);
+function formatRoadmapOverview(result) {
+  const lines = [`Roadmap overview (${result.valid ? "valid" : "invalid"})`, ""];
+  appendWarnings(lines, result.warnings);
+  appendDiagnostics(lines, result.diagnostics);
   lines.push("Milestone summary:");
-  if (result2.milestones.length === 0) {
+  if (result.milestones.length === 0) {
     lines.push("(none)");
   } else {
-    const summaryRows = renderTextTable(result2.milestones, [
+    const summaryRows = renderTextTable(result.milestones, [
       { header: "ID", value: (milestone) => milestone.id },
       { header: "Declared", value: (milestone) => milestone.declaredStatus },
       { header: "Derived", value: (milestone) => milestone.derivedStatus },
@@ -23131,10 +24049,10 @@ function formatRoadmapOverview(result2) {
   }
   lines.push("");
   lines.push("Milestone detail:");
-  if (result2.milestones.length === 0) {
+  if (result.milestones.length === 0) {
     lines.push("(none)");
   } else {
-    for (const milestone of result2.milestones) {
+    for (const milestone of result.milestones) {
       lines.push(`[${milestone.id}] ${milestone.title}`);
       lines.push(`path: ${milestone.path}`);
       lines.push(`status: declared=${milestone.declaredStatus} derived=${milestone.derivedStatus}`);
@@ -23345,8 +24263,8 @@ function fixPlannedChangeFileNames(rootDir, allowInlinePlannedChanges) {
     const canonical = canonicalPlannedChangeFileName(plannedChange.artifact.planned_change.milestone, plannedChange.artifact.planned_change.id);
     if (plannedChange.file === canonical)
       continue;
-    const targetPath = path14.join(path14.dirname(plannedChange.absolutePath), canonical);
-    if (existsSync13(targetPath))
+    const targetPath = path19.join(path19.dirname(plannedChange.absolutePath), canonical);
+    if (existsSync18(targetPath))
       continue;
     mutations.push({
       absolutePath: targetPath,
@@ -23362,8 +24280,8 @@ function fixPlannedChangeFileNames(rootDir, allowInlinePlannedChanges) {
       operation: "delete"
     });
     renamedFiles.push({
-      from: normalizeRepoRelativePath2(rootDir, plannedChange.absolutePath),
-      to: normalizeRepoRelativePath2(rootDir, targetPath)
+      from: normalizeRepoRelativePath3(rootDir, plannedChange.absolutePath),
+      to: normalizeRepoRelativePath3(rootDir, targetPath)
     });
   }
   if (mutations.length > 0) {
@@ -23377,56 +24295,56 @@ function fixPlannedChangeFileNames(rootDir, allowInlinePlannedChanges) {
   };
 }
 function applyStagedRoadmapMutations(rootDir, roadmap, mutations) {
-  const roadmapRoot = path14.join(rootDir, ROADMAP_DIR);
-  const milestoneRoot = path14.join(roadmapRoot, "milestones");
+  const roadmapRoot = path19.join(rootDir, ROADMAP_DIR);
+  const milestoneRoot = path19.join(roadmapRoot, "milestones");
   for (const mutation of mutations) {
-    const absolutePath = path14.resolve(mutation.absolutePath);
+    const absolutePath = path19.resolve(mutation.absolutePath);
     if (mutation.schemaId === ROADMAP_INDEX_SCHEMA_ID)
       continue;
     if (mutation.schemaId === ROADMAP_MILESTONE_SCHEMA_ID) {
-      const existingIndex2 = roadmap.milestones.findIndex((entry) => path14.resolve(entry.absolutePath) === absolutePath);
+      const existingIndex = roadmap.milestones.findIndex((entry) => path19.resolve(entry.absolutePath) === absolutePath);
       if (mutation.operation === "delete") {
-        if (existingIndex2 >= 0)
-          roadmap.milestones.splice(existingIndex2, 1);
+        if (existingIndex >= 0)
+          roadmap.milestones.splice(existingIndex, 1);
         continue;
       }
-      const artifactPath2 = normalizeRepoRelativePath2(rootDir, absolutePath);
-      const artifact2 = validateMilestoneArtifact(mutation.candidate, artifactPath2, roadmap.diagnostics);
-      if (!artifact2)
+      const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
+      const artifact = validateMilestoneArtifact(mutation.candidate, artifactPath, roadmap.diagnostics);
+      if (!artifact)
         continue;
-      const relativeMilestonePath = normalizeRepoRelativePath2(milestoneRoot, absolutePath);
-      const loaded2 = {
+      const relativeMilestonePath = normalizeRepoRelativePath3(milestoneRoot, absolutePath);
+      const loaded = {
         absolutePath,
-        artifactPath: artifactPath2,
-        file: path14.basename(absolutePath),
+        artifactPath,
+        file: path19.basename(absolutePath),
         relativeMilestonePath,
-        repoRelativePath: normalizeRepoRelativePath2(rootDir, absolutePath),
-        raw: ensureTrailingNewline(stringifyYamlDocument(artifact2)),
-        artifact: artifact2
+        repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
+        raw: ensureTrailingNewline(stringifyYamlDocument(artifact)),
+        artifact
       };
-      if (existingIndex2 >= 0)
-        roadmap.milestones[existingIndex2] = loaded2;
+      if (existingIndex >= 0)
+        roadmap.milestones[existingIndex] = loaded;
       else
-        roadmap.milestones.push(loaded2);
+        roadmap.milestones.push(loaded);
       continue;
     }
-    const existingIndex = roadmap.plannedChanges.findIndex((entry) => path14.resolve(entry.absolutePath) === absolutePath);
+    const existingIndex = roadmap.plannedChanges.findIndex((entry) => path19.resolve(entry.absolutePath) === absolutePath);
     if (mutation.operation === "delete") {
       if (existingIndex >= 0)
         roadmap.plannedChanges.splice(existingIndex, 1);
       continue;
     }
-    const artifactPath = normalizeRepoRelativePath2(rootDir, absolutePath);
+    const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
     const artifact = validateStandalonePlannedChangeArtifact(mutation.candidate, artifactPath, roadmap.diagnostics);
     if (!artifact)
       continue;
-    const relativeRoadmapPath = normalizeRepoRelativePath2(roadmapRoot, absolutePath);
+    const relativeRoadmapPath = normalizeRepoRelativePath3(roadmapRoot, absolutePath);
     const loaded = {
       absolutePath,
       artifactPath,
-      file: path14.basename(absolutePath),
+      file: path19.basename(absolutePath),
       relativeRoadmapPath,
-      repoRelativePath: normalizeRepoRelativePath2(rootDir, absolutePath),
+      repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
       raw: ensureTrailingNewline(stringifyYamlDocument(artifact)),
       artifact
     };
@@ -23439,7 +24357,7 @@ function applyStagedRoadmapMutations(rootDir, roadmap, mutations) {
 function mergeRoadmapMutations(mutations) {
   const byPath = new Map;
   for (const mutation of mutations) {
-    const key = path14.resolve(mutation.absolutePath);
+    const key = path19.resolve(mutation.absolutePath);
     const existing = byPath.get(key);
     byPath.set(key, existing?.operation === "create" && mutation.operation !== "delete" ? { ...mutation, operation: "create" } : mutation);
   }
@@ -23480,7 +24398,7 @@ function syncRoadmap(rootDir, options = {}) {
   const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
   const tolerated = new Set((options.toleratedDiagnostics ?? []).map(diagnosticKey));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic2.artifactPath === ROADMAP_DIR) && !isRetiredMilestoneStatusDiagnostic(diagnostic2) && !tolerated.has(diagnosticKey(diagnostic2)));
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic.artifactPath === ROADMAP_DIR) && !isRetiredMilestoneStatusDiagnostic(diagnostic) && !tolerated.has(diagnosticKey(diagnostic)));
   if (blockingDiagnostics.length > 0) {
     return {
       valid: false,
@@ -23491,8 +24409,8 @@ function syncRoadmap(rootDir, options = {}) {
       milestones: []
     };
   }
-  const roadmapDir = path14.join(rootDir, ROADMAP_DIR);
-  if ((!existsSync13(roadmapDir) || !statSync8(roadmapDir).isDirectory()) && (options.stagedMutations?.length ?? 0) === 0) {
+  const roadmapDir = path19.join(rootDir, ROADMAP_DIR);
+  if ((!existsSync18(roadmapDir) || !statSync10(roadmapDir).isDirectory()) && (options.stagedMutations?.length ?? 0) === 0) {
     return {
       valid: false,
       warnings: roadmap.warnings,
@@ -23509,12 +24427,12 @@ function syncRoadmap(rootDir, options = {}) {
   for (const milestone of roadmap.milestones) {
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    const status2 = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
+    const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
     const materializedInlineIds = options.materializePlannedChanges ? new Set(Object.keys(milestone.artifact.planned_changes)) : undefined;
     if (options.materializePlannedChanges) {
       for (const [id, entry] of Object.entries(milestone.artifact.planned_changes)) {
         const plannedChangePath = materializedPlannedChangePath(rootDir, milestone, id);
-        const plannedChangeArtifact = buildMaterializedPlannedChangeArtifact(milestone, id, entry, status2);
+        const plannedChangeArtifact = buildMaterializedPlannedChangeArtifact(milestone, id, entry, status);
         mutations.push({
           absolutePath: plannedChangePath,
           artifactId: id,
@@ -23523,7 +24441,7 @@ function syncRoadmap(rootDir, options = {}) {
         });
       }
     }
-    const nextArtifact = buildCanonicalMilestoneArtifact(milestone, status2, {
+    const nextArtifact = buildCanonicalMilestoneArtifact(milestone, status, {
       omitInlinePlannedChangeIds: materializedInlineIds
     });
     mutations.push({
@@ -23535,7 +24453,7 @@ function syncRoadmap(rootDir, options = {}) {
     milestone.artifact = nextArtifact;
     milestone.raw = ensureTrailingNewline(stringifyYamlDocument(nextArtifact));
     for (const plannedChange of standalonePlannedChanges) {
-      const nextPlannedChangeArtifact = buildCanonicalPlannedChangeArtifact(plannedChange, status2);
+      const nextPlannedChangeArtifact = buildCanonicalPlannedChangeArtifact(plannedChange, status);
       mutations.push({
         absolutePath: plannedChange.absolutePath,
         artifactId: plannedChange.artifact.planned_change.id,
@@ -23546,7 +24464,7 @@ function syncRoadmap(rootDir, options = {}) {
       plannedChange.raw = ensureTrailingNewline(stringifyYamlDocument(nextPlannedChangeArtifact));
     }
   }
-  const indexPath = path14.join(rootDir, ROADMAP_INDEX_PATH);
+  const indexPath = path19.join(rootDir, ROADMAP_INDEX_PATH);
   const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
   mutations.push({
     absolutePath: indexPath,
@@ -23579,9 +24497,9 @@ function syncRoadmap(rootDir, options = {}) {
 }
 
 // src/verify.ts
-import { existsSync as existsSync14, readdirSync as readdirSync4, readFileSync as readFileSync13, statSync as statSync9 } from "fs";
-import path15 from "path";
-var STRICT_WORKFLOW_DIR5 = ".strict-spec-driven";
+import { existsSync as existsSync19, readdirSync as readdirSync5, readFileSync as readFileSync16, statSync as statSync11 } from "fs";
+import path20 from "path";
+var STRICT_WORKFLOW_DIR6 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
 function collectDiagnostics(results) {
   return results.map((d) => ({
@@ -23631,9 +24549,9 @@ function validateArtifactSchema(artifactType, artifact, artifactPath) {
       actual: String(record.artifact_type)
     });
   }
-  const schema2 = loadBundledSchemaByArtifactType(artifactType);
-  const result2 = validateArtifact(schema2, artifact, artifactPath);
-  diagnostics.push(...collectDiagnostics(result2.diagnostics));
+  const schema = loadBundledSchemaByArtifactType(artifactType);
+  const result = validateArtifact(schema, artifact, artifactPath);
+  diagnostics.push(...collectDiagnostics(result.diagnostics));
   return diagnostics;
 }
 function checkTaskCompletion(artifact, artifactPath) {
@@ -23717,18 +24635,18 @@ function checkTaskListCompleteness(artifact, artifactPath) {
   return diagnostics;
 }
 function validateDeltaSpecs(changeDir, artifactPathPrefix) {
-  const specsDir = path15.join(changeDir, "specs");
-  if (!existsSync14(specsDir))
+  const specsDir = path20.join(changeDir, "specs");
+  if (!existsSync19(specsDir))
     return [];
   const diagnostics = [];
   function scanDir(dir) {
-    for (const entry of readdirSync4(dir, { withFileTypes: true })) {
-      const fullPath = path15.join(dir, entry.name);
+    for (const entry of readdirSync5(dir, { withFileTypes: true })) {
+      const fullPath = path20.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path15.relative(specsDir, fullPath).split(path15.sep).join("/");
-        const content = readFileSync13(fullPath, "utf8");
+        const relativePath = path20.relative(specsDir, fullPath).split(path20.sep).join("/");
+        const content = readFileSync16(fullPath, "utf8");
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
         let artifact;
         try {
@@ -23745,18 +24663,18 @@ function validateDeltaSpecs(changeDir, artifactPathPrefix) {
   return diagnostics;
 }
 function validateDeltaTech(changeDir, artifactPathPrefix) {
-  const techDir = path15.join(changeDir, "tech");
-  if (!existsSync14(techDir))
+  const techDir = path20.join(changeDir, "tech");
+  if (!existsSync19(techDir))
     return [];
   const diagnostics = [];
   function scanDir(dir) {
-    for (const entry of readdirSync4(dir, { withFileTypes: true })) {
-      const fullPath = path15.join(dir, entry.name);
+    for (const entry of readdirSync5(dir, { withFileTypes: true })) {
+      const fullPath = path20.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path15.relative(techDir, fullPath).split(path15.sep).join("/");
-        const content = readFileSync13(fullPath, "utf8");
+        const relativePath = path20.relative(techDir, fullPath).split(path20.sep).join("/");
+        const content = readFileSync16(fullPath, "utf8");
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
         let artifact;
         try {
@@ -23772,15 +24690,15 @@ function validateDeltaTech(changeDir, artifactPathPrefix) {
   scanDir(techDir);
   return diagnostics;
 }
-function listYamlFiles2(directoryPath) {
-  if (!existsSync14(directoryPath)) {
+function listYamlFiles3(directoryPath) {
+  if (!existsSync19(directoryPath)) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync4(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync5(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path15.join(currentPath, entry.name);
+      const fullPath = path20.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -23794,15 +24712,15 @@ function listYamlFiles2(directoryPath) {
   return files;
 }
 function buildMainSpecRequirementIndex(rootDir) {
-  const specsRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
+  const specsRoot = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
   const diagnostics = [];
   const specsById = new Map;
-  for (const specPath of listYamlFiles2(specsRoot)) {
-    if (path15.basename(specPath) === "INDEX.yaml") {
+  for (const specPath of listYamlFiles3(specsRoot)) {
+    if (path20.basename(specPath) === "INDEX.yaml") {
       continue;
     }
-    const artifactPath = path15.relative(rootDir, specPath).split(path15.sep).join("/");
-    const content = readFileSync13(specPath, "utf8");
+    const artifactPath = path20.relative(rootDir, specPath).split(path20.sep).join("/");
+    const content = readFileSync16(specPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -23840,10 +24758,10 @@ function checkAddedRequirementCollisions(rootDir, changeDir) {
   const diagnostics = [];
   const { diagnostics: mainSpecDiagnostics, specsById } = buildMainSpecRequirementIndex(rootDir);
   diagnostics.push(...mainSpecDiagnostics);
-  const specsDir = path15.join(changeDir, "specs");
-  for (const deltaSpecPath of listYamlFiles2(specsDir)) {
-    const artifactPath = path15.relative(rootDir, deltaSpecPath).split(path15.sep).join("/");
-    const content = readFileSync13(deltaSpecPath, "utf8");
+  const specsDir = path20.join(changeDir, "specs");
+  for (const deltaSpecPath of listYamlFiles3(specsDir)) {
+    const artifactPath = path20.relative(rootDir, deltaSpecPath).split(path20.sep).join("/");
+    const content = readFileSync16(deltaSpecPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -23884,10 +24802,10 @@ function checkNewSpecDeltaRules(rootDir, changeDir) {
   for (const entry of specsById.values()) {
     existingPaths.add(entry.artifactPath);
   }
-  const specsDir = path15.join(changeDir, "specs");
-  for (const deltaSpecPath of listYamlFiles2(specsDir)) {
-    const artifactPath = path15.relative(rootDir, deltaSpecPath).split(path15.sep).join("/");
-    const content = readFileSync13(deltaSpecPath, "utf8");
+  const specsDir = path20.join(changeDir, "specs");
+  for (const deltaSpecPath of listYamlFiles3(specsDir)) {
+    const artifactPath = path20.relative(rootDir, deltaSpecPath).split(path20.sep).join("/");
+    const content = readFileSync16(deltaSpecPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -23928,12 +24846,12 @@ function checkNewSpecDeltaRules(rootDir, changeDir) {
       });
     }
     if (typeof targetPath === "string" && targetPath.length > 0) {
-      const normalized = targetPath.split(path15.sep).join("/");
-      const specsPrefix = `${STRICT_WORKFLOW_DIR5}/specs/`;
+      const normalized = targetPath.split(path20.sep).join("/");
+      const specsPrefix = `${STRICT_WORKFLOW_DIR6}/specs/`;
       const isUnderSpecs = normalized.startsWith(specsPrefix);
       const isYaml = normalized.endsWith(".yaml");
       const hasTraversal = normalized.split("/").includes("..");
-      const isIndex = path15.basename(normalized) === "INDEX.yaml";
+      const isIndex = path20.basename(normalized) === "INDEX.yaml";
       if (!isUnderSpecs || !isYaml || hasTraversal || isIndex) {
         diagnostics.push({
           source: "new_spec_path",
@@ -23989,13 +24907,13 @@ function formatUnresolvableDeltaTargetMessage(changeName, deltaArtifactPath, tar
 function checkUnresolvableDeltaTargets(rootDir, changeDir) {
   const diagnostics = [];
   const { specsById } = buildMainSpecRequirementIndex(rootDir);
-  const changeName = path15.basename(changeDir);
-  const specsDir = path15.join(changeDir, "specs");
+  const changeName = path20.basename(changeDir);
+  const specsDir = path20.join(changeDir, "specs");
   const deltas = [];
   const introducedIds = new Set;
-  for (const deltaSpecPath of listYamlFiles2(specsDir)) {
-    const artifactPath = path15.relative(rootDir, deltaSpecPath).split(path15.sep).join("/");
-    const content = readFileSync13(deltaSpecPath, "utf8");
+  for (const deltaSpecPath of listYamlFiles3(specsDir)) {
+    const artifactPath = path20.relative(rootDir, deltaSpecPath).split(path20.sep).join("/");
+    const content = readFileSync16(deltaSpecPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -24040,15 +24958,15 @@ function checkUnresolvableDeltaTargets(rootDir, changeDir) {
   return diagnostics;
 }
 function buildMainTechRuleIndex(rootDir) {
-  const techRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "tech");
+  const techRoot = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
   const diagnostics = [];
   const standardsById = new Map;
-  for (const techPath of listYamlFiles2(techRoot)) {
-    if (path15.basename(techPath) === "INDEX.yaml") {
+  for (const techPath of listYamlFiles3(techRoot)) {
+    if (path20.basename(techPath) === "INDEX.yaml") {
       continue;
     }
-    const artifactPath = path15.relative(rootDir, techPath).split(path15.sep).join("/");
-    const content = readFileSync13(techPath, "utf8");
+    const artifactPath = path20.relative(rootDir, techPath).split(path20.sep).join("/");
+    const content = readFileSync16(techPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -24086,10 +25004,10 @@ function checkTechDeltaTargets(rootDir, changeDir) {
   const diagnostics = [];
   const { diagnostics: mainTechDiagnostics, standardsById } = buildMainTechRuleIndex(rootDir);
   diagnostics.push(...mainTechDiagnostics);
-  const techDir = path15.join(changeDir, "tech");
-  for (const deltaTechPath of listYamlFiles2(techDir)) {
-    const artifactPath = path15.relative(rootDir, deltaTechPath).split(path15.sep).join("/");
-    const content = readFileSync13(deltaTechPath, "utf8");
+  const techDir = path20.join(changeDir, "tech");
+  for (const deltaTechPath of listYamlFiles3(techDir)) {
+    const artifactPath = path20.relative(rootDir, deltaTechPath).split(path20.sep).join("/");
+    const content = readFileSync16(deltaTechPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -24138,19 +25056,19 @@ function checkTechDeltaTargets(rootDir, changeDir) {
   return diagnostics;
 }
 function checkExclusiveActiveTechTargets(rootDir, changeName) {
-  const changesDir = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
-  if (!existsSync14(changesDir))
+  const changesDir = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "changes");
+  if (!existsSync19(changesDir))
     return [];
   const diagnostics = [];
   const targetMap = new Map;
-  const activeDirs = readdirSync4(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  const activeDirs = readdirSync5(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
   for (const activeChange of activeDirs) {
-    const techDir = path15.join(changesDir, activeChange, "tech");
-    if (!existsSync14(techDir))
+    const techDir = path20.join(changesDir, activeChange, "tech");
+    if (!existsSync19(techDir))
       continue;
-    for (const deltaTechPath of listYamlFiles2(techDir)) {
-      const artifactPath = path15.relative(rootDir, deltaTechPath).split(path15.sep).join("/");
-      const content = readFileSync13(deltaTechPath, "utf8");
+    for (const deltaTechPath of listYamlFiles3(techDir)) {
+      const artifactPath = path20.relative(rootDir, deltaTechPath).split(path20.sep).join("/");
+      const content = readFileSync16(deltaTechPath, "utf8");
       let artifact;
       try {
         artifact = parseYamlDocument(content, { source: artifactPath });
@@ -24204,21 +25122,21 @@ function checkExclusiveActiveTechTargets(rootDir, changeName) {
   return diagnostics;
 }
 function checkExclusiveActiveTargets(rootDir, changeName) {
-  const changesDir = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
-  if (!existsSync14(changesDir))
+  const changesDir = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "changes");
+  if (!existsSync19(changesDir))
     return [];
   const diagnostics = [];
   const targetMap = new Map;
-  const activeDirs = readdirSync4(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  const activeDirs = readdirSync5(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
   for (const activeChange of activeDirs) {
     let scanDir = function(dir) {
-      for (const entry of readdirSync4(dir, { withFileTypes: true })) {
-        const fullPath = path15.join(dir, entry.name);
+      for (const entry of readdirSync5(dir, { withFileTypes: true })) {
+        const fullPath = path20.join(dir, entry.name);
         if (entry.isDirectory()) {
           scanDir(fullPath);
         } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-          const artifactPath = path15.relative(rootDir, fullPath).split(path15.sep).join("/");
-          const content = readFileSync13(fullPath, "utf8");
+          const artifactPath = path20.relative(rootDir, fullPath).split(path20.sep).join("/");
+          const content = readFileSync16(fullPath, "utf8");
           let artifact;
           try {
             artifact = parseYamlDocument(content, { source: artifactPath });
@@ -24246,8 +25164,8 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
         }
       }
     };
-    const specsDir = path15.join(changesDir, activeChange, "specs");
-    if (!existsSync14(specsDir))
+    const specsDir = path20.join(changesDir, activeChange, "specs");
+    if (!existsSync19(specsDir))
       continue;
     scanDir(specsDir);
   }
@@ -24271,17 +25189,17 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
   return diagnostics;
 }
 function verifyChange(rootDir, changeName) {
-  const changeDir = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "changes", changeName);
-  if (!existsSync14(changeDir)) {
+  const changeDir = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", changeName);
+  if (!existsSync19(changeDir)) {
     throw new Error(`change '${changeName}' not found`);
   }
   const allDiagnostics = [];
   let totalTasks = 0;
   let completeTasks = 0;
   let openQuestionCount = 0;
-  const specsRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
-  if (existsSync14(specsRoot) && statSync9(specsRoot).isDirectory()) {
-    for (const entry of readdirSync4(specsRoot, { withFileTypes: true })) {
+  const specsRoot = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
+  if (existsSync19(specsRoot) && statSync11(specsRoot).isDirectory()) {
+    for (const entry of readdirSync5(specsRoot, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
         allDiagnostics.push({
           source: "directory_structure",
@@ -24301,9 +25219,9 @@ function verifyChange(rootDir, changeName) {
     ["question_list", "questions.yaml", "questions"]
   ];
   for (const [artifactType, fileName, generateArtifactName] of artifactConfigs) {
-    const filePath = path15.join(changeDir, fileName);
+    const filePath = path20.join(changeDir, fileName);
     const artifactPath = `.strict-spec-driven/changes/${changeName}/${fileName}`;
-    if (!existsSync14(filePath)) {
+    if (!existsSync19(filePath)) {
       allDiagnostics.push({
         source: "missing_artifact",
         artifactPath,
@@ -24314,7 +25232,7 @@ function verifyChange(rootDir, changeName) {
       });
       continue;
     }
-    const content = readFileSync13(filePath, "utf8");
+    const content = readFileSync16(filePath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -24366,9 +25284,9 @@ function verifyChange(rootDir, changeName) {
 }
 
 // src/archive.ts
-var STRICT_WORKFLOW_DIR6 = ".strict-spec-driven";
-function normalizeRepoRelativePath3(rootDir, absolutePath) {
-  return path16.relative(rootDir, absolutePath).split(path16.sep).join("/");
+var STRICT_WORKFLOW_DIR7 = ".strict-spec-driven";
+function normalizeRepoRelativePath4(rootDir, absolutePath) {
+  return path21.relative(rootDir, absolutePath).split(path21.sep).join("/");
 }
 function formatLocalDate(date = new Date) {
   const year = String(date.getFullYear());
@@ -24382,15 +25300,15 @@ function asObject2(value, description) {
   }
   return value;
 }
-function listYamlFiles3(directoryPath) {
-  if (!existsSync15(directoryPath)) {
+function listYamlFiles4(directoryPath) {
+  if (!existsSync20(directoryPath)) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync5(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path16.join(currentPath, entry.name);
+      const fullPath = path21.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -24404,20 +25322,20 @@ function listYamlFiles3(directoryPath) {
   return files;
 }
 function readYamlFile2(filePath) {
-  const content = readFileSync14(filePath, "utf8");
+  const content = readFileSync17(filePath, "utf8");
   return parseYamlDocument(content);
 }
 function writeYamlFile(filePath, value) {
-  writeFileSync4(filePath, stringifyYamlDocument(value), "utf8");
+  writeFileSync5(filePath, stringifyYamlDocument(value), "utf8");
 }
 function assertUniqueRequirementIds(requirements, specPath) {}
-function formatVerifyDiagnostic(diagnostic2) {
-  return `${diagnostic2.source} ${diagnostic2.artifactPath} ${diagnostic2.fieldPath}: ${diagnostic2.message}`;
+function formatVerifyDiagnostic(diagnostic) {
+  return `${diagnostic.source} ${diagnostic.artifactPath} ${diagnostic.fieldPath}: ${diagnostic.message}`;
 }
-function formatVerificationFailure(result2) {
-  const diagnosticSummary = result2.diagnostics.slice(0, 5).map(formatVerifyDiagnostic).join("; ");
+function formatVerificationFailure(result) {
+  const diagnosticSummary = result.diagnostics.slice(0, 5).map(formatVerifyDiagnostic).join("; ");
   const suffix = diagnosticSummary.length > 0 ? `: ${diagnosticSummary}` : "";
-  return `change '${result2.changeName}' failed verification (${result2.diagnostics.length} diagnostic(s))${suffix}`;
+  return `change '${result.changeName}' failed verification (${result.diagnostics.length} diagnostic(s))${suffix}`;
 }
 function buildNewMainSpec(deltaSpec) {
   if (!deltaSpec.spec) {
@@ -24436,10 +25354,10 @@ function buildNewMainSpec(deltaSpec) {
   };
 }
 function collectMainSpecPathsById(rootDir) {
-  const specsRoot = path16.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
+  const specsRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "specs");
   const byId = new Map;
-  for (const specPath of listYamlFiles3(specsRoot)) {
-    if (path16.basename(specPath) === "INDEX.yaml") {
+  for (const specPath of listYamlFiles4(specsRoot)) {
+    if (path21.basename(specPath) === "INDEX.yaml") {
       continue;
     }
     const parsed = readYamlFile2(specPath);
@@ -24491,22 +25409,22 @@ function applyDeltaToMainSpec(mainSpec, deltaSpec, report, specPath) {
   assertUniqueRequirementIds(mainSpec.requirements, specPath);
 }
 function buildArchiveDestination(rootDir, changeName) {
-  const archiveRoot = path16.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", "archive");
-  mkdirSync4(archiveRoot, { recursive: true });
+  const archiveRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "changes", "archive");
+  mkdirSync5(archiveRoot, { recursive: true });
   const datePrefix = formatLocalDate();
   const baseName = `${datePrefix}-${changeName}`;
-  let candidate = path16.join(archiveRoot, baseName);
+  let candidate = path21.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync15(candidate)) {
-    candidate = path16.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync20(candidate)) {
+    candidate = path21.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function regenerateSpecIndex(rootDir) {
-  const specsRoot = path16.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
-  const indexPath = path16.join(specsRoot, "INDEX.yaml");
-  const specs = listYamlFiles3(specsRoot).filter((filePath) => path16.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+  const specsRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "specs");
+  const indexPath = path21.join(specsRoot, "INDEX.yaml");
+  const specs = listYamlFiles4(specsRoot).filter((filePath) => path21.basename(filePath) !== "INDEX.yaml").map((filePath) => {
     const parsed = readYamlFile2(filePath);
     const artifact = asObject2(parsed, `spec '${filePath}'`);
     if (artifact.artifact_type !== "main_spec") {
@@ -24524,7 +25442,7 @@ function regenerateSpecIndex(rootDir) {
     return {
       id: specId,
       title,
-      path: normalizeRepoRelativePath3(rootDir, filePath)
+      path: normalizeRepoRelativePath4(rootDir, filePath)
     };
   }).filter((value) => value !== null).sort((left, right) => {
     const byPath = left.path.localeCompare(right.path);
@@ -24540,7 +25458,7 @@ function regenerateSpecIndex(rootDir) {
     schema_file: "templates/strict-spec-driven/schemas/spec-index.yaml",
     specs: []
   };
-  if (existsSync15(indexPath)) {
+  if (existsSync20(indexPath)) {
     const parsed = readYamlFile2(indexPath);
     const artifact = asObject2(parsed, `spec index '${indexPath}'`);
     indexArtifact = {
@@ -24548,16 +25466,16 @@ function regenerateSpecIndex(rootDir) {
       specs: []
     };
   } else {
-    mkdirSync4(path16.dirname(indexPath), { recursive: true });
+    mkdirSync5(path21.dirname(indexPath), { recursive: true });
   }
   indexArtifact.specs = specs;
   writeYamlFile(indexPath, indexArtifact);
 }
 function collectMainTechPathsById(rootDir) {
-  const techRoot = path16.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  const techRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "tech");
   const byId = new Map;
-  for (const techPath of listYamlFiles3(techRoot)) {
-    if (path16.basename(techPath) === "INDEX.yaml") {
+  for (const techPath of listYamlFiles4(techRoot)) {
+    if (path21.basename(techPath) === "INDEX.yaml") {
       continue;
     }
     const parsed = readYamlFile2(techPath);
@@ -24635,12 +25553,12 @@ function buildNewMainTech(deltaTech) {
   };
 }
 function regenerateTechIndex(rootDir) {
-  const techRoot = path16.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
-  if (!existsSync15(techRoot)) {
+  const techRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "tech");
+  if (!existsSync20(techRoot)) {
     return;
   }
-  const indexPath = path16.join(techRoot, "INDEX.yaml");
-  const standards = listYamlFiles3(techRoot).filter((filePath) => path16.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+  const indexPath = path21.join(techRoot, "INDEX.yaml");
+  const standards = listYamlFiles4(techRoot).filter((filePath) => path21.basename(filePath) !== "INDEX.yaml").map((filePath) => {
     const parsed = readYamlFile2(filePath);
     const artifact = asObject2(parsed, `tech '${filePath}'`);
     if (artifact.artifact_type !== "main_tech") {
@@ -24663,7 +25581,7 @@ function regenerateTechIndex(rootDir) {
       id: standardId,
       title,
       category,
-      path: normalizeRepoRelativePath3(rootDir, filePath)
+      path: normalizeRepoRelativePath4(rootDir, filePath)
     };
   }).filter((value) => value !== null).sort((left, right) => {
     const byPath = left.path.localeCompare(right.path);
@@ -24679,7 +25597,7 @@ function regenerateTechIndex(rootDir) {
     schema_file: "templates/strict-spec-driven/schemas/tech-index.yaml",
     standards: []
   };
-  if (existsSync15(indexPath)) {
+  if (existsSync20(indexPath)) {
     const parsed = readYamlFile2(indexPath);
     const artifact = asObject2(parsed, `tech index '${indexPath}'`);
     indexArtifact = {
@@ -24687,18 +25605,18 @@ function regenerateTechIndex(rootDir) {
       standards: []
     };
   } else {
-    mkdirSync4(path16.dirname(indexPath), { recursive: true });
+    mkdirSync5(path21.dirname(indexPath), { recursive: true });
   }
   indexArtifact.standards = standards;
   writeYamlFile(indexPath, indexArtifact);
 }
 function mergeDeltaTechStandards(rootDir, changeDir) {
-  const deltaTechDir = path16.join(changeDir, "tech");
-  const deltaTechPaths = listYamlFiles3(deltaTechDir);
+  const deltaTechDir = path21.join(changeDir, "tech");
+  const deltaTechPaths = listYamlFiles4(deltaTechDir);
   if (deltaTechPaths.length === 0) {
     return [];
   }
-  const techRoot = path16.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  const techRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "tech");
   const mainTechPathsById = collectMainTechPathsById(rootDir);
   const newStandardPaths = new Map;
   const mainTechCache = new Map;
@@ -24733,21 +25651,21 @@ function mergeDeltaTechStandards(rootDir, changeDir) {
         }
         mainTechCache.set(cacheKey, loaded);
       }
-      report.standardPath = normalizeRepoRelativePath3(rootDir, existingTechPath);
+      report.standardPath = normalizeRepoRelativePath4(rootDir, existingTechPath);
     } else if (newStandardPaths.has(deltaTech.target_standard)) {
       cacheKey = newStandardPaths.get(deltaTech.target_standard);
     } else {
-      cacheKey = path16.join(techRoot, `${deltaTech.target_standard}.yaml`);
+      cacheKey = path21.join(techRoot, `${deltaTech.target_standard}.yaml`);
       mainTechCache.set(cacheKey, buildNewMainTech(deltaTech));
       newStandardPaths.set(deltaTech.target_standard, cacheKey);
       report.created = true;
-      report.standardPath = normalizeRepoRelativePath3(rootDir, cacheKey);
+      report.standardPath = normalizeRepoRelativePath4(rootDir, cacheKey);
     }
     const mainTech = mainTechCache.get(cacheKey);
     applyDeltaToMainTech(mainTech, deltaTech, report, cacheKey);
   }
   if (mainTechCache.size > 0) {
-    mkdirSync4(techRoot, { recursive: true });
+    mkdirSync5(techRoot, { recursive: true });
     for (const [techPath, mainTechArtifact] of mainTechCache) {
       writeYamlFile(techPath, mainTechArtifact);
     }
@@ -24762,15 +25680,15 @@ function mergeDeltaTechStandards(rootDir, changeDir) {
   });
 }
 function syncRoadmapAfterArchive(rootDir) {
-  const roadmapDir = path16.join(rootDir, ROADMAP_DIR);
-  if (!existsSync15(roadmapDir)) {
+  const roadmapDir = path21.join(rootDir, ROADMAP_DIR);
+  if (!existsSync20(roadmapDir)) {
     return null;
   }
   return syncRoadmap(rootDir);
 }
 function archiveChange(rootDir, changeName) {
-  const changeDir = path16.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", changeName);
-  if (!existsSync15(changeDir)) {
+  const changeDir = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "changes", changeName);
+  if (!existsSync20(changeDir)) {
     throw new Error(`change '${changeName}' not found`);
   }
   const verifyResult = verifyChange(rootDir, changeName);
@@ -24779,15 +25697,15 @@ function archiveChange(rootDir, changeName) {
   }
   const requiredArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];
   for (const artifactName of requiredArtifacts) {
-    const artifactPath = path16.join(changeDir, artifactName);
-    if (!existsSync15(artifactPath)) {
+    const artifactPath = path21.join(changeDir, artifactName);
+    if (!existsSync20(artifactPath)) {
       throw new Error(`required artifact '${artifactName}' is missing`);
     }
     readYamlFile2(artifactPath);
   }
   const mainSpecPathsById = collectMainSpecPathsById(rootDir);
-  const deltaSpecsDir = path16.join(changeDir, "specs");
-  const deltaSpecPaths = listYamlFiles3(deltaSpecsDir);
+  const deltaSpecsDir = path21.join(changeDir, "specs");
+  const deltaSpecPaths = listYamlFiles4(deltaSpecsDir);
   const mainSpecCache = new Map;
   const newSpecPaths = new Map;
   const mergeReports = new Map;
@@ -24812,18 +25730,18 @@ function archiveChange(rootDir, changeName) {
       cacheKey = newSpecPaths.get(deltaSpec.target_spec);
       created = true;
     } else if (deltaSpec.spec) {
-      cacheKey = path16.join(rootDir, deltaSpec.spec.path);
+      cacheKey = path21.join(rootDir, deltaSpec.spec.path);
       mainSpecCache.set(cacheKey, buildNewMainSpec(deltaSpec));
       newSpecPaths.set(deltaSpec.target_spec, cacheKey);
       created = true;
     } else {
-      throw new Error(formatUnresolvableDeltaTargetMessage(changeName, normalizeRepoRelativePath3(rootDir, deltaSpecPath), deltaSpec.target_spec));
+      throw new Error(formatUnresolvableDeltaTargetMessage(changeName, normalizeRepoRelativePath4(rootDir, deltaSpecPath), deltaSpec.target_spec));
     }
     let report = mergeReports.get(deltaSpec.target_spec);
     if (!report) {
       report = {
         targetSpec: deltaSpec.target_spec,
-        specPath: normalizeRepoRelativePath3(rootDir, cacheKey),
+        specPath: normalizeRepoRelativePath4(rootDir, cacheKey),
         created,
         added: 0,
         modified: 0,
@@ -24837,7 +25755,7 @@ function archiveChange(rootDir, changeName) {
     applyDeltaToMainSpec(mainSpec, deltaSpec, report, cacheKey);
   }
   for (const [mainSpecPath, mainSpecArtifact] of mainSpecCache) {
-    mkdirSync4(path16.dirname(mainSpecPath), { recursive: true });
+    mkdirSync5(path21.dirname(mainSpecPath), { recursive: true });
     writeYamlFile(mainSpecPath, mainSpecArtifact);
   }
   regenerateSpecIndex(rootDir);
@@ -24897,7 +25815,7 @@ function archiveChange(rootDir, changeName) {
   return {
     valid: true,
     changeName,
-    archiveDestination: normalizeRepoRelativePath3(rootDir, archiveDestination),
+    archiveDestination: normalizeRepoRelativePath4(rootDir, archiveDestination),
     mergeSummary,
     mergedSpecs,
     techMergeSummary,
@@ -24907,87 +25825,30 @@ function archiveChange(rootDir, changeName) {
 }
 
 // src/cli/changes.ts
-import { existsSync as existsSync17, readFileSync as readFileSync15 } from "fs";
-import path18 from "path";
-
-// src/cli/fs.ts
-import { existsSync as existsSync16, readdirSync as readdirSync6, statSync as statSync10 } from "fs";
-import path17 from "path";
-function normalizeRepoRelativePath4(rootDir, absolutePath) {
-  return path17.relative(rootDir, absolutePath).split(path17.sep).join("/");
-}
-function listDirectoryNames(directoryPath) {
-  if (!existsSync16(directoryPath) || !statSync10(directoryPath).isDirectory()) {
-    return [];
-  }
-  return readdirSync6(directoryPath, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
-}
-function listYamlFiles4(directoryPath) {
-  if (!existsSync16(directoryPath) || !statSync10(directoryPath).isDirectory()) {
-    return [];
-  }
-  const files = [];
-  function walk(currentPath) {
-    const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
-    for (const entry of entries) {
-      const fullPath = path17.join(currentPath, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-        continue;
-      }
-      if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        files.push(fullPath);
-      }
-    }
-  }
-  walk(directoryPath);
-  return files;
-}
-function listFilesRecursive(directoryPath) {
-  if (!existsSync16(directoryPath) || !statSync10(directoryPath).isDirectory()) {
-    return [];
-  }
-  const files = [];
-  function walk(currentPath) {
-    const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
-    for (const entry of entries) {
-      const fullPath = path17.join(currentPath, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-        continue;
-      }
-      if (entry.isFile()) {
-        files.push(fullPath);
-      }
-    }
-  }
-  walk(directoryPath);
-  return files;
-}
-
-// src/cli/changes.ts
-var STRICT_WORKFLOW_DIR7 = ".strict-spec-driven";
+import { existsSync as existsSync21, readFileSync as readFileSync18 } from "fs";
+import path22 from "path";
+var STRICT_WORKFLOW_DIR8 = ".strict-spec-driven";
 function getChangesDir(rootDir) {
-  return path18.join(rootDir, STRICT_WORKFLOW_DIR7, "changes");
+  return path22.join(rootDir, STRICT_WORKFLOW_DIR8, "changes");
 }
 function getArchiveDir(rootDir) {
-  return path18.join(getChangesDir(rootDir), "archive");
+  return path22.join(getChangesDir(rootDir), "archive");
 }
 function readActiveChangeStatus(rootDir, changeName) {
-  const changeDir = path18.join(getChangesDir(rootDir), changeName);
-  const questionsPath = path18.join(changeDir, "questions.yaml");
-  const tasksPath = path18.join(changeDir, "tasks.yaml");
+  const changeDir = path22.join(getChangesDir(rootDir), changeName);
+  const questionsPath = path22.join(changeDir, "questions.yaml");
+  const tasksPath = path22.join(changeDir, "tasks.yaml");
   try {
-    if (existsSync17(questionsPath)) {
-      const questionsArtifact = parseYamlDocument(readFileSync15(questionsPath, "utf8"));
+    if (existsSync21(questionsPath)) {
+      const questionsArtifact = parseYamlDocument(readFileSync18(questionsPath, "utf8"));
       if (Array.isArray(questionsArtifact.open) && questionsArtifact.open.length > 0) {
         return "blocked";
       }
     }
-    if (!existsSync17(tasksPath)) {
+    if (!existsSync21(tasksPath)) {
       return "proposed";
     }
-    const tasksArtifact = parseYamlDocument(readFileSync15(tasksPath, "utf8"));
+    const tasksArtifact = parseYamlDocument(readFileSync18(tasksPath, "utf8"));
     let total = 0;
     let complete = 0;
     for (const taskMap of Object.values(tasksArtifact.sections ?? {})) {
@@ -25026,25 +25887,33 @@ function findArchivedMatchesByBareName(rootDir, bareName) {
   return listArchivedChanges(rootDir).filter((archiveDirName) => archivedChangePattern.test(archiveDirName));
 }
 
+// src/cli/generated-document-rerender.ts
+var RERENDERED_DOCUMENTS_KEY = "rerenderedDocuments";
+function withRerenderedDocuments(rootDir, result) {
+  if (result.valid === false)
+    return result;
+  return { ...result, [RERENDERED_DOCUMENTS_KEY]: rerenderStaleGeneratedDocuments(rootDir) };
+}
+
 // src/cli/cmd-change.ts
 function printChangeArtifacts(rootDir, name, changeDir) {
   writeOut(`Artifacts for '${name}':
 `);
   for (const artifact of ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"]) {
-    const artifactPath = path19.join(changeDir, artifact);
-    const displayPath = normalizeRepoRelativePath4(rootDir, artifactPath);
-    writeOut(`  ${displayPath}${existsSync18(artifactPath) ? "" : " (missing)"}
+    const artifactPath = path23.join(changeDir, artifact);
+    const displayPath = normalizeRepoRelativePath2(rootDir, artifactPath);
+    writeOut(`  ${displayPath}${existsSync22(artifactPath) ? "" : " (missing)"}
 `);
   }
-  const specsDir = path19.join(changeDir, "specs");
-  const specFiles = listYamlFiles4(specsDir);
+  const specsDir = path23.join(changeDir, "specs");
+  const specFiles = listYamlFiles(specsDir);
   if (specFiles.length === 0) {
-    writeOut(`  ${normalizeRepoRelativePath4(rootDir, specsDir)}/ (empty)
+    writeOut(`  ${normalizeRepoRelativePath2(rootDir, specsDir)}/ (empty)
 `);
     return;
   }
   for (const specFile of specFiles) {
-    writeOut(`  ${normalizeRepoRelativePath4(rootDir, specFile)}
+    writeOut(`  ${normalizeRepoRelativePath2(rootDir, specFile)}
 `);
   }
 }
@@ -25063,9 +25932,9 @@ function runApply(argv) {
   }
   try {
     const tasksYaml = readChangeTasks(process.cwd(), changeName);
-    const { result: result2, updatedYaml } = applyTask(tasksYaml);
+    const { result, updatedYaml } = applyTask(tasksYaml);
     writeChangeTasks(process.cwd(), changeName, updatedYaml);
-    writeJson(result2);
+    writeJson(result);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -25087,9 +25956,9 @@ function runVerify(argv) {
     return 1;
   }
   try {
-    const result2 = verifyChange(process.cwd(), changeName);
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = verifyChange(process.cwd(), changeName);
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -25110,9 +25979,9 @@ function runArchive(argv) {
     return 1;
   }
   try {
-    const result2 = archiveChange(process.cwd(), changeName);
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = withRerenderedDocuments(process.cwd(), archiveChange(process.cwd(), changeName));
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -25129,7 +25998,7 @@ function runList(argv) {
   }
   const rootDir = process.cwd();
   const changesDir = getChangesDir(rootDir);
-  if (!existsSync18(changesDir) || !statSync11(changesDir).isDirectory()) {
+  if (!existsSync22(changesDir) || !statSync12(changesDir).isDirectory()) {
     writeOut(`No .strict-spec-driven/changes/ directory found.
 `);
     return 0;
@@ -25183,14 +26052,14 @@ function runModify(argv) {
     }
     return 0;
   }
-  const activeTargetDir = path19.join(getChangesDir(rootDir), target);
-  if (existsSync18(activeTargetDir) && statSync11(activeTargetDir).isDirectory()) {
+  const activeTargetDir = path23.join(getChangesDir(rootDir), target);
+  if (existsSync22(activeTargetDir) && statSync12(activeTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, activeTargetDir);
     return 0;
   }
   const archiveRoot = getArchiveDir(rootDir);
-  const archivedTargetDir = path19.join(archiveRoot, target);
-  if (existsSync18(archivedTargetDir) && statSync11(archivedTargetDir).isDirectory()) {
+  const archivedTargetDir = path23.join(archiveRoot, target);
+  if (existsSync22(archivedTargetDir) && statSync12(archivedTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, archivedTargetDir);
     return 0;
   }
@@ -25217,15 +26086,15 @@ function runCancel(argv) {
   }
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
-  const archivedTargetDir = path19.join(archiveRoot, target);
-  if (existsSync18(archivedTargetDir) && statSync11(archivedTargetDir).isDirectory()) {
+  const archivedTargetDir = path23.join(archiveRoot, target);
+  if (existsSync22(archivedTargetDir) && statSync12(archivedTargetDir).isDirectory()) {
     writeError(`cancel is limited to active changes; archived target '${target}' cannot be cancelled`);
     return 1;
   }
-  const activeTargetDir = path19.join(getChangesDir(rootDir), target);
-  if (existsSync18(activeTargetDir) && statSync11(activeTargetDir).isDirectory()) {
+  const activeTargetDir = path23.join(getChangesDir(rootDir), target);
+  if (existsSync22(activeTargetDir) && statSync12(activeTargetDir).isDirectory()) {
     rmSync4(activeTargetDir, { recursive: true, force: true });
-    writeOut(`Cancelled: ${normalizeRepoRelativePath4(rootDir, activeTargetDir)}
+    writeOut(`Cancelled: ${normalizeRepoRelativePath2(rootDir, activeTargetDir)}
 `);
     return 0;
   }
@@ -25239,21 +26108,21 @@ function runCancel(argv) {
 }
 
 // src/cli/cmd-workflow.ts
-import { existsSync as existsSync21, statSync as statSync12 } from "node:fs";
-import path22 from "node:path";
+import { existsSync as existsSync25, statSync as statSync13 } from "node:fs";
+import path26 from "node:path";
 
 // src/workflow-config-author.ts
-import { existsSync as existsSync19 } from "node:fs";
-import path20 from "node:path";
+import { existsSync as existsSync23 } from "node:fs";
+import path24 from "node:path";
 var CONFIG_SCHEMA_ID = "strict-spec-driven/config/v1";
 var CONFIG_ARTIFACT_PATH = ".strict-spec-driven/config.yaml";
-function asRecord3(value) {
+function asRecord5(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
-function strings(value) {
+function strings2(value) {
   return Array.isArray(value) ? value.filter((entry) => typeof entry === "string") : [];
 }
-function appendUnique(existing, additions) {
+function appendUnique2(existing, additions) {
   return [...new Set([...existing, ...additions])];
 }
 function splitScoped(value, flagName) {
@@ -25267,14 +26136,14 @@ function hasIntent(input) {
   return input.preferredHumanLanguage !== undefined || input.context !== undefined || input.regressionMethod !== undefined || input.regressionCommand !== undefined || input.regressionMeaning !== undefined || input.regressionUnavailableBehavior !== undefined || input.coverageThreshold !== undefined || input.rules.length > 0 || input.coverageIncludes.length > 0 || input.coverageExcludes.length > 0 || input.maintenanceChecks.length > 0 || input.removeRules.length > 0 || input.removeCoverageIncludes.length > 0 || input.removeCoverageExcludes.length > 0 || input.removeMaintenanceChecks.length > 0 || input.removePreferredHumanLanguage || input.removeContext || input.removeRegressionMethod || input.removeRegressionCommand || input.removeRegressionMeaning || input.removeRegressionUnavailableBehavior || input.removeCoverage;
 }
 function mutateRules(candidate, input) {
-  const rules = asRecord3(candidate.rules);
+  const rules = asRecord5(candidate.rules);
   for (const encoded of input.rules) {
     const [category, statement] = splitScoped(encoded, "rule");
-    rules[category] = appendUnique(strings(rules[category]), [statement]);
+    rules[category] = appendUnique2(strings2(rules[category]), [statement]);
   }
   for (const encoded of input.removeRules) {
     const [category, statement] = splitScoped(encoded, "remove-rule");
-    const remaining = strings(rules[category]).filter((entry) => entry !== statement);
+    const remaining = strings2(rules[category]).filter((entry) => entry !== statement);
     if (remaining.length === 0)
       delete rules[category];
     else
@@ -25286,8 +26155,8 @@ function mutateRules(candidate, input) {
     candidate.rules = rules;
 }
 function mutateReviewEvidence(candidate, input) {
-  const reviewEvidence = asRecord3(candidate.review_evidence);
-  const regression = asRecord3(reviewEvidence.project_regression);
+  const reviewEvidence = asRecord5(candidate.review_evidence);
+  const regression = asRecord5(reviewEvidence.project_regression);
   if (input.regressionMethod !== undefined)
     regression.method = input.regressionMethod;
   if (input.regressionCommand !== undefined)
@@ -25308,29 +26177,29 @@ function mutateReviewEvidence(candidate, input) {
   if (input.removeCoverage) {
     delete regression.coverage;
   } else {
-    const coverage = asRecord3(regression.coverage);
+    const coverage = asRecord5(regression.coverage);
     const hasCoverageWrite = input.coverageThreshold !== undefined || input.coverageIncludes.length > 0 || input.coverageExcludes.length > 0;
     if (hasCoverageWrite && coverage.metric === undefined)
       coverage.metric = "line";
     if (input.coverageThreshold !== undefined)
       coverage.threshold = input.coverageThreshold;
     if (input.coverageIncludes.length > 0) {
-      const scope = asRecord3(coverage.scope);
-      scope.include = appendUnique(strings(scope.include), input.coverageIncludes);
+      const scope = asRecord5(coverage.scope);
+      scope.include = appendUnique2(strings2(scope.include), input.coverageIncludes);
       coverage.scope = scope;
     }
     if (input.coverageExcludes.length > 0) {
-      const scope = asRecord3(coverage.scope);
-      scope.exclude = appendUnique(strings(scope.exclude), input.coverageExcludes);
+      const scope = asRecord5(coverage.scope);
+      scope.exclude = appendUnique2(strings2(scope.exclude), input.coverageExcludes);
       coverage.scope = scope;
     }
     if (input.removeCoverageIncludes.length > 0 || input.removeCoverageExcludes.length > 0) {
-      const scope = asRecord3(coverage.scope);
+      const scope = asRecord5(coverage.scope);
       if (input.removeCoverageIncludes.length > 0) {
-        scope.include = strings(scope.include).filter((entry) => !input.removeCoverageIncludes.includes(entry));
+        scope.include = strings2(scope.include).filter((entry) => !input.removeCoverageIncludes.includes(entry));
       }
       if (input.removeCoverageExcludes.length > 0) {
-        const remaining = strings(scope.exclude).filter((entry) => !input.removeCoverageExcludes.includes(entry));
+        const remaining = strings2(scope.exclude).filter((entry) => !input.removeCoverageExcludes.includes(entry));
         if (remaining.length === 0)
           delete scope.exclude;
         else
@@ -25353,17 +26222,17 @@ function mutateReviewEvidence(candidate, input) {
 function mutateMaintenance(candidate, input) {
   if (input.maintenanceChecks.length === 0 && input.removeMaintenanceChecks.length === 0)
     return;
-  const maintenance = asRecord3(candidate.maintenance);
+  const maintenance = asRecord5(candidate.maintenance);
   const checks = Array.isArray(maintenance.checks) ? maintenance.checks.filter((entry) => Boolean(entry) && typeof entry === "object" && !Array.isArray(entry)) : [];
   const byType = new Map;
   for (const check of checks) {
     if (typeof check.type === "string")
       byType.set(check.type, check);
   }
-  for (const type2 of input.maintenanceChecks)
-    byType.set(type2, { ...byType.get(type2) ?? {}, type: type2 });
-  for (const type2 of input.removeMaintenanceChecks)
-    byType.delete(type2);
+  for (const type of input.maintenanceChecks)
+    byType.set(type, { ...byType.get(type) ?? {}, type });
+  for (const type of input.removeMaintenanceChecks)
+    byType.delete(type);
   if (byType.size === 0)
     delete candidate.maintenance;
   else {
@@ -25374,8 +26243,8 @@ function mutateMaintenance(candidate, input) {
 function authorWorkflowConfig(rootDir, input) {
   if (!hasIntent(input))
     throw new Error("config-edit requires named semantic fields or removals");
-  const absolutePath = path20.join(rootDir, CONFIG_ARTIFACT_PATH);
-  if (!existsSync19(absolutePath)) {
+  const absolutePath = path24.join(rootDir, CONFIG_ARTIFACT_PATH);
+  if (!existsSync23(absolutePath)) {
     throw new Error(`workflow config is missing: ${CONFIG_ARTIFACT_PATH}; run strict-spec-cli init first`);
   }
   const candidate = parseYamlFile(absolutePath);
@@ -25396,7 +26265,7 @@ function authorWorkflowConfig(rootDir, input) {
       artifactFamily: "workflow-config",
       artifactId: "config",
       schemaId: CONFIG_SCHEMA_ID,
-      familyRoot: path20.join(rootDir, ".strict-spec-driven"),
+      familyRoot: path24.join(rootDir, ".strict-spec-driven"),
       absolutePath,
       operation: "update",
       candidate,
@@ -25416,25 +26285,25 @@ function authorWorkflowConfig(rootDir, input) {
 }
 
 // src/workflow-state.ts
-import { existsSync as existsSync20, readdirSync as readdirSync7, readFileSync as readFileSync16 } from "fs";
-import path21 from "path";
+import { existsSync as existsSync24, readdirSync as readdirSync7, readFileSync as readFileSync19 } from "fs";
+import path25 from "path";
 
 // src/task-list.ts
 function flattenTasks(artifact) {
   const sections = artifact.sections;
   if (!sections)
     return [];
-  const result2 = [];
+  const result = [];
   for (const [sectionName, taskMap] of Object.entries(sections)) {
     for (const [taskId, task] of Object.entries(taskMap ?? {})) {
-      result2.push({ sectionName, taskId, text: task.text, status: task.status, command: task.command });
+      result.push({ sectionName, taskId, text: task.text, status: task.status, command: task.command });
     }
   }
-  return result2;
+  return result;
 }
 
 // src/workflow-state.ts
-var STRICT_WORKFLOW_DIR8 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR9 = ".strict-spec-driven";
 var EMPTY_SPEC_DECISION_IDS = new Set([
   "no-delta-spec",
   "no-spec-impact",
@@ -25442,19 +26311,19 @@ var EMPTY_SPEC_DECISION_IDS = new Set([
   "empty-spec-decision"
 ]);
 function changeDir(rootDir, changeName) {
-  return path21.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", changeName);
+  return path25.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", changeName);
 }
 function toRepoPath(rootDir, absolutePath) {
-  return path21.relative(rootDir, absolutePath).split(path21.sep).join("/");
+  return path25.relative(rootDir, absolutePath).split(path25.sep).join("/");
 }
 function listDeltaSpecFiles(rootDir, changeName) {
-  const specsDir = path21.join(changeDir(rootDir, changeName), "specs");
-  if (!existsSync20(specsDir))
+  const specsDir = path25.join(changeDir(rootDir, changeName), "specs");
+  if (!existsSync24(specsDir))
     return [];
   const files = [];
   function walk(currentPath) {
     for (const entry of readdirSync7(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const fullPath = path21.join(currentPath, entry.name);
+      const fullPath = path25.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -25474,11 +26343,11 @@ function hasExplicitEmptySpecDecision(rootDir, changeName) {
   return Object.keys(design.decisions).some((decisionId) => EMPTY_SPEC_DECISION_IDS.has(decisionId.toLowerCase()));
 }
 function readChangeArtifact(rootDir, changeName, artifactName) {
-  const artifactPath = path21.join(changeDir(rootDir, changeName), artifactName);
-  if (!existsSync20(artifactPath))
+  const artifactPath = path25.join(changeDir(rootDir, changeName), artifactName);
+  if (!existsSync24(artifactPath))
     return;
   try {
-    return parseYamlDocument(readFileSync16(artifactPath, "utf8"), {
+    return parseYamlDocument(readFileSync19(artifactPath, "utf8"), {
       source: toRepoPath(rootDir, artifactPath)
     });
   } catch {
@@ -25486,19 +26355,19 @@ function readChangeArtifact(rootDir, changeName, artifactName) {
   }
 }
 function readOpenQuestionIds(rootDir, changeName) {
-  const questionsPath = path21.join(changeDir(rootDir, changeName), "questions.yaml");
-  if (!existsSync20(questionsPath))
+  const questionsPath = path25.join(changeDir(rootDir, changeName), "questions.yaml");
+  if (!existsSync24(questionsPath))
     return [];
-  const artifact = parseYamlDocument(readFileSync16(questionsPath, "utf8"), {
+  const artifact = parseYamlDocument(readFileSync19(questionsPath, "utf8"), {
     source: toRepoPath(rootDir, questionsPath)
   });
   return (artifact.open ?? []).map((question) => question.id).filter((id) => typeof id === "string" && id.length > 0).sort();
 }
 function readFirstPendingTask(rootDir, changeName) {
-  const tasksPath = path21.join(changeDir(rootDir, changeName), "tasks.yaml");
-  if (!existsSync20(tasksPath))
+  const tasksPath = path25.join(changeDir(rootDir, changeName), "tasks.yaml");
+  if (!existsSync24(tasksPath))
     return;
-  const artifact = parseYamlDocument(readFileSync16(tasksPath, "utf8"), { source: toRepoPath(rootDir, tasksPath) });
+  const artifact = parseYamlDocument(readFileSync19(tasksPath, "utf8"), { source: toRepoPath(rootDir, tasksPath) });
   return flattenTasks(artifact).find((task) => task.status !== "complete");
 }
 function hasEntries(value) {
@@ -25592,7 +26461,7 @@ function suggestionsForDiagnostics(rootDir, changeName, diagnostics) {
       reason: `Mark pending task '${firstPendingTask.taskId}' complete after the work is done.`
     });
   }
-  if (diagnostics.some((diagnostic2) => diagnostic2.source !== "task_completion" && diagnostic2.source !== "open_questions")) {
+  if (diagnostics.some((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "open_questions")) {
     suggestions.push({
       command: `strict-spec-cli verify ${changeName}`,
       reason: "Rerun strict verification after fixing reported artifact or workflow diagnostics."
@@ -25621,9 +26490,9 @@ function getWorkflowState(rootDir, changeName) {
 }
 function formatMissingDeltaSpecMessage(changeName) {
   const acceptedIds = [...EMPTY_SPEC_DECISION_IDS];
-  const specsDir = `${STRICT_WORKFLOW_DIR8}/changes/${changeName}/specs/`;
+  const specsDir = `${STRICT_WORKFLOW_DIR9}/changes/${changeName}/specs/`;
   const emptySpecDecisionCommand = formatEmptySpecDecisionCommand(changeName);
-  return `change '${changeName}' has no delta spec files in '${specsDir}' and records no design decision that ` + `counts as an explicit empty-spec decision, so proposal handoff is blocked. Fix one of the following: ` + `(A) If this change has strict spec impact, author a delta spec by running: ` + `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED ` + `--requirement <requirement-id> --strength MUST --statement "<observable behavior>", where <spec-id> is ` + `an existing spec id listed in ${STRICT_WORKFLOW_DIR8}/specs/INDEX.yaml. ` + `(B) If this change is technical-only and no main spec requirement changes, record that decision ` + `explicitly by running: ${emptySpecDecisionCommand}. ` + `The decision ids accepted as an explicit empty-spec decision are: ${acceptedIds.join(", ")}.`;
+  return `change '${changeName}' has no delta spec files in '${specsDir}' and records no design decision that ` + `counts as an explicit empty-spec decision, so proposal handoff is blocked. Fix one of the following: ` + `(A) If this change has strict spec impact, author a delta spec by running: ` + `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED ` + `--requirement <requirement-id> --strength MUST --statement "<observable behavior>", where <spec-id> is ` + `an existing spec id listed in ${STRICT_WORKFLOW_DIR9}/specs/INDEX.yaml. ` + `(B) If this change is technical-only and no main spec requirement changes, record that decision ` + `explicitly by running: ${emptySpecDecisionCommand}. ` + `The decision ids accepted as an explicit empty-spec decision are: ${acceptedIds.join(", ")}.`;
 }
 function formatEmptySpecDecisionCommand(changeName) {
   const [firstAcceptedId] = [...EMPTY_SPEC_DECISION_IDS];
@@ -25631,7 +26500,7 @@ function formatEmptySpecDecisionCommand(changeName) {
 }
 function checkProposalReadiness(rootDir, changeName) {
   const verification = verifyChange(rootDir, changeName);
-  const diagnostics = verification.diagnostics.filter((diagnostic2) => diagnostic2.source !== "task_completion" && diagnostic2.source !== "task_completeness");
+  const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "task_completeness");
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
   diagnostics.push(...checkRequirementIntakeEvidence(rootDir, changeName));
   const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0 && !hasExplicitEmptySpecDecision(rootDir, changeName);
@@ -25724,10 +26593,10 @@ function parseConfigEditArgs(argv) {
       index += 1;
   }
   const scalar = (name) => {
-    const values2 = flags[name] ?? [];
-    if (values2.length > 1)
+    const values = flags[name] ?? [];
+    if (values.length > 1)
       throw new Error(`--${name} may be supplied at most once`);
-    return values2[0];
+    return values[0];
   };
   const thresholdText = scalar("coverage-threshold");
   const threshold = thresholdText === undefined ? undefined : Number(thresholdText);
@@ -25763,9 +26632,9 @@ function runConfigEdit(argv) {
   if (handleHelpRequest("config-edit", argv))
     return 0;
   try {
-    const result2 = authorWorkflowConfig(process.cwd(), parseConfigEditArgs(argv));
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = withRerenderedDocuments(process.cwd(), authorWorkflowConfig(process.cwd(), parseConfigEditArgs(argv)));
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
     writeUsage(getCommandUsage("config-edit"));
@@ -25773,8 +26642,8 @@ function runConfigEdit(argv) {
   }
 }
 function checkWorkflowConfig(workflowStatePath) {
-  const configPath = path22.join(workflowStatePath, "config.yaml");
-  if (!existsSync21(configPath)) {
+  const configPath = path26.join(workflowStatePath, "config.yaml");
+  if (!existsSync25(configPath)) {
     return 0;
   }
   let artifact;
@@ -25786,22 +26655,22 @@ function checkWorkflowConfig(workflowStatePath) {
     writeError(message);
     return 1;
   }
-  let result2;
+  let result;
   try {
-    const schema2 = loadBundledSchemaByArtifactType("workflow_config");
-    result2 = validateArtifact(schema2, artifact, WORKFLOW_CONFIG_RELATIVE_PATH);
+    const schema = loadBundledSchemaByArtifactType("workflow_config");
+    result = validateArtifact(schema, artifact, WORKFLOW_CONFIG_RELATIVE_PATH);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(`workflow config validation could not run: ${message}`);
     return 1;
   }
-  if (result2.valid) {
+  if (result.valid) {
     return 0;
   }
   writeError(`workflow config validation failed: ${WORKFLOW_CONFIG_RELATIVE_PATH}`);
-  for (const diagnostic2 of result2.diagnostics) {
-    const expected = diagnostic2.expected !== undefined ? ` (expected: ${diagnostic2.expected})` : "";
-    writeError(`${diagnostic2.fieldPath}: ${diagnostic2.message}${expected}`);
+  for (const diagnostic of result.diagnostics) {
+    const expected = diagnostic.expected !== undefined ? ` (expected: ${diagnostic.expected})` : "";
+    writeError(`${diagnostic.fieldPath}: ${diagnostic.message}${expected}`);
   }
   return 1;
 }
@@ -25813,8 +26682,8 @@ function runCheckWorkflowState(argv) {
     writeUsage(getCommandUsage("check-workflow-state"));
     return 1;
   }
-  const workflowStatePath = path22.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
-  if (existsSync21(workflowStatePath) && statSync12(workflowStatePath).isDirectory()) {
+  const workflowStatePath = path26.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
+  if (existsSync25(workflowStatePath) && statSync13(workflowStatePath).isDirectory()) {
     if (checkWorkflowConfig(workflowStatePath) !== 0) {
       return 1;
     }
@@ -25841,9 +26710,9 @@ function runReady(argv) {
     return 1;
   }
   try {
-    const result2 = checkProposalReadiness(process.cwd(), changeName);
-    writeJson(result2);
-    return result2.ready ? 0 : 1;
+    const result = checkProposalReadiness(process.cwd(), changeName);
+    writeJson(result);
+    return result.ready ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -25874,14 +26743,14 @@ function runNext(argv) {
 }
 
 // src/roadmap/archive.ts
-import { existsSync as existsSync22 } from "fs";
-import path23 from "path";
+import { existsSync as existsSync26 } from "fs";
+import path27 from "path";
 function archivePlannedChangePath(rootDir, plannedChange) {
   const relative = plannedChange.relativeRoadmapPath.startsWith("planned-changes/") ? plannedChange.relativeRoadmapPath.slice("planned-changes/".length) : plannedChange.relativeRoadmapPath;
-  return path23.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, relative);
+  return path27.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, relative);
 }
 function archiveMilestonePath(rootDir, milestone) {
-  return path23.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
+  return path27.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
 }
 function buildSkippedMilestone(status) {
   return {
@@ -25900,13 +26769,13 @@ function buildSkippedMilestone(status) {
 }
 function appendCollisionDiagnostics(targets, diagnostics, rootDir) {
   for (const target of targets) {
-    if (existsSync22(target.milestoneArchivePath)) {
-      diagnostics.push(makeDiagnostic("semantic", target.milestone.repoRelativePath, "$", "roadmap milestone archive destination already exists", "available archive destination", normalizeRepoRelativePath2(rootDir, target.milestoneArchivePath)));
+    if (existsSync26(target.milestoneArchivePath)) {
+      diagnostics.push(makeDiagnostic("semantic", target.milestone.repoRelativePath, "$", "roadmap milestone archive destination already exists", "available archive destination", normalizeRepoRelativePath3(rootDir, target.milestoneArchivePath)));
     }
     for (const plannedChange of target.plannedChanges) {
-      if (!existsSync22(plannedChange.archivePath))
+      if (!existsSync26(plannedChange.archivePath))
         continue;
-      diagnostics.push(makeDiagnostic("semantic", plannedChange.plannedChange.repoRelativePath, "$", "roadmap planned-change archive destination already exists", "available archive destination", normalizeRepoRelativePath2(rootDir, plannedChange.archivePath)));
+      diagnostics.push(makeDiagnostic("semantic", plannedChange.plannedChange.repoRelativePath, "$", "roadmap planned-change archive destination already exists", "available archive destination", normalizeRepoRelativePath3(rootDir, plannedChange.archivePath)));
     }
   }
 }
@@ -26015,15 +26884,15 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
       });
       archivedPlannedChanges.push({
         id: plannedChangeTarget.plannedChange.artifact.planned_change.id,
-        sourcePath: toPosix3(path23.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
-        archivePath: normalizeRepoRelativePath2(rootDir, plannedChangeTarget.archivePath).replace(/^\.strict-spec-driven\//, "")
+        sourcePath: toPosix3(path27.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
+        archivePath: normalizeRepoRelativePath3(rootDir, plannedChangeTarget.archivePath).replace(/^\.strict-spec-driven\//, "")
       });
     }
     archivedMilestones.push({
       id: target.status.id,
       title: target.status.title,
       sourcePath: target.status.path,
-      archivePath: normalizeRepoRelativePath2(rootDir, target.milestoneArchivePath).replace(/^\.strict-spec-driven\//, ""),
+      archivePath: normalizeRepoRelativePath3(rootDir, target.milestoneArchivePath).replace(/^\.strict-spec-driven\//, ""),
       plannedChanges: archivedPlannedChanges.sort((left, right) => left.id.localeCompare(right.id))
     });
   }
@@ -26031,7 +26900,7 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
     const archivedMilestonePaths = new Set(targets.map((target) => target.milestone.absolutePath));
     const remainingMilestones = roadmap.milestones.filter((milestone) => !archivedMilestonePaths.has(milestone.absolutePath));
     mutations.push({
-      absolutePath: path23.join(rootDir, ROADMAP_INDEX_PATH),
+      absolutePath: path27.join(rootDir, ROADMAP_INDEX_PATH),
       artifactId: "roadmap-index",
       schemaId: ROADMAP_INDEX_SCHEMA_ID,
       role: "reference",
@@ -26064,28 +26933,28 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
 }
 
 // src/roadmap/author.ts
-import { existsSync as existsSync23 } from "fs";
-import path24 from "path";
+import { existsSync as existsSync27 } from "fs";
+import path28 from "path";
 var MILESTONE_ID_PATTERN2 = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
-function uniqueStrings2(values2) {
+function uniqueStrings2(values) {
   const seen = new Set;
-  const result2 = [];
-  for (const value of values2) {
+  const result = [];
+  for (const value of values) {
     if (seen.has(value))
       continue;
     seen.add(value);
-    result2.push(value);
+    result.push(value);
   }
-  return result2;
+  return result;
 }
 function hasAnyField(input) {
   return Boolean(input.title) || Boolean(input.goal) || input.scopeIn.length > 0 || input.scopeOut.length > 0 || input.doneCriteria.length > 0 || input.intakeQuestions.length > 0 || input.dependencies.length > 0 || input.risks.length > 0 || input.notes.length > 0 || input.details !== undefined || input.removedScopeIn.length > 0 || input.removedScopeOut.length > 0 || input.removedDoneCriteria.length > 0 || input.removedDependencies.length > 0 || input.removedRisks.length > 0 || input.removedNotes.length > 0 || input.removedIntakeQuestions.length > 0;
 }
-function appendUnique2(existing, additions) {
+function appendUnique3(existing, additions) {
   return uniqueStrings2([...existing, ...additions]);
 }
 function mergeList(existing, additions, removals, flagName) {
-  let merged = appendUnique2(existing, additions);
+  let merged = appendUnique3(existing, additions);
   for (const needle of removals) {
     const matched = merged.filter((entry) => entry.includes(needle));
     if (matched.length === 0) {
@@ -26099,7 +26968,7 @@ function mergeList(existing, additions, removals, flagName) {
   return merged;
 }
 function mergeIdList(existing, additions, removals, flagName) {
-  let merged = appendUnique2(existing, additions);
+  let merged = appendUnique3(existing, additions);
   for (const needle of removals) {
     if (!merged.includes(needle)) {
       throw new Error(`--${flagName} matched no entry: '${needle}'`);
@@ -26109,7 +26978,7 @@ function mergeIdList(existing, additions, removals, flagName) {
   return merged;
 }
 function mergeExactList(existing, additions, removals, flagName, artifactPath, fieldPath, diagnostics) {
-  let merged = appendUnique2(existing, additions);
+  let merged = appendUnique3(existing, additions);
   for (const value of removals) {
     if (!merged.includes(value)) {
       diagnostics.push(makeDiagnostic("semantic", artifactPath, fieldPath, `--${flagName} matched no entry`, value, "missing"));
@@ -26123,31 +26992,31 @@ function sameIntakeQuestion(left, right) {
   return left.id === right.id && left.question === right.question && left.context === right.context && left.impact === right.impact && left.recommendation === right.recommendation;
 }
 function mergeIntakeQuestions(existing, additions, removedIds, artifactPath, diagnostics) {
-  const result2 = [];
+  const result = [];
   const indexById = new Map;
   for (const question of existing) {
-    indexById.set(question.id, result2.length);
-    result2.push(question);
+    indexById.set(question.id, result.length);
+    result.push(question);
   }
   const writtenThisInvocation = new Set;
   for (const question of additions) {
     const existingIndex = indexById.get(question.id);
     if (existingIndex === undefined) {
-      indexById.set(question.id, result2.length);
-      result2.push(question);
+      indexById.set(question.id, result.length);
+      result.push(question);
       writtenThisInvocation.add(question.id);
       continue;
     }
-    const current = result2[existingIndex];
+    const current = result[existingIndex];
     if (writtenThisInvocation.has(question.id) && !sameIntakeQuestion(current, question)) {
       diagnostics.push(makeDiagnostic("semantic", artifactPath, `$.intake_questions.${question.id}`, "intake question id supplied twice in one invocation with conflicting content", `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`, `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`));
       continue;
     }
-    result2[existingIndex] = question;
+    result[existingIndex] = question;
     writtenThisInvocation.add(question.id);
   }
   const removed = new Set(removedIds);
-  return result2.filter((question) => !removed.has(question.id));
+  return result.filter((question) => !removed.has(question.id));
 }
 function nextScalar(existing, incoming) {
   return incoming === undefined ? existing : incoming;
@@ -26229,7 +27098,7 @@ function generateRoadmapMilestone(rootDir, input) {
   }
   const roadmap = loadRoadmap(rootDir, { allowInlinePlannedChanges: true });
   const preflight = getRoadmapStatus(rootDir);
-  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR));
+  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(preflight.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR));
   if (blockingPreflightDiagnostics.length > 0) {
     return {
       valid: false,
@@ -26250,9 +27119,9 @@ function generateRoadmapMilestone(rootDir, input) {
     };
   }
   const existing = findExistingMilestone(roadmap.milestones, input.id);
-  const milestonePath = existing?.absolutePath ?? path24.join(rootDir, ROADMAP_MILESTONES_DIR, `${input.id}.yaml`);
-  const artifactPath = normalizeRepoRelativePath2(rootDir, milestonePath);
-  if (!existing && existsSync23(milestonePath)) {
+  const milestonePath = existing?.absolutePath ?? path28.join(rootDir, ROADMAP_MILESTONES_DIR, `${input.id}.yaml`);
+  const artifactPath = normalizeRepoRelativePath3(rootDir, milestonePath);
+  if (!existing && existsSync27(milestonePath)) {
     diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.milestone", "milestone destination already exists for a different or invalid milestone", "unused milestone file path", artifactPath));
   }
   const nextArtifact = buildArtifact(input, existing, nextAppendedMilestoneOrder(roadmap.milestones), artifactPath, diagnostics);
@@ -26396,7 +27265,7 @@ function generateRoadmapPlannedChange(rootDir, input) {
   }
   const roadmap = loadRoadmap(rootDir);
   const preflight = getRoadmapStatus(rootDir);
-  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR));
+  const { blocking: blockingPreflightDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(preflight.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR));
   if (blockingPreflightDiagnostics.length > 0) {
     return {
       valid: false,
@@ -26440,9 +27309,9 @@ function generateRoadmapPlannedChange(rootDir, input) {
       milestones: []
     };
   }
-  const plannedChangePath = existing?.absolutePath ?? path24.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
-  const artifactPath = normalizeRepoRelativePath2(rootDir, plannedChangePath);
-  if (!existing && existsSync23(plannedChangePath)) {
+  const plannedChangePath = existing?.absolutePath ?? path28.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
+  const artifactPath = normalizeRepoRelativePath3(rootDir, plannedChangePath);
+  if (!existing && existsSync27(plannedChangePath)) {
     diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_change", "planned change destination already exists for a different or invalid planned change", "unused planned change file path", artifactPath));
   }
   const nextArtifact = buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics);
@@ -26509,7 +27378,7 @@ function deletePlannedChange(rootDir, input) {
   const changeStates = getChangeStateIndex(rootDir);
   const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
-  const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH));
+  const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH));
   if (blockingDiagnostics.length > 0)
     return invalidDeleteResult(roadmap.warnings, blockingDiagnostics);
   const plannedChange = roadmap.plannedChanges.find((candidate) => candidate.artifact.planned_change.id === input.plannedChangeId);
@@ -26520,7 +27389,7 @@ function deletePlannedChange(rootDir, input) {
     ]);
   }
   const milestoneId = plannedChange.artifact.planned_change.milestone;
-  const deletedPath = normalizeRepoRelativePath2(rootDir, plannedChange.absolutePath);
+  const deletedPath = normalizeRepoRelativePath3(rootDir, plannedChange.absolutePath);
   const plannedChangeState = derivePlannedChangeState(changeStates, input.plannedChangeId);
   if (plannedChangeState === "archived" && !input.allowComplete) {
     return invalidDeleteResult(roadmap.warnings, [
@@ -26590,8 +27459,8 @@ function deletePlannedChange(rootDir, input) {
 }
 
 // src/roadmap/move.ts
-import { existsSync as existsSync24 } from "fs";
-import path25 from "path";
+import { existsSync as existsSync28 } from "fs";
+import path29 from "path";
 function invalidMoveResult(warnings, diagnostics) {
   return {
     valid: false,
@@ -26603,8 +27472,8 @@ function invalidMoveResult(warnings, diagnostics) {
 }
 function archivedMilestoneExists(rootDir, milestoneId) {
   const diagnostics = [];
-  const archiveDir = path25.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
-  for (const filePath of listYamlFiles(archiveDir)) {
+  const archiveDir = path29.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
+  for (const filePath of listYamlFiles2(archiveDir)) {
     const artifact = validateMilestoneArtifact(readYamlFile(filePath), filePath, diagnostics);
     if (artifact?.milestone.id === milestoneId)
       return true;
@@ -26658,7 +27527,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
   const changeStates = getChangeStateIndex(rootDir);
   const archivedPlannedChangeIds = loadArchivedPlannedChangeIds(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds);
-  const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH));
+  const { blocking: blockingDiagnostics, repairable: toleratedDiagnostics } = partitionRepairableDiagnostics(roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH));
   if (blockingDiagnostics.length > 0)
     return invalidMoveResult(roadmap.warnings, blockingDiagnostics);
   const targetMilestone = roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === input.targetMilestoneId);
@@ -26676,7 +27545,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
     ]);
   }
   const sourceMilestoneId = plannedChange.artifact.planned_change.milestone;
-  const sourcePath = normalizeRepoRelativePath2(rootDir, plannedChange.absolutePath);
+  const sourcePath = normalizeRepoRelativePath3(rootDir, plannedChange.absolutePath);
   if (sourceMilestoneId === input.targetMilestoneId) {
     return {
       valid: true,
@@ -26699,10 +27568,10 @@ function movePlannedChangeToMilestone(rootDir, input) {
       makeDiagnostic("semantic", plannedChange.repoRelativePath, "$.planned_change.milestone", "roadmap-move-planned-change refuses to move a completed planned change because it can flip the source milestone from complete back to proposed and make the target milestone report work it never contained; rerun with --allow-complete to move it deliberately", "planned change with unstarted or in-progress strict change state", "archived strict change state")
     ]);
   }
-  const destinationAbsolutePath = path25.join(path25.dirname(plannedChange.absolutePath), canonicalPlannedChangeFileName(input.targetMilestoneId, input.plannedChangeId));
-  const destinationPath = normalizeRepoRelativePath2(rootDir, destinationAbsolutePath);
+  const destinationAbsolutePath = path29.join(path29.dirname(plannedChange.absolutePath), canonicalPlannedChangeFileName(input.targetMilestoneId, input.plannedChangeId));
+  const destinationPath = normalizeRepoRelativePath3(rootDir, destinationAbsolutePath);
   const renames = destinationAbsolutePath !== plannedChange.absolutePath;
-  if (renames && existsSync24(destinationAbsolutePath)) {
+  if (renames && existsSync28(destinationAbsolutePath)) {
     return invalidMoveResult(roadmap.warnings, [
       makeDiagnostic("semantic", destinationPath, "$.planned_change", "roadmap-move-planned-change destination filename is already occupied", "unused canonical planned change file path", destinationPath)
     ]);
@@ -26768,7 +27637,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
 }
 
 // src/roadmap/pause.ts
-import path26 from "path";
+import path30 from "path";
 var DEFAULT_PAUSE_REASON = "operator applied a deliberate hold";
 var DEFAULT_RESUME_REASON = "operator cleared a deliberate hold";
 var PAUSED_NOT_SET = "milestone is not paused";
@@ -26845,7 +27714,7 @@ function pauseMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path26.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path30.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const pausedOn = buildPauseDate();
   const nextPaused = {
@@ -26929,7 +27798,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path26.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path30.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const previousPaused = milestone.artifact.paused ?? null;
   if (!previousPaused) {
@@ -27004,7 +27873,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
 }
 
 // src/roadmap/refinement.ts
-import path27 from "path";
+import path31 from "path";
 var DEFAULT_DEFER_REASON = "a precondition has not matured yet";
 var DEFAULT_REFINE_REASON = "operator declared the milestone refined";
 var NOT_AWAITING_REFINEMENT = "milestone is not awaiting refinement";
@@ -27079,7 +27948,7 @@ function deferMilestoneRefinement(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path27.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path31.join("roadmap", "milestones", milestone.relativeMilestonePath));
   if (status.derivedStatus === "complete") {
     return {
       ...emptyDeferResult(milestoneId),
@@ -27171,7 +28040,7 @@ function refineMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path27.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path31.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousAwaitingRefinement = milestone.artifact.awaiting_refinement ?? null;
   if (!previousAwaitingRefinement) {
     return {
@@ -27245,8 +28114,8 @@ function refineMilestone(rootDir, milestoneId, options = {}) {
 }
 
 // src/roadmap/reopen.ts
-import { existsSync as existsSync25 } from "fs";
-import path28 from "path";
+import { existsSync as existsSync29 } from "fs";
+import path32 from "path";
 var DEFAULT_REOPEN_REASON = "gaps discovered after completion";
 var PLANNED_CHANGES_DIRNAME2 = "planned-changes";
 var FOLLOWUP_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
@@ -27265,14 +28134,14 @@ function findMilestoneById3(roadmap, milestoneId) {
   return roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === milestoneId);
 }
 function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedChanges, reason) {
-  const plannedChangesDir = path28.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME2);
+  const plannedChangesDir = path32.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME2);
   const milestoneId = milestone.artifact.milestone.id;
   const existingIds = new Set(roadmap.plannedChanges.map((plannedChange) => plannedChange.artifact.planned_change.id));
   const baseId = `${milestoneId}-followup`;
   let id = baseId;
   let suffix = 2;
   let fileName = canonicalPlannedChangeFileName(milestoneId, id);
-  while (existingIds.has(id) || existsSync25(path28.join(plannedChangesDir, fileName))) {
+  while (existingIds.has(id) || existsSync29(path32.join(plannedChangesDir, fileName))) {
     id = `${baseId}-${suffix}`;
     suffix += 1;
     fileName = canonicalPlannedChangeFileName(milestoneId, id);
@@ -27292,8 +28161,8 @@ function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedCha
     details: `Scope and plan the follow-up work discovered when reopening milestone ${milestoneId}. Reason: ${reason}. Refine this placeholder into concrete planned-change detail.`,
     depends_on: latestArchived ? [latestArchived.id] : []
   };
-  const absolutePath = path28.join(plannedChangesDir, fileName);
-  return { id, path: toPosix3(path28.join("roadmap", PLANNED_CHANGES_DIRNAME2, fileName)), absolutePath, artifact };
+  const absolutePath = path32.join(plannedChangesDir, fileName);
+  return { id, path: toPosix3(path32.join("roadmap", PLANNED_CHANGES_DIRNAME2, fileName)), absolutePath, artifact };
 }
 function reopenMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_REOPEN_REASON;
@@ -27322,7 +28191,7 @@ function reopenMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path28.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path32.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const priorCanonical = normalizeMilestoneStatus(previousStatus);
   const diagnostics = [];
@@ -27407,12 +28276,12 @@ function emptyReopened(milestoneId) {
 }
 
 // src/roadmap/order.ts
-import { existsSync as existsSync26 } from "fs";
-import path29 from "path";
+import { existsSync as existsSync30 } from "fs";
+import path33 from "path";
 function archivedMilestoneExists2(rootDir, milestoneId) {
   const diagnostics = [];
-  const archiveDir = path29.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
-  for (const filePath of listYamlFiles(archiveDir)) {
+  const archiveDir = path33.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
+  for (const filePath of listYamlFiles2(archiveDir)) {
     const artifact = validateMilestoneArtifact(readYamlFile(filePath), filePath, diagnostics);
     if (artifact?.milestone.id === milestoneId)
       return true;
@@ -27492,12 +28361,12 @@ function reorderRoadmapMilestone(rootDir, input) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH);
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0)
     return invalidOrderResult(roadmap.warnings, blockingDiagnostics);
   const targetLookup = findActiveMilestone(roadmap.milestones, rootDir, input.milestoneId, "target");
   if (targetLookup.diagnostic || !targetLookup.milestone) {
-    return invalidOrderResult(roadmap.warnings, [targetLookup.diagnostic].filter((diagnostic2) => Boolean(diagnostic2)));
+    return invalidOrderResult(roadmap.warnings, [targetLookup.diagnostic].filter((diagnostic) => Boolean(diagnostic)));
   }
   let nextOrder = input.mode === "order" ? input.order : undefined;
   if (input.mode !== "order") {
@@ -27508,12 +28377,12 @@ function reorderRoadmapMilestone(rootDir, input) {
     }
     const neighborLookup = findActiveMilestone(roadmap.milestones, rootDir, input.neighborId, "neighbor");
     if (neighborLookup.diagnostic || !neighborLookup.milestone) {
-      return invalidOrderResult(roadmap.warnings, [neighborLookup.diagnostic].filter((diagnostic2) => Boolean(diagnostic2)));
+      return invalidOrderResult(roadmap.warnings, [neighborLookup.diagnostic].filter((diagnostic) => Boolean(diagnostic)));
     }
     const sortedWithoutTarget = sortMilestonesByRoadmapOrder(roadmap.milestones.filter((milestone) => milestone.artifact.milestone.id !== input.milestoneId));
     const midpoint = midpointOrder(sortedWithoutTarget, input.mode, neighborLookup.milestone);
     if (midpoint.diagnostic || midpoint.order === undefined) {
-      return invalidOrderResult(roadmap.warnings, [midpoint.diagnostic].filter((diagnostic2) => Boolean(diagnostic2)));
+      return invalidOrderResult(roadmap.warnings, [midpoint.diagnostic].filter((diagnostic) => Boolean(diagnostic)));
     }
     nextOrder = midpoint.order;
   }
@@ -27539,7 +28408,7 @@ function renumberRoadmapMilestones(rootDir) {
   if (!status.valid)
     return invalidOrderResult(status.warnings, status.diagnostics);
   const roadmap = loadRoadmap(rootDir);
-  if (!existsSync26(path29.join(rootDir, ROADMAP_INDEX_PATH))) {
+  if (!existsSync30(path33.join(rootDir, ROADMAP_INDEX_PATH))) {
     return invalidOrderResult(roadmap.warnings, [
       makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "roadmap index is missing", ROADMAP_INDEX_PATH, "missing")
     ]);
@@ -27564,10 +28433,10 @@ var ROADMAP_DELETE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-delete-planne
 var ROADMAP_GENERATE_USAGE = getCommandUsage("roadmap-generate");
 var ACTIONABLE_BLOCKER_LIMIT = 10;
 var ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["clear-owner", "clear-blocked"]);
-function summarizeRoadmapRecommendation(result2, args) {
+function summarizeRoadmapRecommendation(result, args) {
   const skippedByCode = {};
   let eligible = 0;
-  for (const candidate of result2.candidates) {
+  for (const candidate of result.candidates) {
     if (candidate.eligible) {
       eligible += 1;
       continue;
@@ -27576,29 +28445,29 @@ function summarizeRoadmapRecommendation(result2, args) {
       skippedByCode[reason.code] = (skippedByCode[reason.code] ?? 0) + 1;
     }
   }
-  const blockers = result2.candidates.filter((candidate) => !candidate.eligible && !candidate.skipReasons.some((reason) => reason.code === "workflow-state-archived") && candidate.skipReasons.some((reason) => reason.code !== "workflow-state-archived")).slice(0, ACTIONABLE_BLOCKER_LIMIT).map((candidate) => ({
+  const blockers = result.candidates.filter((candidate) => !candidate.eligible && !candidate.skipReasons.some((reason) => reason.code === "workflow-state-archived") && candidate.skipReasons.some((reason) => reason.code !== "workflow-state-archived")).slice(0, ACTIONABLE_BLOCKER_LIMIT).map((candidate) => ({
     id: candidate.id,
     path: candidate.path,
     milestone: candidate.milestone,
     skipReasonCodes: candidate.skipReasons.map((reason) => reason.code)
   }));
-  const recommendation = result2.recommendation === null ? null : {
-    id: result2.recommendation.id,
-    changeName: result2.recommendation.changeName,
-    path: result2.recommendation.path,
-    milestone: result2.recommendation.milestone
+  const recommendation = result.recommendation === null ? null : {
+    id: result.recommendation.id,
+    changeName: result.recommendation.changeName,
+    path: result.recommendation.path,
+    milestone: result.recommendation.milestone
   };
   return {
-    valid: result2.valid,
-    status: result2.status,
-    warnings: result2.warnings,
-    diagnostics: result2.diagnostics,
+    valid: result.valid,
+    status: result.status,
+    warnings: result.warnings,
+    diagnostics: result.diagnostics,
     recommendation,
-    refineAction: result2.refineAction,
+    refineAction: result.refineAction,
     candidateSummary: {
-      total: result2.candidates.length,
+      total: result.candidates.length,
       eligible,
-      skipped: result2.candidates.length - eligible,
+      skipped: result.candidates.length - eligible,
       skippedByCode
     },
     blockers,
@@ -27613,9 +28482,9 @@ function runRoadmapStatus(argv) {
     writeUsage(getCommandUsage("roadmap-status"));
     return 1;
   }
-  const result2 = getRoadmapStatus(process.cwd());
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = getRoadmapStatus(process.cwd());
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runRoadmapOverview(argv) {
   if (handleHelpRequest("roadmap-overview", argv)) {
@@ -27625,9 +28494,9 @@ function runRoadmapOverview(argv) {
     writeUsage(getCommandUsage("roadmap-overview"));
     return 1;
   }
-  const result2 = getRoadmapStatus(process.cwd());
-  writeOut(formatRoadmapOverview(result2));
-  return result2.valid ? 0 : 1;
+  const result = getRoadmapStatus(process.cwd());
+  writeOut(formatRoadmapOverview(result));
+  return result.valid ? 0 : 1;
 }
 var ROADMAP_SYNC_USAGE = getCommandUsage("roadmap-sync");
 function runRoadmapSync(argv) {
@@ -27648,9 +28517,9 @@ function runRoadmapSync(argv) {
     writeUsage(ROADMAP_SYNC_USAGE);
     return 1;
   }
-  const result2 = syncRoadmap(process.cwd(), { materializePlannedChanges, fixNames });
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = syncRoadmap(process.cwd(), { materializePlannedChanges, fixNames });
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function parseRoadmapGenerateFlags(argv) {
   const flags = {};
@@ -27840,52 +28709,52 @@ function runRoadmapGenerate(argv) {
     return 1;
   }
   try {
-    const result2 = generateRoadmapMilestone(process.cwd(), input);
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = generateRoadmapMilestone(process.cwd(), input);
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
     return 1;
   }
 }
 function parseRoadmapRecommendArgs(argv) {
-  const result2 = { includeDetails: false, allowUnrefined: false };
+  const result = { includeDetails: false, allowUnrefined: false };
   for (let index = 0;index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--details") {
-      if (result2.includeDetails)
+      if (result.includeDetails)
         throw new Error("--details may only be supplied once");
-      result2.includeDetails = true;
+      result.includeDetails = true;
       continue;
     }
     if (token === "--allow-unrefined") {
-      if (result2.allowUnrefined)
+      if (result.allowUnrefined)
         throw new Error("--allow-unrefined may only be supplied once");
-      result2.allowUnrefined = true;
+      result.allowUnrefined = true;
       continue;
     }
     if (token === "--milestone") {
-      if (result2.milestoneId !== undefined)
+      if (result.milestoneId !== undefined)
         throw new Error("--milestone may only be supplied once");
       const value = argv[index + 1];
       if (value === undefined || value.length === 0 || value.startsWith("--"))
         throw new Error("missing value for --milestone");
-      result2.milestoneId = value;
+      result.milestoneId = value;
       index += 1;
       continue;
     }
     if (token.startsWith("--milestone=")) {
-      if (result2.milestoneId !== undefined)
+      if (result.milestoneId !== undefined)
         throw new Error("--milestone may only be supplied once");
       const value = token.slice("--milestone=".length);
       if (value.length === 0)
         throw new Error("missing value for --milestone");
-      result2.milestoneId = value;
+      result.milestoneId = value;
       continue;
     }
     throw new Error(`unsupported argument: ${token}`);
   }
-  return result2;
+  return result;
 }
 function runRoadmapRecommend(argv) {
   if (handleHelpRequest("roadmap-recommend", argv)) {
@@ -27899,12 +28768,12 @@ function runRoadmapRecommend(argv) {
     writeUsage(ROADMAP_RECOMMEND_USAGE);
     return 1;
   }
-  const result2 = recommendRoadmapChange(process.cwd(), {
+  const result = recommendRoadmapChange(process.cwd(), {
     milestoneId: args.milestoneId,
     allowUnrefined: args.allowUnrefined
   });
-  writeJson(args.includeDetails ? result2 : summarizeRoadmapRecommendation(result2, args));
-  return result2.status === "recommended" ? 0 : 1;
+  writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
+  return result.status === "recommended" ? 0 : 1;
 }
 function runRoadmapArchive(argv) {
   if (handleHelpRequest("roadmap-archive", argv)) {
@@ -27914,9 +28783,9 @@ function runRoadmapArchive(argv) {
     writeUsage(ROADMAP_ARCHIVE_USAGE);
     return 1;
   }
-  const result2 = archiveRoadmapMilestones(process.cwd(), argv[0]);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = archiveRoadmapMilestones(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function parseRoadmapReorderArgs(argv) {
   const [milestoneId, ...rest] = argv;
@@ -27981,9 +28850,9 @@ function runRoadmapReorder(argv) {
     writeUsage(ROADMAP_REORDER_USAGE);
     return 1;
   }
-  const result2 = reorderRoadmapMilestone(process.cwd(), input);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = reorderRoadmapMilestone(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function parseRoadmapMovePlannedChangeArgs(argv) {
   const [plannedChangeId, ...rest] = argv;
@@ -28036,9 +28905,9 @@ function runRoadmapMovePlannedChange(argv) {
     writeUsage(ROADMAP_MOVE_PLANNED_CHANGE_USAGE);
     return 1;
   }
-  const result2 = movePlannedChangeToMilestone(process.cwd(), input);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = movePlannedChangeToMilestone(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function parseRoadmapDeletePlannedChangeArgs(argv) {
   const [plannedChangeId, ...rest] = argv;
@@ -28075,9 +28944,9 @@ function runRoadmapDeletePlannedChange(argv) {
     writeUsage(ROADMAP_DELETE_PLANNED_CHANGE_USAGE);
     return 1;
   }
-  const result2 = deletePlannedChange(process.cwd(), input);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = deletePlannedChange(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runRoadmapRenumber(argv) {
   if (handleHelpRequest("roadmap-renumber", argv)) {
@@ -28087,9 +28956,9 @@ function runRoadmapRenumber(argv) {
     writeUsage(ROADMAP_RENUMBER_USAGE);
     return 1;
   }
-  const result2 = renumberRoadmapMilestones(process.cwd());
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = renumberRoadmapMilestones(process.cwd());
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runRoadmapReopen(argv) {
   if (handleHelpRequest("roadmap-reopen", argv)) {
@@ -28124,13 +28993,13 @@ function runRoadmapReopen(argv) {
     writeUsage(ROADMAP_REOPEN_USAGE);
     return 1;
   }
-  const result2 = reopenMilestone(process.cwd(), milestoneId, reason !== undefined ? { reason } : {});
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = reopenMilestone(process.cwd(), milestoneId, reason !== undefined ? { reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
-function parseOptionalReasonArg(argv, usage2) {
+function parseOptionalReasonArg(argv, usage) {
   if (argv.length === 0) {
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
   const milestoneId = argv[0];
@@ -28141,7 +29010,7 @@ function parseOptionalReasonArg(argv, usage2) {
     if (token === "--reason") {
       const next = argv[index + 1];
       if (typeof next !== "string") {
-        writeUsage(usage2);
+        writeUsage(usage);
         return 1;
       }
       reason = next;
@@ -28155,7 +29024,7 @@ function parseOptionalReasonArg(argv, usage2) {
     reasonArgs.push(token);
   }
   if (reasonArgs.length > 0) {
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
   return { milestoneId, reason };
@@ -28167,9 +29036,9 @@ function runRoadmapPause(argv) {
   const parsed = parseOptionalReasonArg(argv, ROADMAP_PAUSE_USAGE);
   if (typeof parsed === "number")
     return parsed;
-  const result2 = pauseMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = pauseMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runRoadmapResume(argv) {
   if (handleHelpRequest("roadmap-resume", argv)) {
@@ -28178,9 +29047,9 @@ function runRoadmapResume(argv) {
   const parsed = parseOptionalReasonArg(argv, ROADMAP_RESUME_USAGE);
   if (typeof parsed === "number")
     return parsed;
-  const result2 = resumeMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = resumeMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runRoadmapDefer(argv) {
   if (handleHelpRequest("roadmap-defer", argv)) {
@@ -28189,9 +29058,9 @@ function runRoadmapDefer(argv) {
   const parsed = parseOptionalReasonArg(argv, ROADMAP_DEFER_USAGE);
   if (typeof parsed === "number")
     return parsed;
-  const result2 = deferMilestoneRefinement(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = deferMilestoneRefinement(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runRoadmapRefine(argv) {
   if (handleHelpRequest("roadmap-refine", argv)) {
@@ -28200,27 +29069,27 @@ function runRoadmapRefine(argv) {
   const parsed = parseOptionalReasonArg(argv, ROADMAP_REFINE_USAGE);
   if (typeof parsed === "number")
     return parsed;
-  const result2 = refineMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = refineMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 
 // src/sops.ts
-import { existsSync as existsSync28, readdirSync as readdirSync9, statSync as statSync14 } from "fs";
-import path31 from "path";
+import { existsSync as existsSync32, readdirSync as readdirSync9, statSync as statSync15 } from "fs";
+import path35 from "path";
 import { createHash as createHash2 } from "crypto";
 
 // src/sop-categories.ts
-import { existsSync as existsSync27, readFileSync as readFileSync17, readdirSync as readdirSync8, statSync as statSync13 } from "fs";
-import path30 from "path";
+import { existsSync as existsSync31, readFileSync as readFileSync20, readdirSync as readdirSync8, statSync as statSync14 } from "fs";
+import path34 from "path";
 import { fileURLToPath as fileURLToPath4 } from "url";
 var CATEGORY_TEMPLATE_PREFIX = "strict-spec-driven/sop-categories/";
 function getBundledCategoryDir() {
-  const thisDir = path30.dirname(fileURLToPath4(import.meta.url));
-  const distPath = path30.join(thisDir, "templates", "strict-spec-driven", "sop-categories");
-  if (existsSync27(distPath))
+  const thisDir = path34.dirname(fileURLToPath4(import.meta.url));
+  const distPath = path34.join(thisDir, "templates", "strict-spec-driven", "sop-categories");
+  if (existsSync31(distPath))
     return distPath;
-  return path30.join(thisDir, "..", "templates", "strict-spec-driven", "sop-categories");
+  return path34.join(thisDir, "..", "templates", "strict-spec-driven", "sop-categories");
 }
 function categoryDiagnostic(message, fieldPath = "$") {
   return { source: "schema", artifactPath: CATEGORY_TEMPLATE_PREFIX, fieldPath, message };
@@ -28233,7 +29102,7 @@ function listSopCategoryIds() {
     }
   }
   const dir = getBundledCategoryDir();
-  if (existsSync27(dir) && statSync13(dir).isDirectory()) {
+  if (existsSync31(dir) && statSync14(dir).isDirectory()) {
     for (const name of readdirSync8(dir)) {
       if (name.endsWith(".yaml")) {
         ids.add(name.slice(0, -".yaml".length));
@@ -28246,11 +29115,11 @@ function loadSopCategoryDefinition(categoryId) {
   const embedded = readEmbeddedTemplate(`${CATEGORY_TEMPLATE_PREFIX}${categoryId}.yaml`);
   let content = embedded;
   if (content === undefined) {
-    const diskPath = path30.join(getBundledCategoryDir(), `${categoryId}.yaml`);
-    if (!existsSync27(diskPath)) {
+    const diskPath = path34.join(getBundledCategoryDir(), `${categoryId}.yaml`);
+    if (!existsSync31(diskPath)) {
       return null;
     }
-    content = readFileSync17(diskPath, "utf8");
+    content = readFileSync20(diskPath, "utf8");
   }
   return parseYamlDocument(content);
 }
@@ -28284,8 +29153,8 @@ function showSopCategory(categoryId) {
 }
 
 // src/sops.ts
-var STRICT_WORKFLOW_DIR9 = ".strict-spec-driven";
-var SOPS_DIR = `${STRICT_WORKFLOW_DIR9}/sops`;
+var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
+var SOPS_DIR = `${STRICT_WORKFLOW_DIR10}/sops`;
 var SOPS_INDEX_PATH = `${SOPS_DIR}/INDEX.yaml`;
 var SOP_SCHEMA_ID = "strict-spec-driven/sop/v1";
 var SOPS_INDEX_SCHEMA_ID = "strict-spec-driven/sops-index/v1";
@@ -28299,16 +29168,16 @@ var SECTION_FIELDS = {
   references: "references"
 };
 function sopsDir(rootDir) {
-  return path31.join(rootDir, SOPS_DIR);
+  return path35.join(rootDir, SOPS_DIR);
 }
 function sopsIndexPath(rootDir) {
-  return path31.join(rootDir, SOPS_INDEX_PATH);
+  return path35.join(rootDir, SOPS_INDEX_PATH);
 }
 function sopFilePath(rootDir, sopId) {
-  return path31.join(sopsDir(rootDir), `${sopId}.yaml`);
+  return path35.join(sopsDir(rootDir), `${sopId}.yaml`);
 }
 function repoRelative(rootDir, absolutePath) {
-  return path31.relative(rootDir, absolutePath).split(path31.sep).join("/");
+  return path35.relative(rootDir, absolutePath).split(path35.sep).join("/");
 }
 function slugify(value) {
   const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48).replace(/^-+|-+$/g, "");
@@ -28330,10 +29199,10 @@ function makeDiagnostic2(rootDir, message, fieldPath = "$", absolutePath) {
 }
 function listSopFiles(rootDir) {
   const dir = sopsDir(rootDir);
-  if (!existsSync28(dir) || !statSync14(dir).isDirectory()) {
+  if (!existsSync32(dir) || !statSync15(dir).isDirectory()) {
     return [];
   }
-  return readdirSync9(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path31.join(dir, name)).sort();
+  return readdirSync9(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path35.join(dir, name)).sort();
 }
 function compareSops(left, right) {
   const order = left.createdAt.localeCompare(right.createdAt);
@@ -28455,7 +29324,7 @@ function commitSopAndIndex(rootDir, filePath, artifact) {
         schemaId: SOP_SCHEMA_ID,
         familyRoot: sopsDir(rootDir),
         absolutePath: filePath,
-        operation: existsSync28(filePath) ? "update" : "create",
+        operation: existsSync32(filePath) ? "update" : "create",
         candidate: artifact,
         validateCandidate: (candidate) => validationIssues(validateSopArtifact(rootDir, candidate, filePath))
       },
@@ -28465,7 +29334,7 @@ function commitSopAndIndex(rootDir, filePath, artifact) {
         schemaId: SOPS_INDEX_SCHEMA_ID,
         familyRoot: sopsDir(rootDir),
         absolutePath: indexPath,
-        operation: existsSync28(indexPath) ? "update" : "create",
+        operation: existsSync32(indexPath) ? "update" : "create",
         role: "reference",
         candidate: indexArtifact,
         validateCandidate: (candidate) => validationIssues(validateArtifact(loadBundledSchemaBySchemaId(SOPS_INDEX_SCHEMA_ID), candidate, repoRelative(rootDir, indexPath)).diagnostics)
@@ -28477,28 +29346,28 @@ function nonEmptyArray(value) {
   return Array.isArray(value) && value.length > 0;
 }
 function resolveSpecLink(rootDir, target) {
-  if (existsSync28(path31.join(rootDir, target))) {
+  if (existsSync32(path35.join(rootDir, target))) {
     return true;
   }
-  const indexPath = path31.join(rootDir, STRICT_WORKFLOW_DIR9, "specs", "INDEX.yaml");
-  if (!existsSync28(indexPath)) {
+  const indexPath = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "specs", "INDEX.yaml");
+  if (!existsSync32(indexPath)) {
     return false;
   }
   const index = parseYamlFile(indexPath);
   return Array.isArray(index?.specs) && index.specs.some((spec) => spec?.id === target);
 }
 function resolveChangeLink(rootDir, target) {
-  const active = path31.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", target);
-  const archived = path31.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", "archive", target);
-  return existsSync28(active) || existsSync28(archived);
+  const active = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "changes", target);
+  const archived = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "changes", "archive", target);
+  return existsSync32(active) || existsSync32(archived);
 }
 function resolveRoadmapLink(rootDir, target) {
-  const milestoneFile = path31.join(rootDir, STRICT_WORKFLOW_DIR9, "roadmap", "milestones", `${target}.yaml`);
-  if (existsSync28(milestoneFile)) {
+  const milestoneFile = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "roadmap", "milestones", `${target}.yaml`);
+  if (existsSync32(milestoneFile)) {
     return true;
   }
-  const indexPath = path31.join(rootDir, STRICT_WORKFLOW_DIR9, "roadmap", "INDEX.yaml");
-  if (!existsSync28(indexPath)) {
+  const indexPath = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "roadmap", "INDEX.yaml");
+  if (!existsSync32(indexPath)) {
     return false;
   }
   const index = parseYamlFile(indexPath);
@@ -28515,8 +29384,8 @@ function linkResolves(rootDir, link) {
 }
 function validateSopArtifact(rootDir, artifact, absolutePath) {
   const artifactPath = repoRelative(rootDir, absolutePath);
-  const schema2 = loadBundledSchemaBySchemaId(SOP_SCHEMA_ID);
-  const base = validateArtifact(schema2, artifact, artifactPath);
+  const schema = loadBundledSchemaBySchemaId(SOP_SCHEMA_ID);
+  const base = validateArtifact(schema, artifact, artifactPath);
   if (!base.valid) {
     return base.diagnostics;
   }
@@ -28603,7 +29472,7 @@ function createSop(rootDir, input) {
   }
   const sopId = deriveSopId(input);
   const filePath = sopFilePath(rootDir, sopId);
-  if (existsSync28(filePath)) {
+  if (existsSync32(filePath)) {
     return { valid: true, created: false, sopId, path: repoRelative(rootDir, filePath), diagnostics: [] };
   }
   const artifact = buildSopArtifact(input, sopId);
@@ -28646,7 +29515,7 @@ function listSops(rootDir) {
 }
 function showSop(rootDir, sopId) {
   const filePath = sopFilePath(rootDir, sopId);
-  if (!existsSync28(filePath)) {
+  if (!existsSync32(filePath)) {
     return { valid: false, sopId, path: null, sop: null, diagnostics: [makeDiagnostic2(rootDir, `sop '${sopId}' not found`, "$.sop.id")] };
   }
   const sop = parseYamlFile(filePath);
@@ -28657,7 +29526,7 @@ function validateSops(rootDir, sopId) {
   let checkedCount = 0;
   const targetFiles = sopId ? [sopFilePath(rootDir, sopId)] : listSopFiles(rootDir);
   for (const filePath of targetFiles) {
-    if (!existsSync28(filePath)) {
+    if (!existsSync32(filePath)) {
       diagnostics.push(makeDiagnostic2(rootDir, `sop '${sopId}' not found`, "$.sop.id"));
       continue;
     }
@@ -28667,7 +29536,7 @@ function validateSops(rootDir, sopId) {
   }
   if (!sopId) {
     const indexPath = sopsIndexPath(rootDir);
-    if (existsSync28(indexPath)) {
+    if (existsSync32(indexPath)) {
       const indexSchema = loadBundledSchemaBySchemaId(SOPS_INDEX_SCHEMA_ID);
       const indexArtifact = parseYamlFile(indexPath);
       diagnostics.push(...validateArtifact(indexSchema, indexArtifact, repoRelative(rootDir, indexPath)).diagnostics);
@@ -28677,7 +29546,7 @@ function validateSops(rootDir, sopId) {
 }
 function editSop(rootDir, input) {
   const filePath = sopFilePath(rootDir, input.sopId);
-  if (!existsSync28(filePath)) {
+  if (!existsSync32(filePath)) {
     return { valid: false, edited: false, sopId: input.sopId, path: null, sop: null, diagnostics: [makeDiagnostic2(rootDir, `sop '${input.sopId}' not found`, "$.sop.id")] };
   }
   const artifact = parseYamlFile(filePath);
@@ -28698,38 +29567,38 @@ function editSop(rootDir, input) {
   }
   const editDiagnostics = [];
   const mergeStrings = (existing, additions, removals, flag, fieldPath) => {
-    let values3 = [...existing ?? []];
+    let values = [...existing ?? []];
     for (const addition of additions ?? [])
-      if (!values3.includes(addition))
-        values3.push(addition);
+      if (!values.includes(addition))
+        values.push(addition);
     for (const removal of removals ?? []) {
-      if (!values3.includes(removal)) {
+      if (!values.includes(removal)) {
         editDiagnostics.push(makeDiagnostic2(rootDir, `--remove-${flag} matched no entry: '${removal}'`, fieldPath, filePath));
         continue;
       }
-      values3 = values3.filter((entry) => entry !== removal);
+      values = values.filter((entry) => entry !== removal);
     }
-    return values3;
+    return values;
   };
   const mergeKeyed = (existing, additions, removals, key, flag, fieldPath) => {
-    const values3 = [...existing ?? []];
+    const values = [...existing ?? []];
     for (const addition of additions ?? []) {
       const entryKey = key(addition);
-      const index = values3.findIndex((entry) => key(entry) === entryKey);
+      const index = values.findIndex((entry) => key(entry) === entryKey);
       if (index >= 0)
-        values3[index] = addition;
+        values[index] = addition;
       else
-        values3.push(addition);
+        values.push(addition);
     }
     for (const removal of removals ?? []) {
-      const index = values3.findIndex((entry) => key(entry) === removal);
+      const index = values.findIndex((entry) => key(entry) === removal);
       if (index < 0) {
         editDiagnostics.push(makeDiagnostic2(rootDir, `--remove-${flag} matched no named entry: '${removal}'`, fieldPath, filePath));
         continue;
       }
-      values3.splice(index, 1);
+      values.splice(index, 1);
     }
-    return values3;
+    return values;
   };
   if (input.scopeIn !== undefined) {
     artifact.scope.in = mergeStrings(artifact.scope.in, input.scopeIn, input.removedScopeIn, "scope-in", "$.scope.in");
@@ -28737,9 +29606,9 @@ function editSop(rootDir, input) {
     artifact.scope.in = mergeStrings(artifact.scope.in, undefined, input.removedScopeIn, "scope-in", "$.scope.in");
   }
   if (input.scopeOut !== undefined || input.removedScopeOut?.length) {
-    const values3 = mergeStrings(artifact.scope.out, input.scopeOut, input.removedScopeOut, "scope-out", "$.scope.out");
-    if (values3.length > 0)
-      artifact.scope.out = values3;
+    const values = mergeStrings(artifact.scope.out, input.scopeOut, input.removedScopeOut, "scope-out", "$.scope.out");
+    if (values.length > 0)
+      artifact.scope.out = values;
     else
       delete artifact.scope.out;
   }
@@ -28747,16 +29616,16 @@ function editSop(rootDir, input) {
     artifact.success_criteria = mergeStrings(artifact.success_criteria, input.successCriteria, input.removedSuccessCriteria, "success", "$.success_criteria");
   }
   if (input.roles !== undefined || input.removedRoles?.length) {
-    const values3 = mergeKeyed(artifact.roles, input.roles, input.removedRoles, (entry) => entry.id, "role", "$.roles");
-    if (values3.length > 0)
-      artifact.roles = values3;
+    const values = mergeKeyed(artifact.roles, input.roles, input.removedRoles, (entry) => entry.id, "role", "$.roles");
+    if (values.length > 0)
+      artifact.roles = values;
     else
       delete artifact.roles;
   }
   if (input.prerequisites !== undefined || input.removedPrerequisites?.length) {
-    const values3 = mergeStrings(artifact.prerequisites, input.prerequisites, input.removedPrerequisites, "prerequisite", "$.prerequisites");
-    if (values3.length > 0)
-      artifact.prerequisites = values3;
+    const values = mergeStrings(artifact.prerequisites, input.prerequisites, input.removedPrerequisites, "prerequisite", "$.prerequisites");
+    if (values.length > 0)
+      artifact.prerequisites = values;
     else
       delete artifact.prerequisites;
   }
@@ -28771,37 +29640,37 @@ function editSop(rootDir, input) {
     });
   }
   if (input.escalation !== undefined || input.removedEscalations?.length) {
-    const values3 = mergeKeyed(artifact.escalation, input.escalation, input.removedEscalations, (entry) => entry.trigger, "escalation", "$.escalation");
-    if (values3.length > 0)
-      artifact.escalation = values3;
+    const values = mergeKeyed(artifact.escalation, input.escalation, input.removedEscalations, (entry) => entry.trigger, "escalation", "$.escalation");
+    if (values.length > 0)
+      artifact.escalation = values;
     else
       delete artifact.escalation;
   }
   if (input.exceptions !== undefined || input.removedExceptions?.length) {
-    const values3 = mergeKeyed(artifact.exceptions, input.exceptions, input.removedExceptions, (entry) => entry.condition, "exception", "$.exceptions");
-    if (values3.length > 0)
-      artifact.exceptions = values3;
+    const values = mergeKeyed(artifact.exceptions, input.exceptions, input.removedExceptions, (entry) => entry.condition, "exception", "$.exceptions");
+    if (values.length > 0)
+      artifact.exceptions = values;
     else
       delete artifact.exceptions;
   }
   if (input.outputs !== undefined || input.removedOutputs?.length) {
-    const values3 = mergeStrings(artifact.outputs, input.outputs, input.removedOutputs, "output", "$.outputs");
-    if (values3.length > 0)
-      artifact.outputs = values3;
+    const values = mergeStrings(artifact.outputs, input.outputs, input.removedOutputs, "output", "$.outputs");
+    if (values.length > 0)
+      artifact.outputs = values;
     else
       delete artifact.outputs;
   }
   if (input.references !== undefined || input.removedReferences?.length) {
-    const values3 = mergeKeyed(artifact.references, input.references, input.removedReferences, (entry) => entry.label, "reference", "$.references");
-    if (values3.length > 0)
-      artifact.references = values3;
+    const values = mergeKeyed(artifact.references, input.references, input.removedReferences, (entry) => entry.label, "reference", "$.references");
+    if (values.length > 0)
+      artifact.references = values;
     else
       delete artifact.references;
   }
   if (input.links !== undefined || input.removedLinks?.length) {
-    const values3 = mergeKeyed(artifact.links, input.links, input.removedLinks, (entry) => `${entry.kind}|${entry.target}`, "link", "$.links");
-    if (values3.length > 0)
-      artifact.links = values3;
+    const values = mergeKeyed(artifact.links, input.links, input.removedLinks, (entry) => `${entry.kind}|${entry.target}`, "link", "$.links");
+    if (values.length > 0)
+      artifact.links = values;
     else
       delete artifact.links;
   }
@@ -28860,8 +29729,8 @@ function ensureAllowedFlags2(flags, allowed) {
   }
 }
 function singleValue(flags, name) {
-  const values3 = flags[name];
-  return values3 && values3.length > 0 ? values3[values3.length - 1] : undefined;
+  const values = flags[name];
+  return values && values.length > 0 ? values[values.length - 1] : undefined;
 }
 function zip(flags, names, build) {
   const columns = names.map((name) => flags[name] ?? []);
@@ -28999,9 +29868,9 @@ function runSopCreate(argv) {
 `);
     return 1;
   }
-  const result2 = createSop(process.cwd(), input);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = createSop(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runSopList(argv) {
   if (handleHelpRequest("sop-list", argv)) {
@@ -29011,9 +29880,9 @@ function runSopList(argv) {
     writeUsage(getCommandUsage("sop-list"));
     return 1;
   }
-  const result2 = listSops(process.cwd());
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = listSops(process.cwd());
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runSopShow(argv) {
   if (handleHelpRequest("sop-show", argv)) {
@@ -29023,9 +29892,9 @@ function runSopShow(argv) {
     writeUsage(getCommandUsage("sop-show"));
     return 1;
   }
-  const result2 = showSop(process.cwd(), argv[0]);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = showSop(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runSopValidate(argv) {
   if (handleHelpRequest("sop-validate", argv)) {
@@ -29035,9 +29904,9 @@ function runSopValidate(argv) {
     writeUsage(getCommandUsage("sop-validate"));
     return 1;
   }
-  const result2 = validateSops(process.cwd(), argv[0]);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = validateSops(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 var SOP_EDIT_FLAGS = [
   "title",
@@ -29192,16 +30061,16 @@ function runSopEdit(argv) {
   input.removedOutputs = flags["remove-output"];
   input.removedReferences = flags["remove-reference"];
   input.removedLinks = flags["remove-link"];
-  let result2;
+  let result;
   try {
-    result2 = editSop(process.cwd(), input);
+    result = editSop(process.cwd(), input);
   } catch (error) {
     writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
 `);
     return 1;
   }
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runSopCategoryList(argv) {
   if (handleHelpRequest("sop-category-list", argv)) {
@@ -29211,9 +30080,9 @@ function runSopCategoryList(argv) {
     writeUsage(getCommandUsage("sop-category-list"));
     return 1;
   }
-  const result2 = listSopCategories();
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = listSopCategories();
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runSopCategoryShow(argv) {
   if (handleHelpRequest("sop-category-show", argv)) {
@@ -29223,35 +30092,35 @@ function runSopCategoryShow(argv) {
     writeUsage(getCommandUsage("sop-category-show"));
     return 1;
   }
-  const result2 = showSopCategory(argv[0]);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = showSopCategory(argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 
 // src/lessons.ts
 import {
-  existsSync as existsSync29,
+  existsSync as existsSync33,
   readdirSync as readdirSync10,
-  statSync as statSync15
+  statSync as statSync16
 } from "fs";
-import path32 from "path";
+import path36 from "path";
 import { createHash as createHash3 } from "crypto";
-var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
-var LESSONS_DIR = `${STRICT_WORKFLOW_DIR10}/lessons`;
+var STRICT_WORKFLOW_DIR11 = ".strict-spec-driven";
+var LESSONS_DIR = `${STRICT_WORKFLOW_DIR11}/lessons`;
 var LESSONS_INDEX_PATH = `${LESSONS_DIR}/INDEX.yaml`;
 var LESSON_SCHEMA_ID = "strict-spec-driven/lesson/v1";
 var LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v2";
 function lessonsDir(rootDir) {
-  return path32.join(rootDir, LESSONS_DIR);
+  return path36.join(rootDir, LESSONS_DIR);
 }
 function lessonsIndexPath(rootDir) {
-  return path32.join(rootDir, LESSONS_INDEX_PATH);
+  return path36.join(rootDir, LESSONS_INDEX_PATH);
 }
 function categoryLessonFilePath(rootDir, category, lessonId) {
-  return path32.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
+  return path36.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
 }
 function repoRelative2(rootDir, absolutePath) {
-  return path32.relative(rootDir, absolutePath).split(path32.sep).join("/");
+  return path36.relative(rootDir, absolutePath).split(path36.sep).join("/");
 }
 function slugify2(value) {
   const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48).replace(/^-+|-+$/g, "");
@@ -29264,9 +30133,9 @@ function deriveLessonId(input) {
   return `${slugify2(input.title)}-${contentHash2(input)}`;
 }
 function getLessonCategories() {
-  const schema2 = loadBundledSchemaBySchemaId(LESSON_SCHEMA_ID);
-  const values3 = schema2.properties?.category?.enum;
-  return Array.isArray(values3) ? values3.map((value) => String(value)) : [];
+  const schema = loadBundledSchemaBySchemaId(LESSON_SCHEMA_ID);
+  const values = schema.properties?.category?.enum;
+  return Array.isArray(values) ? values.map((value) => String(value)) : [];
 }
 function makeDiagnostic3(rootDir, message, fieldPath = "$", absolutePath) {
   return {
@@ -29277,22 +30146,22 @@ function makeDiagnostic3(rootDir, message, fieldPath = "$", absolutePath) {
   };
 }
 function listLegacyLessonFilesInDir(dir) {
-  if (!existsSync29(dir) || !statSync15(dir).isDirectory()) {
+  if (!existsSync33(dir) || !statSync16(dir).isDirectory()) {
     return [];
   }
-  return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path32.join(dir, name)).sort();
+  return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path36.join(dir, name)).sort();
 }
 function listCategorizedLessonFilesInDir(dir, category) {
-  if (!existsSync29(dir) || !statSync15(dir).isDirectory()) {
+  if (!existsSync33(dir) || !statSync16(dir).isDirectory()) {
     return [];
   }
   const categories = category === undefined ? getLessonCategories().sort() : [category];
   const files = [];
   for (const candidateCategory of categories) {
-    const categoryDir = path32.join(dir, candidateCategory);
-    if (!existsSync29(categoryDir) || !statSync15(categoryDir).isDirectory())
+    const categoryDir = path36.join(dir, candidateCategory);
+    if (!existsSync33(categoryDir) || !statSync16(categoryDir).isDirectory())
       continue;
-    files.push(...readdirSync10(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path32.join(categoryDir, name)).sort());
+    files.push(...readdirSync10(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path36.join(categoryDir, name)).sort());
   }
   return files;
 }
@@ -29412,7 +30281,7 @@ function validateMigrationSources(rootDir, legacyFiles) {
     }
     seenIds.set(lessonId, filePath);
     const expectedPath = categoryLessonFilePath(rootDir, artifact.category, lessonId);
-    if (existingFiles.includes(filePath) && path32.resolve(filePath) !== path32.resolve(expectedPath)) {
+    if (existingFiles.includes(filePath) && path36.resolve(filePath) !== path36.resolve(expectedPath)) {
       diagnostics.push(makeDiagnostic3(rootDir, `categorized lesson path must be ${repoRelative2(rootDir, expectedPath)}`, "$.lesson.id", filePath));
       continue;
     }
@@ -29468,7 +30337,7 @@ function prepareLessonStore(rootDir) {
     schemaId: LESSONS_INDEX_SCHEMA_ID,
     familyRoot: storeDir,
     absolutePath: indexPath,
-    operation: existsSync29(indexPath) ? "update" : "create",
+    operation: existsSync33(indexPath) ? "update" : "create",
     role: "reference",
     candidate: indexArtifact,
     validateCandidate: (value) => validateArtifact(loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative2(rootDir, indexPath)).diagnostics.map((entry) => ({
@@ -29498,13 +30367,13 @@ function prepareLessonStore(rootDir) {
 }
 function findLessonFilePath(rootDir, lessonId) {
   const indexPath = lessonsIndexPath(rootDir);
-  if (existsSync29(indexPath)) {
+  if (existsSync33(indexPath)) {
     try {
       const index = parseYamlFile(indexPath);
       for (const category of Object.keys(index.categories ?? {}).sort()) {
         if (index.categories[category]?.[lessonId] !== undefined) {
           const candidate = categoryLessonFilePath(rootDir, category, lessonId);
-          if (existsSync29(candidate))
+          if (existsSync33(candidate))
             return candidate;
         }
       }
@@ -29520,8 +30389,8 @@ function findLessonFilePath(rootDir, lessonId) {
 }
 function validateLessonArtifact(rootDir, artifact, absolutePath) {
   const artifactPath = repoRelative2(rootDir, absolutePath);
-  const schema2 = loadBundledSchemaBySchemaId(LESSON_SCHEMA_ID);
-  const base = validateArtifact(schema2, artifact, artifactPath);
+  const schema = loadBundledSchemaBySchemaId(LESSON_SCHEMA_ID);
+  const base = validateArtifact(schema, artifact, artifactPath);
   if (!base.valid) {
     return base.diagnostics;
   }
@@ -29581,7 +30450,7 @@ function writeValidatedLessonArtifact(rootDir, filePath, artifact, operation) {
         schemaId: LESSONS_INDEX_SCHEMA_ID,
         familyRoot: lessonsDir(rootDir),
         absolutePath: indexPath,
-        operation: existsSync29(indexPath) ? "update" : "create",
+        operation: existsSync33(indexPath) ? "update" : "create",
         role: "reference",
         candidate: indexArtifact,
         validateCandidate: (value) => validateArtifact(loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative2(rootDir, indexPath)).diagnostics.map((entry) => ({
@@ -29627,7 +30496,7 @@ function createLesson(rootDir, input) {
   }
   const lessonId = deriveLessonId(input);
   const filePath = categoryLessonFilePath(rootDir, input.category, lessonId);
-  if (existsSync29(filePath)) {
+  if (existsSync33(filePath)) {
     return { valid: true, created: false, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
   }
   const artifact = buildLessonArtifact(input, lessonId);
@@ -29908,8 +30777,8 @@ function ensureAllowedFlags3(flags, allowed) {
   }
 }
 function singleValue2(flags, name) {
-  const values3 = flags[name];
-  return values3 && values3.length > 0 ? values3[values3.length - 1] : undefined;
+  const values = flags[name];
+  return values && values.length > 0 ? values[values.length - 1] : undefined;
 }
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -29961,9 +30830,9 @@ function runLessonCreate(argv) {
       evidence: singleValue2(flags, "evidence")
     }
   };
-  const result2 = createLesson(process.cwd(), input);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = createLesson(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runLessonList(argv) {
   if (handleHelpRequest("lesson-list", argv)) {
@@ -29978,12 +30847,12 @@ function runLessonList(argv) {
 `);
     return 1;
   }
-  const result2 = listLessons(process.cwd(), {
+  const result = listLessons(process.cwd(), {
     includeAll: "all" in flags,
     category: singleValue2(flags, "category")
   });
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runLessonStatus(argv) {
   if (handleHelpRequest("lesson-status", argv)) {
@@ -29998,12 +30867,12 @@ function runLessonStatus(argv) {
 `);
     return 1;
   }
-  const result2 = getLessonStatus(process.cwd(), {
+  const result = getLessonStatus(process.cwd(), {
     includeAll: "all" in flags,
     category: singleValue2(flags, "category")
   });
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runLessonShow(argv) {
   if (handleHelpRequest("lesson-show", argv)) {
@@ -30013,9 +30882,9 @@ function runLessonShow(argv) {
     writeUsage(getCommandUsage("lesson-show"));
     return 1;
   }
-  const result2 = showLesson(process.cwd(), argv[0]);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = showLesson(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 var LESSON_EDIT_FLAGS = [
   "title",
@@ -30092,9 +30961,9 @@ function runLessonEdit(argv) {
   if (promotedStandard !== undefined && promotedRule !== undefined) {
     input.promotedTo = { standard: promotedStandard, rule: promotedRule };
   }
-  const result2 = editLesson(process.cwd(), input);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = editLesson(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runLessonObsolete(argv) {
   if (handleHelpRequest("lesson-obsolete", argv)) {
@@ -30120,830 +30989,14 @@ function runLessonObsolete(argv) {
 `);
     return 1;
   }
-  const result2 = obsoleteLesson(process.cwd(), lessonId, reason);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = obsoleteLesson(process.cwd(), lessonId, reason);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 
 // src/maintenance.ts
 import { existsSync as existsSync35, readFileSync as readFileSync22, readdirSync as readdirSync12, statSync as statSync18, writeFileSync as writeFileSync6 } from "fs";
 import path38 from "path";
-
-// src/architecture.ts
-import { existsSync as existsSync31, readFileSync as readFileSync19, statSync as statSync16 } from "fs";
-import path34 from "path";
-
-// src/document-render.ts
-import { existsSync as existsSync30, mkdirSync as mkdirSync5, readFileSync as readFileSync18, writeFileSync as writeFileSync5 } from "fs";
-import path33 from "path";
-var STRICT_WORKFLOW_DIR11 = ".strict-spec-driven";
-
-class DocumentSourceError extends Error {
-}
-function asStringArray3(value) {
-  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
-}
-function asText(value) {
-  return typeof value === "string" ? value.trim() : "";
-}
-function asRecord4(value) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-}
-function readYamlIfPresent(absolutePath, artifactPath) {
-  if (!existsSync30(absolutePath))
-    return null;
-  try {
-    return parseYamlDocument(readFileSync18(absolutePath, "utf8"), { source: artifactPath });
-  } catch {
-    return null;
-  }
-}
-function renderBulletList(values3) {
-  return values3.map((value) => `- ${value}`);
-}
-function trimTrailingBlankLines(lines) {
-  const result2 = [...lines];
-  while (result2.length > 0 && result2[result2.length - 1] === "") {
-    result2.pop();
-  }
-  return result2;
-}
-function blocksToDocument(blocks) {
-  return blocks.map((block) => block.lines.join(`
-`)).join(`
-
-`) + `
-`;
-}
-function splitDocumentIntoBlockTexts(content, blocks) {
-  const lines = content.split(`
-`);
-  const startIndexes = [0];
-  let searchFrom = 0;
-  for (const block of blocks.slice(1)) {
-    const headingIndex = lines.indexOf(block.heading, searchFrom);
-    if (headingIndex === -1)
-      return null;
-    startIndexes.push(headingIndex);
-    searchFrom = headingIndex + 1;
-  }
-  return startIndexes.map((startIndex, position) => {
-    const endIndex = position + 1 < startIndexes.length ? startIndexes[position + 1] : lines.length;
-    return lines.slice(startIndex, endIndex).join(`
-`).replace(/\n+$/, "");
-  });
-}
-function allSources(blocks) {
-  return [...new Set(blocks.flatMap((block) => block.sources))];
-}
-function collectStaleSources(blocks, diskContent) {
-  const diskBlockTexts = splitDocumentIntoBlockTexts(diskContent, blocks);
-  if (!diskBlockTexts) {
-    return allSources(blocks);
-  }
-  const stale = new Set;
-  blocks.forEach((block, index) => {
-    if (block.lines.join(`
-`) === diskBlockTexts[index])
-      return;
-    block.sources.forEach((source) => stale.add(source));
-  });
-  return stale.size > 0 ? [...stale] : allSources(blocks);
-}
-function renderBlocksToDocument(rootDir, blocks, options) {
-  const content = blocksToDocument(blocks);
-  const sources = allSources(blocks);
-  const relativeOutputPath = (options.outputPath ?? options.defaultOutputPath).replaceAll("\\", "/");
-  if (path33.isAbsolute(relativeOutputPath)) {
-    throw new DocumentSourceError(`${options.documentLabel} output path must be repo-relative, got '${relativeOutputPath}'`);
-  }
-  const absoluteOutputPath = path33.resolve(rootDir, relativeOutputPath);
-  const normalizedOutputPath = normalizeRepoRelativePath4(rootDir, absoluteOutputPath);
-  if (normalizedOutputPath === ".." || normalizedOutputPath.startsWith("../")) {
-    throw new DocumentSourceError(`${options.documentLabel} output path cannot traverse outside the repository, got '${relativeOutputPath}'`);
-  }
-  if (options.check) {
-    const base = { outputPath: normalizedOutputPath, mode: "check", written: false, sources };
-    if (!existsSync30(absoluteOutputPath)) {
-      return { ...base, documentExists: false, current: false, staleSources: sources };
-    }
-    const diskContent = readFileSync18(absoluteOutputPath, "utf8");
-    if (diskContent === content) {
-      return { ...base, documentExists: true, current: true, staleSources: [] };
-    }
-    return { ...base, documentExists: true, current: false, staleSources: collectStaleSources(blocks, diskContent) };
-  }
-  mkdirSync5(path33.dirname(absoluteOutputPath), { recursive: true });
-  writeFileSync5(absoluteOutputPath, content, "utf8");
-  return {
-    outputPath: normalizedOutputPath,
-    mode: "write",
-    written: true,
-    documentExists: true,
-    current: true,
-    sources,
-    staleSources: []
-  };
-}
-
-// src/architecture.ts
-var ARCHITECTURE_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR11}/architecture.yaml`;
-var WORKFLOW_CONFIG_PATH = `${STRICT_WORKFLOW_DIR11}/config.yaml`;
-var SPEC_INDEX_PATH = `${STRICT_WORKFLOW_DIR11}/specs/INDEX.yaml`;
-var TECH_DIR_PATH = `${STRICT_WORKFLOW_DIR11}/tech/`;
-var EXCLUDED_TECH_BASENAMES = new Set(["INDEX.yaml"]);
-var DEFAULT_ARCHITECTURE_DOCUMENT_PATH = "ARCHITECTURE.md";
-var ARCHITECTURE_AUTHORING_ENTRY_POINT = "/strict-spec-architecture";
-function getArchitectureArtifactPath(rootDir) {
-  return path34.join(rootDir, STRICT_WORKFLOW_DIR11, "architecture.yaml");
-}
-function loadArchitectureArtifact(rootDir) {
-  const absolutePath = getArchitectureArtifactPath(rootDir);
-  if (!existsSync31(absolutePath)) {
-    throw new DocumentSourceError(`architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${ARCHITECTURE_AUTHORING_ENTRY_POINT} to author it`);
-  }
-  let artifact;
-  try {
-    artifact = parseYamlDocument(readFileSync19(absolutePath, "utf8"), { source: ARCHITECTURE_ARTIFACT_PATH });
-  } catch (error) {
-    throw new DocumentSourceError(`architecture artifact is not valid YAML: ${ARCHITECTURE_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  const schema2 = loadBundledSchemaByArtifactType("architecture");
-  const result2 = validateArtifact(schema2, artifact, ARCHITECTURE_ARTIFACT_PATH);
-  return { artifact: artifact ?? {}, diagnostics: result2.diagnostics };
-}
-function listTechFiles(techDir) {
-  if (!existsSync31(techDir) || !statSync16(techDir).isDirectory())
-    return [];
-  return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path34.basename(filePath);
-    return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES.has(basename);
-  }).sort();
-}
-function renderHeaderBlock(artifact) {
-  const title = asText(artifact.architecture?.title) || "Project Architecture";
-  return {
-    id: "header",
-    heading: null,
-    sources: [ARCHITECTURE_ARTIFACT_PATH],
-    lines: [
-      `# ${title}`,
-      "",
-      "> **Generated file — do not edit by hand.**",
-      "> Rendered by `strict-spec-cli architecture-generate` from these source artifacts:",
-      `> - \`${ARCHITECTURE_ARTIFACT_PATH}\``,
-      `> - \`${WORKFLOW_CONFIG_PATH}\``,
-      `> - \`${SPEC_INDEX_PATH}\``,
-      `> - \`${TECH_DIR_PATH}\``,
-      ">",
-      "> Change the sources and re-render; edits made here are discarded by the next render."
-    ]
-  };
-}
-function renderOverviewBlock(rootDir) {
-  const config = readYamlIfPresent(path34.join(rootDir, STRICT_WORKFLOW_DIR11, "config.yaml"), WORKFLOW_CONFIG_PATH);
-  const context = asText(config?.context);
-  return {
-    id: "overview",
-    heading: "## Overview",
-    sources: [WORKFLOW_CONFIG_PATH],
-    lines: [
-      "## Overview",
-      "",
-      ...context ? context.split(`
-`).map((line) => line.trimEnd()) : [`_No project context is recorded in \`${WORKFLOW_CONFIG_PATH}\`._`]
-    ]
-  };
-}
-function renderComponentsBlock(artifact) {
-  const components = asRecord4(artifact.components);
-  const lines = ["## Components", ""];
-  if (Object.keys(components).length === 0) {
-    lines.push(`_No components are declared in \`${ARCHITECTURE_ARTIFACT_PATH}\`._`);
-  }
-  for (const [componentId, rawComponent] of Object.entries(components)) {
-    const component = asRecord4(rawComponent);
-    lines.push(`### ${asText(component.title) || componentId} (\`${componentId}\`)`, "");
-    lines.push(asText(component.responsibility), "");
-    const boundaries = asStringArray3(component.boundaries);
-    if (boundaries.length > 0) {
-      lines.push("**Boundaries**", "", ...renderBulletList(boundaries), "");
-    }
-    const dependsOn = asStringArray3(component.depends_on);
-    if (dependsOn.length > 0) {
-      lines.push(`**Depends on:** ${dependsOn.map((value) => `\`${value}\``).join(", ")}`, "");
-    }
-    const implementation = asStringArray3(asRecord4(component.mapping).implementation);
-    if (implementation.length > 0) {
-      lines.push("**Implementation**", "", ...renderBulletList(implementation.map((value) => `\`${value}\``)), "");
-    }
-  }
-  return { id: "components", heading: "## Components", sources: [ARCHITECTURE_ARTIFACT_PATH], lines: trimTrailingBlankLines(lines) };
-}
-function renderDataFlowsBlock(artifact) {
-  const dataFlows = asRecord4(artifact.data_flows);
-  const lines = ["## Data Flows", ""];
-  if (Object.keys(dataFlows).length === 0) {
-    lines.push(`_No data flows are declared in \`${ARCHITECTURE_ARTIFACT_PATH}\`._`);
-  }
-  for (const [flowId, rawFlow] of Object.entries(dataFlows)) {
-    const flow = asRecord4(rawFlow);
-    lines.push(`### ${asText(flow.title) || flowId} (\`${flowId}\`)`, "");
-    lines.push(`**Trigger:** ${asText(flow.trigger)}`, "");
-    const components = asStringArray3(flow.components);
-    if (components.length > 0) {
-      lines.push(`**Components:** ${components.map((value) => `\`${value}\``).join(" → ")}`, "");
-    }
-    const steps = asStringArray3(flow.steps);
-    if (steps.length > 0) {
-      lines.push(...steps.map((step, index) => `${index + 1}. ${step}`), "");
-    }
-  }
-  return { id: "data-flows", heading: "## Data Flows", sources: [ARCHITECTURE_ARTIFACT_PATH], lines: trimTrailingBlankLines(lines) };
-}
-function renderDecisionsBlock(artifact) {
-  const decisions = asRecord4(artifact.decisions);
-  const lines = ["## Architecture Decisions", ""];
-  if (Object.keys(decisions).length === 0) {
-    lines.push(`_No architecture decisions are declared in \`${ARCHITECTURE_ARTIFACT_PATH}\`._`);
-  }
-  for (const [decisionId, rawDecision] of Object.entries(decisions)) {
-    const decision = asRecord4(rawDecision);
-    lines.push(`### ${asText(decision.title) || decisionId} (\`${decisionId}\`)`, "");
-    lines.push(`**Status:** ${asText(decision.status)}`, "");
-    lines.push(asText(decision.statement), "");
-    lines.push(`**Rationale:** ${asText(decision.rationale)}`, "");
-    const alternatives = asStringArray3(decision.alternatives);
-    if (alternatives.length > 0) {
-      lines.push("**Alternatives considered**", "", ...renderBulletList(alternatives), "");
-    }
-  }
-  return {
-    id: "decisions",
-    heading: "## Architecture Decisions",
-    sources: [ARCHITECTURE_ARTIFACT_PATH],
-    lines: trimTrailingBlankLines(lines)
-  };
-}
-function renderSpecificationSurfaceBlock(rootDir) {
-  const index = readYamlIfPresent(path34.join(rootDir, STRICT_WORKFLOW_DIR11, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
-  const rawSpecs = index?.specs;
-  const specs = Array.isArray(rawSpecs) ? rawSpecs : [];
-  const lines = [
-    "## Specification Surface",
-    "",
-    `Projected from \`${SPEC_INDEX_PATH}\` and the main specs it references.`,
-    ""
-  ];
-  if (specs.length === 0) {
-    lines.push(`_No strict main specs are registered in \`${SPEC_INDEX_PATH}\`._`);
-    return {
-      id: "specification-surface",
-      heading: "## Specification Surface",
-      sources: [SPEC_INDEX_PATH],
-      lines: trimTrailingBlankLines(lines)
-    };
-  }
-  lines.push("| Spec | ID | Requirements |", "| --- | --- | --- |");
-  for (const rawSpec of specs) {
-    const spec = asRecord4(rawSpec);
-    const specId = asText(spec.id);
-    const specPath = asText(spec.path);
-    const specTitle = asText(spec.title) || specId;
-    const mainSpec = specPath ? readYamlIfPresent(path34.join(rootDir, specPath), specPath) : null;
-    const requirementCount = mainSpec ? Object.keys(asRecord4(mainSpec.requirements)).length : null;
-    const titleCell = specPath ? `[${specTitle}](${specPath})` : specTitle;
-    lines.push(`| ${titleCell} | \`${specId}\` | ${requirementCount ?? "—"} |`);
-  }
-  return {
-    id: "specification-surface",
-    heading: "## Specification Surface",
-    sources: [SPEC_INDEX_PATH],
-    lines: trimTrailingBlankLines(lines)
-  };
-}
-function renderTechnicalStandardsBlock(rootDir) {
-  const techFiles = listTechFiles(path34.join(rootDir, STRICT_WORKFLOW_DIR11, "tech"));
-  const lines = [
-    "## Technical Standards",
-    "",
-    `Projected from \`${TECH_DIR_PATH}\`. MUST rules are binding; SHOULD rules are the default.`,
-    ""
-  ];
-  if (techFiles.length === 0) {
-    lines.push(`_No technical standards are declared in \`${TECH_DIR_PATH}\`._`);
-    return {
-      id: "technical-standards",
-      heading: "## Technical Standards",
-      sources: [TECH_DIR_PATH],
-      lines: trimTrailingBlankLines(lines)
-    };
-  }
-  for (const techFile of techFiles) {
-    const artifactPath = normalizeRepoRelativePath4(rootDir, techFile);
-    const standardDoc = readYamlIfPresent(techFile, artifactPath);
-    if (!standardDoc)
-      continue;
-    const standard = asRecord4(standardDoc.standard);
-    const standardId = asText(standard.id);
-    const title = asText(standard.title) || standardId;
-    const category = asText(standard.category);
-    lines.push(`### [${title}](${artifactPath}) (\`${standardId}\`) — ${category}`, "");
-    for (const [ruleId, rawRule] of Object.entries(asRecord4(standardDoc.rules))) {
-      const rule = asRecord4(rawRule);
-      lines.push(`- **${asText(rule.strength)}** \`${ruleId}\` — ${asText(rule.statement)}`);
-    }
-    lines.push("");
-  }
-  return {
-    id: "technical-standards",
-    heading: "## Technical Standards",
-    sources: [TECH_DIR_PATH],
-    lines: trimTrailingBlankLines(lines)
-  };
-}
-function buildArchitectureBlocks(rootDir, artifact) {
-  return [
-    renderHeaderBlock(artifact),
-    renderOverviewBlock(rootDir),
-    renderComponentsBlock(artifact),
-    renderDataFlowsBlock(artifact),
-    renderDecisionsBlock(artifact),
-    renderSpecificationSurfaceBlock(rootDir),
-    renderTechnicalStandardsBlock(rootDir)
-  ];
-}
-function generateArchitectureDocument(rootDir, options = {}) {
-  const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
-  if (diagnostics.length > 0) {
-    const details = diagnostics.map((diagnostic2) => `${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
-    throw new DocumentSourceError(`architecture artifact does not validate: ${ARCHITECTURE_ARTIFACT_PATH}: ${details}`);
-  }
-  const blocks = buildArchitectureBlocks(rootDir, artifact);
-  return renderBlocksToDocument(rootDir, blocks, {
-    check: options.check,
-    outputPath: options.outputPath,
-    defaultOutputPath: DEFAULT_ARCHITECTURE_DOCUMENT_PATH,
-    documentLabel: "architecture document"
-  });
-}
-function getArchitectureStatus(rootDir) {
-  const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
-  const components = asRecord4(artifact.components);
-  const mappingDrift = [];
-  for (const [componentId, rawComponent] of Object.entries(components)) {
-    const implementation = asStringArray3(asRecord4(asRecord4(rawComponent).mapping).implementation);
-    for (const mappedPath of implementation) {
-      if (!existsSync31(path34.join(rootDir, mappedPath))) {
-        mappingDrift.push({ component: componentId, path: mappedPath });
-      }
-    }
-  }
-  return {
-    artifactPath: ARCHITECTURE_ARTIFACT_PATH,
-    exists: true,
-    valid: diagnostics.length === 0,
-    diagnostics,
-    componentCount: Object.keys(components).length,
-    dataFlowCount: Object.keys(asRecord4(artifact.data_flows)).length,
-    decisionCount: Object.keys(asRecord4(artifact.decisions)).length,
-    mappingDrift
-  };
-}
-
-// src/design-system.ts
-import { existsSync as existsSync33, readFileSync as readFileSync20 } from "fs";
-import path36 from "path";
-
-// src/design-system-author.ts
-import { existsSync as existsSync32 } from "fs";
-import path35 from "path";
-var DESIGN_SCHEMA_ID = "strict-spec-driven/design-system/v1";
-var DESIGN_ARTIFACT_PATH = ".strict-spec-driven/design-system.yaml";
-var TOKEN_GROUPS = new Set(["colors", "typography", "layout", "elevation", "shapes"]);
-function asRecord5(value) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-}
-function strings2(value) {
-  return Array.isArray(value) ? value.filter((entry) => typeof entry === "string") : [];
-}
-function appendUnique3(existing, additions) {
-  return [...new Set([...existing, ...additions])];
-}
-function splitPair(value, label) {
-  const delimiter = value.indexOf(":");
-  if (delimiter <= 0 || delimiter === value.length - 1)
-    throw new Error(`${label} requires owner:value, received '${value}'`);
-  return [value.slice(0, delimiter), value.slice(delimiter + 1)];
-}
-function splitProperty(value) {
-  const delimiter = value.indexOf("=");
-  if (delimiter <= 0 || delimiter === value.length - 1)
-    throw new Error(`token and component token properties require name=value, received '${value}'`);
-  return [value.slice(0, delimiter), value.slice(delimiter + 1)];
-}
-function hasEditIntent(input) {
-  return input.id !== undefined || input.title !== undefined || input.token !== undefined || input.component !== undefined || input.overview !== undefined || input.dos.length > 0 || input.donts.length > 0 || input.removeTokens.length > 0 || input.removeComponents.length > 0 || input.removeComponentTokens.length > 0 || input.removeImplementations.length > 0 || input.removeSnapshots.length > 0 || input.removeDos.length > 0 || input.removeDonts.length > 0;
-}
-function validateCandidate(value, artifactPath) {
-  return validateArtifact(loadBundledSchemaByArtifactType("design_system"), value, artifactPath).diagnostics.map((entry) => ({
-    code: entry.source,
-    fieldPath: entry.fieldPath,
-    message: entry.message,
-    expected: entry.expected,
-    actual: entry.actual
-  }));
-}
-function commitDesignSystemCandidate(rootDir, candidate, operation) {
-  const absolutePath = path35.join(rootDir, DESIGN_ARTIFACT_PATH);
-  return commitYamlMutation({
-    rootDir,
-    mutations: [{
-      artifactFamily: "design-system-state",
-      artifactId: "design-system",
-      schemaId: DESIGN_SCHEMA_ID,
-      familyRoot: path35.join(rootDir, ".strict-spec-driven"),
-      absolutePath,
-      operation,
-      candidate,
-      validateCandidate: (value, context) => validateCandidate(value, context.artifactPath)
-    }]
-  });
-}
-function initializeDesignSystemThroughMutation(rootDir) {
-  const candidate = parseYamlDocument(readBundledScaffoldTemplate("design-system.yaml"), { source: DESIGN_ARTIFACT_PATH });
-  return commitDesignSystemCandidate(rootDir, candidate, "create");
-}
-function baseArtifact(input) {
-  if (input.id === undefined || input.title === undefined || input.overview === undefined) {
-    throw new Error("new design-system artifacts require --id, --title, and --overview");
-  }
-  return {
-    schema: DESIGN_SCHEMA_ID,
-    schema_version: 1,
-    artifact_type: "design_system",
-    schema_file: "templates/strict-spec-driven/schemas/design-system.yaml",
-    design_system: { id: input.id, title: input.title },
-    tokens: {},
-    components: {},
-    guidance: { overview: input.overview }
-  };
-}
-function authorDesignSystem(rootDir, input) {
-  const absolutePath = path35.join(rootDir, DESIGN_ARTIFACT_PATH);
-  const exists = existsSync32(absolutePath);
-  const operation = input.delete ? "delete" : exists ? "update" : "create";
-  if (input.delete && hasEditIntent(input))
-    throw new Error("--delete cannot be combined with design-system editing flags");
-  if (!input.delete && !hasEditIntent(input))
-    throw new Error("design-edit requires semantic fields, named removals, or --delete");
-  let candidate;
-  if (!input.delete) {
-    candidate = exists ? parseYamlFile(absolutePath) : baseArtifact(input);
-    const header = asRecord5(candidate.design_system);
-    if (input.id !== undefined)
-      header.id = input.id;
-    if (input.title !== undefined)
-      header.title = input.title;
-    candidate.design_system = header;
-    const tokens = asRecord5(candidate.tokens);
-    if (input.token !== undefined) {
-      if (!TOKEN_GROUPS.has(input.token.group))
-        throw new Error(`unknown token group '${input.token.group}'`);
-      const group = asRecord5(tokens[input.token.group]);
-      if (input.token.group === "typography") {
-        if (input.token.properties.length === 0)
-          throw new Error("typography tokens require at least one --token-property name=value");
-        const entry = asRecord5(group[input.token.name]);
-        for (const property of input.token.properties) {
-          const [name, value] = splitProperty(property);
-          if (!["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing"].includes(name)) {
-            throw new Error(`unsupported typography property '${name}'`);
-          }
-          entry[name] = value;
-        }
-        group[input.token.name] = entry;
-      } else {
-        if (input.token.value === undefined)
-          throw new Error("scalar token groups require --token-value");
-        group[input.token.name] = input.token.value;
-      }
-      tokens[input.token.group] = group;
-    }
-    for (const encoded of input.removeTokens) {
-      const [groupName, tokenName] = splitPair(encoded, "--remove-token");
-      const group = asRecord5(tokens[groupName]);
-      delete group[tokenName];
-      if (Object.keys(group).length === 0)
-        delete tokens[groupName];
-      else
-        tokens[groupName] = group;
-    }
-    candidate.tokens = tokens;
-    const components = asRecord5(candidate.components);
-    if (input.component !== undefined) {
-      const current = asRecord5(components[input.component.id]);
-      if (Object.keys(current).length === 0 && input.component.title === undefined)
-        throw new Error("a new design component requires --component-title");
-      const component = { ...current };
-      if (input.component.title !== undefined)
-        component.title = input.component.title;
-      if (input.component.description !== undefined)
-        component.description = input.component.description;
-      const tokenMappings = asRecord5(component.tokens);
-      for (const encoded of input.component.tokens) {
-        const [name, value] = splitProperty(encoded);
-        tokenMappings[name] = value;
-      }
-      component.tokens = tokenMappings;
-      const mapping = asRecord5(component.mapping);
-      mapping.implementation = appendUnique3(strings2(mapping.implementation), input.component.implementation);
-      mapping.snapshots = appendUnique3(strings2(mapping.snapshots), input.component.snapshots);
-      component.mapping = mapping;
-      components[input.component.id] = component;
-    }
-    for (const id of input.removeComponents)
-      delete components[id];
-    for (const encoded of input.removeComponentTokens) {
-      const [componentId, tokenName] = splitPair(encoded, "--remove-component-token");
-      const component = asRecord5(components[componentId]);
-      const tokenMappings = asRecord5(component.tokens);
-      delete tokenMappings[tokenName];
-      component.tokens = tokenMappings;
-      components[componentId] = component;
-    }
-    for (const [values3, field, label] of [
-      [input.removeImplementations, "implementation", "--remove-implementation"],
-      [input.removeSnapshots, "snapshots", "--remove-snapshot"]
-    ]) {
-      for (const encoded of values3) {
-        const [componentId, value] = splitPair(encoded, label);
-        const component = asRecord5(components[componentId]);
-        const mapping = asRecord5(component.mapping);
-        mapping[field] = strings2(mapping[field]).filter((entry) => entry !== value);
-        component.mapping = mapping;
-        components[componentId] = component;
-      }
-    }
-    candidate.components = components;
-    const guidance = asRecord5(candidate.guidance);
-    if (input.overview !== undefined)
-      guidance.overview = input.overview;
-    guidance.do = input.removeDos.reduce((values3, value) => values3.filter((entry) => entry !== value), appendUnique3(strings2(guidance.do), input.dos));
-    guidance.dont = input.removeDonts.reduce((values3, value) => values3.filter((entry) => entry !== value), appendUnique3(strings2(guidance.dont), input.donts));
-    candidate.guidance = guidance;
-  }
-  const mutation = candidate === undefined ? commitYamlMutation({
-    rootDir,
-    mutations: [{ artifactFamily: "design-system-state", artifactId: "design-system", schemaId: DESIGN_SCHEMA_ID, familyRoot: path35.join(rootDir, ".strict-spec-driven"), absolutePath, operation }]
-  }) : commitDesignSystemCandidate(rootDir, candidate, operation);
-  const changed = mutation.changes.some((entry) => entry.changed);
-  return {
-    ...mutation,
-    artifactPath: DESIGN_ARTIFACT_PATH,
-    operation,
-    generatedDocument: { path: "DESIGN.md", command: "strict-spec-cli design-generate", required: changed }
-  };
-}
-
-// src/design-system.ts
-var DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR11}/design-system.yaml`;
-var DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
-var DESIGN_AUTHORING_ENTRY_POINT = "/strict-spec-design";
-var TOKEN_GROUPS2 = [
-  { key: "colors", heading: "## Colors" },
-  { key: "typography", heading: "## Typography" },
-  { key: "layout", heading: "## Layout" },
-  { key: "elevation", heading: "## Elevation & Depth" },
-  { key: "shapes", heading: "## Shapes" }
-];
-function getDesignSystemArtifactPath(rootDir) {
-  return path36.join(rootDir, STRICT_WORKFLOW_DIR11, "design-system.yaml");
-}
-function initializeDesignSystemArtifact(rootDir) {
-  const absolutePath = getDesignSystemArtifactPath(rootDir);
-  if (existsSync33(absolutePath)) {
-    return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: false, skipped: true };
-  }
-  const mutation = initializeDesignSystemThroughMutation(rootDir);
-  if (!mutation.valid) {
-    throw new Error(`failed to initialize design-system artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.fieldPath}: ${entry.message}`).join("; ")}`);
-  }
-  return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: true, skipped: false };
-}
-function loadDesignSystemArtifact(rootDir) {
-  const absolutePath = getDesignSystemArtifactPath(rootDir);
-  if (!existsSync33(absolutePath)) {
-    throw new DocumentSourceError(`design-system artifact is missing: ${DESIGN_SYSTEM_ARTIFACT_PATH}; run ${DESIGN_AUTHORING_ENTRY_POINT} to author it`);
-  }
-  let artifact;
-  try {
-    artifact = parseYamlDocument(readFileSync20(absolutePath, "utf8"), { source: DESIGN_SYSTEM_ARTIFACT_PATH });
-  } catch (error) {
-    throw new DocumentSourceError(`design-system artifact is not valid YAML: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  const schema2 = loadBundledSchemaByArtifactType("design_system");
-  const result2 = validateArtifact(schema2, artifact, DESIGN_SYSTEM_ARTIFACT_PATH);
-  return { artifact: artifact ?? {}, diagnostics: result2.diagnostics };
-}
-function declaredTokenGroups(artifact) {
-  const tokens = asRecord4(artifact.tokens);
-  return TOKEN_GROUPS2.map((group) => ({
-    key: group.key,
-    heading: group.heading,
-    entries: asRecord4(tokens[group.key])
-  })).filter((group) => Object.keys(group.entries).length > 0);
-}
-function renderHeaderBlock2(artifact) {
-  const title = asText(artifact.design_system?.title) || "Design System";
-  const groups = declaredTokenGroups(artifact);
-  const frontMatter = {};
-  for (const group of groups) {
-    frontMatter[group.key] = group.entries;
-  }
-  const frontMatterLines = groups.length > 0 ? stringifyYamlDocument(frontMatter).replace(/\n+$/, "").split(`
-`) : [];
-  return {
-    id: "header",
-    heading: null,
-    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
-    lines: [
-      "---",
-      ...frontMatterLines,
-      "---",
-      "",
-      `# ${title}`,
-      "",
-      "> **Generated file — do not edit by hand.**",
-      "> Rendered by `strict-spec-cli design-generate` from these source artifacts:",
-      `> - \`${DESIGN_SYSTEM_ARTIFACT_PATH}\``,
-      ">",
-      "> Change the sources and re-render; edits made here are discarded by the next render."
-    ]
-  };
-}
-function renderOverviewBlock2(artifact) {
-  const overview = asText(artifact.guidance?.overview);
-  return {
-    id: "overview",
-    heading: "## Overview",
-    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
-    lines: [
-      "## Overview",
-      "",
-      ...overview ? overview.split(`
-`).map((line) => line.trimEnd()) : [`_No design overview is recorded in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`]
-    ]
-  };
-}
-function renderScalarTokenBlock(groupKey, heading, entries) {
-  const lines = [heading, "", "| Token | Value |", "| --- | --- |"];
-  for (const [tokenId, value] of Object.entries(entries)) {
-    lines.push(`| \`${tokenId}\` | \`${String(value)}\` |`);
-  }
-  return {
-    id: `tokens-${groupKey}`,
-    heading,
-    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
-    lines: trimTrailingBlankLines(lines)
-  };
-}
-function renderTypographyBlock(heading, entries) {
-  const lines = [heading, ""];
-  for (const [tokenId, rawValue] of Object.entries(entries)) {
-    const value = asRecord4(rawValue);
-    lines.push(`### \`${tokenId}\``, "");
-    for (const [field, fieldValue] of Object.entries(value)) {
-      lines.push(`- **${field}:** \`${String(fieldValue)}\``);
-    }
-    lines.push("");
-  }
-  return {
-    id: "tokens-typography",
-    heading,
-    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
-    lines: trimTrailingBlankLines(lines)
-  };
-}
-function renderComponentsBlock2(artifact) {
-  const components = asRecord4(artifact.components);
-  const lines = ["## Components", ""];
-  if (Object.keys(components).length === 0) {
-    lines.push(`_No components are declared in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`);
-  }
-  for (const [componentId, rawComponent] of Object.entries(components)) {
-    const component = asRecord4(rawComponent);
-    lines.push(`### ${asText(component.title) || componentId} (\`${componentId}\`)`, "");
-    const description = asText(component.description);
-    if (description) {
-      lines.push(description, "");
-    }
-    const componentTokens = asRecord4(component.tokens);
-    if (Object.keys(componentTokens).length > 0) {
-      lines.push("| Property | Token |", "| --- | --- |");
-      for (const [property, token] of Object.entries(componentTokens)) {
-        lines.push(`| \`${property}\` | \`${String(token)}\` |`);
-      }
-      lines.push("");
-    }
-    const mapping = asRecord4(component.mapping);
-    const implementation = asStringArray3(mapping.implementation);
-    if (implementation.length > 0) {
-      lines.push("**Implementation**", "", ...renderBulletList(implementation.map((value) => `\`${value}\``)), "");
-    }
-    const snapshots = asStringArray3(mapping.snapshots);
-    if (snapshots.length > 0) {
-      lines.push("**Visual regression snapshots**", "", ...renderBulletList(snapshots.map((value) => `\`${value}\``)), "");
-    }
-  }
-  return {
-    id: "components",
-    heading: "## Components",
-    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
-    lines: trimTrailingBlankLines(lines)
-  };
-}
-function renderGuidanceBlock(artifact) {
-  const dos = asStringArray3(artifact.guidance?.do);
-  const donts = asStringArray3(artifact.guidance?.dont);
-  const lines = ["## Do's and Don'ts", ""];
-  if (dos.length === 0 && donts.length === 0) {
-    lines.push(`_No design guidance is declared in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`);
-  }
-  if (dos.length > 0) {
-    lines.push("**Do**", "", ...renderBulletList(dos), "");
-  }
-  if (donts.length > 0) {
-    lines.push("**Don't**", "", ...renderBulletList(donts), "");
-  }
-  return {
-    id: "guidance",
-    heading: "## Do's and Don'ts",
-    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
-    lines: trimTrailingBlankLines(lines)
-  };
-}
-function buildDesignSystemBlocks(artifact) {
-  const blocks = [renderHeaderBlock2(artifact), renderOverviewBlock2(artifact)];
-  for (const group of declaredTokenGroups(artifact)) {
-    blocks.push(group.key === "typography" ? renderTypographyBlock(group.heading, group.entries) : renderScalarTokenBlock(group.key, group.heading, group.entries));
-  }
-  blocks.push(renderComponentsBlock2(artifact), renderGuidanceBlock(artifact));
-  return blocks;
-}
-function generateDesignDocument(rootDir, options = {}) {
-  const { artifact, diagnostics } = loadDesignSystemArtifact(rootDir);
-  if (diagnostics.length > 0) {
-    const details = diagnostics.map((diagnostic2) => `${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
-    throw new DocumentSourceError(`design-system artifact does not validate: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${details}`);
-  }
-  const blocks = buildDesignSystemBlocks(artifact);
-  return renderBlocksToDocument(rootDir, blocks, {
-    check: options.check,
-    outputPath: options.outputPath,
-    defaultOutputPath: DEFAULT_DESIGN_DOCUMENT_PATH,
-    documentLabel: "design document"
-  });
-}
-function getDesignSystemStatus(rootDir) {
-  const { artifact, diagnostics } = loadDesignSystemArtifact(rootDir);
-  const tokens = asRecord4(artifact.tokens);
-  const components = asRecord4(artifact.components);
-  const mappingDrift = [];
-  let tokenCount = 0;
-  let tokenGroupCount = 0;
-  for (const group of TOKEN_GROUPS2) {
-    const entries = asRecord4(tokens[group.key]);
-    const entryCount = Object.keys(entries).length;
-    if (entryCount === 0)
-      continue;
-    tokenGroupCount += 1;
-    tokenCount += entryCount;
-  }
-  for (const [componentId, rawComponent] of Object.entries(components)) {
-    const mapping = asRecord4(asRecord4(rawComponent).mapping);
-    for (const mappedPath of asStringArray3(mapping.implementation)) {
-      if (!existsSync33(path36.join(rootDir, mappedPath))) {
-        mappingDrift.push({ component: componentId, path: mappedPath, kind: "implementation" });
-      }
-    }
-    for (const snapshotPath of asStringArray3(mapping.snapshots)) {
-      if (!existsSync33(path36.join(rootDir, snapshotPath))) {
-        mappingDrift.push({ component: componentId, path: snapshotPath, kind: "snapshot" });
-      }
-    }
-  }
-  return {
-    artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH,
-    exists: true,
-    valid: diagnostics.length === 0,
-    diagnostics,
-    tokenGroupCount,
-    tokenCount,
-    componentCount: Object.keys(components).length,
-    mappingDrift
-  };
-}
 
 // src/cli-only-yaml-policy.ts
 import { existsSync as existsSync34, readFileSync as readFileSync21, readdirSync as readdirSync11, statSync as statSync17 } from "fs";
@@ -30955,8 +31008,8 @@ function excerptOf(text) {
 }
 function lineOf(text, index) {
   let line = 1;
-  for (let i2 = 0;i2 < index && i2 < text.length; i2++) {
-    if (text[i2] === `
+  for (let i = 0;i < index && i < text.length; i++) {
+    if (text[i] === `
 `)
       line++;
   }
@@ -31000,13 +31053,13 @@ function isProhibition(text, matchIndex) {
   return NEGATION_BEFORE.test(text.slice(sentenceStart(text, matchIndex), matchIndex));
 }
 function sentenceStart(text, index) {
-  for (let i2 = index - 1;i2 > 0; i2--) {
-    if (text[i2 - 1] === "." && /[\s)\]]/.test(text[i2]))
-      return i2;
-    if (text[i2] === `
-` && text[i2 - 1] === `
+  for (let i = index - 1;i > 0; i--) {
+    if (text[i - 1] === "." && /[\s)\]]/.test(text[i]))
+      return i;
+    if (text[i] === `
+` && text[i - 1] === `
 `)
-      return i2;
+      return i;
   }
   return 0;
 }
@@ -31218,16 +31271,16 @@ function generateChangeName(rootDir, date) {
   let candidate = `maintenance-${date}`;
   if (!existsSync35(path38.join(changesDir, candidate)))
     return candidate;
-  for (let i2 = 2;i2 <= 99; i2++) {
-    candidate = `maintenance-${date}-${i2}`;
+  for (let i = 2;i <= 99; i++) {
+    candidate = `maintenance-${date}-${i}`;
     if (!existsSync35(path38.join(changesDir, candidate)))
       return candidate;
   }
   throw new Error(`Could not generate a unique maintenance change name for date ${date}`);
 }
 function runRoadmapSyncCheck(rootDir) {
-  const result2 = syncRoadmap(rootDir);
-  return result2.updatedFiles.map((file) => ({
+  const result = syncRoadmap(rootDir);
+  return result.updatedFiles.map((file) => ({
     check: "roadmap-sync-check",
     description: `Synced roadmap file: ${file}`
   }));
@@ -31247,32 +31300,22 @@ function runSpecsDirectoryStructureCheck(rootDir) {
   }
   return findings;
 }
-var GENERATED_DOCUMENT_TARGETS = [
-  {
-    reRenderCommand: "strict-spec-cli architecture-generate",
-    check: (rootDir) => generateArchitectureDocument(rootDir, { check: true })
-  },
-  {
-    reRenderCommand: "strict-spec-cli design-generate",
-    check: (rootDir) => generateDesignDocument(rootDir, { check: true })
-  }
-];
 function runGeneratedDocCheck(rootDir) {
   const findings = [];
   for (const target of GENERATED_DOCUMENT_TARGETS) {
-    let result2;
+    let result;
     try {
-      result2 = target.check(rootDir);
+      result = target.render(rootDir, { check: true });
     } catch (error) {
       if (error instanceof DocumentSourceError)
         continue;
       throw error;
     }
-    if (!result2.documentExists || result2.current)
+    if (!result.documentExists || result.current)
       continue;
     findings.push({
       check: "generated-doc-check",
-      description: `Re-render stale ${result2.outputPath} after changes to ${result2.staleSources.join(", ")}: ${target.reRenderCommand}`
+      description: `Re-render stale ${result.outputPath} after changes to ${result.staleSources.join(", ")}: ${target.reRenderCommand}`
     });
   }
   return findings;
@@ -31426,8 +31469,8 @@ function buildQuestionsYaml(changeName) {
 }
 function buildTasksYaml(changeName, findings, regressionCommand) {
   const implementationTasks = {};
-  for (const [i2, f] of findings.entries()) {
-    implementationTasks[`finding-${i2 + 1}`] = {
+  for (const [i, f] of findings.entries()) {
+    implementationTasks[`finding-${i + 1}`] = {
       text: `[${f.check}] ${f.description}`,
       status: "pending"
     };
@@ -31516,10 +31559,10 @@ function runMaintenance(rootDir, options = {}) {
   const date = new Date().toISOString().slice(0, 10);
   const changeName = generateChangeName(rootDir, date);
   initializeStrictChangeScaffold(rootDir, changeName);
-  const changeDir2 = path38.join(getChangesDir2(rootDir), changeName);
-  writeFileSync6(path38.join(changeDir2, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
-  writeFileSync6(path38.join(changeDir2, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
-  writeFileSync6(path38.join(changeDir2, "questions.yaml"), stringifyYamlDocument(buildQuestionsYaml(changeName)), "utf8");
+  const changeDir = path38.join(getChangesDir2(rootDir), changeName);
+  writeFileSync6(path38.join(changeDir, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
+  writeFileSync6(path38.join(changeDir, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
+  writeFileSync6(path38.join(changeDir, "questions.yaml"), stringifyYamlDocument(buildQuestionsYaml(changeName)), "utf8");
   return { valid: true, checksRun, findingsCount: findings.length, generatedChange: changeName, seedingSkippedReason: null };
 }
 
@@ -31761,16 +31804,16 @@ function truncateId(id, maxLen) {
   if (id.length <= maxLen)
     return id;
   const words = id.split("-");
-  let result2 = words[0];
-  for (let i2 = 1;i2 < words.length; i2++) {
-    const candidate = `${result2}-${words[i2]}`;
+  let result = words[0];
+  for (let i = 1;i < words.length; i++) {
+    const candidate = `${result}-${words[i]}`;
     if (candidate.length <= maxLen) {
-      result2 = candidate;
+      result = candidate;
     } else {
       break;
     }
   }
-  return result2.length > 0 ? result2 : id.slice(0, maxLen).replace(/-+$/, "");
+  return result.length > 0 ? result : id.slice(0, maxLen).replace(/-+$/, "");
 }
 function parseLegacyProposal(sourcePath, content, fallbackChangeId, archived) {
   const body = content.replace(/\r\n/g, `
@@ -31919,12 +31962,12 @@ function parseLegacyTasks(sourcePath, content, changeId) {
     throw new Error(`tasks '${sourcePath}' must contain at least two Testing tasks for validation and unit test gates`);
   }
   function toTaskMap(tasks) {
-    const map2 = {};
+    const map = {};
     for (const t of tasks) {
       const { id, ...rest } = t;
-      map2[id] = rest;
+      map[id] = rest;
     }
-    return map2;
+    return map;
   }
   return {
     schema: "strict-spec-driven/task-list/v2",
@@ -32411,14 +32454,14 @@ function listLegacyChangeDirectories(rootDir) {
   }
   return directories;
 }
-function recordDeferredArtifact(result2, sourcePath, reason, recommendation, kind = "legacy_markdown_artifact", code = "converter_unavailable") {
-  result2.skipped.push({
+function recordDeferredArtifact(result, sourcePath, reason, recommendation, kind = "legacy_markdown_artifact", code = "converter_unavailable") {
+  result.skipped.push({
     kind,
     sourcePath,
     reason
   });
-  result2.warnings.push(makeDiagnostic4(code, reason, sourcePath));
-  result2.manualFollowUp.push({
+  result.warnings.push(makeDiagnostic4(code, reason, sourcePath));
+  result.manualFollowUp.push({
     sourcePath,
     reason,
     recommendation
@@ -32434,7 +32477,7 @@ function makeConversionFailure(sourcePath, error) {
 }
 
 // src/migrate/converters/changes.ts
-function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
+function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
   for (const changeDirectory of listLegacyChangeDirectories(rootDir)) {
     const fallbackChangeId = changeDirectory.archived ? toKebabCase(changeDirectory.directoryName.replace(/^\d{4}-\d{2}-\d{2}-/, "")) : toKebabCase(changeDirectory.directoryName);
     let changeId = fallbackChangeId;
@@ -32447,7 +32490,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
         changeId = proposalArtifact.change.id;
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/proposal.yaml`;
         writeYamlFile2(path40.join(changeDirectory.strictDirectoryPath, "proposal.yaml"), proposalArtifact);
-        result2.converted.push({
+        result.converted.push({
           kind: "change_proposal",
           sourcePath: repoRelativeProposalPath,
           targetPath: toPosix3(strictTargetPath),
@@ -32455,7 +32498,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
         });
       } catch (error) {
         const deferredArtifact = makeConversionFailure(repoRelativeProposalPath, error);
-        recordDeferredArtifact(result2, repoRelativeProposalPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+        recordDeferredArtifact(result, repoRelativeProposalPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
       }
     }
     const changeArtifactFiles = [
@@ -32492,7 +32535,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
         const artifact = artifactFile.convert(repoRelativeLegacyFilePath, readFileSync24(legacyFilePath, "utf8"), changeId);
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/${artifactFile.targetName}`;
         writeYamlFile2(path40.join(changeDirectory.strictDirectoryPath, artifactFile.targetName), artifact);
-        result2.converted.push({
+        result.converted.push({
           kind: artifactFile.kind,
           sourcePath: repoRelativeLegacyFilePath,
           targetPath: toPosix3(strictTargetPath),
@@ -32500,7 +32543,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
         });
       } catch (error) {
         const deferredArtifact = makeConversionFailure(repoRelativeLegacyFilePath, error);
-        recordDeferredArtifact(result2, repoRelativeLegacyFilePath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+        recordDeferredArtifact(result, repoRelativeLegacyFilePath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
       }
     }
     const legacyDeltaSpecsRoot = path40.join(changeDirectory.legacyDirectoryPath, "specs");
@@ -32512,7 +32555,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
           const deltaArtifact = parseLegacyDeltaSpec(legacyDeltaSpecPath, readFileSync24(path40.join(rootDir, legacyDeltaSpecPath), "utf8"));
           const strictTargetPath = replaceMarkdownExtension(legacyDeltaSpecPath.replace(`${LEGACY_WORKFLOW_DIR2}/changes/`, `${STRICT_WORKFLOW_DIR13}/changes/`).replace("/specs/", "/specs/"));
           writeYamlFile2(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), deltaArtifact);
-          result2.converted.push({
+          result.converted.push({
             kind: "delta_spec",
             sourcePath: legacyDeltaSpecPath,
             targetPath: strictTargetPath,
@@ -32520,7 +32563,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
           });
         } catch (error) {
           const deferredArtifact = makeConversionFailure(legacyDeltaSpecPath, error);
-          recordDeferredArtifact(result2, legacyDeltaSpecPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+          recordDeferredArtifact(result, legacyDeltaSpecPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
         }
       }
     }
@@ -32685,7 +32728,7 @@ function convertRoadmapIndex(markdown) {
       const [, linkText, href, title, rawStatus] = match;
       const rawId = linkText.trim().replace(/\.md$/i, "");
       const id = toFourDigitId(rawId);
-      const strictPath = `roadmap/${href.trim().replace(/\.md$/i, ".yaml")}`.replace(/milestones\/\d+-/, (match2) => match2.replace(/\d+/, (digits) => digits.padStart(4, "0")));
+      const strictPath = `roadmap/${href.trim().replace(/\.md$/i, ".yaml")}`.replace(/milestones\/\d+-/, (match) => match.replace(/\d+/, (digits) => digits.padStart(4, "0")));
       const status = normalizeDeclaredRoadmapStatus(rawStatus);
       milestones[id] = {
         title: normalizeWhitespace2(title),
@@ -32839,7 +32882,7 @@ function convertSpecsIndex(markdown) {
 // src/migrate/converters/roadmap.ts
 var LEGACY_ROADMAP_DIR = `${LEGACY_WORKFLOW_DIR2}/roadmap`;
 var STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR13}/roadmap`;
-function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
+function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
   const legacyRoadmapRoot = path41.join(rootDir, LEGACY_ROADMAP_DIR);
   if (!existsSync38(legacyRoadmapRoot) || !statSync21(legacyRoadmapRoot).isDirectory()) {
     return;
@@ -32852,11 +32895,11 @@ function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
       const content = readFileSync25(legacyIndexAbsPath, "utf8");
       const conversionResult = convertRoadmapIndex(content);
       if (!conversionResult.ok) {
-        recordDeferredArtifact(result2, legacyIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
+        recordDeferredArtifact(result, legacyIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
       } else {
         const strictIndexPath = `${STRICT_ROADMAP_DIR}/INDEX.yaml`;
         writeYamlFile2(buildStrictMarkdownTargetPath(rootDir, strictIndexPath), conversionResult.artifact);
-        result2.converted.push({
+        result.converted.push({
           kind: "roadmap_index",
           sourcePath: legacyIndexPath,
           targetPath: strictIndexPath,
@@ -32865,7 +32908,7 @@ function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
       }
     } catch (error) {
       const deferredArtifact = makeConversionFailure(legacyIndexPath, error);
-      recordDeferredArtifact(result2, legacyIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+      recordDeferredArtifact(result, legacyIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
   const legacyMilestonesRoot = path41.join(legacyRoadmapRoot, "milestones");
@@ -32880,12 +32923,12 @@ function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
       const filename = path41.basename(legacyMilestoneFile);
       const conversionResult = convertRoadmapMilestone(content, filename);
       if (!conversionResult.ok) {
-        recordDeferredArtifact(result2, legacyMilestoneFile, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
+        recordDeferredArtifact(result, legacyMilestoneFile, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
         continue;
       }
       const strictMilestonePath = toPosix3(legacyMilestoneFile.replace(`${LEGACY_ROADMAP_DIR}/`, `${STRICT_ROADMAP_DIR}/`).replace(/\.md$/i, ".yaml").replace(/milestones\/\d+-/, (match) => match.replace(/\d+/, (digits) => digits.padStart(4, "0"))));
       writeYamlFile2(buildStrictMarkdownTargetPath(rootDir, strictMilestonePath), conversionResult.artifact);
-      result2.converted.push({
+      result.converted.push({
         kind: "roadmap_milestone",
         sourcePath: legacyMilestoneFile,
         targetPath: strictMilestonePath,
@@ -32893,11 +32936,11 @@ function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
       });
     } catch (error) {
       const deferredArtifact = makeConversionFailure(legacyMilestoneFile, error);
-      recordDeferredArtifact(result2, legacyMilestoneFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+      recordDeferredArtifact(result, legacyMilestoneFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
 }
-function convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles) {
+function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
   const legacySpecsIndexPath = `${LEGACY_WORKFLOW_DIR2}/specs/INDEX.md`;
   const legacySpecsIndexAbsPath = path41.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
   if (!existsSync38(legacySpecsIndexAbsPath) || !statSync21(legacySpecsIndexAbsPath).isFile()) {
@@ -32907,7 +32950,7 @@ function convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles) {
   const strictSpecsIndexPath = `${STRICT_WORKFLOW_DIR13}/specs/INDEX.yaml`;
   const strictSpecsIndexAbsPath = path41.join(rootDir, STRICT_WORKFLOW_DIR13, "specs", "INDEX.yaml");
   if (existsSync38(strictSpecsIndexAbsPath)) {
-    result2.converted.push({
+    result.converted.push({
       kind: "spec_index",
       sourcePath: legacySpecsIndexPath,
       targetPath: strictSpecsIndexPath,
@@ -32919,11 +32962,11 @@ function convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles) {
     const content = readFileSync25(legacySpecsIndexAbsPath, "utf8");
     const conversionResult = convertSpecsIndex(content);
     if (!conversionResult.ok) {
-      recordDeferredArtifact(result2, legacySpecsIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
+      recordDeferredArtifact(result, legacySpecsIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
       return;
     }
     writeYamlFile2(strictSpecsIndexAbsPath, conversionResult.artifact);
-    result2.converted.push({
+    result.converted.push({
       kind: "spec_index",
       sourcePath: legacySpecsIndexPath,
       targetPath: strictSpecsIndexPath,
@@ -32931,7 +32974,7 @@ function convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles) {
     });
   } catch (error) {
     const deferredArtifact = makeConversionFailure(legacySpecsIndexPath, error);
-    recordDeferredArtifact(result2, legacySpecsIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+    recordDeferredArtifact(result, legacySpecsIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
   }
 }
 
@@ -32986,7 +33029,7 @@ function regenerateStrictSpecIndex(rootDir) {
   };
   writeYamlFile2(indexPath, indexArtifact);
 }
-function convertLegacySpecArtifacts(rootDir, result2, handledLegacyFiles) {
+function convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles) {
   const legacySpecsRoot = path42.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
   if (!existsSync39(legacySpecsRoot) || !statSync22(legacySpecsRoot).isDirectory()) {
     return false;
@@ -32999,7 +33042,7 @@ function convertLegacySpecArtifacts(rootDir, result2, handledLegacyFiles) {
       const strictArtifact = parseLegacyMainSpec(legacySpecFile, readFileSync26(path42.join(rootDir, legacySpecFile), "utf8"));
       const strictTargetPath = replaceMarkdownExtension(legacySpecFile.replace(`${LEGACY_WORKFLOW_DIR2}/specs/`, `${STRICT_WORKFLOW_DIR13}/specs/`));
       writeYamlFile2(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), strictArtifact);
-      result2.converted.push({
+      result.converted.push({
         kind: "main_spec",
         sourcePath: legacySpecFile,
         targetPath: strictTargetPath,
@@ -33008,7 +33051,7 @@ function convertLegacySpecArtifacts(rootDir, result2, handledLegacyFiles) {
       convertedAny = true;
     } catch (error) {
       const deferredArtifact = makeConversionFailure(legacySpecFile, error);
-      recordDeferredArtifact(result2, legacySpecFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+      recordDeferredArtifact(result, legacySpecFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
   if (convertedAny) {
@@ -33053,13 +33096,13 @@ function describeDeferredLegacyArtifact(repoRelativePath) {
     recommendation: "Add a dedicated migration converter for this artifact type before treating the migration as complete."
   };
 }
-function sortMigrationResult(result2) {
-  sortByDeterministicKey(result2.converted, (artifact) => [artifact.targetPath, artifact.sourcePath ?? "", artifact.kind, artifact.note]);
-  sortByDeterministicKey(result2.skipped, (artifact) => [artifact.sourcePath, artifact.kind, artifact.reason]);
-  sortByDeterministicKey(result2.warnings, (diagnostic2) => [diagnostic2.code, diagnostic2.sourcePath ?? "", diagnostic2.targetPath ?? "", diagnostic2.message]);
-  sortByDeterministicKey(result2.errors, (diagnostic2) => [diagnostic2.code, diagnostic2.sourcePath ?? "", diagnostic2.targetPath ?? "", diagnostic2.message]);
-  sortByDeterministicKey(result2.manualFollowUp, (entry) => [entry.sourcePath, entry.reason, entry.recommendation]);
-  return result2;
+function sortMigrationResult(result) {
+  sortByDeterministicKey(result.converted, (artifact) => [artifact.targetPath, artifact.sourcePath ?? "", artifact.kind, artifact.note]);
+  sortByDeterministicKey(result.skipped, (artifact) => [artifact.sourcePath, artifact.kind, artifact.reason]);
+  sortByDeterministicKey(result.warnings, (diagnostic) => [diagnostic.code, diagnostic.sourcePath ?? "", diagnostic.targetPath ?? "", diagnostic.message]);
+  sortByDeterministicKey(result.errors, (diagnostic) => [diagnostic.code, diagnostic.sourcePath ?? "", diagnostic.targetPath ?? "", diagnostic.message]);
+  sortByDeterministicKey(result.manualFollowUp, (entry) => [entry.sourcePath, entry.reason, entry.recommendation]);
+  return result;
 }
 
 // src/migrate/preflight.ts
@@ -33141,7 +33184,7 @@ function getReportedStrictScaffoldAssets() {
 function migrateLegacyWorkflow(rootDir, options) {
   const legacyRootAbsolutePath = path44.join(rootDir, LEGACY_WORKFLOW_DIR2);
   const strictRootAbsolutePath = path44.join(rootDir, STRICT_WORKFLOW_DIR13);
-  const result2 = {
+  const result = {
     valid: false,
     targetRoot: STRICT_WORKFLOW_DIR13,
     converted: [],
@@ -33151,30 +33194,30 @@ function migrateLegacyWorkflow(rootDir, options) {
     manualFollowUp: []
   };
   if (!existsSync41(legacyRootAbsolutePath) || !statSync24(legacyRootAbsolutePath).isDirectory()) {
-    result2.errors.push(makeDiagnostic4("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
-    return sortMigrationResult(result2);
+    result.errors.push(makeDiagnostic4("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
+    return sortMigrationResult(result);
   }
   if (existsSync41(strictRootAbsolutePath)) {
     const strictRootStat = statSync24(strictRootAbsolutePath);
     if (!strictRootStat.isDirectory()) {
-      result2.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR13));
-      return sortMigrationResult(result2);
+      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR13));
+      return sortMigrationResult(result);
     }
     if (readdirSync14(strictRootAbsolutePath).length > 0) {
-      result2.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR13));
-      return sortMigrationResult(result2);
+      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR13));
+      return sortMigrationResult(result);
     }
   }
-  const strictConfig = loadStrictConfigFromLegacy(rootDir, result2.errors);
+  const strictConfig = loadStrictConfigFromLegacy(rootDir, result.errors);
   if (!strictConfig) {
-    return sortMigrationResult(result2);
+    return sortMigrationResult(result);
   }
   const legacyFiles = listFilesRecursive2(legacyRootAbsolutePath).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).sort((left, right) => left.localeCompare(right));
   options?.onProgress?.(`scanning: found ${legacyFiles.length} legacy files`);
   initializeStrictScaffold(rootDir);
   const strictConfigAbsolutePath = path44.join(rootDir, STRICT_CONFIG_PATH);
   writeFileSync8(strictConfigAbsolutePath, stringifyYamlDocument(strictConfig), "utf8");
-  result2.converted.push({
+  result.converted.push({
     kind: "workflow_config",
     sourcePath: LEGACY_CONFIG_PATH,
     targetPath: STRICT_CONFIG_PATH,
@@ -33182,41 +33225,41 @@ function migrateLegacyWorkflow(rootDir, options) {
   });
   const handledLegacyFiles = new Set([LEGACY_CONFIG_PATH]);
   for (const scaffoldAsset of getReportedStrictScaffoldAssets()) {
-    result2.converted.push({
+    result.converted.push({
       kind: "strict_scaffold_asset",
       targetPath: `${STRICT_WORKFLOW_DIR13}/${scaffoldAsset}`,
       note: "Ensured required strict scaffold asset is available for migration output."
     });
   }
   options?.onProgress?.("converting: specs");
-  convertLegacySpecArtifacts(rootDir, result2, handledLegacyFiles);
+  convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles);
   options?.onProgress?.("converting: changes");
-  convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles);
+  convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles);
   options?.onProgress?.("converting: roadmap");
-  convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles);
-  convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles);
+  convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
+  convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
   const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path44.basename(f) !== "README.md");
   if (unhandled.length > 0) {
     options?.onProgress?.(`deferring: ${unhandled.length} unhandled files`);
   }
   for (const legacyFile of unhandled) {
     const deferredArtifact = describeDeferredLegacyArtifact(legacyFile);
-    recordDeferredArtifact(result2, legacyFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "converter_unavailable");
+    recordDeferredArtifact(result, legacyFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "converter_unavailable");
   }
   const strictChangesAbsolutePath = path44.join(strictRootAbsolutePath, "changes");
   const convertedActiveChangeNames = existsSync41(strictChangesAbsolutePath) ? readdirSync14(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
   if (convertedActiveChangeNames.length > MAX_ACTIVE_CHANGE_COUNT) {
     const activeChangeList = convertedActiveChangeNames.map((name) => `'${name}'`).join(", ");
-    result2.warnings.push(makeDiagnostic4("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR13}/changes`));
-    result2.manualFollowUp.push({
+    result.warnings.push(makeDiagnostic4("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR13}/changes`));
+    result.manualFollowUp.push({
       sourcePath: `${LEGACY_WORKFLOW_DIR2}/changes`,
       reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but at most two active changes are allowed at a time.`,
       recommendation: "Archive or cancel converted active changes until only two remain before continuing strict workflow work."
     });
   }
-  options?.onProgress?.(`done: ${result2.converted.length} converted, ${result2.skipped.length} skipped, ${result2.warnings.length} warnings, ${result2.errors.length} errors`);
-  result2.valid = true;
-  return sortMigrationResult(result2);
+  options?.onProgress?.(`done: ${result.converted.length} converted, ${result.skipped.length} skipped, ${result.warnings.length} warnings, ${result.errors.length} errors`);
+  result.valid = true;
+  return sortMigrationResult(result);
 }
 
 // src/cli/cmd-migration.ts
@@ -33229,12 +33272,12 @@ function runMigrate(argv) {
     return 1;
   }
   try {
-    const result2 = migrateLegacyWorkflow(process.cwd(), {
+    const result = migrateLegacyWorkflow(process.cwd(), {
       onProgress: (phase) => writeErr(`[migrate ${new Date().toISOString()}] ${phase}
 `)
     });
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -33250,9 +33293,9 @@ function runMaintenanceCommand(argv) {
     writeUsage(getCommandUsage("maintenance"));
     return 1;
   }
-  const result2 = runMaintenance(process.cwd(), { seed });
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = runMaintenance(process.cwd(), { seed });
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 
 // src/cli/cmd-mcp-install.ts
@@ -33524,7 +33567,7 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
     entrypointPath,
     results
   });
-  return results.some((result2) => result2.status === "error") ? 1 : 0;
+  return results.some((result) => result.status === "error") ? 1 : 0;
 }
 
 // src/cli/cmd-operations.ts
@@ -33628,8 +33671,8 @@ function getYamlAuthoringProtocol() {
     boundary: YAML_AUTHORING_PROTOCOL_BOUNDARY
   };
 }
-function unique(values3) {
-  return [...new Set(values3)];
+function unique(values) {
+  return [...new Set(values)];
 }
 function assetStep(step, listCommand, showCommandPrefix, artifactTypes, keyOf, cachedPathOf, assetLabel) {
   const withKey = artifactTypes.filter((entry) => keyOf(entry) !== undefined);
@@ -33861,6 +33904,49 @@ var REQUIREMENT_INTERROGATION_SNIPPETS = [
   { snippet: "names a solution", element: "the asking-technique rule that rejects an answer naming a solution instead of a problem" },
   { snippet: "explain why the question matters", element: "the duty to explain a question before posing it" },
   { snippet: "state the reason for the pushback", element: "the duty to state the reason for pushback instead of silently re-asking" }
+];
+var REVIEW_INDEPENDENCE_SKILLS = [
+  "strict-spec-review",
+  "strict-spec-auto"
+];
+var REVIEW_INDEPENDENCE_HEADING = "## Review Independence";
+var REVIEW_INDEPENDENCE_SNIPPETS = [
+  {
+    snippet: "Read only `proposal.yaml`, `design.yaml`, `questions.yaml`, and the delta specs",
+    element: "the planning artifacts and delta specs the requirement is reconstructed from"
+  },
+  {
+    snippet: "before any implementation file, diff, or test file is read",
+    element: "the rule that requirement reconstruction completes before the implementation is read"
+  },
+  {
+    snippet: "a numbered list of acceptance items",
+    element: "the duty to write down a numbered list of acceptance items during reconstruction"
+  },
+  {
+    snippet: "Never derive the requirement from the implementation",
+    element: "the prohibition on deriving the requirement from the implementation"
+  },
+  {
+    snippet: "an outside reviewer who did not write them",
+    element: "the outside-reviewer stance the changed files are read in"
+  },
+  {
+    snippet: "`satisfied`, `not satisfied`, or `unprovable from evidence`",
+    element: "the three verdict values every acceptance item resolves to"
+  },
+  {
+    snippet: "an implementation reference and a test reference",
+    element: "the duty to attach an implementation reference and a test reference to each verdict"
+  },
+  {
+    snippet: "is not a substitute for per-item verdicts",
+    element: "the rule that a blanket claim of matching the proposal is not a substitute for per-item verdicts"
+  },
+  {
+    snippet: "blocks the archive recommendation",
+    element: "the rule that an unprovable verdict on a MUST-strength requirement blocks the archive recommendation"
+  }
 ];
 var CORE_STRICT_SKILL_EXPECTATIONS = {
   "strict-spec-init": {
@@ -34292,6 +34378,21 @@ function validateRequirementInterrogationGuidance(skillName, content, skillPath,
     diagnostics.push(makeDiagnostic5("skill.requirement_interrogation.guidance.missing", skillPath, `proposal-oriented strict skills must document ${expectation.element}`, expectation.snippet));
   }
 }
+function validateReviewIndependenceGuidance(skillName, content, skillPath, diagnostics) {
+  if (!REVIEW_INDEPENDENCE_SKILLS.includes(skillName))
+    return;
+  const section = skillSection(content, REVIEW_INDEPENDENCE_HEADING);
+  if (section === undefined) {
+    diagnostics.push(makeDiagnostic5("skill.review_independence.heading.missing", skillPath, "a strict skill that reviews a change must carry a review-independence section that separates requirement reconstruction from reading the implementation", REVIEW_INDEPENDENCE_HEADING));
+    return;
+  }
+  const normalizedSection = normalizeWhitespace3(section);
+  for (const { snippet, element } of REVIEW_INDEPENDENCE_SNIPPETS) {
+    if (normalizedSection.includes(normalizeWhitespace3(snippet)))
+      continue;
+    diagnostics.push(makeDiagnostic5("skill.review_independence.element.missing", skillPath, `review-independence guidance must state ${element}`, snippet));
+  }
+}
 function validateTaskOrderGuidance(skillName, content, skillPath, diagnostics) {
   const normalizedContent = content.replace(/\s+/g, " ");
   if (skillName === TASK_ORDER_APPLY_SKILL) {
@@ -34323,14 +34424,14 @@ function validateStrictWorkflowStateGuidance(skillName, content, commands, skill
   } else if (!checkWorkflowStateCommand.includes(CHECK_WORKFLOW_STATE_COMMAND)) {
     diagnostics.push(makeDiagnostic5("skill.strict_workflow.check_command.invalid", `${skillPath}#commands.check-workflow-state`, "non-init strict skills must run the scripted strict workflow state check command before workflow work", CHECK_WORKFLOW_STATE_COMMAND, checkWorkflowStateCommand));
   }
-  for (const snippet2 of [
+  for (const snippet of [
     STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,
     STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET,
     STRICT_WORKFLOW_NO_INIT_SNIPPET
   ]) {
-    if (normalizedContent.includes(snippet2.replace(/\s+/g, " ")))
+    if (normalizedContent.includes(snippet.replace(/\s+/g, " ")))
       continue;
-    diagnostics.push(makeDiagnostic5("skill.strict_workflow.precheck.missing", skillPath, "non-init strict skills must check for existing .strict-spec-driven/ state before any other step and stop with init guidance when it is missing", snippet2));
+    diagnostics.push(makeDiagnostic5("skill.strict_workflow.precheck.missing", skillPath, "non-init strict skills must check for existing .strict-spec-driven/ state before any other step and stop with init guidance when it is missing", snippet));
   }
   if (commands.init) {
     diagnostics.push(makeDiagnostic5("skill.strict_workflow.init_command.forbidden", `${skillPath}#commands.init`, "non-init strict skills must not declare the bundled init command as a fallback", "no init command entry", commands.init));
@@ -34349,14 +34450,14 @@ function validateSkillContentAgainstExpectation(skillName, content, commands, sk
       diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.required_heading.missing`, skillPath, `${label} is missing required section heading '${heading}'`, heading));
     }
   }
-  for (const snippet2 of expectation.requiredSnippets) {
-    if (!normalizedContent.includes(snippet2.replace(/\s+/g, " "))) {
-      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.required_snippet.missing`, skillPath, `${label} must reference '${snippet2}'`, snippet2));
+  for (const snippet of expectation.requiredSnippets) {
+    if (!normalizedContent.includes(snippet.replace(/\s+/g, " "))) {
+      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.required_snippet.missing`, skillPath, `${label} must reference '${snippet}'`, snippet));
     }
   }
-  for (const snippet2 of expectation.forbiddenSnippets ?? []) {
-    if (normalizedContent.includes(snippet2.replace(/\s+/g, " "))) {
-      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.forbidden_snippet.present`, skillPath, `${label} contains misleading prompt text '${snippet2}'`, "prompt text aligned with implemented CLI behavior", snippet2));
+  for (const snippet of expectation.forbiddenSnippets ?? []) {
+    if (normalizedContent.includes(snippet.replace(/\s+/g, " "))) {
+      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.forbidden_snippet.present`, skillPath, `${label} contains misleading prompt text '${snippet}'`, "prompt text aligned with implemented CLI behavior", snippet));
     }
   }
   for (const [commandName, expectedValue] of Object.entries(expectation.requiredCommands)) {
@@ -34406,10 +34507,10 @@ function validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics)
     return;
   }
   const normalizedSection = normalizeWhitespace3(section).toLowerCase();
-  for (const { snippet: snippet2, element } of PREFERRED_HUMAN_LANGUAGE_SNIPPETS) {
-    if (normalizedSection.includes(normalizeWhitespace3(snippet2).toLowerCase()))
+  for (const { snippet, element } of PREFERRED_HUMAN_LANGUAGE_SNIPPETS) {
+    if (normalizedSection.includes(normalizeWhitespace3(snippet).toLowerCase()))
       continue;
-    diagnostics.push(makeDiagnostic5("skill.preferred_human_language.element.missing", skillPath, `preferred human language guidance must name ${element}`, snippet2));
+    diagnostics.push(makeDiagnostic5("skill.preferred_human_language.element.missing", skillPath, `preferred human language guidance must name ${element}`, snippet));
   }
   const body = section.slice(PREFERRED_HUMAN_LANGUAGE_HEADING.length);
   const sentenceCount = countProseSentences(body);
@@ -34433,8 +34534,8 @@ function skillSections(content) {
 }
 function validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics) {
   const sections = skillSections(content).filter((section) => section.heading !== SKILL_COMMANDS_HEADING);
-  for (const { snippet: snippet2, element } of STRICT_WORKFLOW_SHARED_ELEMENTS) {
-    const normalizedSnippet = normalizeWhitespace3(snippet2);
+  for (const { snippet, element } of STRICT_WORKFLOW_SHARED_ELEMENTS) {
+    const normalizedSnippet = normalizeWhitespace3(snippet);
     const statingSections = sections.filter((section) => normalizeWhitespace3(section.body).includes(normalizedSnippet)).map((section) => section.heading);
     if (statingSections.length < 2)
       continue;
@@ -34571,6 +34672,7 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics);
   validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics);
   validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
+  validateReviewIndependenceGuidance(skillName, content, skillPath, diagnostics);
   validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateAuthoringProtocolPointer(skillName, content, normalizedCommands, skillPath, diagnostics);
@@ -34583,12 +34685,12 @@ function validateSkillReferences(content, packagedSkillNames, skillPath, diagnos
 
 // src/skills/diagnostics.ts
 function sortDiagnostics2(diagnostics) {
-  return sortByDeterministicKey(diagnostics, (diagnostic2) => [
-    diagnostic2.code,
-    diagnostic2.path,
-    diagnostic2.message,
-    diagnostic2.expected ?? "",
-    diagnostic2.actual ?? ""
+  return sortByDeterministicKey(diagnostics, (diagnostic) => [
+    diagnostic.code,
+    diagnostic.path,
+    diagnostic.message,
+    diagnostic.expected ?? "",
+    diagnostic.actual ?? ""
   ]);
 }
 
@@ -34657,7 +34759,7 @@ function validateMarketplaceMetadata(rootDir, skillNames, diagnostics) {
       diagnostics.push(makeDiagnostic5("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-*, strict-roadmap-*, or strict-tech-*", entry.name));
     }
   }
-  const normalizeList = (values3) => [...new Set(values3)].sort((a, b) => a.localeCompare(b));
+  const normalizeList = (values) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
   const expected = normalizeList(skillNames);
   const actual = normalizeList(marketplaceNames);
   if (JSON.stringify(expected) !== JSON.stringify(actual)) {
@@ -34927,7 +35029,7 @@ function getTechStatus(rootDir) {
   const standards = [];
   const totals = { MUST: 0, SHOULD: 0, MAY: 0 };
   for (const techFile of listTechFiles2(techDir).sort()) {
-    const artifactPath = normalizeRepoRelativePath4(rootDir, techFile);
+    const artifactPath = normalizeRepoRelativePath2(rootDir, techFile);
     let doc;
     try {
       doc = parseYamlDocument(readFileSync32(techFile, "utf8"), { source: artifactPath });
@@ -35004,7 +35106,7 @@ function runShip(argv) {
     return 1;
   }
   const resolvedArchiveDir = path50.join(archiveRoot, resolvedArchiveName);
-  const archivePath = normalizeRepoRelativePath4(rootDir, resolvedArchiveDir);
+  const archivePath = normalizeRepoRelativePath2(rootDir, resolvedArchiveDir);
   let proposalSummary = "";
   const proposalPath = path50.join(resolvedArchiveDir, "proposal.yaml");
   if (existsSync47(proposalPath)) {
@@ -35022,13 +35124,13 @@ function runShip(argv) {
     } catch {}
   }
   const roadmapSnapshot = getRoadmapStatus(rootDir);
-  const result2 = {
+  const result = {
     changeName: resolvedArchiveName,
     archivePath,
     proposalSummary,
     roadmapSnapshot
   };
-  writeJson(result2);
+  writeJson(result);
   return 0;
 }
 function runValidateSkills(argv) {
@@ -35039,9 +35141,9 @@ function runValidateSkills(argv) {
     writeUsage(getCommandUsage("validate-skills"));
     return 1;
   }
-  const result2 = validateStrictSkillPackaging(process.cwd());
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = validateStrictSkillPackaging(process.cwd());
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runTechStatus(argv) {
   if (handleHelpRequest("tech-status", argv)) {
@@ -35642,10 +35744,10 @@ function parseFlags(argv, allowed) {
   return flags;
 }
 function one(flags, name) {
-  const values3 = flags[name] ?? [];
-  if (values3.length > 1)
+  const values = flags[name] ?? [];
+  if (values.length > 1)
     throw new Error(`--${name} may be supplied at most once`);
-  return values3[0];
+  return values[0];
 }
 function many(flags, name) {
   return flags[name] ?? [];
@@ -35743,9 +35845,9 @@ function runLiveArtifactEdit(commandName, argv) {
     return 1;
   }
   try {
-    const result2 = commandName === "spec-edit" ? authorMainSpec(process.cwd(), parseSpecInput(id, flagArgs)) : authorMainTech(process.cwd(), parseTechInput(id, flagArgs));
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = withRerenderedDocuments(process.cwd(), commandName === "spec-edit" ? authorMainSpec(process.cwd(), parseSpecInput(id, flagArgs)) : authorMainTech(process.cwd(), parseTechInput(id, flagArgs)));
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
     writeUsage(getCommandUsage(commandName));
@@ -35786,11 +35888,11 @@ function listKeys(prefix) {
 ` : ""));
   return 0;
 }
-function showKey(key, usage2) {
+function showKey(key, usage) {
   const content = readEmbeddedTemplate(key);
   if (content === undefined) {
     writeError(`embedded template asset '${key}' not found`);
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
   writeOut(content);
@@ -35808,15 +35910,15 @@ function runTemplateList(argv) {
 }
 function runTemplateShow(argv) {
   const [key, ...extraArgs] = argv;
-  const usage2 = getCommandUsage("template-show");
+  const usage = getCommandUsage("template-show");
   if (handleHelpRequest("template-show", argv)) {
     return 0;
   }
   if (!key || extraArgs.length > 0) {
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
-  return showKey(normalizeTemplateKey(key), usage2);
+  return showKey(normalizeTemplateKey(key), usage);
 }
 function runSchemaList(argv) {
   if (handleHelpRequest("schema-list", argv)) {
@@ -35830,15 +35932,15 @@ function runSchemaList(argv) {
 }
 function runSchemaShow(argv) {
   const [name, ...extraArgs] = argv;
-  const usage2 = getCommandUsage("schema-show");
+  const usage = getCommandUsage("schema-show");
   if (handleHelpRequest("schema-show", argv)) {
     return 0;
   }
   if (!name || extraArgs.length > 0) {
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
-  return showKey(normalizeSchemaKey(name), usage2);
+  return showKey(normalizeSchemaKey(name), usage);
 }
 function runSampleList(argv) {
   if (handleHelpRequest("sample-list", argv)) {
@@ -35852,15 +35954,15 @@ function runSampleList(argv) {
 }
 function runSampleShow(argv) {
   const [name, ...extraArgs] = argv;
-  const usage2 = getCommandUsage("sample-show");
+  const usage = getCommandUsage("sample-show");
   if (handleHelpRequest("sample-show", argv)) {
     return 0;
   }
   if (!name || extraArgs.length > 0) {
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
-  return showKey(normalizeSampleKey(name), usage2);
+  return showKey(normalizeSampleKey(name), usage);
 }
 
 // src/cli/cmd-yaml-authoring-protocol.ts
@@ -35949,12 +36051,12 @@ function runYamlSurfaceList(argv) {
 }
 function runYamlSurfaceShow(argv) {
   const [kind, ...extraArgs] = argv;
-  const usage2 = getCommandUsage("yaml-surface-show");
+  const usage = getCommandUsage("yaml-surface-show");
   if (handleHelpRequest("yaml-surface-show", argv)) {
     return 0;
   }
   if (!kind || extraArgs.length > 0) {
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
   const surface = loadYamlMutationSurface();
@@ -36129,26 +36231,26 @@ function applyFieldEdits(document, edits) {
         failed = true;
         break;
       }
-      const container2 = cursor;
-      if (Array.isArray(container2)) {
+      const container = cursor;
+      if (Array.isArray(container)) {
         const index = Number.parseInt(segment, 10);
-        if (!Number.isInteger(index) || index < 0 || index >= container2.length) {
+        if (!Number.isInteger(index) || index < 0 || index >= container.length) {
           failures.push({ fieldPath: edit.fieldPath, message: `sequence index '${segment}' is out of range`, code: "field-path-out-of-range" });
           failed = true;
           break;
         }
-        cursor = container2[index];
+        cursor = container[index];
         continue;
       }
-      if (container2[segment] === undefined) {
+      if (container[segment] === undefined) {
         if (edit.kind === "remove") {
           failures.push({ fieldPath: edit.fieldPath, message: `'${segment}' does not exist`, code: "field-path-missing" });
           failed = true;
           break;
         }
-        container2[segment] = {};
+        container[segment] = {};
       }
-      cursor = container2[segment];
+      cursor = container[segment];
     }
     if (failed)
       continue;
@@ -36242,8 +36344,8 @@ function validateCandidateFor(descriptor, assetPath, rootDir) {
     const resolved = registeredSchemaFor(candidate, assetPath);
     if ("error" in resolved)
       return [resolved.error];
-    const result2 = validateWithSchema(resolved.schema, candidate, assetPath);
-    return result2.diagnostics.map((entry) => issue(entry.fieldPath ?? "$", entry.message, "candidate-invalid", { artifactPath: assetPath }));
+    const result = validateWithSchema(resolved.schema, candidate, assetPath);
+    return result.diagnostics.map((entry) => issue(entry.fieldPath ?? "$", entry.message, "candidate-invalid", { artifactPath: assetPath }));
   };
 }
 function findAssetReferences(assetPath, rootDir) {
@@ -36457,8 +36559,8 @@ function mutateBundledAsset(options) {
       });
     }
   }
-  const result2 = commitYamlMutation({ rootDir, mutations: requests });
-  return { family: options.family, assetPath, ...result2 };
+  const result = commitYamlMutation({ rootDir, mutations: requests });
+  return { family: options.family, assetPath, ...result };
 }
 function projectPendingBundle(render, rootDir, assetPath, candidate) {
   const currentBundle = render(rootDir);
@@ -36566,7 +36668,7 @@ function parseEditArgs(argv, expectsAssetName) {
 function runBundledAssetEdit(commandName, family, argv, options) {
   if (handleHelpRequest(commandName, argv))
     return 0;
-  const usage2 = getCommandUsage(commandName);
+  const usage = getCommandUsage(commandName);
   const parsed = parseEditArgs(argv, options.expectsAssetName);
   if ("error" in parsed) {
     writeJson({
@@ -36576,11 +36678,11 @@ function runBundledAssetEdit(commandName, family, argv, options) {
       changes: [],
       diagnostics: [{ artifactPath: `<${family}>`, phase: "planning", code: "usage-error", fieldPath: "$", message: parsed.error }]
     });
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
   if (options.expectsAssetName && !parsed.assetName) {
-    writeUsage(usage2);
+    writeUsage(usage);
     return 1;
   }
   const outcome = mutateBundledAsset({
@@ -36858,10 +36960,10 @@ function parseArchitectureFlags(argv) {
   return flags;
 }
 function scalar(flags, name) {
-  const values3 = flags[name] ?? [];
-  if (values3.length > 1)
+  const values = flags[name] ?? [];
+  if (values.length > 1)
     throw new Error(`--${name} may be supplied at most once`);
-  return values3[0];
+  return values[0];
 }
 function parseArchitectureEditArgs(argv) {
   const flags = parseArchitectureFlags(argv);
@@ -36925,9 +37027,9 @@ function runArchitectureEdit(argv) {
   if (handleHelpRequest("architecture-edit", argv))
     return 0;
   try {
-    const result2 = authorArchitecture(process.cwd(), parseArchitectureEditArgs(argv));
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = withRerenderedDocuments(process.cwd(), authorArchitecture(process.cwd(), parseArchitectureEditArgs(argv)));
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
     writeUsage(getCommandUsage("architecture-edit"));
@@ -36944,16 +37046,16 @@ function runArchitectureGenerate(argv) {
     return 1;
   }
   try {
-    const result2 = generateArchitectureDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
-    writeJson(result2);
-    if (result2.current) {
+    const result = generateArchitectureDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
+    writeJson(result);
+    if (result.current) {
       return 0;
     }
-    if (!result2.documentExists) {
-      writeError(`architecture document is missing: ${result2.outputPath}; run architecture-generate to render it`);
+    if (!result.documentExists) {
+      writeError(`architecture document is missing: ${result.outputPath}; run architecture-generate to render it`);
       return 1;
     }
-    writeError(`architecture document is stale: ${result2.outputPath}; re-render it after changing ${result2.staleSources.join(", ")}`);
+    writeError(`architecture document is stale: ${result.outputPath}; re-render it after changing ${result.staleSources.join(", ")}`);
     return 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
@@ -36973,9 +37075,9 @@ function runArchitectureStatus(argv) {
     return 1;
   }
   try {
-    const result2 = getArchitectureStatus(process.cwd());
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = getArchitectureStatus(process.cwd());
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
       writeError(error.message);
@@ -37038,10 +37140,10 @@ function parseDesignFlags(argv) {
   return flags;
 }
 function singleDesignValue(flags, name) {
-  const values3 = flags[name] ?? [];
-  if (values3.length > 1)
+  const values = flags[name] ?? [];
+  if (values.length > 1)
     throw new Error(`--${name} may be supplied at most once`);
-  return values3[0];
+  return values[0];
 }
 function parseDesignEditArgs(argv) {
   const flags = parseDesignFlags(argv);
@@ -37088,9 +37190,9 @@ function runDesignEdit(argv) {
   if (handleHelpRequest("design-edit", argv))
     return 0;
   try {
-    const result2 = authorDesignSystem(process.cwd(), parseDesignEditArgs(argv));
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = withRerenderedDocuments(process.cwd(), authorDesignSystem(process.cwd(), parseDesignEditArgs(argv)));
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
     writeUsage(getCommandUsage("design-edit"));
@@ -37106,7 +37208,7 @@ function runDesignInit(argv) {
     return 1;
   }
   try {
-    writeJson(initializeDesignSystemArtifact(process.cwd()));
+    writeJson(withRerenderedDocuments(process.cwd(), initializeDesignSystemArtifact(process.cwd())));
     return 0;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
@@ -37123,16 +37225,16 @@ function runDesignGenerate(argv) {
     return 1;
   }
   try {
-    const result2 = generateDesignDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
-    writeJson(result2);
-    if (result2.current) {
+    const result = generateDesignDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
+    writeJson(result);
+    if (result.current) {
       return 0;
     }
-    if (!result2.documentExists) {
-      writeError(`design document is missing: ${result2.outputPath}; run design-generate to render it`);
+    if (!result.documentExists) {
+      writeError(`design document is missing: ${result.outputPath}; run design-generate to render it`);
       return 1;
     }
-    writeError(`design document is stale: ${result2.outputPath}; re-render it after changing ${result2.staleSources.join(", ")}`);
+    writeError(`design document is stale: ${result.outputPath}; re-render it after changing ${result.staleSources.join(", ")}`);
     return 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
@@ -37152,9 +37254,9 @@ function runDesignStatus(argv) {
     return 1;
   }
   try {
-    const result2 = getDesignSystemStatus(process.cwd());
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = getDesignSystemStatus(process.cwd());
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
       writeError(error.message);
@@ -37226,28 +37328,28 @@ function upsertById(existing, addition) {
   const index = entries.findIndex((entry) => entry.id === addition.id);
   if (index === -1)
     return [...entries, addition];
-  const result2 = [...entries];
-  result2[index] = { ...result2[index], ...addition };
-  return result2;
+  const result = [...entries];
+  result[index] = { ...result[index], ...addition };
+  return result;
 }
 function removeById(existing, ids) {
   const removed = new Set(ids);
   return (Array.isArray(existing) ? existing : []).filter((entry) => Object.keys(asRecord8(entry)).length > 0).filter((entry) => !removed.has(String(entry.id)));
 }
 function parseScopedValue(value, segments) {
-  const result2 = [];
+  const result = [];
   let remainder = value;
   for (let index = 1;index < segments; index += 1) {
     const delimiter = remainder.indexOf(":");
     if (delimiter <= 0)
       return null;
-    result2.push(remainder.slice(0, delimiter));
+    result.push(remainder.slice(0, delimiter));
     remainder = remainder.slice(delimiter + 1);
   }
   if (remainder.length === 0)
     return null;
-  result2.push(remainder);
-  return result2;
+  result.push(remainder);
+  return result;
 }
 function baseArtifact3(id) {
   return {
@@ -37258,9 +37360,9 @@ function baseArtifact3(id) {
     harness: { id, environments: {} }
   };
 }
-function baseComponent(type2) {
+function baseComponent(type) {
   return {
-    type: type2,
+    type,
     working_directory: ".",
     depends_on: [],
     environment: { required: [], optional: [] },
@@ -37557,7 +37659,7 @@ function authorHarnessSession(rootDir, sessionId, input) {
     throw new Error("harness-session delete is blocked while its evidence directory is non-empty; archive the session to preserve evidence");
   }
   if (input.delete) {
-    const mutation2 = commitYamlMutation({
+    const mutation = commitYamlMutation({
       rootDir,
       mutations: [{
         artifactFamily: "harness-state",
@@ -37568,13 +37670,13 @@ function authorHarnessSession(rootDir, sessionId, input) {
         operation: "delete"
       }]
     });
-    if (mutation2.valid) {
+    if (mutation.valid) {
       if (existsSync51(evidenceDir))
         rmdirSync2(evidenceDir);
       if (existsSync51(sessionDir))
         rmdirSync2(sessionDir);
     }
-    return { ...mutation2, sessionId, sessionPath, evidenceDir: relativeEvidenceDir, operation: "delete" };
+    return { ...mutation, sessionId, sessionPath, evidenceDir: relativeEvidenceDir, operation: "delete" };
   }
   const candidate = parseYamlFile(absolutePath);
   const session = asRecord8(candidate.harness_session);
@@ -37587,17 +37689,17 @@ function authorHarnessSession(rootDir, sessionId, input) {
   if (input.environment !== undefined)
     harness.environment = input.environment;
   candidate.harness = harness;
-  const issue2 = asRecord8(candidate.issue);
+  const issue = asRecord8(candidate.issue);
   if (input.issueSummary !== undefined)
-    issue2.summary = input.issueSummary;
+    issue.summary = input.issueSummary;
   if (input.observedBehavior !== undefined)
-    issue2.observed_behavior = input.observedBehavior;
+    issue.observed_behavior = input.observedBehavior;
   if (input.expectedBehavior !== undefined)
-    issue2.expected_behavior = input.expectedBehavior;
-  candidate.issue = issue2;
-  candidate.selected_components = input.removeSelectedComponents.reduce((values3, value) => removeExact(values3, value), appendUnique6(asStringArray4(candidate.selected_components), input.selectedComponents));
+    issue.expected_behavior = input.expectedBehavior;
+  candidate.issue = issue;
+  candidate.selected_components = input.removeSelectedComponents.reduce((values, value) => removeExact(values, value), appendUnique6(asStringArray4(candidate.selected_components), input.selectedComponents));
   const reproduction = asRecord8(candidate.reproduction);
-  reproduction.preconditions = input.removePreconditions.reduce((values3, value) => removeExact(values3, value), appendUnique6(asStringArray4(reproduction.preconditions), input.preconditions));
+  reproduction.preconditions = input.removePreconditions.reduce((values, value) => removeExact(values, value), appendUnique6(asStringArray4(reproduction.preconditions), input.preconditions));
   if (input.expectedFailure !== undefined)
     reproduction.expected_failure = input.expectedFailure;
   if (input.step !== undefined && !input.step.verification) {
@@ -37647,7 +37749,7 @@ function authorHarnessSession(rootDir, sessionId, input) {
   }
   candidate.manual_actions = removeById(candidate.manual_actions, input.removeManualActions);
   const replay = asRecord8(candidate.replay);
-  replay.commands = input.removeReplayCommands.reduce((values3, value) => removeExact(values3, value), appendUnique6(asStringArray4(replay.commands), input.replayCommands));
+  replay.commands = input.removeReplayCommands.reduce((values, value) => removeExact(values, value), appendUnique6(asStringArray4(replay.commands), input.replayCommands));
   candidate.replay = replay;
   const verification = asRecord8(candidate.verification);
   if (input.verificationStatus !== undefined)
@@ -37661,7 +37763,7 @@ function authorHarnessSession(rootDir, sessionId, input) {
     });
   }
   verification.steps = removeById(verification.steps, input.removeVerificationSteps);
-  verification.evidence = input.removeVerificationEvidence.reduce((values3, value) => removeExact(values3, value), appendUnique6(asStringArray4(verification.evidence), input.verificationEvidence));
+  verification.evidence = input.removeVerificationEvidence.reduce((values, value) => removeExact(values, value), appendUnique6(asStringArray4(verification.evidence), input.verificationEvidence));
   candidate.verification = verification;
   const mutation = commitHarnessSessionCandidate(rootDir, sessionId, candidate, "update");
   return { ...mutation, sessionId, sessionPath, evidenceDir: relativeEvidenceDir, operation: "update" };
@@ -37728,7 +37830,7 @@ function getRuntimePaths(rootDir) {
     absoluteRuntimeDir,
     absoluteLogsDir,
     absoluteStatePath,
-    relativeStatePath: normalizeRepoRelativePath4(rootDir, absoluteStatePath)
+    relativeStatePath: normalizeRepoRelativePath2(rootDir, absoluteStatePath)
   };
 }
 function ensureRuntimeDirectories(rootDir) {
@@ -38098,7 +38200,7 @@ function detectComposeServiceSignal(rootDir) {
     try {
       const compose = parseYamlDocument(readFileSync35(absolutePath, "utf8"), { source: relativePath });
       const services = isRecord5(compose) && isRecord5(compose.services) ? Object.entries(compose.services).filter((entry) => isRecord5(entry[1])) : [];
-      const eligible = services.filter(([, service2]) => ("build" in service2) || readStringOrStringArray(service2.command) !== undefined);
+      const eligible = services.filter(([, service]) => ("build" in service) || readStringOrStringArray(service.command) !== undefined);
       if (eligible.length === 0) {
         evidence.push(`${relativePath} exists but no app-like runnable service was found.`);
         continue;
@@ -38289,7 +38391,7 @@ function buildInferredHarness(rootDir) {
 }
 function inferHarness(rootDir, options = {}) {
   const absolutePath = path55.join(rootDir, HARNESS_DECLARATION_PATH2);
-  const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
+  const artifactPath = normalizeRepoRelativePath2(rootDir, absolutePath);
   const inferred = buildInferredHarness(rootDir);
   const draft = stringifyYamlDocument(inferred.artifact);
   const validation = validateArtifact(loadBundledSchemaByArtifactType("harness"), inferred.artifact, artifactPath);
@@ -38336,13 +38438,13 @@ function inferHarness(rootDir, options = {}) {
 }
 function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
   const absolutePath = path55.join(rootDir, HARNESS_DECLARATION_PATH2);
-  const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
+  const artifactPath = normalizeRepoRelativePath2(rootDir, absolutePath);
   if (!existsSync52(absolutePath)) {
     throw new Error("missing-harness");
   }
   const artifact = parseYamlFile(absolutePath);
-  const schema2 = loadBundledSchemaByArtifactType("harness");
-  const validation = validateArtifact(schema2, artifact, artifactPath);
+  const schema = loadBundledSchemaByArtifactType("harness");
+  const validation = validateArtifact(schema, artifact, artifactPath);
   if (!validation.valid) {
     const error = new Error("invalid-harness");
     error.diagnostics = validation.diagnostics;
@@ -38436,7 +38538,7 @@ function normalizeOperation(operation) {
   };
 }
 function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path55.join(rootDir, HARNESS_DECLARATION_PATH2));
+  const artifactPath = normalizeRepoRelativePath2(rootDir, path55.join(rootDir, HARNESS_DECLARATION_PATH2));
   try {
     return {
       valid: true,
@@ -38600,13 +38702,13 @@ function startHarness(rootDir, options = {}) {
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
     const logAbsolutePath = path55.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
-    const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
+    const logPath = normalizeRepoRelativePath2(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
       const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
-      const record2 = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, null);
-      record2.status = "failed";
-      record2.failureReason = failureReason;
-      state.components[component.id] = record2;
+      const record = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, null);
+      record.status = "failed";
+      record.failureReason = failureReason;
+      state.components[component.id] = record;
       writeRuntimeState(rootDir, state);
       const diagnostics = [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.environment.required`, "required environment variables are missing from the current process environment for harness-start", {
         source: "environment",
@@ -38631,10 +38733,10 @@ function startHarness(rootDir, options = {}) {
     const inUsePort = findPortConflict(component.ports, occupiedPorts);
     if (inUsePort !== null) {
       const failureReason = `declared port ${inUsePort} is already in use by a process outside the managed harness runtime`;
-      const record2 = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, null);
-      record2.status = "failed";
-      record2.failureReason = failureReason;
-      state.components[component.id] = record2;
+      const record = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, null);
+      record.status = "failed";
+      record.failureReason = failureReason;
+      state.components[component.id] = record;
       writeRuntimeState(rootDir, state);
       const diagnostics = [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.ports`, "declared component port is already in use", {
         source: "spawn",
@@ -38756,10 +38858,10 @@ function stopHarness(rootDir, options = {}) {
       continue;
     }
     if (record.stopCommand) {
-      const result2 = spawnSync2(record.stopCommand, [], { cwd: path55.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
-      if (result2.status !== 0) {
+      const result = spawnSync2(record.stopCommand, [], { cwd: path55.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      if (result.status !== 0) {
         record.status = "failed";
-        record.failureReason = result2.stderr.trim() || result2.stdout.trim() || "stop command failed";
+        record.failureReason = result.stderr.trim() || result.stdout.trim() || "stop command failed";
         diagnostics.push(createDiagnostic(plan.artifactPath, `$.harness.environments.${plan.environment.id}.components.${component.id}.operations.stop.command`, "harness stop command failed", { source: "runtime_state", phase: "cleanup", componentId: component.id, actual: record.failureReason }));
         continue;
       }
@@ -38785,7 +38887,7 @@ function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, opti
   diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
 }
 function doctorHarness(rootDir) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path55.join(rootDir, HARNESS_DECLARATION_PATH2));
+  const artifactPath = normalizeRepoRelativePath2(rootDir, path55.join(rootDir, HARNESS_DECLARATION_PATH2));
   const planResult = getHarnessPlanResult(rootDir);
   const diagnostics = [];
   if (!planResult.valid) {
@@ -38826,7 +38928,7 @@ function doctorHarness(rootDir) {
           } else if (component.workingDirectory !== ".") {
             targetPath = path55.join(component.workingDirectory, ".env.example");
           }
-          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path55.resolve(rootDir, targetPath));
+          const repoRelativeTarget = normalizeRepoRelativePath2(rootDir, path55.resolve(rootDir, targetPath));
           const recovery = {
             type: "bootstrap_env",
             description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
@@ -38933,7 +39035,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
         const absolutePath = path55.resolve(rootDir, step.path);
-        const relativePath = normalizeRepoRelativePath4(rootDir, absolutePath);
+        const relativePath = normalizeRepoRelativePath2(rootDir, absolutePath);
         if (relativePath.startsWith(".strict-spec-driven/") && /\.ya?ml$/i.test(relativePath)) {
           throw new Error(`harness-doctor recovery cannot write repository-owned YAML directly: ${relativePath}; declare a run_cli recovery that uses the artifact-aware authoring command`);
         }
@@ -38959,12 +39061,12 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         executedKeys.add(key);
         const cliPath = path55.resolve(process.argv[1]);
         const display = ["strict-spec-cli", ...step.args].join(" ");
-        const result2 = spawnSync2(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
-        if (result2.error) {
-          throw new Error(`Failed to execute recovery command: ${display}. Error: ${result2.error.message}`);
+        const result = spawnSync2(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
+        if (result.error) {
+          throw new Error(`Failed to execute recovery command: ${display}. Error: ${result.error.message}`);
         }
-        if (result2.status !== 0) {
-          const detail = [result2.stderr, result2.stdout].map((s) => (s ?? "").trim()).filter((s) => s.length > 0).join(`
+        if (result.status !== 0) {
+          const detail = [result.stderr, result.stdout].map((s) => (s ?? "").trim()).filter((s) => s.length > 0).join(`
 `);
           throw new Error(`Failed to execute recovery command: ${display}${detail ? `
 ${detail}` : ""}`);
@@ -39002,7 +39104,7 @@ function generateHarnessScripts(rootDir) {
   for (const scriptName of SCRIPT_NAMES) {
     const absolutePath = path55.join(scriptsDir, scriptName);
     writeFileSync11(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
-    created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
+    created.push(normalizeRepoRelativePath2(rootDir, absolutePath));
   }
   return { ok: true, scripts: SCRIPT_NAMES.map((name) => `scripts/${name}`), created, verified: [], diagnostics: [] };
 }
@@ -39052,7 +39154,7 @@ function normalizeHarnessSessionPath(rootDir, target) {
   const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
   const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR2}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
   const absolutePath = path55.resolve(rootDir, repoRelativePath);
-  return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
+  return { artifactPath: normalizeRepoRelativePath2(rootDir, absolutePath), absolutePath };
 }
 function formatLocalDate2(date = new Date) {
   return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -39076,9 +39178,9 @@ function createHarnessSession(rootDir, sessionId) {
   const sessionDir = path55.join(rootDir, HARNESS_SESSIONS_DIR2, sessionId);
   const sessionPath = path55.join(sessionDir, HARNESS_SESSION_FILE_NAME);
   const evidenceDir = path55.join(sessionDir, "evidence");
-  const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
-  const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
-  const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
+  const relativeSessionDir = normalizeRepoRelativePath2(rootDir, sessionDir);
+  const relativeSessionPath = normalizeRepoRelativePath2(rootDir, sessionPath);
+  const relativeEvidenceDir = normalizeRepoRelativePath2(rootDir, evidenceDir);
   if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
@@ -39131,7 +39233,7 @@ function validateHarnessSession(rootDir, target) {
 function archiveHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
   const sourceDir = path55.dirname(absolutePath);
-  const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
+  const relativeSourceDir = normalizeRepoRelativePath2(rootDir, sourceDir);
   const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
   if (!existsSync52(absolutePath)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
@@ -39185,8 +39287,8 @@ function archiveHarnessSession(rootDir, target) {
     sessionId,
     sourceDir: relativeSourceDir,
     sourcePath: artifactPath,
-    archiveDir: normalizeRepoRelativePath4(rootDir, archiveDestination),
-    archivePath: normalizeRepoRelativePath4(rootDir, archivePath),
+    archiveDir: normalizeRepoRelativePath2(rootDir, archiveDestination),
+    archivePath: normalizeRepoRelativePath2(rootDir, archivePath),
     diagnostics: []
   };
 }
@@ -39300,7 +39402,7 @@ var HARNESS_SESSION_EDIT_VALUE_FLAGS = new Set([
   "remove-verification-evidence"
 ]);
 function parseNamedFlags(argv, valueFlags, booleanFlags) {
-  const result2 = {};
+  const result = {};
   for (let index = 0;index < argv.length; index += 1) {
     const token = argv[index];
     if (!token?.startsWith("--") || token === "--")
@@ -39310,8 +39412,8 @@ function parseNamedFlags(argv, valueFlags, booleanFlags) {
     if (booleanFlags.has(name)) {
       if (equals !== -1)
         throw new Error(`--${name} does not accept a value`);
-      result2[name] ??= [];
-      result2[name].push("true");
+      result[name] ??= [];
+      result[name].push("true");
       continue;
     }
     if (!valueFlags.has(name))
@@ -39320,18 +39422,18 @@ function parseNamedFlags(argv, valueFlags, booleanFlags) {
     if (value === undefined || equals === -1 && value.startsWith("--") || value.length === 0) {
       throw new Error(`missing value for --${name}`);
     }
-    result2[name] ??= [];
-    result2[name].push(value);
+    result[name] ??= [];
+    result[name].push(value);
     if (equals === -1)
       index += 1;
   }
-  return result2;
+  return result;
 }
 function one2(flags, name) {
-  const values3 = flags[name] ?? [];
-  if (values3.length > 1)
+  const values = flags[name] ?? [];
+  if (values.length > 1)
     throw new Error(`--${name} may be supplied at most once`);
-  return values3[0];
+  return values[0];
 }
 function positiveInteger(value, name, maximum) {
   if (value === undefined)
@@ -39465,11 +39567,11 @@ function requiredGroup(flags, names, trigger) {
   const active = names.some((name) => (flags[name]?.length ?? 0) > 0);
   if (!active)
     return;
-  const values3 = names.map((name) => one2(flags, name));
-  const missing = names.filter((_name, index) => values3[index] === undefined);
+  const values = names.map((name) => one2(flags, name));
+  const missing = names.filter((_name, index) => values[index] === undefined);
   if (missing.length > 0)
     throw new Error(`--${trigger} group also requires ${missing.map((name) => `--${name}`).join(", ")}`);
-  return values3;
+  return values;
 }
 function parseHarnessSessionEditArgs(argv, deleteIntent = false) {
   const flags = parseNamedFlags(argv, HARNESS_SESSION_EDIT_VALUE_FLAGS, new Set);
@@ -39557,14 +39659,14 @@ function parseHarnessSessionEditArgs(argv, deleteIntent = false) {
     delete: deleteIntent
   };
 }
-function parseSelectionArgs(argv, usage2, allowConfirm) {
+function parseSelectionArgs(argv, usage, allowConfirm) {
   const parsed = { components: [], confirm: false };
   for (let index = 0;index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--environment") {
       const value = argv[index + 1];
       if (!value) {
-        writeUsage(usage2);
+        writeUsage(usage);
         return null;
       }
       parsed.environment = value;
@@ -39574,7 +39676,7 @@ function parseSelectionArgs(argv, usage2, allowConfirm) {
     if (arg === "--component") {
       const value = argv[index + 1];
       if (!value) {
-        writeUsage(usage2);
+        writeUsage(usage);
         return null;
       }
       parsed.components.push(value);
@@ -39585,7 +39687,7 @@ function parseSelectionArgs(argv, usage2, allowConfirm) {
       parsed.confirm = true;
       continue;
     }
-    writeUsage(usage2);
+    writeUsage(usage);
     return null;
   }
   return parsed;
@@ -39628,17 +39730,17 @@ function runHarnessPlan(argv) {
   const selection = parseSelectionArgs(argv, HARNESS_PLAN_USAGE, false);
   if (selection === null)
     return 1;
-  const result2 = getHarnessPlanResult(process.cwd(), selection.environment, selection.components);
-  writeJson(result2);
-  return result2.valid ? 0 : 1;
+  const result = getHarnessPlanResult(process.cwd(), selection.environment, selection.components);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 function runHarnessEdit(argv) {
   if (handleHelpRequest("harness-edit", argv))
     return 0;
   try {
-    const result2 = authorHarness(process.cwd(), parseHarnessEditArgs(argv));
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result = authorHarness(process.cwd(), parseHarnessEditArgs(argv));
+    writeJson(result);
+    return result.valid ? 0 : 1;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
     writeUsage(HARNESS_EDIT_USAGE);
@@ -39667,9 +39769,9 @@ function runHarnessInfer(argv) {
     writeUsage(HARNESS_INFER_USAGE);
     return 1;
   }
-  const result2 = inferHarness(process.cwd(), { write, force });
-  writeJson(result2);
-  return result2.ok ? 0 : 1;
+  const result = inferHarness(process.cwd(), { write, force });
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 function runHarnessDoctor(argv) {
   if (handleHelpRequest("harness-doctor", argv)) {
@@ -39684,23 +39786,23 @@ function runHarnessDoctor(argv) {
       return 1;
     }
   }
-  let result2 = doctorHarness(process.cwd());
-  if (fix && !result2.ok) {
+  let result = doctorHarness(process.cwd());
+  if (fix && !result.ok) {
     try {
       const maxPasses = 5;
-      for (let pass = 0;pass < maxPasses && !result2.ok; pass++) {
-        const fixed = fixHarnessDiagnostics(process.cwd(), result2.diagnostics);
+      for (let pass = 0;pass < maxPasses && !result.ok; pass++) {
+        const fixed = fixHarnessDiagnostics(process.cwd(), result.diagnostics);
         if (!fixed)
           break;
-        result2 = doctorHarness(process.cwd());
+        result = doctorHarness(process.cwd());
       }
     } catch (error) {
       writeError(error.message);
       return 1;
     }
   }
-  writeJson(result2);
-  return result2.ok ? 0 : 1;
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 function runHarnessStart(argv) {
   if (handleHelpRequest("harness-start", argv)) {
@@ -39709,13 +39811,13 @@ function runHarnessStart(argv) {
   const selection = parseSelectionArgs(argv, HARNESS_START_USAGE, true);
   if (selection === null)
     return 1;
-  const result2 = startHarness(process.cwd(), {
+  const result = startHarness(process.cwd(), {
     environment: selection.environment,
     components: selection.components,
     confirm: selection.confirm
   });
-  writeJson(result2);
-  return result2.ok ? 0 : 1;
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 function runHarnessStop(argv) {
   if (handleHelpRequest("harness-stop", argv)) {
@@ -39724,9 +39826,9 @@ function runHarnessStop(argv) {
   const selection = parseSelectionArgs(argv, HARNESS_STOP_USAGE, true);
   if (selection === null || selection.environment !== undefined || selection.components.length > 0)
     return 1;
-  const result2 = stopHarness(process.cwd(), { confirm: selection.confirm });
-  writeJson(result2);
-  return result2.ok ? 0 : 1;
+  const result = stopHarness(process.cwd(), { confirm: selection.confirm });
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 function runHarnessStatus(argv) {
   if (handleHelpRequest("harness-status", argv)) {
@@ -39736,9 +39838,9 @@ function runHarnessStatus(argv) {
     writeUsage(HARNESS_STATUS_USAGE);
     return 1;
   }
-  const result2 = getHarnessStatus(process.cwd());
-  writeJson(result2);
-  return result2.ok ? 0 : 1;
+  const result = getHarnessStatus(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 function runHarnessLogs(argv) {
   if (handleHelpRequest("harness-logs", argv)) {
@@ -39747,12 +39849,12 @@ function runHarnessLogs(argv) {
   const parsed = parseHarnessLogsArgs(argv);
   if (parsed === null)
     return 1;
-  const result2 = getHarnessLogs(process.cwd(), parsed);
-  if (!result2.ok) {
-    writeJson(result2);
+  const result = getHarnessLogs(process.cwd(), parsed);
+  if (!result.ok) {
+    writeJson(result);
     return 1;
   }
-  writeOut(result2.content ?? "");
+  writeOut(result.content ?? "");
   return 0;
 }
 function runHarnessScripts(argv) {
@@ -39764,9 +39866,9 @@ function runHarnessScripts(argv) {
     writeUsage(HARNESS_SCRIPTS_USAGE);
     return 1;
   }
-  const result2 = action === "generate" ? generateHarnessScripts(process.cwd()) : verifyHarnessScripts(process.cwd());
-  writeJson(result2);
-  return result2.ok ? 0 : 1;
+  const result = action === "generate" ? generateHarnessScripts(process.cwd()) : verifyHarnessScripts(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 function runHarnessSession(argv) {
   const [action, target, ...extraArgs] = argv;
@@ -39786,9 +39888,9 @@ function runHarnessSession(argv) {
       writeError("harness-session id must be kebab-case (lowercase letters, numbers, and hyphens)");
       return 1;
     }
-    const result3 = createHarnessSession(process.cwd(), target);
-    writeJson(result3);
-    return result3.ok ? 0 : 1;
+    const result = createHarnessSession(process.cwd(), target);
+    writeJson(result);
+    return result.ok ? 0 : 1;
   }
   if (action === "edit" || action === "delete") {
     if (!CHANGE_NAME_PATTERN.test(target) || action === "delete" && extraArgs.length > 0) {
@@ -39796,9 +39898,9 @@ function runHarnessSession(argv) {
       return 1;
     }
     try {
-      const result3 = authorHarnessSession(process.cwd(), target, parseHarnessSessionEditArgs(extraArgs, action === "delete"));
-      writeJson(result3);
-      return result3.valid ? 0 : 1;
+      const result = authorHarnessSession(process.cwd(), target, parseHarnessSessionEditArgs(extraArgs, action === "delete"));
+      writeJson(result);
+      return result.valid ? 0 : 1;
     } catch (error) {
       writeError(error instanceof Error ? error.message : String(error));
       return 1;
@@ -39809,13 +39911,13 @@ function runHarnessSession(argv) {
     return 1;
   }
   if (action === "validate") {
-    const result3 = validateHarnessSession(process.cwd(), target);
-    writeJson(result3);
-    return result3.valid ? 0 : 1;
+    const result = validateHarnessSession(process.cwd(), target);
+    writeJson(result);
+    return result.valid ? 0 : 1;
   }
-  const result2 = archiveHarnessSession(process.cwd(), target);
-  writeJson(result2);
-  return result2.ok ? 0 : 1;
+  const result = archiveHarnessSession(process.cwd(), target);
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 // src/strict-spec-cli.ts
 var commands = createCliCommandTable({
@@ -39918,44 +40020,44 @@ if (isDirectInvocation(process.argv[1], import.meta.url)) {
   exitCliEntrypoint(process.argv.slice(2), commands);
 }
 export {
-  writeChangeTasks,
-  verifyChange,
-  unwindChangeContainer,
-  syncRoadmap,
-  stringifyYamlDocument,
-  runMaintenance,
-  run,
-  resumeMilestone,
-  reserveChangeContainer,
-  reopenMilestone,
-  recommendRoadmapChange,
-  readChangeTasks,
-  readBundledScaffoldTemplate,
-  pauseMilestone,
-  parseYamlDocument,
-  movePlannedChangeToMilestone,
-  migrateLegacyWorkflow,
-  loadBundledScaffoldYaml,
-  initializeStrictScaffold,
-  initializeStrictChangeScaffold,
-  initializeDesignSystemArtifact,
-  getWorkflowState,
-  getRoadmapStatus,
-  getRequiredBundledScaffoldAssets,
-  getDesignSystemStatus,
-  getBundledScaffoldPath,
-  getArchitectureStatus,
-  generateDesignDocument,
-  generateArchitectureDocument,
-  findMissingRequiredScaffoldAssets,
-  createSchemaValidator,
-  compileSchema,
-  commands,
-  checkProposalReadiness,
-  authorMainTech,
-  authorMainSpec,
-  archiveRoadmapMilestones,
-  archiveChange,
+  DocumentSourceError,
   applyTask,
-  DocumentSourceError
+  archiveChange,
+  archiveRoadmapMilestones,
+  authorMainSpec,
+  authorMainTech,
+  checkProposalReadiness,
+  commands,
+  compileSchema,
+  createSchemaValidator,
+  findMissingRequiredScaffoldAssets,
+  generateArchitectureDocument,
+  generateDesignDocument,
+  getArchitectureStatus,
+  getBundledScaffoldPath,
+  getDesignSystemStatus,
+  getRequiredBundledScaffoldAssets,
+  getRoadmapStatus,
+  getWorkflowState,
+  initializeDesignSystemArtifact,
+  initializeStrictChangeScaffold,
+  initializeStrictScaffold,
+  loadBundledScaffoldYaml,
+  migrateLegacyWorkflow,
+  movePlannedChangeToMilestone,
+  parseYamlDocument,
+  pauseMilestone,
+  readBundledScaffoldTemplate,
+  readChangeTasks,
+  recommendRoadmapChange,
+  reopenMilestone,
+  reserveChangeContainer,
+  resumeMilestone,
+  run,
+  runMaintenance,
+  stringifyYamlDocument,
+  syncRoadmap,
+  unwindChangeContainer,
+  verifyChange,
+  writeChangeTasks
 };

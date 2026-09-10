@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: adding-a-required-section-to-a-skill-can-breach-140cae
+  title: Adding a required section to a skill can breach a per-skill line budget nothing in the change mentions
+category: documentation
+status: active
+created_at: '2026-09-10T06:00:32.628Z'
+updated_at: '2026-09-10T06:00:32.628Z'
+context: A change added a required '## Review Independence' contract section to skills/strict-spec-review and skills/strict-spec-auto. Neither the proposal, the design, nor the delta spec mentioned skill file size.
+observation: strict-spec-auto went from 515 to 576 lines against a BUNDLED_SKILL_LINE_BUDGET_PER_SKILL of 560 enforced only from test/suites/entrypoint-and-skills.ts, so the first full suite run failed on a bound the change had never looked at. Compressing the section to a density appropriate for a phase inside a 13-step file brought it to 562 — still two over. The remaining two lines could only have been removed by trimming contract prose to sit under a threshold, which is the check authoring the guidance rather than the reader.
+takeaway: When a change adds shared guidance to a set of skills, measure the largest governed file against the per-skill line budget before writing the section, not after the suite fails. When the section is genuinely needed and already at its natural density, the budget's own comment sanctions raising it with a fresh measurement, so re-derive it by the recorded formula — new largest measurement plus the same headroom — and update the stale totals in the comment rather than picking a round number. Shaving two lines of contract prose to fit an unexamined bound is the one response that degrades the deliverable.
+applies_when: About to add a section, block, or shared instruction to more than one bundled skill under skills/, especially when the largest governed skill is already near the per-skill line budget the regression suite enforces.
+occurrences:
+  - origin: independent-requirement-first-review
+    date: '2026-09-10'
+    evidence: strict-spec-auto measured 576 then 562 lines against the 560-line bound; the budget was re-derived to 607 as 562 plus the recorded 45-line headroom, with the comment totals refreshed from 5058/515/210 to 5264/562/219 and the choice recorded as design decision raise-per-skill-line-budget-on-new-measurement.

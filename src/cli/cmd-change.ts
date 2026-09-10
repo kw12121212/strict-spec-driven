@@ -14,6 +14,7 @@ import {
 } from "./changes.js";
 import { listYamlFiles, normalizeRepoRelativePath } from "./fs.js";
 import { writeError, writeJson, writeOut, writeUsage } from "./output.js";
+import { withRerenderedDocuments } from "./generated-document-rerender.js";
 
 export function printChangeArtifacts(rootDir: string, name: string, changeDir: string): void {
   writeOut(`Artifacts for '${name}':\n`);
@@ -102,7 +103,7 @@ export function runArchive(argv: string[]): number {
   }
 
   try {
-    const result = archiveChange(process.cwd(), changeName);
+    const result = withRerenderedDocuments(process.cwd(), archiveChange(process.cwd(), changeName));
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {

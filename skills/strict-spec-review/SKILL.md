@@ -48,6 +48,52 @@ the user's common human language, not a programming language — for all
 user-facing and generated operator-facing text, unless that file is absent or
 the active user message asks otherwise.
 
+## Review Independence
+
+The agent that implemented a change is usually the agent reviewing it, so a
+review written from the author's seat explains the implementation instead of
+testing it, and reports clean. This section splits the review into two stances
+and makes the boundary between them a written artifact rather than an intention.
+
+**Stance one — reconstruct the requirement.**
+Read only `proposal.yaml`, `design.yaml`, `questions.yaml`, and the delta specs,
+and write the reconstruction down
+before any implementation file, diff, or test file is read:
+
+- the problem the change exists to solve, and the observable outcome that would
+  prove it solved
+- the non-goals, and every `unchanged_behavior` item the result must still honor
+- a numbered list of acceptance items, each independently checkable from
+  outside the system
+
+Never derive the requirement from the implementation.
+A requirement read off the diff is satisfied by whatever the diff happens to do,
+which is exactly the failure this ordering exists to prevent. When the change
+carries no delta spec, build the acceptance items from `proposal.yaml`'s
+`summary.what`, `scope.in`, and `unchanged_behavior` plus the `design.yaml`
+decisions, so the list is never empty.
+
+**Stance two — verify from outside.** Now read the changed files as
+an outside reviewer who did not write them.
+Knowing why the code took its shape has no standing here: a justification that
+exists only in your memory of writing it is not evidence, and the review reports
+what the repository can be shown to do.
+
+**Verdicts.** Answer every numbered acceptance item with exactly one of
+`satisfied`, `not satisfied`, or `unprovable from evidence`,
+and give each verdict
+an implementation reference and a test reference
+— file and line where the evidence exists, or a statement of what is missing
+where it does not. A blanket claim that the implementation matches the proposal
+is not a substitute for per-item verdicts,
+and an acceptance item no test covers is not `satisfied`.
+
+`unprovable from evidence` on a MUST-strength delta spec requirement is a MUST
+FIX finding that
+blocks the archive recommendation
+until a test or an explicit human decision resolves it. On any other acceptance
+item it is a SHOULD FIX finding that must be reported but does not block.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -63,26 +109,38 @@ run `init` from this skill.
    ```
    If verification reports blockers, stop and resolve them before review.
 
-3. **Load review context** — read:
+3. **Reconstruct the requirement** — stance one from Review Independence. Read
+   only:
    - `proposal.yaml`
    - `design.yaml`
    - `questions.yaml`
    - every strict YAML delta spec in `changes/<name>/specs/`
    - every strict YAML delta tech artifact in `changes/<name>/tech/`, if present
-   - the implementation and test files mapped to those specs
+
+   Write down the problem, the observable outcome, the non-goals and
+   `unchanged_behavior` items, and the numbered acceptance items. Do not open a
+   changed file, a diff, or a test in this step.
+
+4. **Load the implementation context** — only now read:
    - `git status --short` and the relevant diff for changed tracked files
+   - the implementation and test files mapped to the delta specs
    - any newly created untracked source, test, documentation, or strict workflow
      files that belong to the change
    - the technical standards that govern the changed files: run
      `strict-spec-cli tech-status` and read the
      relevant files under `.strict-spec-driven/tech/`
 
-4. **Read every changed file yourself** — perform an author-agnostic code
+5. **Read every changed file yourself** — perform an author-agnostic code
    review from repository evidence. Do not call a `strict-spec-cli review`
    command and do not treat any deterministic script as a substitute for code
    review.
 
-5. **Apply the review checklist** — evaluate findings across:
+6. **Record a verdict for every acceptance item** — resolve each numbered item
+   from step 3 to one of the three verdicts with its evidence, before writing any
+   finding. A verdict reached by recalling what was implemented rather than by
+   locating it in the repository is not a verdict.
+
+7. **Apply the review checklist** — evaluate findings across:
    - correctness and behavioral regressions
    - strict spec alignment and `unchanged_behavior`
    - test coverage, test independence, and test assertions
@@ -104,10 +162,10 @@ run `init` from this skill.
      standard supplies a `standard` block with title and category. Flag an
      unjustified or incorrect standard change as a MUST FIX finding.
 
-6. **Check spec alignment** — confirm the implementation and tests match the
+8. **Check spec alignment** — confirm the implementation and tests match the
    strict YAML delta specs and do not violate `unchanged_behavior`.
 
-7. **Fix safe in-scope findings** — if review finds MUST FIX issues that are
+9. **Fix safe in-scope findings** — if review finds MUST FIX issues that are
    safe to repair within the current strict change scope, make those fixes
    automatically before reporting the review as complete. If any review-time
    code or workflow artifact changes are made, rerun strict verification and
@@ -115,7 +173,7 @@ run `init` from this skill.
    archive. Unsafe, ambiguous, blocked, or out-of-scope fixes must remain
    reported as blockers instead of being inferred or silently expanded.
 
-8. **Confirm complete regression evidence** — inspect project workflow context,
+10. **Confirm complete regression evidence** — inspect project workflow context,
    including `.strict-spec-driven/config.yaml` when available, for the complete
    project-level regression test method. Require evidence that the full project
    regression command has passed before recommending archive. When the config
@@ -133,13 +191,13 @@ run `init` from this skill.
    The evidence collected here survives the two steps that follow it: a write
    the configured regression command neither compiles nor reads — currently a
    change-local delta-tech artifact or a lesson — does not invalidate passing
-   complete project regression evidence, so recording the lesson in step 10 or
-   capturing a convention as delta tech in step 9 costs no rerun. Every other
+   complete project regression evidence, so recording the lesson in step 12 or
+   capturing a convention as delta tech in step 11 costs no rerun. Every other
    write, including a delta-spec, a planning artifact, and any source or test
    file, does invalidate it and forces the command to be rerun before archive is
    recommended.
 
-9. **Reflect on uncaptured engineering conventions (non-blocking)** — after the
+11. **Reflect on uncaptured engineering conventions (non-blocking)** — after the
    review checklist, consider whether this change established a reusable
    engineering convention not yet captured under `.strict-spec-driven/tech/` (a
    coding, architecture, testing, tooling, security, performance, or API rule).
@@ -154,7 +212,7 @@ run `init` from this skill.
    current-change delta tech or obtain an explicit operator classification that
    the surfaced pattern is not reusable.
 
-10. **Declare the lesson outcome (required)** — before reporting, state
+12. **Declare the lesson outcome (required)** — before reporting, state
    explicitly either that a lesson was recorded or that none applies, with the
    reason. Judge this from the objective proposal-versus-implementation diff,
    not from a general sense of having learned something. Record a lesson when
@@ -184,12 +242,14 @@ run `init` from this skill.
    applies, say "no lesson" and give the one-line reason. Do not manufacture an
    entry to fill the slot — a store padded with filler stops being read.
 
-11. **Report the result** — include review evidence before findings:
+13. **Report the result** — include review evidence before findings:
    - changed implementation and test files read
    - strict artifacts and delta specs read
    - verification and regression commands executed, including post-fix reruns
      when review-time changes were made, with pass/fail status
-   Then group findings into:
+   Then report the verdict table from step 6 — every acceptance item with its
+   verdict and evidence — before any finding, so a reader can tell a review that
+   verified nothing from one that found nothing. Then group findings into:
    - MUST FIX
    - SHOULD FIX
    - NITS
@@ -215,6 +275,9 @@ evidence was gathered during implementation:
 
 ## Rules
 
+- Reconstruct the requirement from the change's planning artifacts before
+  reading the implementation, and report a verdict with evidence for every
+  acceptance item
 - Read every changed file before commenting on it
 - Do not call or rely on a `strict-spec-cli review` command
 - Do not recommend archive without explicit direct code review evidence

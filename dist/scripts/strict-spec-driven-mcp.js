@@ -18,34 +18,23 @@ var __toESM = (mod, isNodeMode, target) => {
       return cached;
   }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
-  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
-  for (let key of __getOwnPropNames(mod))
-    if (!__hasOwnProp.call(to, key))
-      __defProp(to, key, {
-        get: __accessProp.bind(mod, key),
-        enumerable: true
-      });
+  const to = isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  if (mod && typeof mod === "object" || typeof mod === "function") {
+    for (let key of __getOwnPropNames(mod))
+      if (!__hasOwnProp.call(to, key))
+        __defProp(to, key, {
+          get: __accessProp.bind(mod, key),
+          enumerable: true
+        });
+  }
   if (canCache)
     cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __returnValue = (v) => v;
-function __exportSetter(name, newValue) {
-  this[name] = __returnValue.bind(null, newValue);
-}
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, {
-      get: all[name],
-      enumerable: true,
-      configurable: true,
-      set: __exportSetter.bind(all, name)
-    });
-};
 
 // node_modules/ajv/dist/compile/codegen/code.js
-var require_code2 = __commonJS((exports) => {
+var require_code2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.regexpCode = exports.getEsmExportName = exports.getProperty = exports.safeStringify = exports.stringify = exports.strConcat = exports.addCodeArg = exports.str = exports._ = exports.nil = exports._Code = exports.Name = exports.IDENTIFIER = exports._CodeOrName = undefined;
 
@@ -88,12 +77,12 @@ var require_code2 = __commonJS((exports) => {
       return item === "" || item === '""';
     }
     get str() {
-      var _a3;
-      return (_a3 = this._str) !== null && _a3 !== undefined ? _a3 : this._str = this._items.reduce((s, c) => `${s}${c}`, "");
+      var _a;
+      return (_a = this._str) !== null && _a !== undefined ? _a : this._str = this._items.reduce((s, c) => `${s}${c}`, "");
     }
     get names() {
-      var _a3;
-      return (_a3 = this._names) !== null && _a3 !== undefined ? _a3 : this._names = this._items.reduce((names, c) => {
+      var _a;
+      return (_a = this._names) !== null && _a !== undefined ? _a : this._names = this._items.reduce((names, c) => {
         if (c instanceof Name)
           names[c.str] = (names[c.str] || 0) + 1;
         return names;
@@ -104,27 +93,27 @@ var require_code2 = __commonJS((exports) => {
   exports.nil = new _Code("");
   function _(strs, ...args) {
     const code = [strs[0]];
-    let i2 = 0;
-    while (i2 < args.length) {
-      addCodeArg(code, args[i2]);
-      code.push(strs[++i2]);
+    let i = 0;
+    while (i < args.length) {
+      addCodeArg(code, args[i]);
+      code.push(strs[++i]);
     }
     return new _Code(code);
   }
   exports._ = _;
   var plus = new _Code("+");
-  function str2(strs, ...args) {
+  function str(strs, ...args) {
     const expr = [safeStringify(strs[0])];
-    let i2 = 0;
-    while (i2 < args.length) {
+    let i = 0;
+    while (i < args.length) {
       expr.push(plus);
-      addCodeArg(expr, args[i2]);
-      expr.push(plus, safeStringify(strs[++i2]));
+      addCodeArg(expr, args[i]);
+      expr.push(plus, safeStringify(strs[++i]));
     }
     optimize(expr);
     return new _Code(expr);
   }
-  exports.str = str2;
+  exports.str = str;
   function addCodeArg(code, arg) {
     if (arg instanceof _Code)
       code.push(...arg._items);
@@ -135,17 +124,17 @@ var require_code2 = __commonJS((exports) => {
   }
   exports.addCodeArg = addCodeArg;
   function optimize(expr) {
-    let i2 = 1;
-    while (i2 < expr.length - 1) {
-      if (expr[i2] === plus) {
-        const res = mergeExprItems(expr[i2 - 1], expr[i2 + 1]);
+    let i = 1;
+    while (i < expr.length - 1) {
+      if (expr[i] === plus) {
+        const res = mergeExprItems(expr[i - 1], expr[i + 1]);
         if (res !== undefined) {
-          expr.splice(i2 - 1, 3, res);
+          expr.splice(i - 1, 3, res);
           continue;
         }
-        expr[i2++] = "+";
+        expr[i++] = "+";
       }
-      i2++;
+      i++;
     }
   }
   function mergeExprItems(a, b) {
@@ -167,7 +156,7 @@ var require_code2 = __commonJS((exports) => {
     return;
   }
   function strConcat(c1, c2) {
-    return c2.emptyStr() ? c1 : c1.emptyStr() ? c2 : str2`${c1}${c2}`;
+    return c2.emptyStr() ? c1 : c1.emptyStr() ? c2 : str`${c1}${c2}`;
   }
   exports.strConcat = strConcat;
   function interpolate(x) {
@@ -199,7 +188,7 @@ var require_code2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/codegen/scope.js
-var require_scope2 = __commonJS((exports) => {
+var require_scope2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.ValueScope = exports.ValueScopeName = exports.Scope = exports.varKinds = exports.UsedValueState = undefined;
   var code_1 = require_code2();
@@ -211,9 +200,9 @@ var require_scope2 = __commonJS((exports) => {
     }
   }
   var UsedValueState;
-  (function(UsedValueState2) {
-    UsedValueState2[UsedValueState2["Started"] = 0] = "Started";
-    UsedValueState2[UsedValueState2["Completed"] = 1] = "Completed";
+  (function(UsedValueState) {
+    UsedValueState[UsedValueState["Started"] = 0] = "Started";
+    UsedValueState[UsedValueState["Completed"] = 1] = "Completed";
   })(UsedValueState || (exports.UsedValueState = UsedValueState = {}));
   exports.varKinds = {
     const: new code_1.Name("const"),
@@ -238,8 +227,8 @@ var require_scope2 = __commonJS((exports) => {
       return `${prefix}${ng.index++}`;
     }
     _nameGroup(prefix) {
-      var _a3, _b;
-      if (((_b = (_a3 = this._parent) === null || _a3 === undefined ? undefined : _a3._prefixes) === null || _b === undefined ? undefined : _b.has(prefix)) || this._prefixes && !this._prefixes.has(prefix)) {
+      var _a, _b;
+      if (((_b = (_a = this._parent) === null || _a === undefined ? undefined : _a._prefixes) === null || _b === undefined ? undefined : _b.has(prefix)) || this._prefixes && !this._prefixes.has(prefix)) {
         throw new Error(`CodeGen: prefix "${prefix}" is not allowed in this scope`);
       }
       return this._names[prefix] = { prefix, index: 0 };
@@ -274,12 +263,12 @@ var require_scope2 = __commonJS((exports) => {
       return new ValueScopeName(prefix, this._newName(prefix));
     }
     value(nameOrPrefix, value) {
-      var _a3;
+      var _a;
       if (value.ref === undefined)
         throw new Error("CodeGen: ref must be passed in value");
       const name = this.toName(nameOrPrefix);
       const { prefix } = name;
-      const valueKey = (_a3 = value.key) !== null && _a3 !== undefined ? _a3 : value.ref;
+      const valueKey = (_a = value.key) !== null && _a !== undefined ? _a : value.ref;
       let vs = this._values[prefix];
       if (vs) {
         const _name = vs.get(valueKey);
@@ -345,7 +334,7 @@ var require_scope2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/codegen/index.js
-var require_codegen2 = __commonJS((exports) => {
+var require_codegen2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.or = exports.and = exports.not = exports.CodeGen = exports.operators = exports.varKinds = exports.ValueScopeName = exports.ValueScope = exports.Scope = exports.Name = exports.regexpCode = exports.stringify = exports.getProperty = exports.nil = exports.strConcat = exports.str = exports._ = undefined;
   var code_1 = require_code2();
@@ -490,9 +479,9 @@ var require_codegen2 = __commonJS((exports) => {
   }
 
   class Throw extends Node {
-    constructor(error51) {
+    constructor(error) {
       super();
-      this.error = error51;
+      this.error = error;
     }
     render({ _n }) {
       return `throw ${this.error};` + _n;
@@ -532,27 +521,27 @@ var require_codegen2 = __commonJS((exports) => {
     }
     optimizeNodes() {
       const { nodes } = this;
-      let i2 = nodes.length;
-      while (i2--) {
-        const n = nodes[i2].optimizeNodes();
+      let i = nodes.length;
+      while (i--) {
+        const n = nodes[i].optimizeNodes();
         if (Array.isArray(n))
-          nodes.splice(i2, 1, ...n);
+          nodes.splice(i, 1, ...n);
         else if (n)
-          nodes[i2] = n;
+          nodes[i] = n;
         else
-          nodes.splice(i2, 1);
+          nodes.splice(i, 1);
       }
       return nodes.length > 0 ? this : undefined;
     }
     optimizeNames(names, constants) {
       const { nodes } = this;
-      let i2 = nodes.length;
-      while (i2--) {
-        const n = nodes[i2];
+      let i = nodes.length;
+      while (i--) {
+        const n = nodes[i];
         if (n.optimizeNames(names, constants))
           continue;
         subtractNames(names, n.names);
-        nodes.splice(i2, 1);
+        nodes.splice(i, 1);
       }
       return nodes.length > 0 ? this : undefined;
     }
@@ -607,8 +596,8 @@ var require_codegen2 = __commonJS((exports) => {
       return this;
     }
     optimizeNames(names, constants) {
-      var _a3;
-      this.else = (_a3 = this.else) === null || _a3 === undefined ? undefined : _a3.optimizeNames(names, constants);
+      var _a;
+      this.else = (_a = this.else) === null || _a === undefined ? undefined : _a.optimizeNames(names, constants);
       if (!(super.optimizeNames(names, constants) || this.else))
         return;
       this.condition = optimizeExpr(this.condition, names, constants);
@@ -719,16 +708,16 @@ var require_codegen2 = __commonJS((exports) => {
       return code;
     }
     optimizeNodes() {
-      var _a3, _b;
+      var _a, _b;
       super.optimizeNodes();
-      (_a3 = this.catch) === null || _a3 === undefined || _a3.optimizeNodes();
+      (_a = this.catch) === null || _a === undefined || _a.optimizeNodes();
       (_b = this.finally) === null || _b === undefined || _b.optimizeNodes();
       return this;
     }
     optimizeNames(names, constants) {
-      var _a3, _b;
+      var _a, _b;
       super.optimizeNames(names, constants);
-      (_a3 = this.catch) === null || _a3 === undefined || _a3.optimizeNames(names, constants);
+      (_a = this.catch) === null || _a === undefined || _a.optimizeNames(names, constants);
       (_b = this.finally) === null || _b === undefined || _b.optimizeNames(names, constants);
       return this;
     }
@@ -743,9 +732,9 @@ var require_codegen2 = __commonJS((exports) => {
   }
 
   class Catch extends BlockNode {
-    constructor(error51) {
+    constructor(error) {
       super();
-      this.error = error51;
+      this.error = error;
     }
     render(opts) {
       return `catch(${this.error})` + super.render(opts);
@@ -875,8 +864,8 @@ var require_codegen2 = __commonJS((exports) => {
       const name = this._scope.toName(nameOrPrefix);
       if (this.opts.es5) {
         const arr = iterable instanceof code_1.Name ? iterable : this.var("_arr", iterable);
-        return this.forRange("_i", 0, (0, code_1._)`${arr}.length`, (i2) => {
-          this.var(name, (0, code_1._)`${arr}[${i2}]`);
+        return this.forRange("_i", 0, (0, code_1._)`${arr}.length`, (i) => {
+          this.var(name, (0, code_1._)`${arr}[${i}]`);
           forBody(name);
         });
       }
@@ -913,9 +902,9 @@ var require_codegen2 = __commonJS((exports) => {
       this._blockNode(node);
       this.code(tryBody);
       if (catchCode) {
-        const error51 = this.name("e");
-        this._currNode = node.catch = new Catch(error51);
-        catchCode(error51);
+        const error = this.name("e");
+        this._currNode = node.catch = new Catch(error);
+        catchCode(error);
       }
       if (finallyCode) {
         this._currNode = node.finally = new Finally;
@@ -923,8 +912,8 @@ var require_codegen2 = __commonJS((exports) => {
       }
       return this._endBlockNode(Catch, Finally);
     }
-    throw(error51) {
-      return this._leafNode(new Throw(error51));
+    throw(error) {
+      return this._leafNode(new Throw(error));
     }
     block(body, nodeCount) {
       this._blockStarts.push(this._nodes.length);
@@ -1055,84 +1044,84 @@ var require_codegen2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/util.js
-var require_util2 = __commonJS((exports) => {
+var require_util2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.checkStrictMode = exports.getErrorPath = exports.Type = exports.useFunc = exports.setEvaluated = exports.evaluatedPropsToName = exports.mergeEvaluated = exports.eachItem = exports.unescapeJsonPointer = exports.escapeJsonPointer = exports.escapeFragment = exports.unescapeFragment = exports.schemaRefOrVal = exports.schemaHasRulesButRef = exports.schemaHasRules = exports.checkUnknownRules = exports.alwaysValidSchema = exports.toHash = undefined;
   var codegen_1 = require_codegen2();
   var code_1 = require_code2();
   function toHash(arr) {
-    const hash2 = {};
+    const hash = {};
     for (const item of arr)
-      hash2[item] = true;
-    return hash2;
+      hash[item] = true;
+    return hash;
   }
   exports.toHash = toHash;
-  function alwaysValidSchema(it, schema2) {
-    if (typeof schema2 == "boolean")
-      return schema2;
-    if (Object.keys(schema2).length === 0)
+  function alwaysValidSchema(it, schema) {
+    if (typeof schema == "boolean")
+      return schema;
+    if (Object.keys(schema).length === 0)
       return true;
-    checkUnknownRules(it, schema2);
-    return !schemaHasRules(schema2, it.self.RULES.all);
+    checkUnknownRules(it, schema);
+    return !schemaHasRules(schema, it.self.RULES.all);
   }
   exports.alwaysValidSchema = alwaysValidSchema;
-  function checkUnknownRules(it, schema2 = it.schema) {
+  function checkUnknownRules(it, schema = it.schema) {
     const { opts, self } = it;
     if (!opts.strictSchema)
       return;
-    if (typeof schema2 === "boolean")
+    if (typeof schema === "boolean")
       return;
     const rules = self.RULES.keywords;
-    for (const key in schema2) {
+    for (const key in schema) {
       if (!rules[key])
         checkStrictMode(it, `unknown keyword: "${key}"`);
     }
   }
   exports.checkUnknownRules = checkUnknownRules;
-  function schemaHasRules(schema2, rules) {
-    if (typeof schema2 == "boolean")
-      return !schema2;
-    for (const key in schema2)
+  function schemaHasRules(schema, rules) {
+    if (typeof schema == "boolean")
+      return !schema;
+    for (const key in schema)
       if (rules[key])
         return true;
     return false;
   }
   exports.schemaHasRules = schemaHasRules;
-  function schemaHasRulesButRef(schema2, RULES) {
-    if (typeof schema2 == "boolean")
-      return !schema2;
-    for (const key in schema2)
+  function schemaHasRulesButRef(schema, RULES) {
+    if (typeof schema == "boolean")
+      return !schema;
+    for (const key in schema)
       if (key !== "$ref" && RULES.all[key])
         return true;
     return false;
   }
   exports.schemaHasRulesButRef = schemaHasRulesButRef;
-  function schemaRefOrVal({ topSchemaRef, schemaPath }, schema2, keyword, $data) {
+  function schemaRefOrVal({ topSchemaRef, schemaPath }, schema, keyword, $data) {
     if (!$data) {
-      if (typeof schema2 == "number" || typeof schema2 == "boolean")
-        return schema2;
-      if (typeof schema2 == "string")
-        return (0, codegen_1._)`${schema2}`;
+      if (typeof schema == "number" || typeof schema == "boolean")
+        return schema;
+      if (typeof schema == "string")
+        return (0, codegen_1._)`${schema}`;
     }
     return (0, codegen_1._)`${topSchemaRef}${schemaPath}${(0, codegen_1.getProperty)(keyword)}`;
   }
   exports.schemaRefOrVal = schemaRefOrVal;
-  function unescapeFragment(str2) {
-    return unescapeJsonPointer(decodeURIComponent(str2));
+  function unescapeFragment(str) {
+    return unescapeJsonPointer(decodeURIComponent(str));
   }
   exports.unescapeFragment = unescapeFragment;
-  function escapeFragment(str2) {
-    return encodeURIComponent(escapeJsonPointer(str2));
+  function escapeFragment(str) {
+    return encodeURIComponent(escapeJsonPointer(str));
   }
   exports.escapeFragment = escapeFragment;
-  function escapeJsonPointer(str2) {
-    if (typeof str2 == "number")
-      return `${str2}`;
-    return str2.replace(/~/g, "~0").replace(/\//g, "~1");
+  function escapeJsonPointer(str) {
+    if (typeof str == "number")
+      return `${str}`;
+    return str.replace(/~/g, "~0").replace(/\//g, "~1");
   }
   exports.escapeJsonPointer = escapeJsonPointer;
-  function unescapeJsonPointer(str2) {
-    return str2.replace(/~1/g, "/").replace(/~0/g, "~");
+  function unescapeJsonPointer(str) {
+    return str.replace(/~1/g, "/").replace(/~0/g, "~");
   }
   exports.unescapeJsonPointer = unescapeJsonPointer;
   function eachItem(xs, f) {
@@ -1144,9 +1133,9 @@ var require_util2 = __commonJS((exports) => {
     }
   }
   exports.eachItem = eachItem;
-  function makeMergeEvaluated({ mergeNames, mergeToName, mergeValues: mergeValues2, resultToName }) {
+  function makeMergeEvaluated({ mergeNames, mergeToName, mergeValues, resultToName }) {
     return (gen, from, to, toName) => {
-      const res = to === undefined ? from : to instanceof codegen_1.Name ? (from instanceof codegen_1.Name ? mergeNames(gen, from, to) : mergeToName(gen, from, to), to) : from instanceof codegen_1.Name ? (mergeToName(gen, to, from), from) : mergeValues2(from, to);
+      const res = to === undefined ? from : to instanceof codegen_1.Name ? (from instanceof codegen_1.Name ? mergeNames(gen, from, to) : mergeToName(gen, from, to), to) : from instanceof codegen_1.Name ? (mergeToName(gen, to, from), from) : mergeValues(from, to);
       return toName === codegen_1.Name && !(res instanceof codegen_1.Name) ? resultToName(gen, res) : res;
     };
   }
@@ -1194,14 +1183,14 @@ var require_util2 = __commonJS((exports) => {
     });
   }
   exports.useFunc = useFunc;
-  var Type2;
-  (function(Type3) {
-    Type3[Type3["Num"] = 0] = "Num";
-    Type3[Type3["Str"] = 1] = "Str";
-  })(Type2 || (exports.Type = Type2 = {}));
+  var Type;
+  (function(Type) {
+    Type[Type["Num"] = 0] = "Num";
+    Type[Type["Str"] = 1] = "Str";
+  })(Type || (exports.Type = Type = {}));
   function getErrorPath(dataProp, dataPropType, jsPropertySyntax) {
     if (dataProp instanceof codegen_1.Name) {
-      const isNumber = dataPropType === Type2.Num;
+      const isNumber = dataPropType === Type.Num;
       return jsPropertySyntax ? isNumber ? (0, codegen_1._)`"[" + ${dataProp} + "]"` : (0, codegen_1._)`"['" + ${dataProp} + "']"` : isNumber ? (0, codegen_1._)`"/" + ${dataProp}` : (0, codegen_1._)`"/" + ${dataProp}.replace(/~/g, "~0").replace(/\\//g, "~1")`;
     }
     return jsPropertySyntax ? (0, codegen_1.getProperty)(dataProp).toString() : "/" + escapeJsonPointer(dataProp);
@@ -1219,7 +1208,7 @@ var require_util2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/names.js
-var require_names2 = __commonJS((exports) => {
+var require_names2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var names = {
@@ -1244,7 +1233,7 @@ var require_names2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/errors.js
-var require_errors2 = __commonJS((exports) => {
+var require_errors2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.extendErrors = exports.resetErrorsCount = exports.reportExtraError = exports.reportError = exports.keyword$DataError = exports.keywordError = undefined;
   var codegen_1 = require_codegen2();
@@ -1256,10 +1245,10 @@ var require_errors2 = __commonJS((exports) => {
   exports.keyword$DataError = {
     message: ({ keyword, schemaType }) => schemaType ? (0, codegen_1.str)`"${keyword}" keyword must be ${schemaType} ($data)` : (0, codegen_1.str)`"${keyword}" keyword is invalid ($data)`
   };
-  function reportError(cxt, error51 = exports.keywordError, errorPaths, overrideAllErrors) {
+  function reportError(cxt, error = exports.keywordError, errorPaths, overrideAllErrors) {
     const { it } = cxt;
     const { gen, compositeRule, allErrors } = it;
-    const errObj = errorObjectCode(cxt, error51, errorPaths);
+    const errObj = errorObjectCode(cxt, error, errorPaths);
     if (overrideAllErrors !== null && overrideAllErrors !== undefined ? overrideAllErrors : compositeRule || allErrors) {
       addError(gen, errObj);
     } else {
@@ -1267,10 +1256,10 @@ var require_errors2 = __commonJS((exports) => {
     }
   }
   exports.reportError = reportError;
-  function reportExtraError(cxt, error51 = exports.keywordError, errorPaths) {
+  function reportExtraError(cxt, error = exports.keywordError, errorPaths) {
     const { it } = cxt;
     const { gen, compositeRule, allErrors } = it;
-    const errObj = errorObjectCode(cxt, error51, errorPaths);
+    const errObj = errorObjectCode(cxt, error, errorPaths);
     addError(gen, errObj);
     if (!(compositeRule || allErrors)) {
       returnErrors(it, names_1.default.vErrors);
@@ -1286,8 +1275,8 @@ var require_errors2 = __commonJS((exports) => {
     if (errsCount === undefined)
       throw new Error("ajv implementation error");
     const err = gen.name("err");
-    gen.forRange("i", errsCount, names_1.default.errors, (i2) => {
-      gen.const(err, (0, codegen_1._)`${names_1.default.vErrors}[${i2}]`);
+    gen.forRange("i", errsCount, names_1.default.errors, (i) => {
+      gen.const(err, (0, codegen_1._)`${names_1.default.vErrors}[${i}]`);
       gen.if((0, codegen_1._)`${err}.instancePath === undefined`, () => gen.assign((0, codegen_1._)`${err}.instancePath`, (0, codegen_1.strConcat)(names_1.default.instancePath, it.errorPath)));
       gen.assign((0, codegen_1._)`${err}.schemaPath`, (0, codegen_1.str)`${it.errSchemaPath}/${keyword}`);
       if (it.opts.verbose) {
@@ -1320,19 +1309,19 @@ var require_errors2 = __commonJS((exports) => {
     schema: new codegen_1.Name("schema"),
     parentSchema: new codegen_1.Name("parentSchema")
   };
-  function errorObjectCode(cxt, error51, errorPaths) {
+  function errorObjectCode(cxt, error, errorPaths) {
     const { createErrors } = cxt.it;
     if (createErrors === false)
       return (0, codegen_1._)`{}`;
-    return errorObject(cxt, error51, errorPaths);
+    return errorObject(cxt, error, errorPaths);
   }
-  function errorObject(cxt, error51, errorPaths = {}) {
+  function errorObject(cxt, error, errorPaths = {}) {
     const { gen, it } = cxt;
     const keyValues = [
       errorInstancePath(it, errorPaths),
       errorSchemaPath(cxt, errorPaths)
     ];
-    extraErrorProps(cxt, error51, keyValues);
+    extraErrorProps(cxt, error, keyValues);
     return gen.object(...keyValues);
   }
   function errorInstancePath({ errorPath }, { instancePath }) {
@@ -1362,7 +1351,7 @@ var require_errors2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/boolSchema.js
-var require_boolSchema2 = __commonJS((exports) => {
+var require_boolSchema2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.boolOrEmptySchema = exports.topBoolOrEmptySchema = undefined;
   var errors_1 = require_errors2();
@@ -1372,10 +1361,10 @@ var require_boolSchema2 = __commonJS((exports) => {
     message: "boolean schema is false"
   };
   function topBoolOrEmptySchema(it) {
-    const { gen, schema: schema2, validateName } = it;
-    if (schema2 === false) {
+    const { gen, schema, validateName } = it;
+    if (schema === false) {
       falseSchemaError(it, false);
-    } else if (typeof schema2 == "object" && schema2.$async === true) {
+    } else if (typeof schema == "object" && schema.$async === true) {
       gen.return(names_1.default.data);
     } else {
       gen.assign((0, codegen_1._)`${validateName}.errors`, null);
@@ -1384,8 +1373,8 @@ var require_boolSchema2 = __commonJS((exports) => {
   }
   exports.topBoolOrEmptySchema = topBoolOrEmptySchema;
   function boolOrEmptySchema(it, valid) {
-    const { gen, schema: schema2 } = it;
-    if (schema2 === false) {
+    const { gen, schema } = it;
+    if (schema === false) {
       gen.var(valid, false);
       falseSchemaError(it);
     } else {
@@ -1410,7 +1399,7 @@ var require_boolSchema2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/rules.js
-var require_rules2 = __commonJS((exports) => {
+var require_rules2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getRules = exports.isJSONType = undefined;
   var _jsonTypes = ["string", "number", "integer", "boolean", "null", "object", "array"];
@@ -1438,27 +1427,27 @@ var require_rules2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/applicability.js
-var require_applicability2 = __commonJS((exports) => {
+var require_applicability2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.shouldUseRule = exports.shouldUseGroup = exports.schemaHasRulesForType = undefined;
-  function schemaHasRulesForType({ schema: schema2, self }, type2) {
-    const group = self.RULES.types[type2];
-    return group && group !== true && shouldUseGroup(schema2, group);
+  function schemaHasRulesForType({ schema, self }, type) {
+    const group = self.RULES.types[type];
+    return group && group !== true && shouldUseGroup(schema, group);
   }
   exports.schemaHasRulesForType = schemaHasRulesForType;
-  function shouldUseGroup(schema2, group) {
-    return group.rules.some((rule) => shouldUseRule(schema2, rule));
+  function shouldUseGroup(schema, group) {
+    return group.rules.some((rule) => shouldUseRule(schema, rule));
   }
   exports.shouldUseGroup = shouldUseGroup;
-  function shouldUseRule(schema2, rule) {
-    var _a3;
-    return schema2[rule.keyword] !== undefined || ((_a3 = rule.definition.implements) === null || _a3 === undefined ? undefined : _a3.some((kwd) => schema2[kwd] !== undefined));
+  function shouldUseRule(schema, rule) {
+    var _a;
+    return schema[rule.keyword] !== undefined || ((_a = rule.definition.implements) === null || _a === undefined ? undefined : _a.some((kwd) => schema[kwd] !== undefined));
   }
   exports.shouldUseRule = shouldUseRule;
 });
 
 // node_modules/ajv/dist/compile/validate/dataType.js
-var require_dataType2 = __commonJS((exports) => {
+var require_dataType2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.reportTypeError = exports.checkDataTypes = exports.checkDataType = exports.coerceAndCheckDataType = exports.getJSONTypes = exports.getSchemaTypes = exports.DataType = undefined;
   var rules_1 = require_rules2();
@@ -1467,42 +1456,42 @@ var require_dataType2 = __commonJS((exports) => {
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
   var DataType;
-  (function(DataType2) {
-    DataType2[DataType2["Correct"] = 0] = "Correct";
-    DataType2[DataType2["Wrong"] = 1] = "Wrong";
+  (function(DataType) {
+    DataType[DataType["Correct"] = 0] = "Correct";
+    DataType[DataType["Wrong"] = 1] = "Wrong";
   })(DataType || (exports.DataType = DataType = {}));
-  function getSchemaTypes(schema2) {
-    const types2 = getJSONTypes(schema2.type);
-    const hasNull = types2.includes("null");
+  function getSchemaTypes(schema) {
+    const types = getJSONTypes(schema.type);
+    const hasNull = types.includes("null");
     if (hasNull) {
-      if (schema2.nullable === false)
+      if (schema.nullable === false)
         throw new Error("type: null contradicts nullable: false");
     } else {
-      if (!types2.length && schema2.nullable !== undefined) {
+      if (!types.length && schema.nullable !== undefined) {
         throw new Error('"nullable" cannot be used without "type"');
       }
-      if (schema2.nullable === true)
-        types2.push("null");
+      if (schema.nullable === true)
+        types.push("null");
     }
-    return types2;
+    return types;
   }
   exports.getSchemaTypes = getSchemaTypes;
   function getJSONTypes(ts) {
-    const types2 = Array.isArray(ts) ? ts : ts ? [ts] : [];
-    if (types2.every(rules_1.isJSONType))
-      return types2;
-    throw new Error("type must be JSONType or JSONType[]: " + types2.join(","));
+    const types = Array.isArray(ts) ? ts : ts ? [ts] : [];
+    if (types.every(rules_1.isJSONType))
+      return types;
+    throw new Error("type must be JSONType or JSONType[]: " + types.join(","));
   }
   exports.getJSONTypes = getJSONTypes;
-  function coerceAndCheckDataType(it, types2) {
+  function coerceAndCheckDataType(it, types) {
     const { gen, data, opts } = it;
-    const coerceTo = coerceToTypes(types2, opts.coerceTypes);
-    const checkTypes = types2.length > 0 && !(coerceTo.length === 0 && types2.length === 1 && (0, applicability_1.schemaHasRulesForType)(it, types2[0]));
+    const coerceTo = coerceToTypes(types, opts.coerceTypes);
+    const checkTypes = types.length > 0 && !(coerceTo.length === 0 && types.length === 1 && (0, applicability_1.schemaHasRulesForType)(it, types[0]));
     if (checkTypes) {
-      const wrongType = checkDataTypes(types2, data, opts.strictNumbers, DataType.Wrong);
+      const wrongType = checkDataTypes(types, data, opts.strictNumbers, DataType.Wrong);
       gen.if(wrongType, () => {
         if (coerceTo.length)
-          coerceData(it, types2, coerceTo);
+          coerceData(it, types, coerceTo);
         else
           reportTypeError(it);
       });
@@ -1511,15 +1500,15 @@ var require_dataType2 = __commonJS((exports) => {
   }
   exports.coerceAndCheckDataType = coerceAndCheckDataType;
   var COERCIBLE = new Set(["string", "number", "integer", "boolean", "null"]);
-  function coerceToTypes(types2, coerceTypes) {
-    return coerceTypes ? types2.filter((t) => COERCIBLE.has(t) || coerceTypes === "array" && t === "array") : [];
+  function coerceToTypes(types, coerceTypes) {
+    return coerceTypes ? types.filter((t) => COERCIBLE.has(t) || coerceTypes === "array" && t === "array") : [];
   }
-  function coerceData(it, types2, coerceTo) {
+  function coerceData(it, types, coerceTo) {
     const { gen, data, opts } = it;
     const dataType = gen.let("dataType", (0, codegen_1._)`typeof ${data}`);
     const coerced = gen.let("coerced", (0, codegen_1._)`undefined`);
     if (opts.coerceTypes === "array") {
-      gen.if((0, codegen_1._)`${dataType} == 'object' && Array.isArray(${data}) && ${data}.length == 1`, () => gen.assign(data, (0, codegen_1._)`${data}[0]`).assign(dataType, (0, codegen_1._)`typeof ${data}`).if(checkDataTypes(types2, data, opts.strictNumbers), () => gen.assign(coerced, data)));
+      gen.if((0, codegen_1._)`${dataType} == 'object' && Array.isArray(${data}) && ${data}.length == 1`, () => gen.assign(data, (0, codegen_1._)`${data}[0]`).assign(dataType, (0, codegen_1._)`typeof ${data}`).if(checkDataTypes(types, data, opts.strictNumbers), () => gen.assign(coerced, data)));
     }
     gen.if((0, codegen_1._)`${coerced} !== undefined`);
     for (const t of coerceTo) {
@@ -1595,26 +1584,26 @@ var require_dataType2 = __commonJS((exports) => {
       return checkDataType(dataTypes[0], data, strictNums, correct);
     }
     let cond;
-    const types2 = (0, util_1.toHash)(dataTypes);
-    if (types2.array && types2.object) {
+    const types = (0, util_1.toHash)(dataTypes);
+    if (types.array && types.object) {
       const notObj = (0, codegen_1._)`typeof ${data} != "object"`;
-      cond = types2.null ? notObj : (0, codegen_1._)`!${data} || ${notObj}`;
-      delete types2.null;
-      delete types2.array;
-      delete types2.object;
+      cond = types.null ? notObj : (0, codegen_1._)`!${data} || ${notObj}`;
+      delete types.null;
+      delete types.array;
+      delete types.object;
     } else {
       cond = codegen_1.nil;
     }
-    if (types2.number)
-      delete types2.integer;
-    for (const t in types2)
+    if (types.number)
+      delete types.integer;
+    for (const t in types)
       cond = (0, codegen_1.and)(cond, checkDataType(t, data, strictNums, correct));
     return cond;
   }
   exports.checkDataTypes = checkDataTypes;
   var typeError = {
-    message: ({ schema: schema2 }) => `must be ${schema2}`,
-    params: ({ schema: schema2, schemaValue }) => typeof schema2 == "string" ? (0, codegen_1._)`{type: ${schema2}}` : (0, codegen_1._)`{type: ${schemaValue}}`
+    message: ({ schema }) => `must be ${schema}`,
+    params: ({ schema, schemaValue }) => typeof schema == "string" ? (0, codegen_1._)`{type: ${schema}}` : (0, codegen_1._)`{type: ${schemaValue}}`
   };
   function reportTypeError(it) {
     const cxt = getTypeErrorContext(it);
@@ -1622,16 +1611,16 @@ var require_dataType2 = __commonJS((exports) => {
   }
   exports.reportTypeError = reportTypeError;
   function getTypeErrorContext(it) {
-    const { gen, data, schema: schema2 } = it;
-    const schemaCode = (0, util_1.schemaRefOrVal)(it, schema2, "type");
+    const { gen, data, schema } = it;
+    const schemaCode = (0, util_1.schemaRefOrVal)(it, schema, "type");
     return {
       gen,
       keyword: "type",
       data,
-      schema: schema2.type,
+      schema: schema.type,
       schemaCode,
       schemaValue: schemaCode,
-      parentSchema: schema2,
+      parentSchema: schema,
       params: {},
       it
     };
@@ -1639,7 +1628,7 @@ var require_dataType2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/defaults.js
-var require_defaults2 = __commonJS((exports) => {
+var require_defaults2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.assignDefaults = undefined;
   var codegen_1 = require_codegen2();
@@ -1651,7 +1640,7 @@ var require_defaults2 = __commonJS((exports) => {
         assignDefault(it, key, properties[key].default);
       }
     } else if (ty === "array" && Array.isArray(items)) {
-      items.forEach((sch, i2) => assignDefault(it, i2, sch.default));
+      items.forEach((sch, i) => assignDefault(it, i, sch.default));
     }
   }
   exports.assignDefaults = assignDefaults;
@@ -1673,7 +1662,7 @@ var require_defaults2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/code.js
-var require_code3 = __commonJS((exports) => {
+var require_code3 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateUnion = exports.validateArray = exports.usePattern = exports.callValidateCode = exports.schemaProperties = exports.allSchemaProperties = exports.noPropertyInData = exports.propertyInData = exports.isOwnProperty = exports.hasPropFunc = exports.reportMissingProp = exports.checkMissingProp = exports.checkReportMissingProp = undefined;
   var codegen_1 = require_codegen2();
@@ -1765,10 +1754,10 @@ var require_code3 = __commonJS((exports) => {
     return valid;
     function validateItems(notValid) {
       const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-      gen.forRange("i", 0, len, (i2) => {
+      gen.forRange("i", 0, len, (i) => {
         cxt.subschema({
           keyword,
-          dataProp: i2,
+          dataProp: i,
           dataPropType: util_1.Type.Num
         }, valid);
         gen.if((0, codegen_1.not)(valid), notValid);
@@ -1777,18 +1766,18 @@ var require_code3 = __commonJS((exports) => {
   }
   exports.validateArray = validateArray;
   function validateUnion(cxt) {
-    const { gen, schema: schema2, keyword, it } = cxt;
-    if (!Array.isArray(schema2))
+    const { gen, schema, keyword, it } = cxt;
+    if (!Array.isArray(schema))
       throw new Error("ajv implementation error");
-    const alwaysValid = schema2.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
+    const alwaysValid = schema.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
     if (alwaysValid && !it.opts.unevaluated)
       return;
     const valid = gen.let("valid", false);
     const schValid = gen.name("_valid");
-    gen.block(() => schema2.forEach((_sch, i2) => {
+    gen.block(() => schema.forEach((_sch, i) => {
       const schCxt = cxt.subschema({
         keyword,
-        schemaProp: i2,
+        schemaProp: i,
         compositeRule: true
       }, schValid);
       gen.assign(valid, (0, codegen_1._)`${valid} || ${schValid}`);
@@ -1802,7 +1791,7 @@ var require_code3 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/keyword.js
-var require_keyword2 = __commonJS((exports) => {
+var require_keyword2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateKeywordUsage = exports.validSchemaType = exports.funcKeywordCode = exports.macroKeywordCode = undefined;
   var codegen_1 = require_codegen2();
@@ -1810,8 +1799,8 @@ var require_keyword2 = __commonJS((exports) => {
   var code_1 = require_code3();
   var errors_1 = require_errors2();
   function macroKeywordCode(cxt, def) {
-    const { gen, keyword, schema: schema2, parentSchema, it } = cxt;
-    const macroSchema = def.macro.call(it.self, schema2, parentSchema, it);
+    const { gen, keyword, schema, parentSchema, it } = cxt;
+    const macroSchema = def.macro.call(it.self, schema, parentSchema, it);
     const schemaRef = useKeyword(gen, keyword, macroSchema);
     if (it.opts.validateSchema !== false)
       it.self.validateSchema(macroSchema, true);
@@ -1827,14 +1816,14 @@ var require_keyword2 = __commonJS((exports) => {
   }
   exports.macroKeywordCode = macroKeywordCode;
   function funcKeywordCode(cxt, def) {
-    var _a3;
-    const { gen, keyword, schema: schema2, parentSchema, $data, it } = cxt;
+    var _a;
+    const { gen, keyword, schema, parentSchema, $data, it } = cxt;
     checkAsyncKeyword(it, def);
-    const validate = !$data && def.compile ? def.compile.call(it.self, schema2, parentSchema, it) : def.validate;
+    const validate = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
     const validateRef = useKeyword(gen, keyword, validate);
     const valid = gen.let("valid");
     cxt.block$data(valid, validateKeyword);
-    cxt.ok((_a3 = def.valid) !== null && _a3 !== undefined ? _a3 : valid);
+    cxt.ok((_a = def.valid) !== null && _a !== undefined ? _a : valid);
     function validateKeyword() {
       if (def.errors === false) {
         assignValid();
@@ -1864,9 +1853,9 @@ var require_keyword2 = __commonJS((exports) => {
       const passSchema = !(("compile" in def) && !$data || def.schema === false);
       gen.assign(valid, (0, codegen_1._)`${_await}${(0, code_1.callValidateCode)(cxt, validateRef, passCxt, passSchema)}`, def.modifying);
     }
-    function reportErrs(errors3) {
-      var _a4;
-      gen.if((0, codegen_1.not)((_a4 = def.valid) !== null && _a4 !== undefined ? _a4 : valid), errors3);
+    function reportErrs(errors) {
+      var _a;
+      gen.if((0, codegen_1.not)((_a = def.valid) !== null && _a !== undefined ? _a : valid), errors);
     }
   }
   exports.funcKeywordCode = funcKeywordCode;
@@ -1890,20 +1879,20 @@ var require_keyword2 = __commonJS((exports) => {
       throw new Error(`keyword "${keyword}" failed to compile`);
     return gen.scopeValue("keyword", typeof result == "function" ? { ref: result } : { ref: result, code: (0, codegen_1.stringify)(result) });
   }
-  function validSchemaType(schema2, schemaType, allowUndefined = false) {
-    return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema2) : st === "object" ? schema2 && typeof schema2 == "object" && !Array.isArray(schema2) : typeof schema2 == st || allowUndefined && typeof schema2 == "undefined");
+  function validSchemaType(schema, schemaType, allowUndefined = false) {
+    return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema) : st === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st || allowUndefined && typeof schema == "undefined");
   }
   exports.validSchemaType = validSchemaType;
-  function validateKeywordUsage({ schema: schema2, opts, self, errSchemaPath }, def, keyword) {
+  function validateKeywordUsage({ schema, opts, self, errSchemaPath }, def, keyword) {
     if (Array.isArray(def.keyword) ? !def.keyword.includes(keyword) : def.keyword !== keyword) {
       throw new Error("ajv implementation error");
     }
     const deps = def.dependencies;
-    if (deps === null || deps === undefined ? undefined : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema2, kwd))) {
+    if (deps === null || deps === undefined ? undefined : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema, kwd))) {
       throw new Error(`parent schema must have dependencies of ${keyword}: ${deps.join(",")}`);
     }
     if (def.validateSchema) {
-      const valid = def.validateSchema(schema2[keyword]);
+      const valid = def.validateSchema(schema[keyword]);
       if (!valid) {
         const msg = `keyword "${keyword}" value is invalid at path "${errSchemaPath}": ` + self.errorsText(def.validateSchema.errors);
         if (opts.validateSchema === "log")
@@ -1917,13 +1906,13 @@ var require_keyword2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/subschema.js
-var require_subschema2 = __commonJS((exports) => {
+var require_subschema2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.extendSubschemaMode = exports.extendSubschemaData = exports.getSubschema = undefined;
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
-  function getSubschema(it, { keyword, schemaProp, schema: schema2, schemaPath, errSchemaPath, topSchemaRef }) {
-    if (keyword !== undefined && schema2 !== undefined) {
+  function getSubschema(it, { keyword, schemaProp, schema, schemaPath, errSchemaPath, topSchemaRef }) {
+    if (keyword !== undefined && schema !== undefined) {
       throw new Error('both "keyword" and "schema" passed, only one allowed');
     }
     if (keyword !== undefined) {
@@ -1938,12 +1927,12 @@ var require_subschema2 = __commonJS((exports) => {
         errSchemaPath: `${it.errSchemaPath}/${keyword}/${(0, util_1.escapeFragment)(schemaProp)}`
       };
     }
-    if (schema2 !== undefined) {
+    if (schema !== undefined) {
       if (schemaPath === undefined || errSchemaPath === undefined || topSchemaRef === undefined) {
         throw new Error('"schemaPath", "errSchemaPath" and "topSchemaRef" are required with "schema"');
       }
       return {
-        schema: schema2,
+        schema,
         schemaPath,
         topSchemaRef,
         errSchemaPath
@@ -1997,20 +1986,20 @@ var require_subschema2 = __commonJS((exports) => {
 });
 
 // node_modules/fast-deep-equal/index.js
-var require_fast_deep_equal2 = __commonJS((exports, module) => {
+var require_fast_deep_equal2 = __commonJS(function(exports, module) {
   module.exports = function equal(a, b) {
     if (a === b)
       return true;
     if (a && b && typeof a == "object" && typeof b == "object") {
       if (a.constructor !== b.constructor)
         return false;
-      var length, i2, keys;
+      var length, i, keys;
       if (Array.isArray(a)) {
         length = a.length;
         if (length != b.length)
           return false;
-        for (i2 = length;i2-- !== 0; )
-          if (!equal(a[i2], b[i2]))
+        for (i = length;i-- !== 0; )
+          if (!equal(a[i], b[i]))
             return false;
         return true;
       }
@@ -2024,11 +2013,11 @@ var require_fast_deep_equal2 = __commonJS((exports, module) => {
       length = keys.length;
       if (length !== Object.keys(b).length)
         return false;
-      for (i2 = length;i2-- !== 0; )
-        if (!Object.prototype.hasOwnProperty.call(b, keys[i2]))
+      for (i = length;i-- !== 0; )
+        if (!Object.prototype.hasOwnProperty.call(b, keys[i]))
           return false;
-      for (i2 = length;i2-- !== 0; ) {
-        var key = keys[i2];
+      for (i = length;i-- !== 0; ) {
+        var key = keys[i];
         if (!equal(a[key], b[key]))
           return false;
       }
@@ -2039,8 +2028,8 @@ var require_fast_deep_equal2 = __commonJS((exports, module) => {
 });
 
 // node_modules/json-schema-traverse/index.js
-var require_json_schema_traverse2 = __commonJS((exports, module) => {
-  var traverse = module.exports = function(schema2, opts, cb) {
+var require_json_schema_traverse2 = __commonJS(function(exports, module) {
+  var traverse = module.exports = function(schema, opts, cb) {
     if (typeof opts == "function") {
       cb = opts;
       opts = {};
@@ -2048,7 +2037,7 @@ var require_json_schema_traverse2 = __commonJS((exports, module) => {
     cb = opts.cb || cb;
     var pre = typeof cb == "function" ? cb : cb.pre || function() {};
     var post = cb.post || function() {};
-    _traverse(opts, pre, post, schema2, "", schema2);
+    _traverse(opts, pre, post, schema, "", schema);
   };
   traverse.keywords = {
     additionalItems: true,
@@ -2094,35 +2083,35 @@ var require_json_schema_traverse2 = __commonJS((exports, module) => {
     maxProperties: true,
     minProperties: true
   };
-  function _traverse(opts, pre, post, schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
-    if (schema2 && typeof schema2 == "object" && !Array.isArray(schema2)) {
-      pre(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
-      for (var key in schema2) {
-        var sch = schema2[key];
+  function _traverse(opts, pre, post, schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
+    if (schema && typeof schema == "object" && !Array.isArray(schema)) {
+      pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+      for (var key in schema) {
+        var sch = schema[key];
         if (Array.isArray(sch)) {
           if (key in traverse.arrayKeywords) {
-            for (var i2 = 0;i2 < sch.length; i2++)
-              _traverse(opts, pre, post, sch[i2], jsonPtr + "/" + key + "/" + i2, rootSchema, jsonPtr, key, schema2, i2);
+            for (var i = 0;i < sch.length; i++)
+              _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema, i);
           }
         } else if (key in traverse.propsKeywords) {
           if (sch && typeof sch == "object") {
             for (var prop in sch)
-              _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema2, prop);
+              _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);
           }
         } else if (key in traverse.keywords || opts.allKeys && !(key in traverse.skipKeywords)) {
-          _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema2);
+          _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema);
         }
       }
-      post(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+      post(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
     }
   }
-  function escapeJsonPtr(str2) {
-    return str2.replace(/~/g, "~0").replace(/\//g, "~1");
+  function escapeJsonPtr(str) {
+    return str.replace(/~/g, "~0").replace(/\//g, "~1");
   }
 });
 
 // node_modules/ajv/dist/compile/resolve.js
-var require_resolve2 = __commonJS((exports) => {
+var require_resolve2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getSchemaRefs = exports.resolveUrl = exports.normalizeId = exports._getFullPath = exports.getFullPath = exports.inlineRef = undefined;
   var util_1 = require_util2();
@@ -2146,14 +2135,14 @@ var require_resolve2 = __commonJS((exports) => {
     "enum",
     "const"
   ]);
-  function inlineRef(schema2, limit = true) {
-    if (typeof schema2 == "boolean")
+  function inlineRef(schema, limit = true) {
+    if (typeof schema == "boolean")
       return true;
     if (limit === true)
-      return !hasRef(schema2);
+      return !hasRef(schema);
     if (!limit)
       return false;
-    return countKeys(schema2) <= limit;
+    return countKeys(schema) <= limit;
   }
   exports.inlineRef = inlineRef;
   var REF_KEYWORDS = new Set([
@@ -2163,11 +2152,11 @@ var require_resolve2 = __commonJS((exports) => {
     "$dynamicRef",
     "$dynamicAnchor"
   ]);
-  function hasRef(schema2) {
-    for (const key in schema2) {
+  function hasRef(schema) {
+    for (const key in schema) {
       if (REF_KEYWORDS.has(key))
         return true;
-      const sch = schema2[key];
+      const sch = schema[key];
       if (Array.isArray(sch) && sch.some(hasRef))
         return true;
       if (typeof sch == "object" && hasRef(sch))
@@ -2175,16 +2164,16 @@ var require_resolve2 = __commonJS((exports) => {
     }
     return false;
   }
-  function countKeys(schema2) {
+  function countKeys(schema) {
     let count = 0;
-    for (const key in schema2) {
+    for (const key in schema) {
       if (key === "$ref")
         return Infinity;
       count++;
       if (SIMPLE_INLINED.has(key))
         continue;
-      if (typeof schema2[key] == "object") {
-        (0, util_1.eachItem)(schema2[key], (sch) => count += countKeys(sch));
+      if (typeof schema[key] == "object") {
+        (0, util_1.eachItem)(schema[key], (sch) => count += countKeys(sch));
       }
       if (count === Infinity)
         return Infinity;
@@ -2214,16 +2203,16 @@ var require_resolve2 = __commonJS((exports) => {
   }
   exports.resolveUrl = resolveUrl;
   var ANCHOR = /^[a-z_][-a-z0-9._]*$/i;
-  function getSchemaRefs(schema2, baseId) {
-    if (typeof schema2 == "boolean")
+  function getSchemaRefs(schema, baseId) {
+    if (typeof schema == "boolean")
       return {};
     const { schemaId, uriResolver } = this.opts;
-    const schId = normalizeId(schema2[schemaId] || baseId);
+    const schId = normalizeId(schema[schemaId] || baseId);
     const baseIds = { "": schId };
     const pathPrefix = getFullPath(uriResolver, schId, false);
     const localRefs = {};
     const schemaRefs = new Set;
-    traverse(schema2, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
+    traverse(schema, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
       if (parentJsonPtr === undefined)
         return;
       const fullPath = pathPrefix + jsonPtr;
@@ -2275,7 +2264,7 @@ var require_resolve2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/validate/index.js
-var require_validate2 = __commonJS((exports) => {
+var require_validate2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getData = exports.KeywordCxt = exports.validateFunctionCode = undefined;
   var boolSchema_1 = require_boolSchema2();
@@ -2301,15 +2290,15 @@ var require_validate2 = __commonJS((exports) => {
     validateFunction(it, () => (0, boolSchema_1.topBoolOrEmptySchema)(it));
   }
   exports.validateFunctionCode = validateFunctionCode;
-  function validateFunction({ gen, validateName, schema: schema2, schemaEnv, opts }, body) {
+  function validateFunction({ gen, validateName, schema, schemaEnv, opts }, body) {
     if (opts.code.es5) {
       gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${names_1.default.valCxt}`, schemaEnv.$async, () => {
-        gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema2, opts)}`);
+        gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema, opts)}`);
         destructureValCxtES5(gen, opts);
         gen.code(body);
       });
     } else {
-      gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema2, opts)).code(body));
+      gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema, opts)).code(body));
     }
   }
   function destructureValCxt(opts) {
@@ -2333,9 +2322,9 @@ var require_validate2 = __commonJS((exports) => {
     });
   }
   function topSchemaObjCode(it) {
-    const { schema: schema2, opts, gen } = it;
+    const { schema, opts, gen } = it;
     validateFunction(it, () => {
-      if (opts.$comment && schema2.$comment)
+      if (opts.$comment && schema.$comment)
         commentKeyword(it);
       checkNoDefault(it);
       gen.let(names_1.default.vErrors, null);
@@ -2353,8 +2342,8 @@ var require_validate2 = __commonJS((exports) => {
     gen.if((0, codegen_1._)`${it.evaluated}.dynamicProps`, () => gen.assign((0, codegen_1._)`${it.evaluated}.props`, (0, codegen_1._)`undefined`));
     gen.if((0, codegen_1._)`${it.evaluated}.dynamicItems`, () => gen.assign((0, codegen_1._)`${it.evaluated}.items`, (0, codegen_1._)`undefined`));
   }
-  function funcSourceUrl(schema2, opts) {
-    const schId = typeof schema2 == "object" && schema2[opts.schemaId];
+  function funcSourceUrl(schema, opts) {
+    const schId = typeof schema == "object" && schema[opts.schemaId];
     return schId && (opts.code.source || opts.code.process) ? (0, codegen_1._)`/*# sourceURL=${schId} */` : codegen_1.nil;
   }
   function subschemaCode(it, valid) {
@@ -2367,10 +2356,10 @@ var require_validate2 = __commonJS((exports) => {
     }
     (0, boolSchema_1.boolOrEmptySchema)(it, valid);
   }
-  function schemaCxtHasRules({ schema: schema2, self }) {
-    if (typeof schema2 == "boolean")
-      return !schema2;
-    for (const key in schema2)
+  function schemaCxtHasRules({ schema, self }) {
+    if (typeof schema == "boolean")
+      return !schema;
+    for (const key in schema)
       if (self.RULES.all[key])
         return true;
     return false;
@@ -2379,8 +2368,8 @@ var require_validate2 = __commonJS((exports) => {
     return typeof it.schema != "boolean";
   }
   function subSchemaObjCode(it, valid) {
-    const { schema: schema2, gen, opts } = it;
-    if (opts.$comment && schema2.$comment)
+    const { schema, gen, opts } = it;
+    if (opts.$comment && schema.$comment)
       commentKeyword(it);
     updateContext(it);
     checkAsyncSchema(it);
@@ -2395,19 +2384,19 @@ var require_validate2 = __commonJS((exports) => {
   function typeAndKeywords(it, errsCount) {
     if (it.opts.jtd)
       return schemaKeywords(it, [], false, errsCount);
-    const types2 = (0, dataType_1.getSchemaTypes)(it.schema);
-    const checkedTypes = (0, dataType_1.coerceAndCheckDataType)(it, types2);
-    schemaKeywords(it, types2, !checkedTypes, errsCount);
+    const types = (0, dataType_1.getSchemaTypes)(it.schema);
+    const checkedTypes = (0, dataType_1.coerceAndCheckDataType)(it, types);
+    schemaKeywords(it, types, !checkedTypes, errsCount);
   }
   function checkRefsAndKeywords(it) {
-    const { schema: schema2, errSchemaPath, opts, self } = it;
-    if (schema2.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema2, self.RULES)) {
+    const { schema, errSchemaPath, opts, self } = it;
+    if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema, self.RULES)) {
       self.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
     }
   }
   function checkNoDefault(it) {
-    const { schema: schema2, opts } = it;
-    if (schema2.default !== undefined && opts.useDefaults && opts.strictSchema) {
+    const { schema, opts } = it;
+    if (schema.default !== undefined && opts.useDefaults && opts.strictSchema) {
       (0, util_1.checkStrictMode)(it, "default is ignored in the schema root");
     }
   }
@@ -2420,8 +2409,8 @@ var require_validate2 = __commonJS((exports) => {
     if (it.schema.$async && !it.schemaEnv.$async)
       throw new Error("async schema in sync schema");
   }
-  function commentKeyword({ gen, schemaEnv, schema: schema2, errSchemaPath, opts }) {
-    const msg = schema2.$comment;
+  function commentKeyword({ gen, schemaEnv, schema, errSchemaPath, opts }) {
+    const msg = schema.$comment;
     if (opts.$comment === true) {
       gen.code((0, codegen_1._)`${names_1.default.self}.logger.log(${msg})`);
     } else if (typeof opts.$comment == "function") {
@@ -2447,27 +2436,27 @@ var require_validate2 = __commonJS((exports) => {
     if (items instanceof codegen_1.Name)
       gen.assign((0, codegen_1._)`${evaluated}.items`, items);
   }
-  function schemaKeywords(it, types2, typeErrors, errsCount) {
-    const { gen, schema: schema2, data, allErrors, opts, self } = it;
+  function schemaKeywords(it, types, typeErrors, errsCount) {
+    const { gen, schema, data, allErrors, opts, self } = it;
     const { RULES } = self;
-    if (schema2.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema2, RULES))) {
+    if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema, RULES))) {
       gen.block(() => keywordCode(it, "$ref", RULES.all.$ref.definition));
       return;
     }
     if (!opts.jtd)
-      checkStrictTypes(it, types2);
+      checkStrictTypes(it, types);
     gen.block(() => {
       for (const group of RULES.rules)
         groupKeywords(group);
       groupKeywords(RULES.post);
     });
     function groupKeywords(group) {
-      if (!(0, applicability_1.shouldUseGroup)(schema2, group))
+      if (!(0, applicability_1.shouldUseGroup)(schema, group))
         return;
       if (group.type) {
         gen.if((0, dataType_2.checkDataType)(group.type, data, opts.strictNumbers));
         iterateKeywords(it, group);
-        if (types2.length === 1 && types2[0] === group.type && typeErrors) {
+        if (types.length === 1 && types[0] === group.type && typeErrors) {
           gen.else();
           (0, dataType_2.reportTypeError)(it);
         }
@@ -2480,38 +2469,38 @@ var require_validate2 = __commonJS((exports) => {
     }
   }
   function iterateKeywords(it, group) {
-    const { gen, schema: schema2, opts: { useDefaults } } = it;
+    const { gen, schema, opts: { useDefaults } } = it;
     if (useDefaults)
       (0, defaults_1.assignDefaults)(it, group.type);
     gen.block(() => {
       for (const rule of group.rules) {
-        if ((0, applicability_1.shouldUseRule)(schema2, rule)) {
+        if ((0, applicability_1.shouldUseRule)(schema, rule)) {
           keywordCode(it, rule.keyword, rule.definition, group.type);
         }
       }
     });
   }
-  function checkStrictTypes(it, types2) {
+  function checkStrictTypes(it, types) {
     if (it.schemaEnv.meta || !it.opts.strictTypes)
       return;
-    checkContextTypes(it, types2);
+    checkContextTypes(it, types);
     if (!it.opts.allowUnionTypes)
-      checkMultipleTypes(it, types2);
+      checkMultipleTypes(it, types);
     checkKeywordTypes(it, it.dataTypes);
   }
-  function checkContextTypes(it, types2) {
-    if (!types2.length)
+  function checkContextTypes(it, types) {
+    if (!types.length)
       return;
     if (!it.dataTypes.length) {
-      it.dataTypes = types2;
+      it.dataTypes = types;
       return;
     }
-    types2.forEach((t) => {
+    types.forEach((t) => {
       if (!includesType(it.dataTypes, t)) {
         strictTypesError(it, `type "${t}" not allowed by context "${it.dataTypes.join(",")}"`);
       }
     });
-    narrowSchemaTypes(it, types2);
+    narrowSchemaTypes(it, types);
   }
   function checkMultipleTypes(it, ts) {
     if (ts.length > 1 && !(ts.length === 2 && ts.includes("null"))) {
@@ -2523,9 +2512,9 @@ var require_validate2 = __commonJS((exports) => {
     for (const keyword in rules) {
       const rule = rules[keyword];
       if (typeof rule == "object" && (0, applicability_1.shouldUseRule)(it.schema, rule)) {
-        const { type: type2 } = rule.definition;
-        if (type2.length && !type2.some((t) => hasApplicableType(ts, t))) {
-          strictTypesError(it, `missing type "${type2.join(",")}" for keyword "${keyword}"`);
+        const { type } = rule.definition;
+        if (type.length && !type.some((t) => hasApplicableType(ts, t))) {
+          strictTypesError(it, `missing type "${type.join(",")}" for keyword "${keyword}"`);
         }
       }
     }
@@ -2780,13 +2769,13 @@ var require_validate2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/runtime/validation_error.js
-var require_validation_error2 = __commonJS((exports) => {
+var require_validation_error2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
 
   class ValidationError extends Error {
-    constructor(errors3) {
+    constructor(errors) {
       super("validation failed");
-      this.errors = errors3;
+      this.errors = errors;
       this.ajv = this.validation = true;
     }
   }
@@ -2794,7 +2783,7 @@ var require_validation_error2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/ref_error.js
-var require_ref_error2 = __commonJS((exports) => {
+var require_ref_error2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var resolve_1 = require_resolve2();
 
@@ -2809,7 +2798,7 @@ var require_ref_error2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/compile/index.js
-var require_compile2 = __commonJS((exports) => {
+var require_compile2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.resolveSchema = exports.getCompilingSchema = exports.resolveRef = exports.compileSchema = exports.SchemaEnv = undefined;
   var codegen_1 = require_codegen2();
@@ -2821,20 +2810,20 @@ var require_compile2 = __commonJS((exports) => {
 
   class SchemaEnv {
     constructor(env) {
-      var _a3;
+      var _a;
       this.refs = {};
       this.dynamicAnchors = {};
-      let schema2;
+      let schema;
       if (typeof env.schema == "object")
-        schema2 = env.schema;
+        schema = env.schema;
       this.schema = env.schema;
       this.schemaId = env.schemaId;
       this.root = env.root || this;
-      this.baseId = (_a3 = env.baseId) !== null && _a3 !== undefined ? _a3 : (0, resolve_1.normalizeId)(schema2 === null || schema2 === undefined ? undefined : schema2[env.schemaId || "$id"]);
+      this.baseId = (_a = env.baseId) !== null && _a !== undefined ? _a : (0, resolve_1.normalizeId)(schema === null || schema === undefined ? undefined : schema[env.schemaId || "$id"]);
       this.schemaPath = env.schemaPath;
       this.localRefs = env.localRefs;
       this.meta = env.meta;
-      this.$async = schema2 === null || schema2 === undefined ? undefined : schema2.$async;
+      this.$async = schema === null || schema === undefined ? undefined : schema.$async;
       this.refs = {};
     }
   }
@@ -2924,24 +2913,24 @@ var require_compile2 = __commonJS((exports) => {
     }
   }
   exports.compileSchema = compileSchema;
-  function resolveRef2(root, baseId, ref) {
-    var _a3;
+  function resolveRef(root, baseId, ref) {
+    var _a;
     ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, ref);
     const schOrFunc = root.refs[ref];
     if (schOrFunc)
       return schOrFunc;
     let _sch = resolve.call(this, root, ref);
     if (_sch === undefined) {
-      const schema2 = (_a3 = root.localRefs) === null || _a3 === undefined ? undefined : _a3[ref];
+      const schema = (_a = root.localRefs) === null || _a === undefined ? undefined : _a[ref];
       const { schemaId } = this.opts;
-      if (schema2)
-        _sch = new SchemaEnv({ schema: schema2, schemaId, root, baseId });
+      if (schema)
+        _sch = new SchemaEnv({ schema, schemaId, root, baseId });
     }
     if (_sch === undefined)
       return;
     return root.refs[ref] = inlineOrCompile.call(this, _sch);
   }
-  exports.resolveRef = resolveRef2;
+  exports.resolveRef = resolveRef;
   function inlineOrCompile(sch) {
     if ((0, resolve_1.inlineRef)(sch.schema, this.opts.inlineRefs))
       return sch.schema;
@@ -2983,12 +2972,12 @@ var require_compile2 = __commonJS((exports) => {
     if (!schOrRef.validate)
       compileSchema.call(this, schOrRef);
     if (id === (0, resolve_1.normalizeId)(ref)) {
-      const { schema: schema2 } = schOrRef;
+      const { schema } = schOrRef;
       const { schemaId } = this.opts;
-      const schId = schema2[schemaId];
+      const schId = schema[schemaId];
       if (schId)
         baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
-      return new SchemaEnv({ schema: schema2, schemaId, root, baseId });
+      return new SchemaEnv({ schema, schemaId, root, baseId });
     }
     return getJsonPointer.call(this, p, schOrRef);
   }
@@ -3000,29 +2989,29 @@ var require_compile2 = __commonJS((exports) => {
     "dependencies",
     "definitions"
   ]);
-  function getJsonPointer(parsedRef, { baseId, schema: schema2, root }) {
-    var _a3;
-    if (((_a3 = parsedRef.fragment) === null || _a3 === undefined ? undefined : _a3[0]) !== "/")
+  function getJsonPointer(parsedRef, { baseId, schema, root }) {
+    var _a;
+    if (((_a = parsedRef.fragment) === null || _a === undefined ? undefined : _a[0]) !== "/")
       return;
     for (const part of parsedRef.fragment.slice(1).split("/")) {
-      if (typeof schema2 === "boolean")
+      if (typeof schema === "boolean")
         return;
-      const partSchema = schema2[(0, util_1.unescapeFragment)(part)];
+      const partSchema = schema[(0, util_1.unescapeFragment)(part)];
       if (partSchema === undefined)
         return;
-      schema2 = partSchema;
-      const schId = typeof schema2 === "object" && schema2[this.opts.schemaId];
+      schema = partSchema;
+      const schId = typeof schema === "object" && schema[this.opts.schemaId];
       if (!PREVENT_SCOPE_CHANGE.has(part) && schId) {
         baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
       }
     }
     let env;
-    if (typeof schema2 != "boolean" && schema2.$ref && !(0, util_1.schemaHasRulesButRef)(schema2, this.RULES)) {
-      const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema2.$ref);
+    if (typeof schema != "boolean" && schema.$ref && !(0, util_1.schemaHasRulesButRef)(schema, this.RULES)) {
+      const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema.$ref);
       env = resolveSchema.call(this, root, $ref);
     }
     const { schemaId } = this.opts;
-    env = env || new SchemaEnv({ schema: schema2, schemaId, root, baseId });
+    env = env || new SchemaEnv({ schema, schemaId, root, baseId });
     if (env.schema !== env.root.schema)
       return env;
     return;
@@ -3030,7 +3019,7 @@ var require_compile2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/refs/data.json
-var require_data2 = __commonJS((exports, module) => {
+var require_data2 = __commonJS(function(exports, module) {
   module.exports = {
     $id: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#",
     description: "Meta-schema for $data reference (JSON AnySchema extension proposal)",
@@ -3047,30 +3036,30 @@ var require_data2 = __commonJS((exports, module) => {
 });
 
 // node_modules/fast-uri/lib/utils.js
-var require_utils2 = __commonJS((exports, module) => {
+var require_utils2 = __commonJS(function(exports, module) {
   var isUUID = RegExp.prototype.test.bind(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/iu);
   var isIPv4 = RegExp.prototype.test.bind(/^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)$/u);
   function stringArrayToHexStripped(input) {
     let acc = "";
     let code = 0;
-    let i2 = 0;
-    for (i2 = 0;i2 < input.length; i2++) {
-      code = input[i2].charCodeAt(0);
+    let i = 0;
+    for (i = 0;i < input.length; i++) {
+      code = input[i].charCodeAt(0);
       if (code === 48) {
         continue;
       }
       if (!(code >= 48 && code <= 57 || code >= 65 && code <= 70 || code >= 97 && code <= 102)) {
         return "";
       }
-      acc += input[i2];
+      acc += input[i];
       break;
     }
-    for (i2 += 1;i2 < input.length; i2++) {
-      code = input[i2].charCodeAt(0);
+    for (i += 1;i < input.length; i++) {
+      code = input[i].charCodeAt(0);
       if (!(code >= 48 && code <= 57 || code >= 65 && code <= 70 || code >= 97 && code <= 102)) {
         return "";
       }
-      acc += input[i2];
+      acc += input[i];
     }
     return acc;
   }
@@ -3081,9 +3070,9 @@ var require_utils2 = __commonJS((exports, module) => {
   }
   function consumeHextets(buffer, address, output) {
     if (buffer.length) {
-      const hex3 = stringArrayToHexStripped(buffer);
-      if (hex3 !== "") {
-        address.push(hex3);
+      const hex = stringArrayToHexStripped(buffer);
+      if (hex !== "") {
+        address.push(hex);
       } else {
         output.error = true;
         return false;
@@ -3100,8 +3089,8 @@ var require_utils2 = __commonJS((exports, module) => {
     let endipv6Encountered = false;
     let endIpv6 = false;
     let consume = consumeHextets;
-    for (let i2 = 0;i2 < input.length; i2++) {
-      const cursor = input[i2];
+    for (let i = 0;i < input.length; i++) {
+      const cursor = input[i];
       if (cursor === "[" || cursor === "]") {
         continue;
       }
@@ -3116,7 +3105,7 @@ var require_utils2 = __commonJS((exports, module) => {
           output.error = true;
           break;
         }
-        if (i2 > 0 && input[i2 - 1] === ":") {
+        if (i > 0 && input[i - 1] === ":") {
           endipv6Encountered = true;
         }
         address.push(":");
@@ -3147,29 +3136,29 @@ var require_utils2 = __commonJS((exports, module) => {
     if (findToken(host, ":") < 2) {
       return { host, isIPV6: false };
     }
-    const ipv63 = getIPV6(host);
-    if (!ipv63.error) {
-      let newHost = ipv63.address;
-      let escapedHost = ipv63.address;
-      if (ipv63.zone) {
-        newHost += "%" + ipv63.zone;
-        escapedHost += "%25" + ipv63.zone;
+    const ipv6 = getIPV6(host);
+    if (!ipv6.error) {
+      let newHost = ipv6.address;
+      let escapedHost = ipv6.address;
+      if (ipv6.zone) {
+        newHost += "%" + ipv6.zone;
+        escapedHost += "%25" + ipv6.zone;
       }
       return { host: newHost, isIPV6: true, escapedHost };
     } else {
       return { host, isIPV6: false };
     }
   }
-  function findToken(str2, token) {
+  function findToken(str, token) {
     let ind = 0;
-    for (let i2 = 0;i2 < str2.length; i2++) {
-      if (str2[i2] === token)
+    for (let i = 0;i < str.length; i++) {
+      if (str[i] === token)
         ind++;
     }
     return ind;
   }
-  function removeDotSegments(path2) {
-    let input = path2;
+  function removeDotSegments(path) {
+    let input = path;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -3243,8 +3232,8 @@ var require_utils2 = __commonJS((exports, module) => {
     }
     return output.join("");
   }
-  function normalizeComponentEncoding(component, esc2) {
-    const func = esc2 !== true ? escape : unescape;
+  function normalizeComponentEncoding(component, esc) {
+    const func = esc !== true ? escape : unescape;
     if (component.scheme !== undefined) {
       component.scheme = func(component.scheme);
     }
@@ -3302,7 +3291,7 @@ var require_utils2 = __commonJS((exports, module) => {
 });
 
 // node_modules/fast-uri/lib/schemes.js
-var require_schemes2 = __commonJS((exports, module) => {
+var require_schemes2 = __commonJS(function(exports, module) {
   var { isUUID } = require_utils2();
   var URN_REG = /([\da-z][\d\-a-z]{0,31}):((?:[\w!$'()*+,\-.:;=@]|%[\da-f]{2})+)/iu;
   var supportedSchemeNames = [
@@ -3359,8 +3348,8 @@ var require_schemes2 = __commonJS((exports, module) => {
       wsComponent.secure = undefined;
     }
     if (wsComponent.resourceName) {
-      const [path2, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path2 && path2 !== "/" ? path2 : undefined;
+      const [path, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path && path !== "/" ? path : undefined;
       wsComponent.query = query;
       wsComponent.resourceName = undefined;
     }
@@ -3476,28 +3465,28 @@ var require_schemes2 = __commonJS((exports, module) => {
 });
 
 // node_modules/fast-uri/index.js
-var require_fast_uri2 = __commonJS((exports, module) => {
+var require_fast_uri2 = __commonJS(function(exports, module) {
   var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizeComponentEncoding, isIPv4, nonSimpleDomain } = require_utils2();
   var { SCHEMES, getSchemeHandler } = require_schemes2();
   function normalize(uri, options) {
     if (typeof uri === "string") {
-      uri = serialize(parse5(uri, options), options);
+      uri = serialize(parse(uri, options), options);
     } else if (typeof uri === "object") {
-      uri = parse5(serialize(uri, options), options);
+      uri = parse(serialize(uri, options), options);
     }
     return uri;
   }
   function resolve(baseURI, relativeURI, options) {
     const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
-    const resolved = resolveComponent(parse5(baseURI, schemelessOptions), parse5(relativeURI, schemelessOptions), schemelessOptions, true);
+    const resolved = resolveComponent(parse(baseURI, schemelessOptions), parse(relativeURI, schemelessOptions), schemelessOptions, true);
     schemelessOptions.skipEscape = true;
     return serialize(resolved, schemelessOptions);
   }
   function resolveComponent(base, relative, options, skipNormalization) {
     const target = {};
     if (!skipNormalization) {
-      base = parse5(serialize(base, options), options);
-      relative = parse5(serialize(relative, options), options);
+      base = parse(serialize(base, options), options);
+      relative = parse(serialize(relative, options), options);
     }
     options = options || {};
     if (!options.tolerant && relative.scheme) {
@@ -3549,13 +3538,13 @@ var require_fast_uri2 = __commonJS((exports, module) => {
   function equal(uriA, uriB, options) {
     if (typeof uriA === "string") {
       uriA = unescape(uriA);
-      uriA = serialize(normalizeComponentEncoding(parse5(uriA, options), true), { ...options, skipEscape: true });
+      uriA = serialize(normalizeComponentEncoding(parse(uriA, options), true), { ...options, skipEscape: true });
     } else if (typeof uriA === "object") {
       uriA = serialize(normalizeComponentEncoding(uriA, true), { ...options, skipEscape: true });
     }
     if (typeof uriB === "string") {
       uriB = unescape(uriB);
-      uriB = serialize(normalizeComponentEncoding(parse5(uriB, options), true), { ...options, skipEscape: true });
+      uriB = serialize(normalizeComponentEncoding(parse(uriB, options), true), { ...options, skipEscape: true });
     } else if (typeof uriB === "object") {
       uriB = serialize(normalizeComponentEncoding(uriB, true), { ...options, skipEscape: true });
     }
@@ -3625,7 +3614,7 @@ var require_fast_uri2 = __commonJS((exports, module) => {
     return uriTokens.join("");
   }
   var URI_PARSE = /^(?:([^#/:?]+):)?(?:\/\/((?:([^#/?@]*)@)?(\[[^#/?\]]+\]|[^#/:?]*)(?::(\d*))?))?([^#?]*)(?:\?([^#]*))?(?:#((?:.|[\n\r])*))?/u;
-  function parse5(uri, opts) {
+  function parse(uri, opts) {
     const options = Object.assign({}, opts);
     const parsed = {
       scheme: undefined,
@@ -3719,7 +3708,7 @@ var require_fast_uri2 = __commonJS((exports, module) => {
     resolveComponent,
     equal,
     serialize,
-    parse: parse5
+    parse
   };
   module.exports = fastUri;
   module.exports.default = fastUri;
@@ -3727,7 +3716,7 @@ var require_fast_uri2 = __commonJS((exports, module) => {
 });
 
 // node_modules/ajv/dist/runtime/uri.js
-var require_uri2 = __commonJS((exports) => {
+var require_uri2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var uri = require_fast_uri2();
   uri.code = 'require("ajv/dist/runtime/uri").default';
@@ -3735,7 +3724,7 @@ var require_uri2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/core.js
-var require_core2 = __commonJS((exports) => {
+var require_core2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = undefined;
   var validate_1 = require_validate2();
@@ -3771,7 +3760,7 @@ var require_core2 = __commonJS((exports) => {
   var util_1 = require_util2();
   var $dataRefSchema = require_data2();
   var uri_1 = require_uri2();
-  var defaultRegExp = (str2, flags) => new RegExp(str2, flags);
+  var defaultRegExp = (str, flags) => new RegExp(str, flags);
   defaultRegExp.code = "new RegExp";
   var META_IGNORE_OPTIONS = ["removeAdditional", "useDefaults", "coerceTypes"];
   var EXT_SCOPE_NAMES = new Set([
@@ -3813,9 +3802,9 @@ var require_core2 = __commonJS((exports) => {
   };
   var MAX_EXPRESSION = 200;
   function requiredOptions(o) {
-    var _a3, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0;
     const s = o.strict;
-    const _optz = (_a3 = o.code) === null || _a3 === undefined ? undefined : _a3.optimize;
+    const _optz = (_a = o.code) === null || _a === undefined ? undefined : _a.optimize;
     const optimize = _optz === true || _optz === undefined ? 1 : _optz || 0;
     const regExp = (_c = (_b = o.code) === null || _b === undefined ? undefined : _b.regExp) !== null && _c !== undefined ? _c : defaultRegExp;
     const uriResolver = (_d = o.uriResolver) !== null && _d !== undefined ? _d : uri_1.default;
@@ -3874,19 +3863,19 @@ var require_core2 = __commonJS((exports) => {
       this.addKeyword("$async");
     }
     _addDefaultMetaSchema() {
-      const { $data, meta: meta3, schemaId } = this.opts;
+      const { $data, meta, schemaId } = this.opts;
       let _dataRefSchema = $dataRefSchema;
       if (schemaId === "id") {
         _dataRefSchema = { ...$dataRefSchema };
         _dataRefSchema.id = _dataRefSchema.$id;
         delete _dataRefSchema.$id;
       }
-      if (meta3 && $data)
+      if (meta && $data)
         this.addMetaSchema(_dataRefSchema, _dataRefSchema[schemaId], false);
     }
     defaultMeta() {
-      const { meta: meta3, schemaId } = this.opts;
-      return this.opts.defaultMeta = typeof meta3 == "object" ? meta3[schemaId] || meta3 : undefined;
+      const { meta, schemaId } = this.opts;
+      return this.opts.defaultMeta = typeof meta == "object" ? meta[schemaId] || meta : undefined;
     }
     validate(schemaKeyRef, data) {
       let v;
@@ -3902,16 +3891,16 @@ var require_core2 = __commonJS((exports) => {
         this.errors = v.errors;
       return valid;
     }
-    compile(schema2, _meta) {
-      const sch = this._addSchema(schema2, _meta);
+    compile(schema, _meta) {
+      const sch = this._addSchema(schema, _meta);
       return sch.validate || this._compileSchemaEnv(sch);
     }
-    compileAsync(schema2, meta3) {
+    compileAsync(schema, meta) {
       if (typeof this.opts.loadSchema != "function") {
         throw new Error("options.loadSchema should be a function");
       }
       const { loadSchema } = this.opts;
-      return runCompileAsync.call(this, schema2, meta3);
+      return runCompileAsync.call(this, schema, meta);
       async function runCompileAsync(_schema, _meta) {
         await loadMetaSchema.call(this, _schema.$schema);
         const sch = this._addSchema(_schema, _meta);
@@ -3943,7 +3932,7 @@ var require_core2 = __commonJS((exports) => {
         if (!this.refs[ref])
           await loadMetaSchema.call(this, _schema.$schema);
         if (!this.refs[ref])
-          this.addSchema(_schema, ref, meta3);
+          this.addSchema(_schema, ref, meta);
       }
       async function _loadSchema(ref) {
         const p = this._loading[ref];
@@ -3956,34 +3945,34 @@ var require_core2 = __commonJS((exports) => {
         }
       }
     }
-    addSchema(schema2, key, _meta, _validateSchema = this.opts.validateSchema) {
-      if (Array.isArray(schema2)) {
-        for (const sch of schema2)
+    addSchema(schema, key, _meta, _validateSchema = this.opts.validateSchema) {
+      if (Array.isArray(schema)) {
+        for (const sch of schema)
           this.addSchema(sch, undefined, _meta, _validateSchema);
         return this;
       }
       let id;
-      if (typeof schema2 === "object") {
+      if (typeof schema === "object") {
         const { schemaId } = this.opts;
-        id = schema2[schemaId];
+        id = schema[schemaId];
         if (id !== undefined && typeof id != "string") {
           throw new Error(`schema ${schemaId} must be string`);
         }
       }
       key = (0, resolve_1.normalizeId)(key || id);
       this._checkUnique(key);
-      this.schemas[key] = this._addSchema(schema2, _meta, key, _validateSchema, true);
+      this.schemas[key] = this._addSchema(schema, _meta, key, _validateSchema, true);
       return this;
     }
-    addMetaSchema(schema2, key, _validateSchema = this.opts.validateSchema) {
-      this.addSchema(schema2, key, true, _validateSchema);
+    addMetaSchema(schema, key, _validateSchema = this.opts.validateSchema) {
+      this.addSchema(schema, key, true, _validateSchema);
       return this;
     }
-    validateSchema(schema2, throwOrLogError) {
-      if (typeof schema2 == "boolean")
+    validateSchema(schema, throwOrLogError) {
+      if (typeof schema == "boolean")
         return true;
       let $schema;
-      $schema = schema2.$schema;
+      $schema = schema.$schema;
       if ($schema !== undefined && typeof $schema != "string") {
         throw new Error("$schema must be a string");
       }
@@ -3993,7 +3982,7 @@ var require_core2 = __commonJS((exports) => {
         this.errors = null;
         return true;
       }
-      const valid = this.validate($schema, schema2);
+      const valid = this.validate($schema, schema);
       if (!valid && throwOrLogError) {
         const message = "schema is invalid: " + this.errorsText();
         if (this.opts.validateSchema === "log")
@@ -4097,9 +4086,9 @@ var require_core2 = __commonJS((exports) => {
       delete RULES.keywords[keyword];
       delete RULES.all[keyword];
       for (const group of RULES.rules) {
-        const i2 = group.rules.findIndex((rule) => rule.keyword === keyword);
-        if (i2 >= 0)
-          group.rules.splice(i2, 1);
+        const i = group.rules.findIndex((rule) => rule.keyword === keyword);
+        if (i >= 0)
+          group.rules.splice(i, 1);
       }
       return this;
     }
@@ -4109,10 +4098,10 @@ var require_core2 = __commonJS((exports) => {
       this.formats[name] = format;
       return this;
     }
-    errorsText(errors3 = this.errors, { separator = ", ", dataVar = "data" } = {}) {
-      if (!errors3 || errors3.length === 0)
+    errorsText(errors = this.errors, { separator = ", ", dataVar = "data" } = {}) {
+      if (!errors || errors.length === 0)
         return "No errors";
-      return errors3.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text, msg) => text + separator + msg);
+      return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text, msg) => text + separator + msg);
     }
     $dataMetaSchema(metaSchema, keywordsJsonPointers) {
       const rules = this.RULES.all;
@@ -4127,43 +4116,43 @@ var require_core2 = __commonJS((exports) => {
           if (typeof rule != "object")
             continue;
           const { $data } = rule.definition;
-          const schema2 = keywords[key];
-          if ($data && schema2)
-            keywords[key] = schemaOrData(schema2);
+          const schema = keywords[key];
+          if ($data && schema)
+            keywords[key] = schemaOrData(schema);
         }
       }
       return metaSchema;
     }
-    _removeAllSchemas(schemas3, regex) {
-      for (const keyRef in schemas3) {
-        const sch = schemas3[keyRef];
+    _removeAllSchemas(schemas, regex) {
+      for (const keyRef in schemas) {
+        const sch = schemas[keyRef];
         if (!regex || regex.test(keyRef)) {
           if (typeof sch == "string") {
-            delete schemas3[keyRef];
+            delete schemas[keyRef];
           } else if (sch && !sch.meta) {
             this._cache.delete(sch.schema);
-            delete schemas3[keyRef];
+            delete schemas[keyRef];
           }
         }
       }
     }
-    _addSchema(schema2, meta3, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
+    _addSchema(schema, meta, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
       let id;
       const { schemaId } = this.opts;
-      if (typeof schema2 == "object") {
-        id = schema2[schemaId];
+      if (typeof schema == "object") {
+        id = schema[schemaId];
       } else {
         if (this.opts.jtd)
           throw new Error("schema must be object");
-        else if (typeof schema2 != "boolean")
+        else if (typeof schema != "boolean")
           throw new Error("schema must be object or boolean");
       }
-      let sch = this._cache.get(schema2);
+      let sch = this._cache.get(schema);
       if (sch !== undefined)
         return sch;
       baseId = (0, resolve_1.normalizeId)(id || baseId);
-      const localRefs = resolve_1.getSchemaRefs.call(this, schema2, baseId);
-      sch = new compile_1.SchemaEnv({ schema: schema2, schemaId, meta: meta3, baseId, localRefs });
+      const localRefs = resolve_1.getSchemaRefs.call(this, schema, baseId);
+      sch = new compile_1.SchemaEnv({ schema, schemaId, meta, baseId, localRefs });
       this._cache.set(sch.schema, sch);
       if (addSchema && !baseId.startsWith("#")) {
         if (baseId)
@@ -4171,7 +4160,7 @@ var require_core2 = __commonJS((exports) => {
         this.refs[baseId] = sch;
       }
       if (validateSchema)
-        this.validateSchema(schema2, true);
+        this.validateSchema(schema, true);
       return sch;
     }
     _checkUnique(id) {
@@ -4274,7 +4263,7 @@ var require_core2 = __commonJS((exports) => {
     }
   }
   function addRule(keyword, definition, dataType) {
-    var _a3;
+    var _a;
     const post = definition === null || definition === undefined ? undefined : definition.post;
     if (dataType && post)
       throw new Error('keyword with "post" flag cannot have "type"');
@@ -4300,12 +4289,12 @@ var require_core2 = __commonJS((exports) => {
     else
       ruleGroup.rules.push(rule);
     RULES.all[keyword] = rule;
-    (_a3 = definition.implements) === null || _a3 === undefined || _a3.forEach((kwd) => this.addKeyword(kwd));
+    (_a = definition.implements) === null || _a === undefined || _a.forEach((kwd) => this.addKeyword(kwd));
   }
   function addBeforeRule(ruleGroup, rule, before) {
-    const i2 = ruleGroup.rules.findIndex((_rule) => _rule.keyword === before);
-    if (i2 >= 0) {
-      ruleGroup.rules.splice(i2, 0, rule);
+    const i = ruleGroup.rules.findIndex((_rule) => _rule.keyword === before);
+    if (i >= 0) {
+      ruleGroup.rules.splice(i, 0, rule);
     } else {
       ruleGroup.rules.push(rule);
       this.logger.warn(`rule ${before} is not defined`);
@@ -4322,13 +4311,13 @@ var require_core2 = __commonJS((exports) => {
   var $dataRef = {
     $ref: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#"
   };
-  function schemaOrData(schema2) {
-    return { anyOf: [schema2, $dataRef] };
+  function schemaOrData(schema) {
+    return { anyOf: [schema, $dataRef] };
   }
 });
 
 // node_modules/ajv/dist/vocabularies/core/id.js
-var require_id2 = __commonJS((exports) => {
+var require_id2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var def = {
     keyword: "id",
@@ -4340,7 +4329,7 @@ var require_id2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/core/ref.js
-var require_ref2 = __commonJS((exports) => {
+var require_ref2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.callRef = exports.getValidate = undefined;
   var ref_error_1 = require_ref_error2();
@@ -4428,10 +4417,10 @@ var require_ref2 = __commonJS((exports) => {
       gen.assign(names_1.default.errors, (0, codegen_1._)`${names_1.default.vErrors}.length`);
     }
     function addEvaluatedFrom(source) {
-      var _a3;
+      var _a;
       if (!it.opts.unevaluated)
         return;
-      const schEvaluated = (_a3 = sch === null || sch === undefined ? undefined : sch.validate) === null || _a3 === undefined ? undefined : _a3.evaluated;
+      const schEvaluated = (_a = sch === null || sch === undefined ? undefined : sch.validate) === null || _a === undefined ? undefined : _a.evaluated;
       if (it.props !== true) {
         if (schEvaluated && !schEvaluated.dynamicProps) {
           if (schEvaluated.props !== undefined) {
@@ -4459,11 +4448,11 @@ var require_ref2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/core/index.js
-var require_core3 = __commonJS((exports) => {
+var require_core3 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var id_1 = require_id2();
   var ref_1 = require_ref2();
-  var core3 = [
+  var core = [
     "$schema",
     "$id",
     "$defs",
@@ -4473,11 +4462,11 @@ var require_core3 = __commonJS((exports) => {
     id_1.default,
     ref_1.default
   ];
-  exports.default = core3;
+  exports.default = core;
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitNumber.js
-var require_limitNumber2 = __commonJS((exports) => {
+var require_limitNumber2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var ops = codegen_1.operators;
@@ -4487,7 +4476,7 @@ var require_limitNumber2 = __commonJS((exports) => {
     exclusiveMaximum: { okStr: "<", ok: ops.LT, fail: ops.GTE },
     exclusiveMinimum: { okStr: ">", ok: ops.GT, fail: ops.LTE }
   };
-  var error51 = {
+  var error = {
     message: ({ keyword, schemaCode }) => (0, codegen_1.str)`must be ${KWDs[keyword].okStr} ${schemaCode}`,
     params: ({ keyword, schemaCode }) => (0, codegen_1._)`{comparison: ${KWDs[keyword].okStr}, limit: ${schemaCode}}`
   };
@@ -4496,7 +4485,7 @@ var require_limitNumber2 = __commonJS((exports) => {
     type: "number",
     schemaType: "number",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
       const { keyword, data, schemaCode } = cxt;
       cxt.fail$data((0, codegen_1._)`${data} ${KWDs[keyword].fail} ${schemaCode} || isNaN(${data})`);
@@ -4506,10 +4495,10 @@ var require_limitNumber2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/multipleOf.js
-var require_multipleOf2 = __commonJS((exports) => {
+var require_multipleOf2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
-  var error51 = {
+  var error = {
     message: ({ schemaCode }) => (0, codegen_1.str)`must be multiple of ${schemaCode}`,
     params: ({ schemaCode }) => (0, codegen_1._)`{multipleOf: ${schemaCode}}`
   };
@@ -4518,7 +4507,7 @@ var require_multipleOf2 = __commonJS((exports) => {
     type: "number",
     schemaType: "number",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
       const { gen, data, schemaCode, it } = cxt;
       const prec = it.opts.multipleOfPrecision;
@@ -4531,18 +4520,18 @@ var require_multipleOf2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/runtime/ucs2length.js
-var require_ucs2length2 = __commonJS((exports) => {
+var require_ucs2length2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
-  function ucs2length(str2) {
-    const len = str2.length;
+  function ucs2length(str) {
+    const len = str.length;
     let length = 0;
     let pos = 0;
     let value;
     while (pos < len) {
       length++;
-      value = str2.charCodeAt(pos++);
+      value = str.charCodeAt(pos++);
       if (value >= 55296 && value <= 56319 && pos < len) {
-        value = str2.charCodeAt(pos);
+        value = str.charCodeAt(pos);
         if ((value & 64512) === 56320)
           pos++;
       }
@@ -4554,12 +4543,12 @@ var require_ucs2length2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitLength.js
-var require_limitLength2 = __commonJS((exports) => {
+var require_limitLength2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
   var ucs2length_1 = require_ucs2length2();
-  var error51 = {
+  var error = {
     message({ keyword, schemaCode }) {
       const comp = keyword === "maxLength" ? "more" : "fewer";
       return (0, codegen_1.str)`must NOT have ${comp} than ${schemaCode} characters`;
@@ -4571,7 +4560,7 @@ var require_limitLength2 = __commonJS((exports) => {
     type: "string",
     schemaType: "number",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
       const { keyword, data, schemaCode, it } = cxt;
       const op = keyword === "maxLength" ? codegen_1.operators.GT : codegen_1.operators.LT;
@@ -4583,12 +4572,12 @@ var require_limitLength2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/pattern.js
-var require_pattern2 = __commonJS((exports) => {
+var require_pattern2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code3();
   var util_1 = require_util2();
   var codegen_1 = require_codegen2();
-  var error51 = {
+  var error = {
     message: ({ schemaCode }) => (0, codegen_1.str)`must match pattern "${schemaCode}"`,
     params: ({ schemaCode }) => (0, codegen_1._)`{pattern: ${schemaCode}}`
   };
@@ -4597,9 +4586,9 @@ var require_pattern2 = __commonJS((exports) => {
     type: "string",
     schemaType: "string",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
+      const { gen, data, $data, schema, schemaCode, it } = cxt;
       const u = it.opts.unicodeRegExp ? "u" : "";
       if ($data) {
         const { regExp } = it.opts.code;
@@ -4608,7 +4597,7 @@ var require_pattern2 = __commonJS((exports) => {
         gen.try(() => gen.assign(valid, (0, codegen_1._)`${regExpCode}(${schemaCode}, ${u}).test(${data})`), () => gen.assign(valid, false));
         cxt.fail$data((0, codegen_1._)`!${valid}`);
       } else {
-        const regExp = (0, code_1.usePattern)(cxt, schema2);
+        const regExp = (0, code_1.usePattern)(cxt, schema);
         cxt.fail$data((0, codegen_1._)`!${regExp}.test(${data})`);
       }
     }
@@ -4617,10 +4606,10 @@ var require_pattern2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitProperties.js
-var require_limitProperties2 = __commonJS((exports) => {
+var require_limitProperties2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
-  var error51 = {
+  var error = {
     message({ keyword, schemaCode }) {
       const comp = keyword === "maxProperties" ? "more" : "fewer";
       return (0, codegen_1.str)`must NOT have ${comp} than ${schemaCode} properties`;
@@ -4632,7 +4621,7 @@ var require_limitProperties2 = __commonJS((exports) => {
     type: "object",
     schemaType: "number",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
       const { keyword, data, schemaCode } = cxt;
       const op = keyword === "maxProperties" ? codegen_1.operators.GT : codegen_1.operators.LT;
@@ -4643,12 +4632,12 @@ var require_limitProperties2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/required.js
-var require_required2 = __commonJS((exports) => {
+var require_required2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code3();
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: ({ params: { missingProperty } }) => (0, codegen_1.str)`must have required property '${missingProperty}'`,
     params: ({ params: { missingProperty } }) => (0, codegen_1._)`{missingProperty: ${missingProperty}}`
   };
@@ -4657,13 +4646,13 @@ var require_required2 = __commonJS((exports) => {
     type: "object",
     schemaType: "array",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, schema: schema2, schemaCode, data, $data, it } = cxt;
+      const { gen, schema, schemaCode, data, $data, it } = cxt;
       const { opts } = it;
-      if (!$data && schema2.length === 0)
+      if (!$data && schema.length === 0)
         return;
-      const useLoop = schema2.length >= opts.loopRequired;
+      const useLoop = schema.length >= opts.loopRequired;
       if (it.allErrors)
         allErrorsMode();
       else
@@ -4671,7 +4660,7 @@ var require_required2 = __commonJS((exports) => {
       if (opts.strictRequired) {
         const props = cxt.parentSchema.properties;
         const { definedProperties } = cxt.it;
-        for (const requiredKey of schema2) {
+        for (const requiredKey of schema) {
           if ((props === null || props === undefined ? undefined : props[requiredKey]) === undefined && !definedProperties.has(requiredKey)) {
             const schemaPath = it.schemaEnv.baseId + it.errSchemaPath;
             const msg = `required property "${requiredKey}" is not defined at "${schemaPath}" (strictRequired)`;
@@ -4683,7 +4672,7 @@ var require_required2 = __commonJS((exports) => {
         if (useLoop || $data) {
           cxt.block$data(codegen_1.nil, loopAllRequired);
         } else {
-          for (const prop of schema2) {
+          for (const prop of schema) {
             (0, code_1.checkReportMissingProp)(cxt, prop);
           }
         }
@@ -4695,7 +4684,7 @@ var require_required2 = __commonJS((exports) => {
           cxt.block$data(valid, () => loopUntilMissing(missing, valid));
           cxt.ok(valid);
         } else {
-          gen.if((0, code_1.checkMissingProp)(cxt, schema2, missing));
+          gen.if((0, code_1.checkMissingProp)(cxt, schema, missing));
           (0, code_1.reportMissingProp)(cxt, missing);
           gen.else();
         }
@@ -4722,10 +4711,10 @@ var require_required2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/limitItems.js
-var require_limitItems2 = __commonJS((exports) => {
+var require_limitItems2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
-  var error51 = {
+  var error = {
     message({ keyword, schemaCode }) {
       const comp = keyword === "maxItems" ? "more" : "fewer";
       return (0, codegen_1.str)`must NOT have ${comp} than ${schemaCode} items`;
@@ -4737,7 +4726,7 @@ var require_limitItems2 = __commonJS((exports) => {
     type: "array",
     schemaType: "number",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
       const { keyword, data, schemaCode } = cxt;
       const op = keyword === "maxItems" ? codegen_1.operators.GT : codegen_1.operators.LT;
@@ -4748,7 +4737,7 @@ var require_limitItems2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/runtime/equal.js
-var require_equal2 = __commonJS((exports) => {
+var require_equal2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var equal = require_fast_deep_equal2();
   equal.code = 'require("ajv/dist/runtime/equal").default';
@@ -4756,46 +4745,46 @@ var require_equal2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/uniqueItems.js
-var require_uniqueItems2 = __commonJS((exports) => {
+var require_uniqueItems2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var dataType_1 = require_dataType2();
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
   var equal_1 = require_equal2();
-  var error51 = {
-    message: ({ params: { i: i2, j } }) => (0, codegen_1.str)`must NOT have duplicate items (items ## ${j} and ${i2} are identical)`,
-    params: ({ params: { i: i2, j } }) => (0, codegen_1._)`{i: ${i2}, j: ${j}}`
+  var error = {
+    message: ({ params: { i, j } }) => (0, codegen_1.str)`must NOT have duplicate items (items ## ${j} and ${i} are identical)`,
+    params: ({ params: { i, j } }) => (0, codegen_1._)`{i: ${i}, j: ${j}}`
   };
   var def = {
     keyword: "uniqueItems",
     type: "array",
     schemaType: "boolean",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, data, $data, schema: schema2, parentSchema, schemaCode, it } = cxt;
-      if (!$data && !schema2)
+      const { gen, data, $data, schema, parentSchema, schemaCode, it } = cxt;
+      if (!$data && !schema)
         return;
       const valid = gen.let("valid");
       const itemTypes = parentSchema.items ? (0, dataType_1.getSchemaTypes)(parentSchema.items) : [];
       cxt.block$data(valid, validateUniqueItems, (0, codegen_1._)`${schemaCode} === false`);
       cxt.ok(valid);
       function validateUniqueItems() {
-        const i2 = gen.let("i", (0, codegen_1._)`${data}.length`);
+        const i = gen.let("i", (0, codegen_1._)`${data}.length`);
         const j = gen.let("j");
-        cxt.setParams({ i: i2, j });
+        cxt.setParams({ i, j });
         gen.assign(valid, true);
-        gen.if((0, codegen_1._)`${i2} > 1`, () => (canOptimize() ? loopN : loopN2)(i2, j));
+        gen.if((0, codegen_1._)`${i} > 1`, () => (canOptimize() ? loopN : loopN2)(i, j));
       }
       function canOptimize() {
         return itemTypes.length > 0 && !itemTypes.some((t) => t === "object" || t === "array");
       }
-      function loopN(i2, j) {
+      function loopN(i, j) {
         const item = gen.name("item");
         const wrongType = (0, dataType_1.checkDataTypes)(itemTypes, item, it.opts.strictNumbers, dataType_1.DataType.Wrong);
         const indices = gen.const("indices", (0, codegen_1._)`{}`);
-        gen.for((0, codegen_1._)`;${i2}--;`, () => {
-          gen.let(item, (0, codegen_1._)`${data}[${i2}]`);
+        gen.for((0, codegen_1._)`;${i}--;`, () => {
+          gen.let(item, (0, codegen_1._)`${data}[${i}]`);
           gen.if(wrongType, (0, codegen_1._)`continue`);
           if (itemTypes.length > 1)
             gen.if((0, codegen_1._)`typeof ${item} == "string"`, (0, codegen_1._)`${item} += "_"`);
@@ -4803,13 +4792,13 @@ var require_uniqueItems2 = __commonJS((exports) => {
             gen.assign(j, (0, codegen_1._)`${indices}[${item}]`);
             cxt.error();
             gen.assign(valid, false).break();
-          }).code((0, codegen_1._)`${indices}[${item}] = ${i2}`);
+          }).code((0, codegen_1._)`${indices}[${item}] = ${i}`);
         });
       }
-      function loopN2(i2, j) {
+      function loopN2(i, j) {
         const eql = (0, util_1.useFunc)(gen, equal_1.default);
         const outer = gen.name("outer");
-        gen.label(outer).for((0, codegen_1._)`;${i2}--;`, () => gen.for((0, codegen_1._)`${j} = ${i2}; ${j}--;`, () => gen.if((0, codegen_1._)`${eql}(${data}[${i2}], ${data}[${j}])`, () => {
+        gen.label(outer).for((0, codegen_1._)`;${i}--;`, () => gen.for((0, codegen_1._)`${j} = ${i}; ${j}--;`, () => gen.if((0, codegen_1._)`${eql}(${data}[${i}], ${data}[${j}])`, () => {
           cxt.error();
           gen.assign(valid, false).break(outer);
         })));
@@ -4820,25 +4809,25 @@ var require_uniqueItems2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/const.js
-var require_const2 = __commonJS((exports) => {
+var require_const2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
   var equal_1 = require_equal2();
-  var error51 = {
+  var error = {
     message: "must be equal to constant",
     params: ({ schemaCode }) => (0, codegen_1._)`{allowedValue: ${schemaCode}}`
   };
   var def = {
     keyword: "const",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, data, $data, schemaCode, schema: schema2 } = cxt;
-      if ($data || schema2 && typeof schema2 == "object") {
+      const { gen, data, $data, schemaCode, schema } = cxt;
+      if ($data || schema && typeof schema == "object") {
         cxt.fail$data((0, codegen_1._)`!${(0, util_1.useFunc)(gen, equal_1.default)}(${data}, ${schemaCode})`);
       } else {
-        cxt.fail((0, codegen_1._)`${schema2} !== ${data}`);
+        cxt.fail((0, codegen_1._)`${schema} !== ${data}`);
       }
     }
   };
@@ -4846,12 +4835,12 @@ var require_const2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/enum.js
-var require_enum2 = __commonJS((exports) => {
+var require_enum2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
   var equal_1 = require_equal2();
-  var error51 = {
+  var error = {
     message: "must be equal to one of the allowed values",
     params: ({ schemaCode }) => (0, codegen_1._)`{allowedValues: ${schemaCode}}`
   };
@@ -4859,12 +4848,12 @@ var require_enum2 = __commonJS((exports) => {
     keyword: "enum",
     schemaType: "array",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
-      if (!$data && schema2.length === 0)
+      const { gen, data, $data, schema, schemaCode, it } = cxt;
+      if (!$data && schema.length === 0)
         throw new Error("enum must have non-empty array");
-      const useLoop = schema2.length >= it.opts.loopEnum;
+      const useLoop = schema.length >= it.opts.loopEnum;
       let eql;
       const getEql = () => eql !== null && eql !== undefined ? eql : eql = (0, util_1.useFunc)(gen, equal_1.default);
       let valid;
@@ -4872,19 +4861,19 @@ var require_enum2 = __commonJS((exports) => {
         valid = gen.let("valid");
         cxt.block$data(valid, loopEnum);
       } else {
-        if (!Array.isArray(schema2))
+        if (!Array.isArray(schema))
           throw new Error("ajv implementation error");
         const vSchema = gen.const("vSchema", schemaCode);
-        valid = (0, codegen_1.or)(...schema2.map((_x, i2) => equalCode(vSchema, i2)));
+        valid = (0, codegen_1.or)(...schema.map((_x, i) => equalCode(vSchema, i)));
       }
       cxt.pass(valid);
       function loopEnum() {
         gen.assign(valid, false);
         gen.forOf("v", schemaCode, (v) => gen.if((0, codegen_1._)`${getEql()}(${data}, ${v})`, () => gen.assign(valid, true).break()));
       }
-      function equalCode(vSchema, i2) {
-        const sch = schema2[i2];
-        return typeof sch === "object" && sch !== null ? (0, codegen_1._)`${getEql()}(${data}, ${vSchema}[${i2}])` : (0, codegen_1._)`${data} === ${sch}`;
+      function equalCode(vSchema, i) {
+        const sch = schema[i];
+        return typeof sch === "object" && sch !== null ? (0, codegen_1._)`${getEql()}(${data}, ${vSchema}[${i}])` : (0, codegen_1._)`${data} === ${sch}`;
       }
     }
   };
@@ -4892,7 +4881,7 @@ var require_enum2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/validation/index.js
-var require_validation2 = __commonJS((exports) => {
+var require_validation2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var limitNumber_1 = require_limitNumber2();
   var multipleOf_1 = require_multipleOf2();
@@ -4922,12 +4911,12 @@ var require_validation2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
-var require_additionalItems2 = __commonJS((exports) => {
+var require_additionalItems2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateAdditionalItems = undefined;
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: ({ params: { len } }) => (0, codegen_1.str)`must NOT have more than ${len} items`,
     params: ({ params: { len } }) => (0, codegen_1._)`{limit: ${len}}`
   };
@@ -4936,7 +4925,7 @@ var require_additionalItems2 = __commonJS((exports) => {
     type: "array",
     schemaType: ["boolean", "object"],
     before: "uniqueItems",
-    error: error51,
+    error,
     code(cxt) {
       const { parentSchema, it } = cxt;
       const { items } = parentSchema;
@@ -4948,20 +4937,20 @@ var require_additionalItems2 = __commonJS((exports) => {
     }
   };
   function validateAdditionalItems(cxt, items) {
-    const { gen, schema: schema2, data, keyword, it } = cxt;
+    const { gen, schema, data, keyword, it } = cxt;
     it.items = true;
     const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-    if (schema2 === false) {
+    if (schema === false) {
       cxt.setParams({ len: items.length });
       cxt.pass((0, codegen_1._)`${len} <= ${items.length}`);
-    } else if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
+    } else if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
       const valid = gen.var("valid", (0, codegen_1._)`${len} <= ${items.length}`);
       gen.if((0, codegen_1.not)(valid), () => validateItems(valid));
       cxt.ok(valid);
     }
     function validateItems(valid) {
-      gen.forRange("i", items.length, len, (i2) => {
-        cxt.subschema({ keyword, dataProp: i2, dataPropType: util_1.Type.Num }, valid);
+      gen.forRange("i", items.length, len, (i) => {
+        cxt.subschema({ keyword, dataProp: i, dataPropType: util_1.Type.Num }, valid);
         if (!it.allErrors)
           gen.if((0, codegen_1.not)(valid), () => gen.break());
       });
@@ -4972,7 +4961,7 @@ var require_additionalItems2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/items.js
-var require_items2 = __commonJS((exports) => {
+var require_items2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateTuple = undefined;
   var codegen_1 = require_codegen2();
@@ -4984,11 +4973,11 @@ var require_items2 = __commonJS((exports) => {
     schemaType: ["object", "array", "boolean"],
     before: "uniqueItems",
     code(cxt) {
-      const { schema: schema2, it } = cxt;
-      if (Array.isArray(schema2))
-        return validateTuple(cxt, "additionalItems", schema2);
+      const { schema, it } = cxt;
+      if (Array.isArray(schema))
+        return validateTuple(cxt, "additionalItems", schema);
       it.items = true;
-      if ((0, util_1.alwaysValidSchema)(it, schema2))
+      if ((0, util_1.alwaysValidSchema)(it, schema))
         return;
       cxt.ok((0, code_1.validateArray)(cxt));
     }
@@ -5001,13 +4990,13 @@ var require_items2 = __commonJS((exports) => {
     }
     const valid = gen.name("valid");
     const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-    schArr.forEach((sch, i2) => {
+    schArr.forEach((sch, i) => {
       if ((0, util_1.alwaysValidSchema)(it, sch))
         return;
-      gen.if((0, codegen_1._)`${len} > ${i2}`, () => cxt.subschema({
+      gen.if((0, codegen_1._)`${len} > ${i}`, () => cxt.subschema({
         keyword,
-        schemaProp: i2,
-        dataProp: i2
+        schemaProp: i,
+        dataProp: i
       }, valid));
       cxt.ok(valid);
     });
@@ -5026,7 +5015,7 @@ var require_items2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/prefixItems.js
-var require_prefixItems2 = __commonJS((exports) => {
+var require_prefixItems2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var items_1 = require_items2();
   var def = {
@@ -5040,13 +5029,13 @@ var require_prefixItems2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/items2020.js
-var require_items20202 = __commonJS((exports) => {
+var require_items20202 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
   var code_1 = require_code3();
   var additionalItems_1 = require_additionalItems2();
-  var error51 = {
+  var error = {
     message: ({ params: { len } }) => (0, codegen_1.str)`must NOT have more than ${len} items`,
     params: ({ params: { len } }) => (0, codegen_1._)`{limit: ${len}}`
   };
@@ -5055,12 +5044,12 @@ var require_items20202 = __commonJS((exports) => {
     type: "array",
     schemaType: ["object", "boolean"],
     before: "uniqueItems",
-    error: error51,
+    error,
     code(cxt) {
-      const { schema: schema2, parentSchema, it } = cxt;
+      const { schema, parentSchema, it } = cxt;
       const { prefixItems } = parentSchema;
       it.items = true;
-      if ((0, util_1.alwaysValidSchema)(it, schema2))
+      if ((0, util_1.alwaysValidSchema)(it, schema))
         return;
       if (prefixItems)
         (0, additionalItems_1.validateAdditionalItems)(cxt, prefixItems);
@@ -5072,11 +5061,11 @@ var require_items20202 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/contains.js
-var require_contains2 = __commonJS((exports) => {
+var require_contains2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: ({ params: { min, max } }) => max === undefined ? (0, codegen_1.str)`must contain at least ${min} valid item(s)` : (0, codegen_1.str)`must contain at least ${min} and no more than ${max} valid item(s)`,
     params: ({ params: { min, max } }) => max === undefined ? (0, codegen_1._)`{minContains: ${min}}` : (0, codegen_1._)`{minContains: ${min}, maxContains: ${max}}`
   };
@@ -5086,9 +5075,9 @@ var require_contains2 = __commonJS((exports) => {
     schemaType: ["object", "boolean"],
     before: "uniqueItems",
     trackErrors: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, data, it } = cxt;
+      const { gen, schema, parentSchema, data, it } = cxt;
       let min;
       let max;
       const { minContains, maxContains } = parentSchema;
@@ -5109,7 +5098,7 @@ var require_contains2 = __commonJS((exports) => {
         cxt.fail();
         return;
       }
-      if ((0, util_1.alwaysValidSchema)(it, schema2)) {
+      if ((0, util_1.alwaysValidSchema)(it, schema)) {
         let cond = (0, codegen_1._)`${len} >= ${min}`;
         if (max !== undefined)
           cond = (0, codegen_1._)`${cond} && ${len} <= ${max}`;
@@ -5135,10 +5124,10 @@ var require_contains2 = __commonJS((exports) => {
         validateItems(schValid, () => gen.if(schValid, () => checkLimits(count)));
       }
       function validateItems(_valid, block) {
-        gen.forRange("i", 0, len, (i2) => {
+        gen.forRange("i", 0, len, (i) => {
           cxt.subschema({
             keyword: "contains",
-            dataProp: i2,
+            dataProp: i,
             dataPropType: util_1.Type.Num,
             compositeRule: true
           }, _valid);
@@ -5163,7 +5152,7 @@ var require_contains2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/dependencies.js
-var require_dependencies2 = __commonJS((exports) => {
+var require_dependencies2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateSchemaDeps = exports.validatePropertyDeps = exports.error = undefined;
   var codegen_1 = require_codegen2();
@@ -5190,14 +5179,14 @@ var require_dependencies2 = __commonJS((exports) => {
       validateSchemaDeps(cxt, schDeps);
     }
   };
-  function splitDependencies({ schema: schema2 }) {
+  function splitDependencies({ schema }) {
     const propertyDeps = {};
     const schemaDeps = {};
-    for (const key in schema2) {
+    for (const key in schema) {
       if (key === "__proto__")
         continue;
-      const deps = Array.isArray(schema2[key]) ? propertyDeps : schemaDeps;
-      deps[key] = schema2[key];
+      const deps = Array.isArray(schema[key]) ? propertyDeps : schemaDeps;
+      deps[key] = schema[key];
     }
     return [propertyDeps, schemaDeps];
   }
@@ -5248,11 +5237,11 @@ var require_dependencies2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/propertyNames.js
-var require_propertyNames2 = __commonJS((exports) => {
+var require_propertyNames2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: "property name must be valid",
     params: ({ params }) => (0, codegen_1._)`{propertyName: ${params.propertyName}}`
   };
@@ -5260,10 +5249,10 @@ var require_propertyNames2 = __commonJS((exports) => {
     keyword: "propertyNames",
     type: "object",
     schemaType: ["object", "boolean"],
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, schema: schema2, data, it } = cxt;
-      if ((0, util_1.alwaysValidSchema)(it, schema2))
+      const { gen, schema, data, it } = cxt;
+      if ((0, util_1.alwaysValidSchema)(it, schema))
         return;
       const valid = gen.name("valid");
       gen.forIn("key", data, (key) => {
@@ -5288,13 +5277,13 @@ var require_propertyNames2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
-var require_additionalProperties2 = __commonJS((exports) => {
+var require_additionalProperties2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code3();
   var codegen_1 = require_codegen2();
   var names_1 = require_names2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: "must NOT have additional properties",
     params: ({ params }) => (0, codegen_1._)`{additionalProperty: ${params.additionalProperty}}`
   };
@@ -5304,14 +5293,14 @@ var require_additionalProperties2 = __commonJS((exports) => {
     schemaType: ["boolean", "object"],
     allowUndefined: true,
     trackErrors: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, data, errsCount, it } = cxt;
+      const { gen, schema, parentSchema, data, errsCount, it } = cxt;
       if (!errsCount)
         throw new Error("ajv implementation error");
       const { allErrors, opts } = it;
       it.props = true;
-      if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema2))
+      if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema))
         return;
       const props = (0, code_1.allSchemaProperties)(parentSchema.properties);
       const patProps = (0, code_1.allSchemaProperties)(parentSchema.patternProperties);
@@ -5344,18 +5333,18 @@ var require_additionalProperties2 = __commonJS((exports) => {
         gen.code((0, codegen_1._)`delete ${data}[${key}]`);
       }
       function additionalPropertyCode(key) {
-        if (opts.removeAdditional === "all" || opts.removeAdditional && schema2 === false) {
+        if (opts.removeAdditional === "all" || opts.removeAdditional && schema === false) {
           deleteAdditional(key);
           return;
         }
-        if (schema2 === false) {
+        if (schema === false) {
           cxt.setParams({ additionalProperty: key });
           cxt.error();
           if (!allErrors)
             gen.break();
           return;
         }
-        if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
+        if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
           const valid = gen.name("valid");
           if (opts.removeAdditional === "failing") {
             applyAdditionalSchema(key, valid, false);
@@ -5370,13 +5359,13 @@ var require_additionalProperties2 = __commonJS((exports) => {
           }
         }
       }
-      function applyAdditionalSchema(key, valid, errors3) {
+      function applyAdditionalSchema(key, valid, errors) {
         const subschema = {
           keyword: "additionalProperties",
           dataProp: key,
           dataPropType: util_1.Type.Str
         };
-        if (errors3 === false) {
+        if (errors === false) {
           Object.assign(subschema, {
             compositeRule: true,
             createErrors: false,
@@ -5391,7 +5380,7 @@ var require_additionalProperties2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/properties.js
-var require_properties2 = __commonJS((exports) => {
+var require_properties2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var validate_1 = require_validate2();
   var code_1 = require_code3();
@@ -5402,18 +5391,18 @@ var require_properties2 = __commonJS((exports) => {
     type: "object",
     schemaType: "object",
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, data, it } = cxt;
+      const { gen, schema, parentSchema, data, it } = cxt;
       if (it.opts.removeAdditional === "all" && parentSchema.additionalProperties === undefined) {
         additionalProperties_1.default.code(new validate_1.KeywordCxt(it, additionalProperties_1.default, "additionalProperties"));
       }
-      const allProps = (0, code_1.allSchemaProperties)(schema2);
+      const allProps = (0, code_1.allSchemaProperties)(schema);
       for (const prop of allProps) {
         it.definedProperties.add(prop);
       }
       if (it.opts.unevaluated && allProps.length && it.props !== true) {
         it.props = util_1.mergeEvaluated.props(gen, (0, util_1.toHash)(allProps), it.props);
       }
-      const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema2[p]));
+      const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema[p]));
       if (properties.length === 0)
         return;
       const valid = gen.name("valid");
@@ -5431,7 +5420,7 @@ var require_properties2 = __commonJS((exports) => {
         cxt.ok(valid);
       }
       function hasDefault(prop) {
-        return it.opts.useDefaults && !it.compositeRule && schema2[prop].default !== undefined;
+        return it.opts.useDefaults && !it.compositeRule && schema[prop].default !== undefined;
       }
       function applyPropertySchema(prop) {
         cxt.subschema({
@@ -5446,7 +5435,7 @@ var require_properties2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/patternProperties.js
-var require_patternProperties2 = __commonJS((exports) => {
+var require_patternProperties2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code3();
   var codegen_1 = require_codegen2();
@@ -5457,10 +5446,10 @@ var require_patternProperties2 = __commonJS((exports) => {
     type: "object",
     schemaType: "object",
     code(cxt) {
-      const { gen, schema: schema2, data, parentSchema, it } = cxt;
+      const { gen, schema, data, parentSchema, it } = cxt;
       const { opts } = it;
-      const patterns = (0, code_1.allSchemaProperties)(schema2);
-      const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema2[p]));
+      const patterns = (0, code_1.allSchemaProperties)(schema);
+      const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema[p]));
       if (patterns.length === 0 || alwaysValidPatterns.length === patterns.length && (!it.opts.unevaluated || it.props === true)) {
         return;
       }
@@ -5517,7 +5506,7 @@ var require_patternProperties2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/not.js
-var require_not2 = __commonJS((exports) => {
+var require_not2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var util_1 = require_util2();
   var def = {
@@ -5525,8 +5514,8 @@ var require_not2 = __commonJS((exports) => {
     schemaType: ["object", "boolean"],
     trackErrors: true,
     code(cxt) {
-      const { gen, schema: schema2, it } = cxt;
-      if ((0, util_1.alwaysValidSchema)(it, schema2)) {
+      const { gen, schema, it } = cxt;
+      if ((0, util_1.alwaysValidSchema)(it, schema)) {
         cxt.fail();
         return;
       }
@@ -5545,7 +5534,7 @@ var require_not2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/anyOf.js
-var require_anyOf2 = __commonJS((exports) => {
+var require_anyOf2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code3();
   var def = {
@@ -5559,11 +5548,11 @@ var require_anyOf2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/oneOf.js
-var require_oneOf2 = __commonJS((exports) => {
+var require_oneOf2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: "must match exactly one schema in oneOf",
     params: ({ params }) => (0, codegen_1._)`{passingSchemas: ${params.passing}}`
   };
@@ -5571,14 +5560,14 @@ var require_oneOf2 = __commonJS((exports) => {
     keyword: "oneOf",
     schemaType: "array",
     trackErrors: true,
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, schema: schema2, parentSchema, it } = cxt;
-      if (!Array.isArray(schema2))
+      const { gen, schema, parentSchema, it } = cxt;
+      if (!Array.isArray(schema))
         throw new Error("ajv implementation error");
       if (it.opts.discriminator && parentSchema.discriminator)
         return;
-      const schArr = schema2;
+      const schArr = schema;
       const valid = gen.let("valid", false);
       const passing = gen.let("passing", null);
       const schValid = gen.name("_valid");
@@ -5586,23 +5575,23 @@ var require_oneOf2 = __commonJS((exports) => {
       gen.block(validateOneOf);
       cxt.result(valid, () => cxt.reset(), () => cxt.error(true));
       function validateOneOf() {
-        schArr.forEach((sch, i2) => {
+        schArr.forEach((sch, i) => {
           let schCxt;
           if ((0, util_1.alwaysValidSchema)(it, sch)) {
             gen.var(schValid, true);
           } else {
             schCxt = cxt.subschema({
               keyword: "oneOf",
-              schemaProp: i2,
+              schemaProp: i,
               compositeRule: true
             }, schValid);
           }
-          if (i2 > 0) {
-            gen.if((0, codegen_1._)`${schValid} && ${valid}`).assign(valid, false).assign(passing, (0, codegen_1._)`[${passing}, ${i2}]`).else();
+          if (i > 0) {
+            gen.if((0, codegen_1._)`${schValid} && ${valid}`).assign(valid, false).assign(passing, (0, codegen_1._)`[${passing}, ${i}]`).else();
           }
           gen.if(schValid, () => {
             gen.assign(valid, true);
-            gen.assign(passing, i2);
+            gen.assign(passing, i);
             if (schCxt)
               cxt.mergeEvaluated(schCxt, codegen_1.Name);
           });
@@ -5614,21 +5603,21 @@ var require_oneOf2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/allOf.js
-var require_allOf2 = __commonJS((exports) => {
+var require_allOf2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var util_1 = require_util2();
   var def = {
     keyword: "allOf",
     schemaType: "array",
     code(cxt) {
-      const { gen, schema: schema2, it } = cxt;
-      if (!Array.isArray(schema2))
+      const { gen, schema, it } = cxt;
+      if (!Array.isArray(schema))
         throw new Error("ajv implementation error");
       const valid = gen.name("valid");
-      schema2.forEach((sch, i2) => {
+      schema.forEach((sch, i) => {
         if ((0, util_1.alwaysValidSchema)(it, sch))
           return;
-        const schCxt = cxt.subschema({ keyword: "allOf", schemaProp: i2 }, valid);
+        const schCxt = cxt.subschema({ keyword: "allOf", schemaProp: i }, valid);
         cxt.ok(valid);
         cxt.mergeEvaluated(schCxt);
       });
@@ -5638,11 +5627,11 @@ var require_allOf2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/if.js
-var require_if2 = __commonJS((exports) => {
+var require_if2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: ({ params }) => (0, codegen_1.str)`must match "${params.ifClause}" schema`,
     params: ({ params }) => (0, codegen_1._)`{failingKeyword: ${params.ifClause}}`
   };
@@ -5650,7 +5639,7 @@ var require_if2 = __commonJS((exports) => {
     keyword: "if",
     schemaType: ["object", "boolean"],
     trackErrors: true,
-    error: error51,
+    error,
     code(cxt) {
       const { gen, parentSchema, it } = cxt;
       if (parentSchema.then === undefined && parentSchema.else === undefined) {
@@ -5697,14 +5686,14 @@ var require_if2 = __commonJS((exports) => {
     }
   };
   function hasSchema(it, keyword) {
-    const schema2 = it.schema[keyword];
-    return schema2 !== undefined && !(0, util_1.alwaysValidSchema)(it, schema2);
+    const schema = it.schema[keyword];
+    return schema !== undefined && !(0, util_1.alwaysValidSchema)(it, schema);
   }
   exports.default = def;
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/thenElse.js
-var require_thenElse2 = __commonJS((exports) => {
+var require_thenElse2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var util_1 = require_util2();
   var def = {
@@ -5719,7 +5708,7 @@ var require_thenElse2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/applicator/index.js
-var require_applicator2 = __commonJS((exports) => {
+var require_applicator2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var additionalItems_1 = require_additionalItems2();
   var prefixItems_1 = require_prefixItems2();
@@ -5762,10 +5751,10 @@ var require_applicator2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/format/format.js
-var require_format2 = __commonJS((exports) => {
+var require_format2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
-  var error51 = {
+  var error = {
     message: ({ schemaCode }) => (0, codegen_1.str)`must match format "${schemaCode}"`,
     params: ({ schemaCode }) => (0, codegen_1._)`{format: ${schemaCode}}`
   };
@@ -5774,9 +5763,9 @@ var require_format2 = __commonJS((exports) => {
     type: ["number", "string"],
     schemaType: "string",
     $data: true,
-    error: error51,
+    error,
     code(cxt, ruleType) {
-      const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
+      const { gen, data, $data, schema, schemaCode, it } = cxt;
       const { opts, errSchemaPath, schemaEnv, self } = it;
       if (!opts.validateFormats)
         return;
@@ -5806,7 +5795,7 @@ var require_format2 = __commonJS((exports) => {
         }
       }
       function validateFormat() {
-        const formatDef = self.formats[schema2];
+        const formatDef = self.formats[schema];
         if (!formatDef) {
           unknownFormat();
           return;
@@ -5823,12 +5812,12 @@ var require_format2 = __commonJS((exports) => {
           }
           throw new Error(unknownMsg());
           function unknownMsg() {
-            return `unknown format "${schema2}" ignored in schema at path "${errSchemaPath}"`;
+            return `unknown format "${schema}" ignored in schema at path "${errSchemaPath}"`;
           }
         }
         function getFormat(fmtDef) {
-          const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema2)}` : undefined;
-          const fmt = gen.scopeValue("formats", { key: schema2, ref: fmtDef, code });
+          const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema)}` : undefined;
+          const fmt = gen.scopeValue("formats", { key: schema, ref: fmtDef, code });
           if (typeof fmtDef == "object" && !(fmtDef instanceof RegExp)) {
             return [fmtDef.type || "string", fmtDef.validate, (0, codegen_1._)`${fmt}.validate`];
           }
@@ -5849,7 +5838,7 @@ var require_format2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/format/index.js
-var require_format3 = __commonJS((exports) => {
+var require_format3 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var format_1 = require_format2();
   var format = [format_1.default];
@@ -5857,7 +5846,7 @@ var require_format3 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/metadata.js
-var require_metadata2 = __commonJS((exports) => {
+var require_metadata2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.contentVocabulary = exports.metadataVocabulary = undefined;
   exports.metadataVocabulary = [
@@ -5877,7 +5866,7 @@ var require_metadata2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/draft7.js
-var require_draft72 = __commonJS((exports) => {
+var require_draft72 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var core_1 = require_core3();
   var validation_1 = require_validation2();
@@ -5896,25 +5885,25 @@ var require_draft72 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/vocabularies/discriminator/types.js
-var require_types2 = __commonJS((exports) => {
+var require_types2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.DiscrError = undefined;
   var DiscrError;
-  (function(DiscrError2) {
-    DiscrError2["Tag"] = "tag";
-    DiscrError2["Mapping"] = "mapping";
+  (function(DiscrError) {
+    DiscrError["Tag"] = "tag";
+    DiscrError["Mapping"] = "mapping";
   })(DiscrError || (exports.DiscrError = DiscrError = {}));
 });
 
 // node_modules/ajv/dist/vocabularies/discriminator/index.js
-var require_discriminator2 = __commonJS((exports) => {
+var require_discriminator2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen2();
   var types_1 = require_types2();
   var compile_1 = require_compile2();
   var ref_error_1 = require_ref_error2();
   var util_1 = require_util2();
-  var error51 = {
+  var error = {
     message: ({ params: { discrError, tagName } }) => discrError === types_1.DiscrError.Tag ? `tag "${tagName}" must be string` : `value of tag "${tagName}" must be in oneOf`,
     params: ({ params: { discrError, tag, tagName } }) => (0, codegen_1._)`{error: ${discrError}, tag: ${tagName}, tagValue: ${tag}}`
   };
@@ -5922,17 +5911,17 @@ var require_discriminator2 = __commonJS((exports) => {
     keyword: "discriminator",
     type: "object",
     schemaType: "object",
-    error: error51,
+    error,
     code(cxt) {
-      const { gen, data, schema: schema2, parentSchema, it } = cxt;
+      const { gen, data, schema, parentSchema, it } = cxt;
       const { oneOf } = parentSchema;
       if (!it.opts.discriminator) {
         throw new Error("discriminator: requires discriminator option");
       }
-      const tagName = schema2.propertyName;
+      const tagName = schema.propertyName;
       if (typeof tagName != "string")
         throw new Error("discriminator: requires propertyName");
-      if (schema2.mapping)
+      if (schema.mapping)
         throw new Error("discriminator: mapping is not supported");
       if (!oneOf)
         throw new Error("discriminator: requires oneOf keyword");
@@ -5958,12 +5947,12 @@ var require_discriminator2 = __commonJS((exports) => {
         return _valid;
       }
       function getMapping() {
-        var _a3;
+        var _a;
         const oneOfMapping = {};
         const topRequired = hasRequired(parentSchema);
         let tagRequired = true;
-        for (let i2 = 0;i2 < oneOf.length; i2++) {
-          let sch = oneOf[i2];
+        for (let i = 0;i < oneOf.length; i++) {
+          let sch = oneOf[i];
           if ((sch === null || sch === undefined ? undefined : sch.$ref) && !(0, util_1.schemaHasRulesButRef)(sch, it.self.RULES)) {
             const ref = sch.$ref;
             sch = compile_1.resolveRef.call(it.self, it.schemaEnv.root, it.baseId, ref);
@@ -5972,35 +5961,35 @@ var require_discriminator2 = __commonJS((exports) => {
             if (sch === undefined)
               throw new ref_error_1.default(it.opts.uriResolver, it.baseId, ref);
           }
-          const propSch = (_a3 = sch === null || sch === undefined ? undefined : sch.properties) === null || _a3 === undefined ? undefined : _a3[tagName];
+          const propSch = (_a = sch === null || sch === undefined ? undefined : sch.properties) === null || _a === undefined ? undefined : _a[tagName];
           if (typeof propSch != "object") {
             throw new Error(`discriminator: oneOf subschemas (or referenced schemas) must have "properties/${tagName}"`);
           }
           tagRequired = tagRequired && (topRequired || hasRequired(sch));
-          addMappings(propSch, i2);
+          addMappings(propSch, i);
         }
         if (!tagRequired)
           throw new Error(`discriminator: "${tagName}" must be required`);
         return oneOfMapping;
-        function hasRequired({ required: required2 }) {
-          return Array.isArray(required2) && required2.includes(tagName);
+        function hasRequired({ required }) {
+          return Array.isArray(required) && required.includes(tagName);
         }
-        function addMappings(sch, i2) {
+        function addMappings(sch, i) {
           if (sch.const) {
-            addMapping(sch.const, i2);
+            addMapping(sch.const, i);
           } else if (sch.enum) {
             for (const tagValue of sch.enum) {
-              addMapping(tagValue, i2);
+              addMapping(tagValue, i);
             }
           } else {
             throw new Error(`discriminator: "properties/${tagName}" must have "const" or "enum"`);
           }
         }
-        function addMapping(tagValue, i2) {
+        function addMapping(tagValue, i) {
           if (typeof tagValue != "string" || tagValue in oneOfMapping) {
             throw new Error(`discriminator: "${tagName}" values must be unique strings`);
           }
-          oneOfMapping[tagValue] = i2;
+          oneOfMapping[tagValue] = i;
         }
       }
     }
@@ -6009,7 +5998,7 @@ var require_discriminator2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv/dist/refs/json-schema-draft-07.json
-var require_json_schema_draft_072 = __commonJS((exports, module) => {
+var require_json_schema_draft_072 = __commonJS(function(exports, module) {
   module.exports = {
     $schema: "http://json-schema.org/draft-07/schema#",
     $id: "http://json-schema.org/draft-07/schema#",
@@ -6164,7 +6153,7 @@ var require_json_schema_draft_072 = __commonJS((exports, module) => {
 });
 
 // node_modules/ajv/dist/ajv.js
-var require_ajv2 = __commonJS((exports, module) => {
+var require_ajv2 = __commonJS(function(exports, module) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.MissingRefError = exports.ValidationError = exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = exports.Ajv = undefined;
   var core_1 = require_core2();
@@ -6232,14 +6221,14 @@ var require_ajv2 = __commonJS((exports, module) => {
 });
 
 // node_modules/ajv-formats/dist/formats.js
-var require_formats2 = __commonJS((exports) => {
+var require_formats2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.formatNames = exports.fastFormats = exports.fullFormats = undefined;
   function fmtDef(validate, compare) {
     return { validate, compare };
   }
   exports.fullFormats = {
-    date: fmtDef(date5, compareDate),
+    date: fmtDef(date, compareDate),
     time: fmtDef(getTime(true), compareTime),
     "date-time": fmtDef(getDateTime(true), compareDateTime),
     "iso-time": fmtDef(getTime(), compareIsoTime),
@@ -6283,8 +6272,8 @@ var require_formats2 = __commonJS((exports) => {
   }
   var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
   var DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  function date5(str2) {
-    const matches = DATE.exec(str2);
+  function date(str) {
+    const matches = DATE.exec(str);
     if (!matches)
       return false;
     const year = +matches[1];
@@ -6303,8 +6292,8 @@ var require_formats2 = __commonJS((exports) => {
   }
   var TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
   function getTime(strictTimeZone) {
-    return function time3(str2) {
-      const matches = TIME.exec(str2);
+    return function time(str) {
+      const matches = TIME.exec(str);
       if (!matches)
         return false;
       const hr = +matches[1];
@@ -6349,10 +6338,10 @@ var require_formats2 = __commonJS((exports) => {
   }
   var DATE_TIME_SEPARATOR = /t|\s/i;
   function getDateTime(strictTimeZone) {
-    const time3 = getTime(strictTimeZone);
-    return function date_time(str2) {
-      const dateTime = str2.split(DATE_TIME_SEPARATOR);
-      return dateTime.length === 2 && date5(dateTime[0]) && time3(dateTime[1]);
+    const time = getTime(strictTimeZone);
+    return function date_time(str) {
+      const dateTime = str.split(DATE_TIME_SEPARATOR);
+      return dateTime.length === 2 && date(dateTime[0]) && time(dateTime[1]);
     };
   }
   function compareDateTime(dt1, dt2) {
@@ -6376,13 +6365,13 @@ var require_formats2 = __commonJS((exports) => {
   }
   var NOT_URI_FRAGMENT = /\/|:/;
   var URI = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
-  function uri(str2) {
-    return NOT_URI_FRAGMENT.test(str2) && URI.test(str2);
+  function uri(str) {
+    return NOT_URI_FRAGMENT.test(str) && URI.test(str);
   }
   var BYTE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/gm;
-  function byte(str2) {
+  function byte(str) {
     BYTE.lastIndex = 0;
-    return BYTE.test(str2);
+    return BYTE.test(str);
   }
   var MIN_INT32 = -(2 ** 31);
   var MAX_INT32 = 2 ** 31 - 1;
@@ -6396,11 +6385,11 @@ var require_formats2 = __commonJS((exports) => {
     return true;
   }
   var Z_ANCHOR = /[^\\]\\Z/;
-  function regex(str2) {
-    if (Z_ANCHOR.test(str2))
+  function regex(str) {
+    if (Z_ANCHOR.test(str))
       return false;
     try {
-      new RegExp(str2);
+      new RegExp(str);
       return true;
     } catch (e) {
       return false;
@@ -6409,7 +6398,7 @@ var require_formats2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv-formats/dist/limit.js
-var require_limit2 = __commonJS((exports) => {
+var require_limit2 = __commonJS(function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.formatLimitDefinition = undefined;
   var ajv_1 = require_ajv2();
@@ -6421,7 +6410,7 @@ var require_limit2 = __commonJS((exports) => {
     formatExclusiveMaximum: { okStr: "<", ok: ops.LT, fail: ops.GTE },
     formatExclusiveMinimum: { okStr: ">", ok: ops.GT, fail: ops.LTE }
   };
-  var error51 = {
+  var error = {
     message: ({ keyword, schemaCode }) => (0, codegen_1.str)`should be ${KWDs[keyword].okStr} ${schemaCode}`,
     params: ({ keyword, schemaCode }) => (0, codegen_1._)`{comparison: ${KWDs[keyword].okStr}, limit: ${schemaCode}}`
   };
@@ -6430,7 +6419,7 @@ var require_limit2 = __commonJS((exports) => {
     type: "string",
     schemaType: "string",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
       const { gen, data, schemaCode, keyword, it } = cxt;
       const { opts, self } = it;
@@ -6478,7 +6467,7 @@ var require_limit2 = __commonJS((exports) => {
 });
 
 // node_modules/ajv-formats/dist/index.js
-var require_dist2 = __commonJS((exports, module) => {
+var require_dist2 = __commonJS(function(exports, module) {
   Object.defineProperty(exports, "__esModule", { value: true });
   var formats_1 = require_formats2();
   var limit_1 = require_limit2();
@@ -6505,9 +6494,9 @@ var require_dist2 = __commonJS((exports, module) => {
     return f;
   };
   function addFormats(ajv, list, fs, exportName) {
-    var _a3;
+    var _a;
     var _b;
-    (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== undefined || (_b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`);
+    (_a = (_b = ajv.opts.code).formats) !== null && _a !== undefined || (_b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`);
     for (const f of list)
       ajv.addFormat(f, fs[f]);
   }
@@ -6519,528 +6508,6 @@ var require_dist2 = __commonJS((exports, module) => {
 // src/mcp/server.ts
 import { existsSync as existsSync7, statSync as statSync5 } from "fs";
 import path7 from "path";
-
-// node_modules/zod/v4/classic/external.js
-var exports_external = {};
-__export(exports_external, {
-  xor: () => xor,
-  xid: () => xid2,
-  void: () => _void2,
-  uuidv7: () => uuidv7,
-  uuidv6: () => uuidv6,
-  uuidv4: () => uuidv4,
-  uuid: () => uuid2,
-  util: () => exports_util,
-  url: () => url,
-  uppercase: () => _uppercase,
-  unknown: () => unknown,
-  union: () => union,
-  undefined: () => _undefined3,
-  ulid: () => ulid2,
-  uint64: () => uint64,
-  uint32: () => uint32,
-  tuple: () => tuple,
-  trim: () => _trim,
-  treeifyError: () => treeifyError,
-  transform: () => transform,
-  toUpperCase: () => _toUpperCase,
-  toLowerCase: () => _toLowerCase,
-  toJSONSchema: () => toJSONSchema,
-  templateLiteral: () => templateLiteral,
-  symbol: () => symbol,
-  superRefine: () => superRefine,
-  success: () => success,
-  stringbool: () => stringbool,
-  stringFormat: () => stringFormat,
-  string: () => string2,
-  strictObject: () => strictObject,
-  startsWith: () => _startsWith,
-  slugify: () => _slugify,
-  size: () => _size,
-  setErrorMap: () => setErrorMap,
-  set: () => set,
-  safeParseAsync: () => safeParseAsync2,
-  safeParse: () => safeParse2,
-  safeEncodeAsync: () => safeEncodeAsync2,
-  safeEncode: () => safeEncode2,
-  safeDecodeAsync: () => safeDecodeAsync2,
-  safeDecode: () => safeDecode2,
-  registry: () => registry,
-  regexes: () => exports_regexes,
-  regex: () => _regex,
-  refine: () => refine,
-  record: () => record,
-  readonly: () => readonly,
-  property: () => _property,
-  promise: () => promise,
-  prettifyError: () => prettifyError,
-  preprocess: () => preprocess,
-  prefault: () => prefault,
-  positive: () => _positive,
-  pipe: () => pipe,
-  partialRecord: () => partialRecord,
-  parseAsync: () => parseAsync2,
-  parse: () => parse3,
-  overwrite: () => _overwrite,
-  optional: () => optional,
-  object: () => object,
-  number: () => number2,
-  nullish: () => nullish2,
-  nullable: () => nullable,
-  null: () => _null3,
-  normalize: () => _normalize,
-  nonpositive: () => _nonpositive,
-  nonoptional: () => nonoptional,
-  nonnegative: () => _nonnegative,
-  never: () => never,
-  negative: () => _negative,
-  nativeEnum: () => nativeEnum,
-  nanoid: () => nanoid2,
-  nan: () => nan,
-  multipleOf: () => _multipleOf,
-  minSize: () => _minSize,
-  minLength: () => _minLength,
-  mime: () => _mime,
-  meta: () => meta2,
-  maxSize: () => _maxSize,
-  maxLength: () => _maxLength,
-  map: () => map,
-  mac: () => mac2,
-  lte: () => _lte,
-  lt: () => _lt,
-  lowercase: () => _lowercase,
-  looseRecord: () => looseRecord,
-  looseObject: () => looseObject,
-  locales: () => exports_locales,
-  literal: () => literal,
-  length: () => _length,
-  lazy: () => lazy,
-  ksuid: () => ksuid2,
-  keyof: () => keyof,
-  jwt: () => jwt,
-  json: () => json,
-  iso: () => exports_iso,
-  ipv6: () => ipv62,
-  ipv4: () => ipv42,
-  invertCodec: () => invertCodec,
-  intersection: () => intersection,
-  int64: () => int64,
-  int32: () => int32,
-  int: () => int,
-  instanceof: () => _instanceof,
-  includes: () => _includes,
-  httpUrl: () => httpUrl,
-  hostname: () => hostname2,
-  hex: () => hex2,
-  hash: () => hash,
-  guid: () => guid2,
-  gte: () => _gte,
-  gt: () => _gt,
-  globalRegistry: () => globalRegistry,
-  getErrorMap: () => getErrorMap,
-  function: () => _function,
-  fromJSONSchema: () => fromJSONSchema,
-  formatError: () => formatError,
-  float64: () => float64,
-  float32: () => float32,
-  flattenError: () => flattenError,
-  file: () => file,
-  exactOptional: () => exactOptional,
-  enum: () => _enum2,
-  endsWith: () => _endsWith,
-  encodeAsync: () => encodeAsync2,
-  encode: () => encode2,
-  emoji: () => emoji2,
-  email: () => email2,
-  e164: () => e1642,
-  discriminatedUnion: () => discriminatedUnion,
-  describe: () => describe2,
-  decodeAsync: () => decodeAsync2,
-  decode: () => decode2,
-  date: () => date3,
-  custom: () => custom,
-  cuid2: () => cuid22,
-  cuid: () => cuid3,
-  core: () => exports_core2,
-  config: () => config,
-  coerce: () => exports_coerce,
-  codec: () => codec,
-  clone: () => clone,
-  cidrv6: () => cidrv62,
-  cidrv4: () => cidrv42,
-  check: () => check,
-  catch: () => _catch2,
-  boolean: () => boolean2,
-  bigint: () => bigint2,
-  base64url: () => base64url2,
-  base64: () => base642,
-  array: () => array,
-  any: () => any,
-  _function: () => _function,
-  _default: () => _default2,
-  _ZodString: () => _ZodString,
-  ZodXor: () => ZodXor,
-  ZodXID: () => ZodXID,
-  ZodVoid: () => ZodVoid,
-  ZodUnknown: () => ZodUnknown,
-  ZodUnion: () => ZodUnion,
-  ZodUndefined: () => ZodUndefined,
-  ZodUUID: () => ZodUUID,
-  ZodURL: () => ZodURL,
-  ZodULID: () => ZodULID,
-  ZodType: () => ZodType,
-  ZodTuple: () => ZodTuple,
-  ZodTransform: () => ZodTransform,
-  ZodTemplateLiteral: () => ZodTemplateLiteral,
-  ZodSymbol: () => ZodSymbol,
-  ZodSuccess: () => ZodSuccess,
-  ZodStringFormat: () => ZodStringFormat,
-  ZodString: () => ZodString,
-  ZodSet: () => ZodSet,
-  ZodRecord: () => ZodRecord,
-  ZodRealError: () => ZodRealError,
-  ZodReadonly: () => ZodReadonly,
-  ZodPromise: () => ZodPromise,
-  ZodPreprocess: () => ZodPreprocess,
-  ZodPrefault: () => ZodPrefault,
-  ZodPipe: () => ZodPipe,
-  ZodOptional: () => ZodOptional,
-  ZodObject: () => ZodObject,
-  ZodNumberFormat: () => ZodNumberFormat,
-  ZodNumber: () => ZodNumber,
-  ZodNullable: () => ZodNullable,
-  ZodNull: () => ZodNull,
-  ZodNonOptional: () => ZodNonOptional,
-  ZodNever: () => ZodNever,
-  ZodNanoID: () => ZodNanoID,
-  ZodNaN: () => ZodNaN,
-  ZodMap: () => ZodMap,
-  ZodMAC: () => ZodMAC,
-  ZodLiteral: () => ZodLiteral,
-  ZodLazy: () => ZodLazy,
-  ZodKSUID: () => ZodKSUID,
-  ZodJWT: () => ZodJWT,
-  ZodIssueCode: () => ZodIssueCode,
-  ZodIntersection: () => ZodIntersection,
-  ZodISOTime: () => ZodISOTime,
-  ZodISODuration: () => ZodISODuration,
-  ZodISODateTime: () => ZodISODateTime,
-  ZodISODate: () => ZodISODate,
-  ZodIPv6: () => ZodIPv6,
-  ZodIPv4: () => ZodIPv4,
-  ZodGUID: () => ZodGUID,
-  ZodFunction: () => ZodFunction,
-  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
-  ZodFile: () => ZodFile,
-  ZodExactOptional: () => ZodExactOptional,
-  ZodError: () => ZodError,
-  ZodEnum: () => ZodEnum,
-  ZodEmoji: () => ZodEmoji,
-  ZodEmail: () => ZodEmail,
-  ZodE164: () => ZodE164,
-  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
-  ZodDefault: () => ZodDefault,
-  ZodDate: () => ZodDate,
-  ZodCustomStringFormat: () => ZodCustomStringFormat,
-  ZodCustom: () => ZodCustom,
-  ZodCodec: () => ZodCodec,
-  ZodCatch: () => ZodCatch,
-  ZodCUID2: () => ZodCUID2,
-  ZodCUID: () => ZodCUID,
-  ZodCIDRv6: () => ZodCIDRv6,
-  ZodCIDRv4: () => ZodCIDRv4,
-  ZodBoolean: () => ZodBoolean,
-  ZodBigIntFormat: () => ZodBigIntFormat,
-  ZodBigInt: () => ZodBigInt,
-  ZodBase64URL: () => ZodBase64URL,
-  ZodBase64: () => ZodBase64,
-  ZodArray: () => ZodArray,
-  ZodAny: () => ZodAny,
-  TimePrecision: () => TimePrecision,
-  NEVER: () => NEVER,
-  $output: () => $output,
-  $input: () => $input,
-  $brand: () => $brand
-});
-
-// node_modules/zod/v4/core/index.js
-var exports_core2 = {};
-__export(exports_core2, {
-  version: () => version,
-  util: () => exports_util,
-  treeifyError: () => treeifyError,
-  toJSONSchema: () => toJSONSchema,
-  toDotPath: () => toDotPath,
-  safeParseAsync: () => safeParseAsync,
-  safeParse: () => safeParse,
-  safeEncodeAsync: () => safeEncodeAsync,
-  safeEncode: () => safeEncode,
-  safeDecodeAsync: () => safeDecodeAsync,
-  safeDecode: () => safeDecode,
-  registry: () => registry,
-  regexes: () => exports_regexes,
-  process: () => process2,
-  prettifyError: () => prettifyError,
-  parseAsync: () => parseAsync,
-  parse: () => parse,
-  meta: () => meta,
-  locales: () => exports_locales,
-  isValidJWT: () => isValidJWT,
-  isValidBase64URL: () => isValidBase64URL,
-  isValidBase64: () => isValidBase64,
-  initializeContext: () => initializeContext,
-  globalRegistry: () => globalRegistry,
-  globalConfig: () => globalConfig,
-  formatError: () => formatError,
-  flattenError: () => flattenError,
-  finalize: () => finalize,
-  extractDefs: () => extractDefs,
-  encodeAsync: () => encodeAsync,
-  encode: () => encode,
-  describe: () => describe,
-  decodeAsync: () => decodeAsync,
-  decode: () => decode,
-  createToJSONSchemaMethod: () => createToJSONSchemaMethod,
-  createStandardJSONSchemaMethod: () => createStandardJSONSchemaMethod,
-  config: () => config,
-  clone: () => clone,
-  _xor: () => _xor,
-  _xid: () => _xid,
-  _void: () => _void,
-  _uuidv7: () => _uuidv7,
-  _uuidv6: () => _uuidv6,
-  _uuidv4: () => _uuidv4,
-  _uuid: () => _uuid,
-  _url: () => _url,
-  _uppercase: () => _uppercase,
-  _unknown: () => _unknown,
-  _union: () => _union,
-  _undefined: () => _undefined2,
-  _ulid: () => _ulid,
-  _uint64: () => _uint64,
-  _uint32: () => _uint32,
-  _tuple: () => _tuple,
-  _trim: () => _trim,
-  _transform: () => _transform,
-  _toUpperCase: () => _toUpperCase,
-  _toLowerCase: () => _toLowerCase,
-  _templateLiteral: () => _templateLiteral,
-  _symbol: () => _symbol,
-  _superRefine: () => _superRefine,
-  _success: () => _success,
-  _stringbool: () => _stringbool,
-  _stringFormat: () => _stringFormat,
-  _string: () => _string,
-  _startsWith: () => _startsWith,
-  _slugify: () => _slugify,
-  _size: () => _size,
-  _set: () => _set,
-  _safeParseAsync: () => _safeParseAsync,
-  _safeParse: () => _safeParse,
-  _safeEncodeAsync: () => _safeEncodeAsync,
-  _safeEncode: () => _safeEncode,
-  _safeDecodeAsync: () => _safeDecodeAsync,
-  _safeDecode: () => _safeDecode,
-  _regex: () => _regex,
-  _refine: () => _refine,
-  _record: () => _record,
-  _readonly: () => _readonly,
-  _property: () => _property,
-  _promise: () => _promise,
-  _positive: () => _positive,
-  _pipe: () => _pipe,
-  _parseAsync: () => _parseAsync,
-  _parse: () => _parse,
-  _overwrite: () => _overwrite,
-  _optional: () => _optional,
-  _number: () => _number,
-  _nullable: () => _nullable,
-  _null: () => _null2,
-  _normalize: () => _normalize,
-  _nonpositive: () => _nonpositive,
-  _nonoptional: () => _nonoptional,
-  _nonnegative: () => _nonnegative,
-  _never: () => _never,
-  _negative: () => _negative,
-  _nativeEnum: () => _nativeEnum,
-  _nanoid: () => _nanoid,
-  _nan: () => _nan,
-  _multipleOf: () => _multipleOf,
-  _minSize: () => _minSize,
-  _minLength: () => _minLength,
-  _min: () => _gte,
-  _mime: () => _mime,
-  _maxSize: () => _maxSize,
-  _maxLength: () => _maxLength,
-  _max: () => _lte,
-  _map: () => _map,
-  _mac: () => _mac,
-  _lte: () => _lte,
-  _lt: () => _lt,
-  _lowercase: () => _lowercase,
-  _literal: () => _literal,
-  _length: () => _length,
-  _lazy: () => _lazy,
-  _ksuid: () => _ksuid,
-  _jwt: () => _jwt,
-  _isoTime: () => _isoTime,
-  _isoDuration: () => _isoDuration,
-  _isoDateTime: () => _isoDateTime,
-  _isoDate: () => _isoDate,
-  _ipv6: () => _ipv6,
-  _ipv4: () => _ipv4,
-  _intersection: () => _intersection,
-  _int64: () => _int64,
-  _int32: () => _int32,
-  _int: () => _int,
-  _includes: () => _includes,
-  _guid: () => _guid,
-  _gte: () => _gte,
-  _gt: () => _gt,
-  _float64: () => _float64,
-  _float32: () => _float32,
-  _file: () => _file,
-  _enum: () => _enum,
-  _endsWith: () => _endsWith,
-  _encodeAsync: () => _encodeAsync,
-  _encode: () => _encode,
-  _emoji: () => _emoji2,
-  _email: () => _email,
-  _e164: () => _e164,
-  _discriminatedUnion: () => _discriminatedUnion,
-  _default: () => _default,
-  _decodeAsync: () => _decodeAsync,
-  _decode: () => _decode,
-  _date: () => _date,
-  _custom: () => _custom,
-  _cuid2: () => _cuid2,
-  _cuid: () => _cuid,
-  _coercedString: () => _coercedString,
-  _coercedNumber: () => _coercedNumber,
-  _coercedDate: () => _coercedDate,
-  _coercedBoolean: () => _coercedBoolean,
-  _coercedBigint: () => _coercedBigint,
-  _cidrv6: () => _cidrv6,
-  _cidrv4: () => _cidrv4,
-  _check: () => _check,
-  _catch: () => _catch,
-  _boolean: () => _boolean,
-  _bigint: () => _bigint,
-  _base64url: () => _base64url,
-  _base64: () => _base64,
-  _array: () => _array,
-  _any: () => _any,
-  TimePrecision: () => TimePrecision,
-  NEVER: () => NEVER,
-  JSONSchemaGenerator: () => JSONSchemaGenerator,
-  JSONSchema: () => exports_json_schema,
-  Doc: () => Doc,
-  $output: () => $output,
-  $input: () => $input,
-  $constructor: () => $constructor,
-  $brand: () => $brand,
-  $ZodXor: () => $ZodXor,
-  $ZodXID: () => $ZodXID,
-  $ZodVoid: () => $ZodVoid,
-  $ZodUnknown: () => $ZodUnknown,
-  $ZodUnion: () => $ZodUnion,
-  $ZodUndefined: () => $ZodUndefined,
-  $ZodUUID: () => $ZodUUID,
-  $ZodURL: () => $ZodURL,
-  $ZodULID: () => $ZodULID,
-  $ZodType: () => $ZodType,
-  $ZodTuple: () => $ZodTuple,
-  $ZodTransform: () => $ZodTransform,
-  $ZodTemplateLiteral: () => $ZodTemplateLiteral,
-  $ZodSymbol: () => $ZodSymbol,
-  $ZodSuccess: () => $ZodSuccess,
-  $ZodStringFormat: () => $ZodStringFormat,
-  $ZodString: () => $ZodString,
-  $ZodSet: () => $ZodSet,
-  $ZodRegistry: () => $ZodRegistry,
-  $ZodRecord: () => $ZodRecord,
-  $ZodRealError: () => $ZodRealError,
-  $ZodReadonly: () => $ZodReadonly,
-  $ZodPromise: () => $ZodPromise,
-  $ZodPreprocess: () => $ZodPreprocess,
-  $ZodPrefault: () => $ZodPrefault,
-  $ZodPipe: () => $ZodPipe,
-  $ZodOptional: () => $ZodOptional,
-  $ZodObjectJIT: () => $ZodObjectJIT,
-  $ZodObject: () => $ZodObject,
-  $ZodNumberFormat: () => $ZodNumberFormat,
-  $ZodNumber: () => $ZodNumber,
-  $ZodNullable: () => $ZodNullable,
-  $ZodNull: () => $ZodNull,
-  $ZodNonOptional: () => $ZodNonOptional,
-  $ZodNever: () => $ZodNever,
-  $ZodNanoID: () => $ZodNanoID,
-  $ZodNaN: () => $ZodNaN,
-  $ZodMap: () => $ZodMap,
-  $ZodMAC: () => $ZodMAC,
-  $ZodLiteral: () => $ZodLiteral,
-  $ZodLazy: () => $ZodLazy,
-  $ZodKSUID: () => $ZodKSUID,
-  $ZodJWT: () => $ZodJWT,
-  $ZodIntersection: () => $ZodIntersection,
-  $ZodISOTime: () => $ZodISOTime,
-  $ZodISODuration: () => $ZodISODuration,
-  $ZodISODateTime: () => $ZodISODateTime,
-  $ZodISODate: () => $ZodISODate,
-  $ZodIPv6: () => $ZodIPv6,
-  $ZodIPv4: () => $ZodIPv4,
-  $ZodGUID: () => $ZodGUID,
-  $ZodFunction: () => $ZodFunction,
-  $ZodFile: () => $ZodFile,
-  $ZodExactOptional: () => $ZodExactOptional,
-  $ZodError: () => $ZodError,
-  $ZodEnum: () => $ZodEnum,
-  $ZodEncodeError: () => $ZodEncodeError,
-  $ZodEmoji: () => $ZodEmoji,
-  $ZodEmail: () => $ZodEmail,
-  $ZodE164: () => $ZodE164,
-  $ZodDiscriminatedUnion: () => $ZodDiscriminatedUnion,
-  $ZodDefault: () => $ZodDefault,
-  $ZodDate: () => $ZodDate,
-  $ZodCustomStringFormat: () => $ZodCustomStringFormat,
-  $ZodCustom: () => $ZodCustom,
-  $ZodCodec: () => $ZodCodec,
-  $ZodCheckUpperCase: () => $ZodCheckUpperCase,
-  $ZodCheckStringFormat: () => $ZodCheckStringFormat,
-  $ZodCheckStartsWith: () => $ZodCheckStartsWith,
-  $ZodCheckSizeEquals: () => $ZodCheckSizeEquals,
-  $ZodCheckRegex: () => $ZodCheckRegex,
-  $ZodCheckProperty: () => $ZodCheckProperty,
-  $ZodCheckOverwrite: () => $ZodCheckOverwrite,
-  $ZodCheckNumberFormat: () => $ZodCheckNumberFormat,
-  $ZodCheckMultipleOf: () => $ZodCheckMultipleOf,
-  $ZodCheckMinSize: () => $ZodCheckMinSize,
-  $ZodCheckMinLength: () => $ZodCheckMinLength,
-  $ZodCheckMimeType: () => $ZodCheckMimeType,
-  $ZodCheckMaxSize: () => $ZodCheckMaxSize,
-  $ZodCheckMaxLength: () => $ZodCheckMaxLength,
-  $ZodCheckLowerCase: () => $ZodCheckLowerCase,
-  $ZodCheckLessThan: () => $ZodCheckLessThan,
-  $ZodCheckLengthEquals: () => $ZodCheckLengthEquals,
-  $ZodCheckIncludes: () => $ZodCheckIncludes,
-  $ZodCheckGreaterThan: () => $ZodCheckGreaterThan,
-  $ZodCheckEndsWith: () => $ZodCheckEndsWith,
-  $ZodCheckBigIntFormat: () => $ZodCheckBigIntFormat,
-  $ZodCheck: () => $ZodCheck,
-  $ZodCatch: () => $ZodCatch,
-  $ZodCUID2: () => $ZodCUID2,
-  $ZodCUID: () => $ZodCUID,
-  $ZodCIDRv6: () => $ZodCIDRv6,
-  $ZodCIDRv4: () => $ZodCIDRv4,
-  $ZodBoolean: () => $ZodBoolean,
-  $ZodBigIntFormat: () => $ZodBigIntFormat,
-  $ZodBigInt: () => $ZodBigInt,
-  $ZodBase64URL: () => $ZodBase64URL,
-  $ZodBase64: () => $ZodBase64,
-  $ZodAsyncError: () => $ZodAsyncError,
-  $ZodArray: () => $ZodArray,
-  $ZodAny: () => $ZodAny
-});
 
 // node_modules/zod/v4/core/core.js
 var _a;
@@ -7079,10 +6546,10 @@ function $constructor(name, initializer, params) {
   }
   Object.defineProperty(Definition, "name", { value: name });
   function _(def) {
-    var _a2;
+    var _a;
     const inst = params?.Parent ? new Definition : this;
     init(inst, def);
-    (_a2 = inst._zod).deferred ?? (_a2.deferred = []);
+    (_a = inst._zod).deferred ?? (_a.deferred = []);
     for (const fn of inst._zod.deferred) {
       fn();
     }
@@ -7121,83 +6588,6 @@ function config(newConfig) {
   return globalConfig;
 }
 // node_modules/zod/v4/core/util.js
-var exports_util = {};
-__export(exports_util, {
-  unwrapMessage: () => unwrapMessage,
-  uint8ArrayToHex: () => uint8ArrayToHex,
-  uint8ArrayToBase64url: () => uint8ArrayToBase64url,
-  uint8ArrayToBase64: () => uint8ArrayToBase64,
-  stringifyPrimitive: () => stringifyPrimitive,
-  slugify: () => slugify,
-  shallowClone: () => shallowClone,
-  safeExtend: () => safeExtend,
-  required: () => required,
-  randomString: () => randomString,
-  propertyKeyTypes: () => propertyKeyTypes,
-  promiseAllObject: () => promiseAllObject,
-  primitiveTypes: () => primitiveTypes,
-  prefixIssues: () => prefixIssues,
-  pick: () => pick,
-  partial: () => partial,
-  parsedType: () => parsedType,
-  optionalKeys: () => optionalKeys,
-  omit: () => omit,
-  objectClone: () => objectClone,
-  numKeys: () => numKeys,
-  nullish: () => nullish,
-  normalizeParams: () => normalizeParams,
-  mergeDefs: () => mergeDefs,
-  merge: () => merge,
-  jsonStringifyReplacer: () => jsonStringifyReplacer,
-  joinValues: () => joinValues,
-  issue: () => issue,
-  isPlainObject: () => isPlainObject,
-  isObject: () => isObject,
-  hexToUint8Array: () => hexToUint8Array,
-  getSizableOrigin: () => getSizableOrigin,
-  getParsedType: () => getParsedType,
-  getLengthableOrigin: () => getLengthableOrigin,
-  getEnumValues: () => getEnumValues,
-  getElementAtPath: () => getElementAtPath,
-  floatSafeRemainder: () => floatSafeRemainder,
-  finalizeIssue: () => finalizeIssue,
-  extend: () => extend,
-  explicitlyAborted: () => explicitlyAborted,
-  escapeRegex: () => escapeRegex,
-  esc: () => esc,
-  defineLazy: () => defineLazy,
-  createTransparentProxy: () => createTransparentProxy,
-  cloneDef: () => cloneDef,
-  clone: () => clone,
-  cleanRegex: () => cleanRegex,
-  cleanEnum: () => cleanEnum,
-  captureStackTrace: () => captureStackTrace,
-  cached: () => cached,
-  base64urlToUint8Array: () => base64urlToUint8Array,
-  base64ToUint8Array: () => base64ToUint8Array,
-  assignProp: () => assignProp,
-  assertNotEqual: () => assertNotEqual,
-  assertNever: () => assertNever,
-  assertIs: () => assertIs,
-  assertEqual: () => assertEqual,
-  assert: () => assert,
-  allowsEval: () => allowsEval,
-  aborted: () => aborted,
-  NUMBER_FORMAT_RANGES: () => NUMBER_FORMAT_RANGES,
-  Class: () => Class,
-  BIGINT_FORMAT_RANGES: () => BIGINT_FORMAT_RANGES
-});
-function assertEqual(val) {
-  return val;
-}
-function assertNotEqual(val) {
-  return val;
-}
-function assertIs(_arg) {}
-function assertNever(_x) {
-  throw new Error("Unexpected value in exhaustive check");
-}
-function assert(_) {}
 function getEnumValues(entries) {
   const numericValues = Object.values(entries).filter((v) => typeof v === "number");
   const values = Object.entries(entries).filter(([k, _]) => numericValues.indexOf(+k) === -1).map(([_, v]) => v);
@@ -7262,9 +6652,6 @@ function defineLazy(object, key, getter) {
     configurable: true
   });
 }
-function objectClone(obj) {
-  return Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescriptors(obj));
-}
 function assignProp(target, prop, value) {
   Object.defineProperty(target, prop, {
     value,
@@ -7280,33 +6667,6 @@ function mergeDefs(...defs) {
     Object.assign(mergedDescriptors, descriptors);
   }
   return Object.defineProperties({}, mergedDescriptors);
-}
-function cloneDef(schema) {
-  return mergeDefs(schema._zod.def);
-}
-function getElementAtPath(obj, path) {
-  if (!path)
-    return obj;
-  return path.reduce((acc, key) => acc?.[key], obj);
-}
-function promiseAllObject(promisesObj) {
-  const keys = Object.keys(promisesObj);
-  const promises = keys.map((key) => promisesObj[key]);
-  return Promise.all(promises).then((results) => {
-    const resolvedObj = {};
-    for (let i = 0;i < keys.length; i++) {
-      resolvedObj[keys[i]] = results[i];
-    }
-    return resolvedObj;
-  });
-}
-function randomString(length = 10) {
-  const chars = "abcdefghijklmnopqrstuvwxyz";
-  let str = "";
-  for (let i = 0;i < length; i++) {
-    str += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return str;
 }
 function esc(str) {
   return JSON.stringify(str);
@@ -7360,68 +6720,7 @@ function shallowClone(o) {
     return new Set(o);
   return o;
 }
-function numKeys(data) {
-  let keyCount = 0;
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      keyCount++;
-    }
-  }
-  return keyCount;
-}
-var getParsedType = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "undefined":
-      return "undefined";
-    case "string":
-      return "string";
-    case "number":
-      return Number.isNaN(data) ? "nan" : "number";
-    case "boolean":
-      return "boolean";
-    case "function":
-      return "function";
-    case "bigint":
-      return "bigint";
-    case "symbol":
-      return "symbol";
-    case "object":
-      if (Array.isArray(data)) {
-        return "array";
-      }
-      if (data === null) {
-        return "null";
-      }
-      if (data.then && typeof data.then === "function" && data.catch && typeof data.catch === "function") {
-        return "promise";
-      }
-      if (typeof Map !== "undefined" && data instanceof Map) {
-        return "map";
-      }
-      if (typeof Set !== "undefined" && data instanceof Set) {
-        return "set";
-      }
-      if (typeof Date !== "undefined" && data instanceof Date) {
-        return "date";
-      }
-      if (typeof File !== "undefined" && data instanceof File) {
-        return "file";
-      }
-      return "object";
-    default:
-      throw new Error(`Unknown data type: ${t}`);
-  }
-};
 var propertyKeyTypes = /* @__PURE__ */ new Set(["string", "number", "symbol"]);
-var primitiveTypes = /* @__PURE__ */ new Set([
-  "string",
-  "number",
-  "bigint",
-  "boolean",
-  "symbol",
-  "undefined"
-]);
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -7447,39 +6746,6 @@ function normalizeParams(_params) {
     return { ...params, error: () => params.error };
   return params;
 }
-function createTransparentProxy(getter) {
-  let target;
-  return new Proxy({}, {
-    get(_, prop, receiver) {
-      target ?? (target = getter());
-      return Reflect.get(target, prop, receiver);
-    },
-    set(_, prop, value, receiver) {
-      target ?? (target = getter());
-      return Reflect.set(target, prop, value, receiver);
-    },
-    has(_, prop) {
-      target ?? (target = getter());
-      return Reflect.has(target, prop);
-    },
-    deleteProperty(_, prop) {
-      target ?? (target = getter());
-      return Reflect.deleteProperty(target, prop);
-    },
-    ownKeys(_) {
-      target ?? (target = getter());
-      return Reflect.ownKeys(target);
-    },
-    getOwnPropertyDescriptor(_, prop) {
-      target ?? (target = getter());
-      return Reflect.getOwnPropertyDescriptor(target, prop);
-    },
-    defineProperty(_, prop, descriptor) {
-      target ?? (target = getter());
-      return Reflect.defineProperty(target, prop, descriptor);
-    }
-  });
-}
 function stringifyPrimitive(value) {
   if (typeof value === "bigint")
     return value.toString() + "n";
@@ -7498,10 +6764,6 @@ var NUMBER_FORMAT_RANGES = {
   uint32: [0, 4294967295],
   float32: [-340282346638528860000000000000000000000, 340282346638528860000000000000000000000],
   float64: [-Number.MAX_VALUE, Number.MAX_VALUE]
-};
-var BIGINT_FORMAT_RANGES = {
-  int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
-  uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
 };
 function pick(schema, mask) {
   const currDef = schema._zod.def;
@@ -7697,8 +6959,8 @@ function explicitlyAborted(x, startIndex = 0) {
 }
 function prefixIssues(path, issues) {
   return issues.map((iss) => {
-    var _a2;
-    (_a2 = iss).path ?? (_a2.path = []);
+    var _a;
+    (_a = iss).path ?? (_a.path = []);
     iss.path.unshift(path);
     return iss;
   });
@@ -7706,8 +6968,8 @@ function prefixIssues(path, issues) {
 function unwrapMessage(message) {
   return typeof message === "string" ? message : message?.message;
 }
-function finalizeIssue(iss, ctx, config2) {
-  const message = iss.message ? iss.message : unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config2.customError?.(iss)) ?? unwrapMessage(config2.localeError?.(iss)) ?? "Invalid input";
+function finalizeIssue(iss, ctx, config) {
+  const message = iss.message ? iss.message : unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config.customError?.(iss)) ?? unwrapMessage(config.localeError?.(iss)) ?? "Invalid input";
   const { inst: _inst, continue: _continue, input: _input, ...rest } = iss;
   rest.path ?? (rest.path = []);
   rest.message = message;
@@ -7715,15 +6977,6 @@ function finalizeIssue(iss, ctx, config2) {
     rest.input = _input;
   }
   return rest;
-}
-function getSizableOrigin(input) {
-  if (input instanceof Set)
-    return "set";
-  if (input instanceof Map)
-    return "map";
-  if (input instanceof File)
-    return "file";
-  return "unknown";
 }
 function getLengthableOrigin(input) {
   if (Array.isArray(input))
@@ -7765,52 +7018,6 @@ function issue(...args) {
   }
   return { ...iss };
 }
-function cleanEnum(obj) {
-  return Object.entries(obj).filter(([k, _]) => {
-    return Number.isNaN(Number.parseInt(k, 10));
-  }).map((el) => el[1]);
-}
-function base64ToUint8Array(base64) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0;i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-function uint8ArrayToBase64(bytes) {
-  let binaryString = "";
-  for (let i = 0;i < bytes.length; i++) {
-    binaryString += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binaryString);
-}
-function base64urlToUint8Array(base64url) {
-  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = "=".repeat((4 - base64.length % 4) % 4);
-  return base64ToUint8Array(base64 + padding);
-}
-function uint8ArrayToBase64url(bytes) {
-  return uint8ArrayToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-}
-function hexToUint8Array(hex) {
-  const cleanHex = hex.replace(/^0x/, "");
-  if (cleanHex.length % 2 !== 0) {
-    throw new Error("Invalid hex string length");
-  }
-  const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let i = 0;i < cleanHex.length; i += 2) {
-    bytes[i / 2] = Number.parseInt(cleanHex.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
-function uint8ArrayToHex(bytes) {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-class Class {
-  constructor(..._args) {}
-}
 
 // node_modules/zod/v4/core/errors.js
 var initializer = (inst, def) => {
@@ -7831,7 +7038,7 @@ var initializer = (inst, def) => {
 };
 var $ZodError = $constructor("$ZodError", initializer);
 var $ZodRealError = $constructor("$ZodError", initializer, { Parent: Error });
-function flattenError(error, mapper = (issue2) => issue2.message) {
+function flattenError(error, mapper = (issue) => issue.message) {
   const fieldErrors = {};
   const formErrors = [];
   for (const sub of error.issues) {
@@ -7844,20 +7051,20 @@ function flattenError(error, mapper = (issue2) => issue2.message) {
   }
   return { formErrors, fieldErrors };
 }
-function formatError(error, mapper = (issue2) => issue2.message) {
+function formatError(error, mapper = (issue) => issue.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error2, path = []) => {
-    for (const issue2 of error2.issues) {
-      if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
-      } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
-      } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
+  const processError = (error, path = []) => {
+    for (const issue of error.issues) {
+      if (issue.code === "invalid_union" && issue.errors.length) {
+        issue.errors.map((issues) => processError({ issues }, [...path, ...issue.path]));
+      } else if (issue.code === "invalid_key") {
+        processError({ issues: issue.issues }, [...path, ...issue.path]);
+      } else if (issue.code === "invalid_element") {
+        processError({ issues: issue.issues }, [...path, ...issue.path]);
       } else {
-        const fullpath = [...path, ...issue2.path];
+        const fullpath = [...path, ...issue.path];
         if (fullpath.length === 0) {
-          fieldErrors._errors.push(mapper(issue2));
+          fieldErrors._errors.push(mapper(issue));
         } else {
           let curr = fieldErrors;
           let i = 0;
@@ -7868,7 +7075,7 @@ function formatError(error, mapper = (issue2) => issue2.message) {
               curr[el] = curr[el] || { _errors: [] };
             } else {
               curr[el] = curr[el] || { _errors: [] };
-              curr[el]._errors.push(mapper(issue2));
+              curr[el]._errors.push(mapper(issue));
             }
             curr = curr[el];
             i++;
@@ -7879,77 +7086,6 @@ function formatError(error, mapper = (issue2) => issue2.message) {
   };
   processError(error);
   return fieldErrors;
-}
-function treeifyError(error, mapper = (issue2) => issue2.message) {
-  const result = { errors: [] };
-  const processError = (error2, path = []) => {
-    var _a2, _b;
-    for (const issue2 of error2.issues) {
-      if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
-      } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
-      } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
-      } else {
-        const fullpath = [...path, ...issue2.path];
-        if (fullpath.length === 0) {
-          result.errors.push(mapper(issue2));
-          continue;
-        }
-        let curr = result;
-        let i = 0;
-        while (i < fullpath.length) {
-          const el = fullpath[i];
-          const terminal = i === fullpath.length - 1;
-          if (typeof el === "string") {
-            curr.properties ?? (curr.properties = {});
-            (_a2 = curr.properties)[el] ?? (_a2[el] = { errors: [] });
-            curr = curr.properties[el];
-          } else {
-            curr.items ?? (curr.items = []);
-            (_b = curr.items)[el] ?? (_b[el] = { errors: [] });
-            curr = curr.items[el];
-          }
-          if (terminal) {
-            curr.errors.push(mapper(issue2));
-          }
-          i++;
-        }
-      }
-    }
-  };
-  processError(error);
-  return result;
-}
-function toDotPath(_path) {
-  const segs = [];
-  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path) {
-    if (typeof seg === "number")
-      segs.push(`[${seg}]`);
-    else if (typeof seg === "symbol")
-      segs.push(`[${JSON.stringify(String(seg))}]`);
-    else if (/[^\w$]/.test(seg))
-      segs.push(`[${JSON.stringify(seg)}]`);
-    else {
-      if (segs.length)
-        segs.push(".");
-      segs.push(seg);
-    }
-  }
-  return segs.join("");
-}
-function prettifyError(error) {
-  const lines = [];
-  const issues = [...error.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
-  for (const issue2 of issues) {
-    lines.push(`✖ ${issue2.message}`);
-    if (issue2.path?.length)
-      lines.push(`  → at ${toDotPath(issue2.path)}`);
-  }
-  return lines.join(`
-`);
 }
 
 // node_modules/zod/v4/core/parse.js
@@ -7966,7 +7102,6 @@ var _parse = (_Err) => (schema, value, _ctx, _params) => {
   }
   return result.value;
 };
-var parse = /* @__PURE__ */ _parse($ZodRealError);
 var _parseAsync = (_Err) => async (schema, value, _ctx, params) => {
   const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
   let result = schema._zod.run({ value, issues: [] }, ctx);
@@ -7979,7 +7114,6 @@ var _parseAsync = (_Err) => async (schema, value, _ctx, params) => {
   }
   return result.value;
 };
-var parseAsync = /* @__PURE__ */ _parseAsync($ZodRealError);
 var _safeParse = (_Err) => (schema, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
   const result = schema._zod.run({ value, issues: [] }, ctx);
@@ -8007,101 +7141,31 @@ var _encode = (_Err) => (schema, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
   return _parse(_Err)(schema, value, ctx);
 };
-var encode = /* @__PURE__ */ _encode($ZodRealError);
 var _decode = (_Err) => (schema, value, _ctx) => {
   return _parse(_Err)(schema, value, _ctx);
 };
-var decode = /* @__PURE__ */ _decode($ZodRealError);
 var _encodeAsync = (_Err) => async (schema, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
   return _parseAsync(_Err)(schema, value, ctx);
 };
-var encodeAsync = /* @__PURE__ */ _encodeAsync($ZodRealError);
 var _decodeAsync = (_Err) => async (schema, value, _ctx) => {
   return _parseAsync(_Err)(schema, value, _ctx);
 };
-var decodeAsync = /* @__PURE__ */ _decodeAsync($ZodRealError);
 var _safeEncode = (_Err) => (schema, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
   return _safeParse(_Err)(schema, value, ctx);
 };
-var safeEncode = /* @__PURE__ */ _safeEncode($ZodRealError);
 var _safeDecode = (_Err) => (schema, value, _ctx) => {
   return _safeParse(_Err)(schema, value, _ctx);
 };
-var safeDecode = /* @__PURE__ */ _safeDecode($ZodRealError);
 var _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
   return _safeParseAsync(_Err)(schema, value, ctx);
 };
-var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync($ZodRealError);
 var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
   return _safeParseAsync(_Err)(schema, value, _ctx);
 };
-var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync($ZodRealError);
 // node_modules/zod/v4/core/regexes.js
-var exports_regexes = {};
-__export(exports_regexes, {
-  xid: () => xid,
-  uuid7: () => uuid7,
-  uuid6: () => uuid6,
-  uuid4: () => uuid4,
-  uuid: () => uuid,
-  uppercase: () => uppercase,
-  unicodeEmail: () => unicodeEmail,
-  undefined: () => _undefined,
-  ulid: () => ulid,
-  time: () => time,
-  string: () => string,
-  sha512_hex: () => sha512_hex,
-  sha512_base64url: () => sha512_base64url,
-  sha512_base64: () => sha512_base64,
-  sha384_hex: () => sha384_hex,
-  sha384_base64url: () => sha384_base64url,
-  sha384_base64: () => sha384_base64,
-  sha256_hex: () => sha256_hex,
-  sha256_base64url: () => sha256_base64url,
-  sha256_base64: () => sha256_base64,
-  sha1_hex: () => sha1_hex,
-  sha1_base64url: () => sha1_base64url,
-  sha1_base64: () => sha1_base64,
-  rfc5322Email: () => rfc5322Email,
-  number: () => number,
-  null: () => _null,
-  nanoid: () => nanoid,
-  md5_hex: () => md5_hex,
-  md5_base64url: () => md5_base64url,
-  md5_base64: () => md5_base64,
-  mac: () => mac,
-  lowercase: () => lowercase,
-  ksuid: () => ksuid,
-  ipv6: () => ipv6,
-  ipv4: () => ipv4,
-  integer: () => integer,
-  idnEmail: () => idnEmail,
-  httpProtocol: () => httpProtocol,
-  html5Email: () => html5Email,
-  hostname: () => hostname,
-  hex: () => hex,
-  guid: () => guid,
-  extendedDuration: () => extendedDuration,
-  emoji: () => emoji,
-  email: () => email,
-  e164: () => e164,
-  duration: () => duration,
-  domain: () => domain,
-  datetime: () => datetime,
-  date: () => date,
-  cuid2: () => cuid2,
-  cuid: () => cuid,
-  cidrv6: () => cidrv6,
-  cidrv4: () => cidrv4,
-  browserEmail: () => browserEmail,
-  boolean: () => boolean,
-  bigint: () => bigint,
-  base64url: () => base64url,
-  base64: () => base64
-});
 var cuid = /^[cC][0-9a-z]{6,}$/;
 var cuid2 = /^[0-9a-z]+$/;
 var ulid = /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/;
@@ -8109,38 +7173,23 @@ var xid = /^[0-9a-vA-V]{20}$/;
 var ksuid = /^[A-Za-z0-9]{27}$/;
 var nanoid = /^[a-zA-Z0-9_-]{21}$/;
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
-var extendedDuration = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
 var guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
 var uuid = (version) => {
   if (!version)
     return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
   return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 };
-var uuid4 = /* @__PURE__ */ uuid(4);
-var uuid6 = /* @__PURE__ */ uuid(6);
-var uuid7 = /* @__PURE__ */ uuid(7);
 var email = /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
-var html5Email = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-var rfc5322Email = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-var unicodeEmail = /^[^\s@"]{1,64}@[^\s@]{1,255}$/u;
-var idnEmail = unicodeEmail;
-var browserEmail = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 var _emoji = `^(\\p{Extended_Pictographic}|\\p{Emoji_Component})+$`;
 function emoji() {
   return new RegExp(_emoji, "u");
 }
 var ipv4 = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/;
 var ipv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/;
-var mac = (delimiter) => {
-  const escapedDelim = escapeRegex(delimiter ?? ":");
-  return new RegExp(`^(?:[0-9A-F]{2}${escapedDelim}){5}[0-9A-F]{2}$|^(?:[0-9a-f]{2}${escapedDelim}){5}[0-9a-f]{2}$`);
-};
 var cidrv4 = /^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\/([0-9]|[1-2][0-9]|3[0-2])$/;
 var cidrv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::|([0-9a-fA-F]{1,4})?::([0-9a-fA-F]{1,4}:?){0,6})\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
 var base64 = /^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$/;
 var base64url = /^[A-Za-z0-9_-]*$/;
-var hostname = /^(?=.{1,253}\.?$)[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[-0-9a-zA-Z]{0,61}[0-9a-zA-Z])?)*\.?$/;
-var domain = /^([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 var httpProtocol = /^https?$/;
 var e164 = /^\+[1-9]\d{6,14}$/;
 var dateSource = `(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))`;
@@ -8154,56 +7203,32 @@ function time(args) {
   return new RegExp(`^${timeSource(args)}$`);
 }
 function datetime(args) {
-  const time2 = timeSource({ precision: args.precision });
+  const time = timeSource({ precision: args.precision });
   const opts = ["Z"];
   if (args.local)
     opts.push("");
   if (args.offset)
     opts.push(`([+-](?:[01]\\d|2[0-3]):[0-5]\\d)`);
-  const timeRegex = `${time2}(?:${opts.join("|")})`;
+  const timeRegex = `${time}(?:${opts.join("|")})`;
   return new RegExp(`^${dateSource}T(?:${timeRegex})$`);
 }
 var string = (params) => {
   const regex = params ? `[\\s\\S]{${params?.minimum ?? 0},${params?.maximum ?? ""}}` : `[\\s\\S]*`;
   return new RegExp(`^${regex}$`);
 };
-var bigint = /^-?\d+n?$/;
 var integer = /^-?\d+$/;
 var number = /^-?\d+(?:\.\d+)?$/;
 var boolean = /^(?:true|false)$/i;
 var _null = /^null$/i;
-var _undefined = /^undefined$/i;
 var lowercase = /^[^A-Z]*$/;
 var uppercase = /^[^a-z]*$/;
-var hex = /^[0-9a-fA-F]*$/;
-function fixedBase64(bodyLength, padding) {
-  return new RegExp(`^[A-Za-z0-9+/]{${bodyLength}}${padding}$`);
-}
-function fixedBase64url(length) {
-  return new RegExp(`^[A-Za-z0-9_-]{${length}}$`);
-}
-var md5_hex = /^[0-9a-fA-F]{32}$/;
-var md5_base64 = /* @__PURE__ */ fixedBase64(22, "==");
-var md5_base64url = /* @__PURE__ */ fixedBase64url(22);
-var sha1_hex = /^[0-9a-fA-F]{40}$/;
-var sha1_base64 = /* @__PURE__ */ fixedBase64(27, "=");
-var sha1_base64url = /* @__PURE__ */ fixedBase64url(27);
-var sha256_hex = /^[0-9a-fA-F]{64}$/;
-var sha256_base64 = /* @__PURE__ */ fixedBase64(43, "=");
-var sha256_base64url = /* @__PURE__ */ fixedBase64url(43);
-var sha384_hex = /^[0-9a-fA-F]{96}$/;
-var sha384_base64 = /* @__PURE__ */ fixedBase64(64, "");
-var sha384_base64url = /* @__PURE__ */ fixedBase64url(64);
-var sha512_hex = /^[0-9a-fA-F]{128}$/;
-var sha512_base64 = /* @__PURE__ */ fixedBase64(86, "==");
-var sha512_base64url = /* @__PURE__ */ fixedBase64url(86);
 
 // node_modules/zod/v4/core/checks.js
 var $ZodCheck = /* @__PURE__ */ $constructor("$ZodCheck", (inst, def) => {
-  var _a2;
+  var _a;
   inst._zod ?? (inst._zod = {});
   inst._zod.def = def;
-  (_a2 = inst._zod).onattach ?? (_a2.onattach = []);
+  (_a = inst._zod).onattach ?? (_a.onattach = []);
 });
 var numericOriginMap = {
   number: "number",
@@ -8213,8 +7238,8 @@ var numericOriginMap = {
 var $ZodCheckLessThan = /* @__PURE__ */ $constructor("$ZodCheckLessThan", (inst, def) => {
   $ZodCheck.init(inst, def);
   const origin = numericOriginMap[typeof def.value];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     const curr = (def.inclusive ? bag.maximum : bag.exclusiveMaximum) ?? Number.POSITIVE_INFINITY;
     if (def.value < curr) {
       if (def.inclusive)
@@ -8241,8 +7266,8 @@ var $ZodCheckLessThan = /* @__PURE__ */ $constructor("$ZodCheckLessThan", (inst,
 var $ZodCheckGreaterThan = /* @__PURE__ */ $constructor("$ZodCheckGreaterThan", (inst, def) => {
   $ZodCheck.init(inst, def);
   const origin = numericOriginMap[typeof def.value];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     const curr = (def.inclusive ? bag.minimum : bag.exclusiveMinimum) ?? Number.NEGATIVE_INFINITY;
     if (def.value > curr) {
       if (def.inclusive)
@@ -8268,9 +7293,9 @@ var $ZodCheckGreaterThan = /* @__PURE__ */ $constructor("$ZodCheckGreaterThan", 
 });
 var $ZodCheckMultipleOf = /* @__PURE__ */ $constructor("$ZodCheckMultipleOf", (inst, def) => {
   $ZodCheck.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
-    var _a2;
-    (_a2 = inst2._zod.bag).multipleOf ?? (_a2.multipleOf = def.value);
+  inst._zod.onattach.push((inst) => {
+    var _a;
+    (_a = inst._zod.bag).multipleOf ?? (_a.multipleOf = def.value);
   });
   inst._zod.check = (payload) => {
     if (typeof payload.value !== typeof def.value)
@@ -8294,8 +7319,8 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
   const isInt = def.format?.includes("int");
   const origin = isInt ? "int" : "number";
   const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.format = def.format;
     bag.minimum = minimum;
     bag.maximum = maximum;
@@ -8367,138 +7392,17 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
     }
   };
 });
-var $ZodCheckBigIntFormat = /* @__PURE__ */ $constructor("$ZodCheckBigIntFormat", (inst, def) => {
-  $ZodCheck.init(inst, def);
-  const [minimum, maximum] = BIGINT_FORMAT_RANGES[def.format];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
-    bag.format = def.format;
-    bag.minimum = minimum;
-    bag.maximum = maximum;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    if (input < minimum) {
-      payload.issues.push({
-        origin: "bigint",
-        input,
-        code: "too_small",
-        minimum,
-        inclusive: true,
-        inst,
-        continue: !def.abort
-      });
-    }
-    if (input > maximum) {
-      payload.issues.push({
-        origin: "bigint",
-        input,
-        code: "too_big",
-        maximum,
-        inclusive: true,
-        inst,
-        continue: !def.abort
-      });
-    }
-  };
-});
-var $ZodCheckMaxSize = /* @__PURE__ */ $constructor("$ZodCheckMaxSize", (inst, def) => {
-  var _a2;
-  $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
-    const val = payload.value;
-    return !nullish(val) && val.size !== undefined;
-  });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.maximum ?? Number.POSITIVE_INFINITY;
-    if (def.maximum < curr)
-      inst2._zod.bag.maximum = def.maximum;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    const size = input.size;
-    if (size <= def.maximum)
-      return;
-    payload.issues.push({
-      origin: getSizableOrigin(input),
-      code: "too_big",
-      maximum: def.maximum,
-      inclusive: true,
-      input,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
-var $ZodCheckMinSize = /* @__PURE__ */ $constructor("$ZodCheckMinSize", (inst, def) => {
-  var _a2;
-  $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
-    const val = payload.value;
-    return !nullish(val) && val.size !== undefined;
-  });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.minimum ?? Number.NEGATIVE_INFINITY;
-    if (def.minimum > curr)
-      inst2._zod.bag.minimum = def.minimum;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    const size = input.size;
-    if (size >= def.minimum)
-      return;
-    payload.issues.push({
-      origin: getSizableOrigin(input),
-      code: "too_small",
-      minimum: def.minimum,
-      inclusive: true,
-      input,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
-var $ZodCheckSizeEquals = /* @__PURE__ */ $constructor("$ZodCheckSizeEquals", (inst, def) => {
-  var _a2;
-  $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
-    const val = payload.value;
-    return !nullish(val) && val.size !== undefined;
-  });
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
-    bag.minimum = def.size;
-    bag.maximum = def.size;
-    bag.size = def.size;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    const size = input.size;
-    if (size === def.size)
-      return;
-    const tooBig = size > def.size;
-    payload.issues.push({
-      origin: getSizableOrigin(input),
-      ...tooBig ? { code: "too_big", maximum: def.size } : { code: "too_small", minimum: def.size },
-      inclusive: true,
-      exact: true,
-      input: payload.value,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
 var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (inst, def) => {
-  var _a2;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.maximum ?? Number.POSITIVE_INFINITY;
+  inst._zod.onattach.push((inst) => {
+    const curr = inst._zod.bag.maximum ?? Number.POSITIVE_INFINITY;
     if (def.maximum < curr)
-      inst2._zod.bag.maximum = def.maximum;
+      inst._zod.bag.maximum = def.maximum;
   });
   inst._zod.check = (payload) => {
     const input = payload.value;
@@ -8518,16 +7422,16 @@ var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (ins
   };
 });
 var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (inst, def) => {
-  var _a2;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.minimum ?? Number.NEGATIVE_INFINITY;
+  inst._zod.onattach.push((inst) => {
+    const curr = inst._zod.bag.minimum ?? Number.NEGATIVE_INFINITY;
     if (def.minimum > curr)
-      inst2._zod.bag.minimum = def.minimum;
+      inst._zod.bag.minimum = def.minimum;
   });
   inst._zod.check = (payload) => {
     const input = payload.value;
@@ -8547,14 +7451,14 @@ var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (ins
   };
 });
 var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals", (inst, def) => {
-  var _a2;
+  var _a;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.minimum = def.length;
     bag.maximum = def.length;
     bag.length = def.length;
@@ -8578,10 +7482,10 @@ var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals"
   };
 });
 var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat", (inst, def) => {
-  var _a2, _b;
+  var _a, _b;
   $ZodCheck.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.format = def.format;
     if (def.pattern) {
       bag.patterns ?? (bag.patterns = new Set);
@@ -8589,7 +7493,7 @@ var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat"
     }
   });
   if (def.pattern)
-    (_a2 = inst._zod).check ?? (_a2.check = (payload) => {
+    (_a = inst._zod).check ?? (_a.check = (payload) => {
       def.pattern.lastIndex = 0;
       if (def.pattern.test(payload.value))
         return;
@@ -8636,8 +7540,8 @@ var $ZodCheckIncludes = /* @__PURE__ */ $constructor("$ZodCheckIncludes", (inst,
   const escapedRegex = escapeRegex(def.includes);
   const pattern = new RegExp(typeof def.position === "number" ? `^.{${def.position}}${escapedRegex}` : escapedRegex);
   def.pattern = pattern;
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.patterns ?? (bag.patterns = new Set);
     bag.patterns.add(pattern);
   });
@@ -8659,8 +7563,8 @@ var $ZodCheckStartsWith = /* @__PURE__ */ $constructor("$ZodCheckStartsWith", (i
   $ZodCheck.init(inst, def);
   const pattern = new RegExp(`^${escapeRegex(def.prefix)}.*`);
   def.pattern ?? (def.pattern = pattern);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.patterns ?? (bag.patterns = new Set);
     bag.patterns.add(pattern);
   });
@@ -8682,8 +7586,8 @@ var $ZodCheckEndsWith = /* @__PURE__ */ $constructor("$ZodCheckEndsWith", (inst,
   $ZodCheck.init(inst, def);
   const pattern = new RegExp(`.*${escapeRegex(def.suffix)}$`);
   def.pattern ?? (def.pattern = pattern);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.patterns ?? (bag.patterns = new Set);
     bag.patterns.add(pattern);
   });
@@ -8696,43 +7600,6 @@ var $ZodCheckEndsWith = /* @__PURE__ */ $constructor("$ZodCheckEndsWith", (inst,
       format: "ends_with",
       suffix: def.suffix,
       input: payload.value,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
-function handleCheckPropertyResult(result, payload, property) {
-  if (result.issues.length) {
-    payload.issues.push(...prefixIssues(property, result.issues));
-  }
-}
-var $ZodCheckProperty = /* @__PURE__ */ $constructor("$ZodCheckProperty", (inst, def) => {
-  $ZodCheck.init(inst, def);
-  inst._zod.check = (payload) => {
-    const result = def.schema._zod.run({
-      value: payload.value[def.property],
-      issues: []
-    }, {});
-    if (result instanceof Promise) {
-      return result.then((result2) => handleCheckPropertyResult(result2, payload, def.property));
-    }
-    handleCheckPropertyResult(result, payload, def.property);
-    return;
-  };
-});
-var $ZodCheckMimeType = /* @__PURE__ */ $constructor("$ZodCheckMimeType", (inst, def) => {
-  $ZodCheck.init(inst, def);
-  const mimeSet = new Set(def.mime);
-  inst._zod.onattach.push((inst2) => {
-    inst2._zod.bag.mime = def.mime;
-  });
-  inst._zod.check = (payload) => {
-    if (mimeSet.has(payload.value.type))
-      return;
-    payload.issues.push({
-      code: "invalid_value",
-      values: def.mime,
-      input: payload.value.type,
       inst,
       continue: !def.abort
     });
@@ -8792,7 +7659,7 @@ var version = {
 
 // node_modules/zod/v4/core/schemas.js
 var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
-  var _a2;
+  var _a;
   inst ?? (inst = {});
   inst._zod.def = def;
   inst._zod.bag = inst._zod.bag || {};
@@ -8807,15 +7674,15 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
     }
   }
   if (checks.length === 0) {
-    (_a2 = inst._zod).deferred ?? (_a2.deferred = []);
+    (_a = inst._zod).deferred ?? (_a.deferred = []);
     inst._zod.deferred?.push(() => {
       inst._zod.run = inst._zod.parse;
     });
   } else {
-    const runChecks = (payload, checks2, ctx) => {
+    const runChecks = (payload, checks, ctx) => {
       let isAborted = aborted(payload);
       let asyncResult;
-      for (const ch of checks2) {
+      for (const ch of checks) {
         if (ch._zod.def.when) {
           if (explicitlyAborted(payload))
             continue;
@@ -8863,7 +7730,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (checkResult instanceof Promise) {
         if (ctx.async === false)
           throw new $ZodAsyncError;
-        return checkResult.then((checkResult2) => inst._zod.parse(checkResult2, ctx));
+        return checkResult.then((checkResult) => inst._zod.parse(checkResult, ctx));
       }
       return inst._zod.parse(checkResult, ctx);
     };
@@ -8874,8 +7741,8 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (ctx.direction === "backward") {
         const canary = inst._zod.parse({ value: payload.value, issues: [] }, { ...ctx, skipChecks: true });
         if (canary instanceof Promise) {
-          return canary.then((canary2) => {
-            return handleCanaryResult(canary2, payload, ctx);
+          return canary.then((canary) => {
+            return handleCanaryResult(canary, payload, ctx);
           });
         }
         return handleCanaryResult(canary, payload, ctx);
@@ -8884,7 +7751,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (result instanceof Promise) {
         if (ctx.async === false)
           throw new $ZodAsyncError;
-        return result.then((result2) => runChecks(result2, checks, ctx));
+        return result.then((result) => runChecks(result, checks, ctx));
       }
       return runChecks(result, checks, ctx);
     };
@@ -8909,7 +7776,7 @@ var $ZodString = /* @__PURE__ */ $constructor("$ZodString", (inst, def) => {
     if (def.coerce)
       try {
         payload.value = String(payload.value);
-      } catch (_2) {}
+      } catch (_) {}
     if (typeof payload.value === "string")
       return payload;
     payload.issues.push({
@@ -9084,11 +7951,6 @@ var $ZodIPv6 = /* @__PURE__ */ $constructor("$ZodIPv6", (inst, def) => {
     }
   };
 });
-var $ZodMAC = /* @__PURE__ */ $constructor("$ZodMAC", (inst, def) => {
-  def.pattern ?? (def.pattern = mac(def.delimiter));
-  $ZodStringFormat.init(inst, def);
-  inst._zod.bag.format = `mac`;
-});
 var $ZodCIDRv4 = /* @__PURE__ */ $constructor("$ZodCIDRv4", (inst, def) => {
   def.pattern ?? (def.pattern = cidrv4);
   $ZodStringFormat.init(inst, def);
@@ -9154,8 +8016,8 @@ var $ZodBase64 = /* @__PURE__ */ $constructor("$ZodBase64", (inst, def) => {
 function isValidBase64URL(data) {
   if (!base64url.test(data))
     return false;
-  const base642 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
-  const padded = base642.padEnd(Math.ceil(base642.length / 4) * 4, "=");
+  const base64 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
   return isValidBase64(padded);
 }
 var $ZodBase64URL = /* @__PURE__ */ $constructor("$ZodBase64URL", (inst, def) => {
@@ -9212,20 +8074,6 @@ var $ZodJWT = /* @__PURE__ */ $constructor("$ZodJWT", (inst, def) => {
     });
   };
 });
-var $ZodCustomStringFormat = /* @__PURE__ */ $constructor("$ZodCustomStringFormat", (inst, def) => {
-  $ZodStringFormat.init(inst, def);
-  inst._zod.check = (payload) => {
-    if (def.fn(payload.value))
-      return;
-    payload.issues.push({
-      code: "invalid_format",
-      format: def.format,
-      input: payload.value,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
 var $ZodNumber = /* @__PURE__ */ $constructor("$ZodNumber", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.pattern = inst._zod.bag.pattern ?? number;
@@ -9273,61 +8121,6 @@ var $ZodBoolean = /* @__PURE__ */ $constructor("$ZodBoolean", (inst, def) => {
     return payload;
   };
 });
-var $ZodBigInt = /* @__PURE__ */ $constructor("$ZodBigInt", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.pattern = bigint;
-  inst._zod.parse = (payload, _ctx) => {
-    if (def.coerce)
-      try {
-        payload.value = BigInt(payload.value);
-      } catch (_) {}
-    if (typeof payload.value === "bigint")
-      return payload;
-    payload.issues.push({
-      expected: "bigint",
-      code: "invalid_type",
-      input: payload.value,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodBigIntFormat = /* @__PURE__ */ $constructor("$ZodBigIntFormat", (inst, def) => {
-  $ZodCheckBigIntFormat.init(inst, def);
-  $ZodBigInt.init(inst, def);
-});
-var $ZodSymbol = /* @__PURE__ */ $constructor("$ZodSymbol", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (typeof input === "symbol")
-      return payload;
-    payload.issues.push({
-      expected: "symbol",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodUndefined = /* @__PURE__ */ $constructor("$ZodUndefined", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.pattern = _undefined;
-  inst._zod.values = new Set([undefined]);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (typeof input === "undefined")
-      return payload;
-    payload.issues.push({
-      expected: "undefined",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
 var $ZodNull = /* @__PURE__ */ $constructor("$ZodNull", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.pattern = _null;
@@ -9365,44 +8158,6 @@ var $ZodNever = /* @__PURE__ */ $constructor("$ZodNever", (inst, def) => {
     return payload;
   };
 });
-var $ZodVoid = /* @__PURE__ */ $constructor("$ZodVoid", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (typeof input === "undefined")
-      return payload;
-    payload.issues.push({
-      expected: "void",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodDate = /* @__PURE__ */ $constructor("$ZodDate", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    if (def.coerce) {
-      try {
-        payload.value = new Date(payload.value);
-      } catch (_err) {}
-    }
-    const input = payload.value;
-    const isDate = input instanceof Date;
-    const isValidDate = isDate && !Number.isNaN(input.getTime());
-    if (isValidDate)
-      return payload;
-    payload.issues.push({
-      expected: "date",
-      code: "invalid_type",
-      input,
-      ...isDate ? { received: "Invalid Date" } : {},
-      inst
-    });
-    return payload;
-  };
-});
 function handleArrayResult(result, final, index) {
   if (result.issues.length) {
     final.issues.push(...prefixIssues(index, result.issues));
@@ -9431,7 +8186,7 @@ var $ZodArray = /* @__PURE__ */ $constructor("$ZodArray", (inst, def) => {
         issues: []
       }, ctx);
       if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleArrayResult(result2, payload, i)));
+        proms.push(result.then((result) => handleArrayResult(result, payload, i)));
       } else {
         handleArrayResult(result, payload, i);
       }
@@ -9503,7 +8258,7 @@ function handleCatchall(proms, input, payload, ctx, def, inst) {
     }
     const r = _catchall.run({ value: input[key], issues: [] }, ctx);
     if (r instanceof Promise) {
-      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input, isOptionalIn, isOptionalOut)));
+      proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, isOptionalIn, isOptionalOut)));
     } else {
       handlePropertyResult(r, payload, key, input, isOptionalIn, isOptionalOut);
     }
@@ -9575,7 +8330,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
       const isOptionalOut = el._zod.optout === "optional";
       const r = el._zod.run({ value: input[key], issues: [] }, ctx);
       if (r instanceof Promise) {
-        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input, isOptionalIn, isOptionalOut)));
+        proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, isOptionalIn, isOptionalOut)));
       } else {
         handlePropertyResult(r, payload, key, input, isOptionalIn, isOptionalOut);
       }
@@ -9773,61 +8528,8 @@ var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
     }
     if (!async)
       return handleUnionResults(results, payload, inst, ctx);
-    return Promise.all(results).then((results2) => {
-      return handleUnionResults(results2, payload, inst, ctx);
-    });
-  };
-});
-function handleExclusiveUnionResults(results, final, inst, ctx) {
-  const successes = results.filter((r) => r.issues.length === 0);
-  if (successes.length === 1) {
-    final.value = successes[0].value;
-    return final;
-  }
-  if (successes.length === 0) {
-    final.issues.push({
-      code: "invalid_union",
-      input: final.value,
-      inst,
-      errors: results.map((result) => result.issues.map((iss) => finalizeIssue(iss, ctx, config())))
-    });
-  } else {
-    final.issues.push({
-      code: "invalid_union",
-      input: final.value,
-      inst,
-      errors: [],
-      inclusive: false
-    });
-  }
-  return final;
-}
-var $ZodXor = /* @__PURE__ */ $constructor("$ZodXor", (inst, def) => {
-  $ZodUnion.init(inst, def);
-  def.inclusive = false;
-  const first = def.options.length === 1 ? def.options[0]._zod.run : null;
-  inst._zod.parse = (payload, ctx) => {
-    if (first) {
-      return first(payload, ctx);
-    }
-    let async = false;
-    const results = [];
-    for (const option of def.options) {
-      const result = option._zod.run({
-        value: payload.value,
-        issues: []
-      }, ctx);
-      if (result instanceof Promise) {
-        results.push(result);
-        async = true;
-      } else {
-        results.push(result);
-      }
-    }
-    if (!async)
-      return handleExclusiveUnionResults(results, payload, inst, ctx);
-    return Promise.all(results).then((results2) => {
-      return handleExclusiveUnionResults(results2, payload, inst, ctx);
+    return Promise.all(results).then((results) => {
+      return handleUnionResults(results, payload, inst, ctx);
     });
   };
 });
@@ -9906,8 +8608,8 @@ var $ZodIntersection = /* @__PURE__ */ $constructor("$ZodIntersection", (inst, d
     const right = def.right._zod.run({ value: input, issues: [] }, ctx);
     const async = left instanceof Promise || right instanceof Promise;
     if (async) {
-      return Promise.all([left, right]).then(([left2, right2]) => {
-        return handleIntersectionResults(payload, left2, right2);
+      return Promise.all([left, right]).then(([left, right]) => {
+        return handleIntersectionResults(payload, left, right);
       });
     }
     return handleIntersectionResults(payload, left, right);
@@ -9996,112 +8698,6 @@ function handleIntersectionResults(result, left, right) {
   result.value = merged.data;
   return result;
 }
-var $ZodTuple = /* @__PURE__ */ $constructor("$ZodTuple", (inst, def) => {
-  $ZodType.init(inst, def);
-  const items = def.items;
-  inst._zod.parse = (payload, ctx) => {
-    const input = payload.value;
-    if (!Array.isArray(input)) {
-      payload.issues.push({
-        input,
-        inst,
-        expected: "tuple",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    payload.value = [];
-    const proms = [];
-    const optinStart = getTupleOptStart(items, "optin");
-    const optoutStart = getTupleOptStart(items, "optout");
-    if (!def.rest) {
-      if (input.length < optinStart) {
-        payload.issues.push({
-          code: "too_small",
-          minimum: optinStart,
-          inclusive: true,
-          input,
-          inst,
-          origin: "array"
-        });
-        return payload;
-      }
-      if (input.length > items.length) {
-        payload.issues.push({
-          code: "too_big",
-          maximum: items.length,
-          inclusive: true,
-          input,
-          inst,
-          origin: "array"
-        });
-      }
-    }
-    const itemResults = new Array(items.length);
-    for (let i = 0;i < items.length; i++) {
-      const r = items[i]._zod.run({ value: input[i], issues: [] }, ctx);
-      if (r instanceof Promise) {
-        proms.push(r.then((rr) => {
-          itemResults[i] = rr;
-        }));
-      } else {
-        itemResults[i] = r;
-      }
-    }
-    if (def.rest) {
-      let i = items.length - 1;
-      const rest = input.slice(items.length);
-      for (const el of rest) {
-        i++;
-        const result = def.rest._zod.run({ value: el, issues: [] }, ctx);
-        if (result instanceof Promise) {
-          proms.push(result.then((r) => handleTupleResult(r, payload, i)));
-        } else {
-          handleTupleResult(result, payload, i);
-        }
-      }
-    }
-    if (proms.length) {
-      return Promise.all(proms).then(() => handleTupleResults(itemResults, payload, items, input, optoutStart));
-    }
-    return handleTupleResults(itemResults, payload, items, input, optoutStart);
-  };
-});
-function getTupleOptStart(items, key) {
-  for (let i = items.length - 1;i >= 0; i--) {
-    if (items[i]._zod[key] !== "optional")
-      return i + 1;
-  }
-  return 0;
-}
-function handleTupleResult(result, final, index) {
-  if (result.issues.length) {
-    final.issues.push(...prefixIssues(index, result.issues));
-  }
-  final.value[index] = result.value;
-}
-function handleTupleResults(itemResults, final, items, input, optoutStart) {
-  for (let i = 0;i < items.length; i++) {
-    const r = itemResults[i];
-    const isPresent = i < input.length;
-    if (r.issues.length) {
-      if (!isPresent && i >= optoutStart) {
-        final.value.length = i;
-        break;
-      }
-      final.issues.push(...prefixIssues(i, r.issues));
-    }
-    final.value[i] = r.value;
-  }
-  for (let i = final.value.length - 1;i >= input.length; i--) {
-    if (items[i]._zod.optout === "optional" && final.value[i] === undefined) {
-      final.value.length = i;
-    } else {
-      break;
-    }
-  }
-  return final;
-}
 var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.parse = (payload, ctx) => {
@@ -10141,11 +8737,11 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
           const outKey = keyResult.value;
           const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
           if (result instanceof Promise) {
-            proms.push(result.then((result2) => {
-              if (result2.issues.length) {
-                payload.issues.push(...prefixIssues(key, result2.issues));
+            proms.push(result.then((result) => {
+              if (result.issues.length) {
+                payload.issues.push(...prefixIssues(key, result.issues));
               }
-              payload.value[outKey] = result2.value;
+              payload.value[outKey] = result.value;
             }));
           } else {
             if (result.issues.length) {
@@ -10208,11 +8804,11 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
         }
         const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
         if (result instanceof Promise) {
-          proms.push(result.then((result2) => {
-            if (result2.issues.length) {
-              payload.issues.push(...prefixIssues(key, result2.issues));
+          proms.push(result.then((result) => {
+            if (result.issues.length) {
+              payload.issues.push(...prefixIssues(key, result.issues));
             }
-            payload.value[keyResult.value] = result2.value;
+            payload.value[keyResult.value] = result.value;
           }));
         } else {
           if (result.issues.length) {
@@ -10228,100 +8824,6 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
     return payload;
   };
 });
-var $ZodMap = /* @__PURE__ */ $constructor("$ZodMap", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    const input = payload.value;
-    if (!(input instanceof Map)) {
-      payload.issues.push({
-        expected: "map",
-        code: "invalid_type",
-        input,
-        inst
-      });
-      return payload;
-    }
-    const proms = [];
-    payload.value = new Map;
-    for (const [key, value] of input) {
-      const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
-      const valueResult = def.valueType._zod.run({ value, issues: [] }, ctx);
-      if (keyResult instanceof Promise || valueResult instanceof Promise) {
-        proms.push(Promise.all([keyResult, valueResult]).then(([keyResult2, valueResult2]) => {
-          handleMapResult(keyResult2, valueResult2, payload, key, input, inst, ctx);
-        }));
-      } else {
-        handleMapResult(keyResult, valueResult, payload, key, input, inst, ctx);
-      }
-    }
-    if (proms.length)
-      return Promise.all(proms).then(() => payload);
-    return payload;
-  };
-});
-function handleMapResult(keyResult, valueResult, final, key, input, inst, ctx) {
-  if (keyResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key)) {
-      final.issues.push(...prefixIssues(key, keyResult.issues));
-    } else {
-      final.issues.push({
-        code: "invalid_key",
-        origin: "map",
-        input,
-        inst,
-        issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
-      });
-    }
-  }
-  if (valueResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key)) {
-      final.issues.push(...prefixIssues(key, valueResult.issues));
-    } else {
-      final.issues.push({
-        origin: "map",
-        code: "invalid_element",
-        input,
-        inst,
-        key,
-        issues: valueResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
-      });
-    }
-  }
-  final.value.set(keyResult.value, valueResult.value);
-}
-var $ZodSet = /* @__PURE__ */ $constructor("$ZodSet", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    const input = payload.value;
-    if (!(input instanceof Set)) {
-      payload.issues.push({
-        input,
-        inst,
-        expected: "set",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    const proms = [];
-    payload.value = new Set;
-    for (const item of input) {
-      const result = def.valueType._zod.run({ value: item, issues: [] }, ctx);
-      if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleSetResult(result2, payload)));
-      } else
-        handleSetResult(result, payload);
-    }
-    if (proms.length)
-      return Promise.all(proms).then(() => payload);
-    return payload;
-  };
-});
-function handleSetResult(result, final) {
-  if (result.issues.length) {
-    final.issues.push(...result.issues);
-  }
-  final.value.add(result.value);
-}
 var $ZodEnum = /* @__PURE__ */ $constructor("$ZodEnum", (inst, def) => {
   $ZodType.init(inst, def);
   const values = getEnumValues(def.entries);
@@ -10364,21 +8866,6 @@ var $ZodLiteral = /* @__PURE__ */ $constructor("$ZodLiteral", (inst, def) => {
     return payload;
   };
 });
-var $ZodFile = /* @__PURE__ */ $constructor("$ZodFile", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (input instanceof File)
-      return payload;
-    payload.issues.push({
-      expected: "file",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
 var $ZodTransform = /* @__PURE__ */ $constructor("$ZodTransform", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.optin = "optional";
@@ -10389,8 +8876,8 @@ var $ZodTransform = /* @__PURE__ */ $constructor("$ZodTransform", (inst, def) =>
     const _out = def.transform(payload.value, payload);
     if (ctx.async) {
       const output = _out instanceof Promise ? _out : Promise.resolve(_out);
-      return output.then((output2) => {
-        payload.value = output2;
+      return output.then((output) => {
+        payload.value = output;
         payload.fallback = true;
         return payload;
       });
@@ -10473,7 +8960,7 @@ var $ZodDefault = /* @__PURE__ */ $constructor("$ZodDefault", (inst, def) => {
     }
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => handleDefaultResult(result2, def));
+      return result.then((result) => handleDefaultResult(result, def));
     }
     return handleDefaultResult(result, def);
   };
@@ -10507,7 +8994,7 @@ var $ZodNonOptional = /* @__PURE__ */ $constructor("$ZodNonOptional", (inst, def
   inst._zod.parse = (payload, ctx) => {
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => handleNonOptionalResult(result2, inst));
+      return result.then((result) => handleNonOptionalResult(result, inst));
     }
     return handleNonOptionalResult(result, inst);
   };
@@ -10523,23 +9010,6 @@ function handleNonOptionalResult(payload, inst) {
   }
   return payload;
 }
-var $ZodSuccess = /* @__PURE__ */ $constructor("$ZodSuccess", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    if (ctx.direction === "backward") {
-      throw new $ZodEncodeError("ZodSuccess");
-    }
-    const result = def.innerType._zod.run(payload, ctx);
-    if (result instanceof Promise) {
-      return result.then((result2) => {
-        payload.value = result2.issues.length === 0;
-        return payload;
-      });
-    }
-    payload.value = result.issues.length === 0;
-    return payload;
-  };
-});
 var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.optin = "optional";
@@ -10551,13 +9021,13 @@ var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
     }
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => {
-        payload.value = result2.value;
-        if (result2.issues.length) {
+      return result.then((result) => {
+        payload.value = result.value;
+        if (result.issues.length) {
           payload.value = def.catchValue({
             ...payload,
             error: {
-              issues: result2.issues.map((iss) => finalizeIssue(iss, ctx, config()))
+              issues: result.issues.map((iss) => finalizeIssue(iss, ctx, config()))
             },
             input: payload.value
           });
@@ -10582,21 +9052,6 @@ var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
     return payload;
   };
 });
-var $ZodNaN = /* @__PURE__ */ $constructor("$ZodNaN", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    if (typeof payload.value !== "number" || !Number.isNaN(payload.value)) {
-      payload.issues.push({
-        input: payload.value,
-        inst,
-        expected: "nan",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    return payload;
-  };
-});
 var $ZodPipe = /* @__PURE__ */ $constructor("$ZodPipe", (inst, def) => {
   $ZodType.init(inst, def);
   defineLazy(inst._zod, "values", () => def.in._zod.values);
@@ -10607,13 +9062,13 @@ var $ZodPipe = /* @__PURE__ */ $constructor("$ZodPipe", (inst, def) => {
     if (ctx.direction === "backward") {
       const right = def.out._zod.run(payload, ctx);
       if (right instanceof Promise) {
-        return right.then((right2) => handlePipeResult(right2, def.in, ctx));
+        return right.then((right) => handlePipeResult(right, def.in, ctx));
       }
       return handlePipeResult(right, def.in, ctx);
     }
     const left = def.in._zod.run(payload, ctx);
     if (left instanceof Promise) {
-      return left.then((left2) => handlePipeResult(left2, def.out, ctx));
+      return left.then((left) => handlePipeResult(left, def.out, ctx));
     }
     return handlePipeResult(left, def.out, ctx);
   };
@@ -10624,56 +9079,6 @@ function handlePipeResult(left, next, ctx) {
     return left;
   }
   return next._zod.run({ value: left.value, issues: left.issues, fallback: left.fallback }, ctx);
-}
-var $ZodCodec = /* @__PURE__ */ $constructor("$ZodCodec", (inst, def) => {
-  $ZodType.init(inst, def);
-  defineLazy(inst._zod, "values", () => def.in._zod.values);
-  defineLazy(inst._zod, "optin", () => def.in._zod.optin);
-  defineLazy(inst._zod, "optout", () => def.out._zod.optout);
-  defineLazy(inst._zod, "propValues", () => def.in._zod.propValues);
-  inst._zod.parse = (payload, ctx) => {
-    const direction = ctx.direction || "forward";
-    if (direction === "forward") {
-      const left = def.in._zod.run(payload, ctx);
-      if (left instanceof Promise) {
-        return left.then((left2) => handleCodecAResult(left2, def, ctx));
-      }
-      return handleCodecAResult(left, def, ctx);
-    } else {
-      const right = def.out._zod.run(payload, ctx);
-      if (right instanceof Promise) {
-        return right.then((right2) => handleCodecAResult(right2, def, ctx));
-      }
-      return handleCodecAResult(right, def, ctx);
-    }
-  };
-});
-function handleCodecAResult(result, def, ctx) {
-  if (result.issues.length) {
-    result.aborted = true;
-    return result;
-  }
-  const direction = ctx.direction || "forward";
-  if (direction === "forward") {
-    const transformed = def.transform(result.value, result);
-    if (transformed instanceof Promise) {
-      return transformed.then((value) => handleCodecTxResult(result, value, def.out, ctx));
-    }
-    return handleCodecTxResult(result, transformed, def.out, ctx);
-  } else {
-    const transformed = def.reverseTransform(result.value, result);
-    if (transformed instanceof Promise) {
-      return transformed.then((value) => handleCodecTxResult(result, value, def.in, ctx));
-    }
-    return handleCodecTxResult(result, transformed, def.in, ctx);
-  }
-}
-function handleCodecTxResult(left, value, nextSchema, ctx) {
-  if (left.issues.length) {
-    left.aborted = true;
-    return left;
-  }
-  return nextSchema._zod.run({ value, issues: left.issues }, ctx);
 }
 var $ZodPreprocess = /* @__PURE__ */ $constructor("$ZodPreprocess", (inst, def) => {
   $ZodPipe.init(inst, def);
@@ -10699,134 +9104,6 @@ function handleReadonlyResult(payload) {
   payload.value = Object.freeze(payload.value);
   return payload;
 }
-var $ZodTemplateLiteral = /* @__PURE__ */ $constructor("$ZodTemplateLiteral", (inst, def) => {
-  $ZodType.init(inst, def);
-  const regexParts = [];
-  for (const part of def.parts) {
-    if (typeof part === "object" && part !== null) {
-      if (!part._zod.pattern) {
-        throw new Error(`Invalid template literal part, no pattern found: ${[...part._zod.traits].shift()}`);
-      }
-      const source = part._zod.pattern instanceof RegExp ? part._zod.pattern.source : part._zod.pattern;
-      if (!source)
-        throw new Error(`Invalid template literal part: ${part._zod.traits}`);
-      const start = source.startsWith("^") ? 1 : 0;
-      const end = source.endsWith("$") ? source.length - 1 : source.length;
-      regexParts.push(source.slice(start, end));
-    } else if (part === null || primitiveTypes.has(typeof part)) {
-      regexParts.push(escapeRegex(`${part}`));
-    } else {
-      throw new Error(`Invalid template literal part: ${part}`);
-    }
-  }
-  inst._zod.pattern = new RegExp(`^${regexParts.join("")}$`);
-  inst._zod.parse = (payload, _ctx) => {
-    if (typeof payload.value !== "string") {
-      payload.issues.push({
-        input: payload.value,
-        inst,
-        expected: "string",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    inst._zod.pattern.lastIndex = 0;
-    if (!inst._zod.pattern.test(payload.value)) {
-      payload.issues.push({
-        input: payload.value,
-        inst,
-        code: "invalid_format",
-        format: def.format ?? "template_literal",
-        pattern: inst._zod.pattern.source
-      });
-      return payload;
-    }
-    return payload;
-  };
-});
-var $ZodFunction = /* @__PURE__ */ $constructor("$ZodFunction", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._def = def;
-  inst._zod.def = def;
-  inst.implement = (func) => {
-    if (typeof func !== "function") {
-      throw new Error("implement() must be called with a function");
-    }
-    return function(...args) {
-      const parsedArgs = inst._def.input ? parse(inst._def.input, args) : args;
-      const result = Reflect.apply(func, this, parsedArgs);
-      if (inst._def.output) {
-        return parse(inst._def.output, result);
-      }
-      return result;
-    };
-  };
-  inst.implementAsync = (func) => {
-    if (typeof func !== "function") {
-      throw new Error("implementAsync() must be called with a function");
-    }
-    return async function(...args) {
-      const parsedArgs = inst._def.input ? await parseAsync(inst._def.input, args) : args;
-      const result = await Reflect.apply(func, this, parsedArgs);
-      if (inst._def.output) {
-        return await parseAsync(inst._def.output, result);
-      }
-      return result;
-    };
-  };
-  inst._zod.parse = (payload, _ctx) => {
-    if (typeof payload.value !== "function") {
-      payload.issues.push({
-        code: "invalid_type",
-        expected: "function",
-        input: payload.value,
-        inst
-      });
-      return payload;
-    }
-    const hasPromiseOutput = inst._def.output && inst._def.output._zod.def.type === "promise";
-    if (hasPromiseOutput) {
-      payload.value = inst.implementAsync(payload.value);
-    } else {
-      payload.value = inst.implement(payload.value);
-    }
-    return payload;
-  };
-  inst.input = (...args) => {
-    const F = inst.constructor;
-    if (Array.isArray(args[0])) {
-      return new F({
-        type: "function",
-        input: new $ZodTuple({
-          type: "tuple",
-          items: args[0],
-          rest: args[1]
-        }),
-        output: inst._def.output
-      });
-    }
-    return new F({
-      type: "function",
-      input: args[0],
-      output: inst._def.output
-    });
-  };
-  inst.output = (output) => {
-    const F = inst.constructor;
-    return new F({
-      type: "function",
-      input: inst._def.input,
-      output
-    });
-  };
-  return inst;
-});
-var $ZodPromise = /* @__PURE__ */ $constructor("$ZodPromise", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    return Promise.resolve(payload.value).then((inner) => def.innerType._zod.run({ value: inner, issues: [] }, ctx));
-  };
-});
 var $ZodLazy = /* @__PURE__ */ $constructor("$ZodLazy", (inst, def) => {
   $ZodType.init(inst, def);
   defineLazy(inst._zod, "innerType", () => {
@@ -10854,7 +9131,7 @@ var $ZodCustom = /* @__PURE__ */ $constructor("$ZodCustom", (inst, def) => {
     const input = payload.value;
     const r = def.fn(input);
     if (r instanceof Promise) {
-      return r.then((r2) => handleRefineResult(r2, payload, input, inst));
+      return r.then((r) => handleRefineResult(r, payload, input, inst));
     }
     handleRefineResult(r, payload, input, inst);
     return;
@@ -10874,1102 +9151,8 @@ function handleRefineResult(result, payload, input, inst) {
     payload.issues.push(issue(_iss));
   }
 }
-// node_modules/zod/v4/locales/index.js
-var exports_locales = {};
-__export(exports_locales, {
-  zhTW: () => zh_TW_default,
-  zhCN: () => zh_CN_default,
-  yo: () => yo_default,
-  vi: () => vi_default,
-  uz: () => uz_default,
-  ur: () => ur_default,
-  uk: () => uk_default,
-  ua: () => ua_default,
-  tr: () => tr_default,
-  th: () => th_default,
-  ta: () => ta_default,
-  sv: () => sv_default,
-  sl: () => sl_default,
-  ru: () => ru_default,
-  ro: () => ro_default,
-  pt: () => pt_default,
-  ps: () => ps_default,
-  pl: () => pl_default,
-  ota: () => ota_default,
-  no: () => no_default,
-  nl: () => nl_default,
-  ms: () => ms_default,
-  mk: () => mk_default,
-  lt: () => lt_default,
-  ko: () => ko_default,
-  km: () => km_default,
-  kh: () => kh_default,
-  ka: () => ka_default,
-  ja: () => ja_default,
-  it: () => it_default,
-  is: () => is_default,
-  id: () => id_default,
-  hy: () => hy_default,
-  hu: () => hu_default,
-  hr: () => hr_default,
-  he: () => he_default,
-  frCA: () => fr_CA_default,
-  fr: () => fr_default,
-  fi: () => fi_default,
-  fa: () => fa_default,
-  es: () => es_default,
-  eo: () => eo_default,
-  en: () => en_default,
-  el: () => el_default,
-  de: () => de_default,
-  da: () => da_default,
-  cs: () => cs_default,
-  ca: () => ca_default,
-  bg: () => bg_default,
-  be: () => be_default,
-  az: () => az_default,
-  ar: () => ar_default
-});
-
-// node_modules/zod/v4/locales/ar.js
-var error = () => {
-  const Sizable = {
-    string: { unit: "حرف", verb: "أن يحوي" },
-    file: { unit: "بايت", verb: "أن يحوي" },
-    array: { unit: "عنصر", verb: "أن يحوي" },
-    set: { unit: "عنصر", verb: "أن يحوي" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "مدخل",
-    email: "بريد إلكتروني",
-    url: "رابط",
-    emoji: "إيموجي",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "تاريخ ووقت بمعيار ISO",
-    date: "تاريخ بمعيار ISO",
-    time: "وقت بمعيار ISO",
-    duration: "مدة بمعيار ISO",
-    ipv4: "عنوان IPv4",
-    ipv6: "عنوان IPv6",
-    cidrv4: "مدى عناوين بصيغة IPv4",
-    cidrv6: "مدى عناوين بصيغة IPv6",
-    base64: "نَص بترميز base64-encoded",
-    base64url: "نَص بترميز base64url-encoded",
-    json_string: "نَص على هيئة JSON",
-    e164: "رقم هاتف بمعيار E.164",
-    jwt: "JWT",
-    template_literal: "مدخل"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `مدخلات غير مقبولة: يفترض إدخال instanceof ${issue2.expected}، ولكن تم إدخال ${received}`;
-        }
-        return `مدخلات غير مقبولة: يفترض إدخال ${expected}، ولكن تم إدخال ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `مدخلات غير مقبولة: يفترض إدخال ${stringifyPrimitive(issue2.values[0])}`;
-        return `اختيار غير مقبول: يتوقع انتقاء أحد هذه الخيارات: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return ` أكبر من اللازم: يفترض أن تكون ${issue2.origin ?? "القيمة"} ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "عنصر"}`;
-        return `أكبر من اللازم: يفترض أن تكون ${issue2.origin ?? "القيمة"} ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `أصغر من اللازم: يفترض لـ ${issue2.origin} أن يكون ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `أصغر من اللازم: يفترض لـ ${issue2.origin} أن يكون ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `نَص غير مقبول: يجب أن يبدأ بـ "${issue2.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `نَص غير مقبول: يجب أن ينتهي بـ "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `نَص غير مقبول: يجب أن يتضمَّن "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `نَص غير مقبول: يجب أن يطابق النمط ${_issue.pattern}`;
-        return `${FormatDictionary[_issue.format] ?? issue2.format} غير مقبول`;
-      }
-      case "not_multiple_of":
-        return `رقم غير مقبول: يجب أن يكون من مضاعفات ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `معرف${issue2.keys.length > 1 ? "ات" : ""} غريب${issue2.keys.length > 1 ? "ة" : ""}: ${joinValues(issue2.keys, "، ")}`;
-      case "invalid_key":
-        return `معرف غير مقبول في ${issue2.origin}`;
-      case "invalid_union":
-        return "مدخل غير مقبول";
-      case "invalid_element":
-        return `مدخل غير مقبول في ${issue2.origin}`;
-      default:
-        return "مدخل غير مقبول";
-    }
-  };
-};
-function ar_default() {
-  return {
-    localeError: error()
-  };
-}
-// node_modules/zod/v4/locales/az.js
-var error2 = () => {
-  const Sizable = {
-    string: { unit: "simvol", verb: "olmalıdır" },
-    file: { unit: "bayt", verb: "olmalıdır" },
-    array: { unit: "element", verb: "olmalıdır" },
-    set: { unit: "element", verb: "olmalıdır" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "input",
-    email: "email address",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datetime",
-    date: "ISO date",
-    time: "ISO time",
-    duration: "ISO duration",
-    ipv4: "IPv4 address",
-    ipv6: "IPv6 address",
-    cidrv4: "IPv4 range",
-    cidrv6: "IPv6 range",
-    base64: "base64-encoded string",
-    base64url: "base64url-encoded string",
-    json_string: "JSON string",
-    e164: "E.164 number",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Yanlış dəyər: gözlənilən instanceof ${issue2.expected}, daxil olan ${received}`;
-        }
-        return `Yanlış dəyər: gözlənilən ${expected}, daxil olan ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Yanlış dəyər: gözlənilən ${stringifyPrimitive(issue2.values[0])}`;
-        return `Yanlış seçim: aşağıdakılardan biri olmalıdır: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çox böyük: gözlənilən ${issue2.origin ?? "dəyər"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "element"}`;
-        return `Çox böyük: gözlənilən ${issue2.origin ?? "dəyər"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çox kiçik: gözlənilən ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        return `Çox kiçik: gözlənilən ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Yanlış mətn: "${_issue.prefix}" ilə başlamalıdır`;
-        if (_issue.format === "ends_with")
-          return `Yanlış mətn: "${_issue.suffix}" ilə bitməlidir`;
-        if (_issue.format === "includes")
-          return `Yanlış mətn: "${_issue.includes}" daxil olmalıdır`;
-        if (_issue.format === "regex")
-          return `Yanlış mətn: ${_issue.pattern} şablonuna uyğun olmalıdır`;
-        return `Yanlış ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Yanlış ədəd: ${issue2.divisor} ilə bölünə bilən olmalıdır`;
-      case "unrecognized_keys":
-        return `Tanınmayan açar${issue2.keys.length > 1 ? "lar" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} daxilində yanlış açar`;
-      case "invalid_union":
-        return "Yanlış dəyər";
-      case "invalid_element":
-        return `${issue2.origin} daxilində yanlış dəyər`;
-      default:
-        return `Yanlış dəyər`;
-    }
-  };
-};
-function az_default() {
-  return {
-    localeError: error2()
-  };
-}
-// node_modules/zod/v4/locales/be.js
-function getBelarusianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
-  const lastDigit = absCount % 10;
-  const lastTwoDigits = absCount % 100;
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
-    return many;
-  }
-  if (lastDigit === 1) {
-    return one;
-  }
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return few;
-  }
-  return many;
-}
-var error3 = () => {
-  const Sizable = {
-    string: {
-      unit: {
-        one: "сімвал",
-        few: "сімвалы",
-        many: "сімвалаў"
-      },
-      verb: "мець"
-    },
-    array: {
-      unit: {
-        one: "элемент",
-        few: "элементы",
-        many: "элементаў"
-      },
-      verb: "мець"
-    },
-    set: {
-      unit: {
-        one: "элемент",
-        few: "элементы",
-        many: "элементаў"
-      },
-      verb: "мець"
-    },
-    file: {
-      unit: {
-        one: "байт",
-        few: "байты",
-        many: "байтаў"
-      },
-      verb: "мець"
-    }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "увод",
-    email: "email адрас",
-    url: "URL",
-    emoji: "эмодзі",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO дата і час",
-    date: "ISO дата",
-    time: "ISO час",
-    duration: "ISO працягласць",
-    ipv4: "IPv4 адрас",
-    ipv6: "IPv6 адрас",
-    cidrv4: "IPv4 дыяпазон",
-    cidrv6: "IPv6 дыяпазон",
-    base64: "радок у фармаце base64",
-    base64url: "радок у фармаце base64url",
-    json_string: "JSON радок",
-    e164: "нумар E.164",
-    jwt: "JWT",
-    template_literal: "увод"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "лік",
-    array: "масіў"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Няправільны ўвод: чакаўся instanceof ${issue2.expected}, атрымана ${received}`;
-        }
-        return `Няправільны ўвод: чакаўся ${expected}, атрымана ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Няправільны ўвод: чакалася ${stringifyPrimitive(issue2.values[0])}`;
-        return `Няправільны варыянт: чакаўся адзін з ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const maxValue = Number(issue2.maximum);
-          const unit = getBelarusianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Занадта вялікі: чакалася, што ${issue2.origin ?? "значэнне"} павінна ${sizing.verb} ${adj}${issue2.maximum.toString()} ${unit}`;
-        }
-        return `Занадта вялікі: чакалася, што ${issue2.origin ?? "значэнне"} павінна быць ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const minValue = Number(issue2.minimum);
-          const unit = getBelarusianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Занадта малы: чакалася, што ${issue2.origin} павінна ${sizing.verb} ${adj}${issue2.minimum.toString()} ${unit}`;
-        }
-        return `Занадта малы: чакалася, што ${issue2.origin} павінна быць ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Няправільны радок: павінен пачынацца з "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Няправільны радок: павінен заканчвацца на "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Няправільны радок: павінен змяшчаць "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Няправільны радок: павінен адпавядаць шаблону ${_issue.pattern}`;
-        return `Няправільны ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Няправільны лік: павінен быць кратным ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Нераспазнаны ${issue2.keys.length > 1 ? "ключы" : "ключ"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Няправільны ключ у ${issue2.origin}`;
-      case "invalid_union":
-        return "Няправільны ўвод";
-      case "invalid_element":
-        return `Няправільнае значэнне ў ${issue2.origin}`;
-      default:
-        return `Няправільны ўвод`;
-    }
-  };
-};
-function be_default() {
-  return {
-    localeError: error3()
-  };
-}
-// node_modules/zod/v4/locales/bg.js
-var error4 = () => {
-  const Sizable = {
-    string: { unit: "символа", verb: "да съдържа" },
-    file: { unit: "байта", verb: "да съдържа" },
-    array: { unit: "елемента", verb: "да съдържа" },
-    set: { unit: "елемента", verb: "да съдържа" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "вход",
-    email: "имейл адрес",
-    url: "URL",
-    emoji: "емоджи",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO време",
-    date: "ISO дата",
-    time: "ISO време",
-    duration: "ISO продължителност",
-    ipv4: "IPv4 адрес",
-    ipv6: "IPv6 адрес",
-    cidrv4: "IPv4 диапазон",
-    cidrv6: "IPv6 диапазон",
-    base64: "base64-кодиран низ",
-    base64url: "base64url-кодиран низ",
-    json_string: "JSON низ",
-    e164: "E.164 номер",
-    jwt: "JWT",
-    template_literal: "вход"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "число",
-    array: "масив"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Невалиден вход: очакван instanceof ${issue2.expected}, получен ${received}`;
-        }
-        return `Невалиден вход: очакван ${expected}, получен ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Невалиден вход: очакван ${stringifyPrimitive(issue2.values[0])}`;
-        return `Невалидна опция: очаквано едно от ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Твърде голямо: очаква се ${issue2.origin ?? "стойност"} да съдържа ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "елемента"}`;
-        return `Твърде голямо: очаква се ${issue2.origin ?? "стойност"} да бъде ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Твърде малко: очаква се ${issue2.origin} да съдържа ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Твърде малко: очаква се ${issue2.origin} да бъде ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Невалиден низ: трябва да започва с "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Невалиден низ: трябва да завършва с "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Невалиден низ: трябва да включва "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Невалиден низ: трябва да съвпада с ${_issue.pattern}`;
-        let invalid_adj = "Невалиден";
-        if (_issue.format === "emoji")
-          invalid_adj = "Невалидно";
-        if (_issue.format === "datetime")
-          invalid_adj = "Невалидно";
-        if (_issue.format === "date")
-          invalid_adj = "Невалидна";
-        if (_issue.format === "time")
-          invalid_adj = "Невалидно";
-        if (_issue.format === "duration")
-          invalid_adj = "Невалидна";
-        return `${invalid_adj} ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Невалидно число: трябва да бъде кратно на ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Неразпознат${issue2.keys.length > 1 ? "и" : ""} ключ${issue2.keys.length > 1 ? "ове" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Невалиден ключ в ${issue2.origin}`;
-      case "invalid_union":
-        return "Невалиден вход";
-      case "invalid_element":
-        return `Невалидна стойност в ${issue2.origin}`;
-      default:
-        return `Невалиден вход`;
-    }
-  };
-};
-function bg_default() {
-  return {
-    localeError: error4()
-  };
-}
-// node_modules/zod/v4/locales/ca.js
-var error5 = () => {
-  const Sizable = {
-    string: { unit: "caràcters", verb: "contenir" },
-    file: { unit: "bytes", verb: "contenir" },
-    array: { unit: "elements", verb: "contenir" },
-    set: { unit: "elements", verb: "contenir" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "entrada",
-    email: "adreça electrònica",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data i hora ISO",
-    date: "data ISO",
-    time: "hora ISO",
-    duration: "durada ISO",
-    ipv4: "adreça IPv4",
-    ipv6: "adreça IPv6",
-    cidrv4: "rang IPv4",
-    cidrv6: "rang IPv6",
-    base64: "cadena codificada en base64",
-    base64url: "cadena codificada en base64url",
-    json_string: "cadena JSON",
-    e164: "número E.164",
-    jwt: "JWT",
-    template_literal: "entrada"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Tipus invàlid: s'esperava instanceof ${issue2.expected}, s'ha rebut ${received}`;
-        }
-        return `Tipus invàlid: s'esperava ${expected}, s'ha rebut ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Valor invàlid: s'esperava ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opció invàlida: s'esperava una de ${joinValues(issue2.values, " o ")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "com a màxim" : "menys de";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Massa gran: s'esperava que ${issue2.origin ?? "el valor"} contingués ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "elements"}`;
-        return `Massa gran: s'esperava que ${issue2.origin ?? "el valor"} fos ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "com a mínim" : "més de";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Massa petit: s'esperava que ${issue2.origin} contingués ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Massa petit: s'esperava que ${issue2.origin} fos ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Format invàlid: ha de començar amb "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Format invàlid: ha d'acabar amb "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Format invàlid: ha d'incloure "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Format invàlid: ha de coincidir amb el patró ${_issue.pattern}`;
-        return `Format invàlid per a ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Número invàlid: ha de ser múltiple de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Clau${issue2.keys.length > 1 ? "s" : ""} no reconeguda${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Clau invàlida a ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrada invàlida";
-      case "invalid_element":
-        return `Element invàlid a ${issue2.origin}`;
-      default:
-        return `Entrada invàlida`;
-    }
-  };
-};
-function ca_default() {
-  return {
-    localeError: error5()
-  };
-}
-// node_modules/zod/v4/locales/cs.js
-var error6 = () => {
-  const Sizable = {
-    string: { unit: "znaků", verb: "mít" },
-    file: { unit: "bajtů", verb: "mít" },
-    array: { unit: "prvků", verb: "mít" },
-    set: { unit: "prvků", verb: "mít" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "regulární výraz",
-    email: "e-mailová adresa",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "datum a čas ve formátu ISO",
-    date: "datum ve formátu ISO",
-    time: "čas ve formátu ISO",
-    duration: "doba trvání ISO",
-    ipv4: "IPv4 adresa",
-    ipv6: "IPv6 adresa",
-    cidrv4: "rozsah IPv4",
-    cidrv6: "rozsah IPv6",
-    base64: "řetězec zakódovaný ve formátu base64",
-    base64url: "řetězec zakódovaný ve formátu base64url",
-    json_string: "řetězec ve formátu JSON",
-    e164: "číslo E.164",
-    jwt: "JWT",
-    template_literal: "vstup"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "číslo",
-    string: "řetězec",
-    function: "funkce",
-    array: "pole"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Neplatný vstup: očekáváno instanceof ${issue2.expected}, obdrženo ${received}`;
-        }
-        return `Neplatný vstup: očekáváno ${expected}, obdrženo ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Neplatný vstup: očekáváno ${stringifyPrimitive(issue2.values[0])}`;
-        return `Neplatná možnost: očekávána jedna z hodnot ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Hodnota je příliš velká: ${issue2.origin ?? "hodnota"} musí mít ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "prvků"}`;
-        }
-        return `Hodnota je příliš velká: ${issue2.origin ?? "hodnota"} musí být ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Hodnota je příliš malá: ${issue2.origin ?? "hodnota"} musí mít ${adj}${issue2.minimum.toString()} ${sizing.unit ?? "prvků"}`;
-        }
-        return `Hodnota je příliš malá: ${issue2.origin ?? "hodnota"} musí být ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Neplatný řetězec: musí začínat na "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Neplatný řetězec: musí končit na "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Neplatný řetězec: musí obsahovat "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Neplatný řetězec: musí odpovídat vzoru ${_issue.pattern}`;
-        return `Neplatný formát ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Neplatné číslo: musí být násobkem ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Neznámé klíče: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Neplatný klíč v ${issue2.origin}`;
-      case "invalid_union":
-        return "Neplatný vstup";
-      case "invalid_element":
-        return `Neplatná hodnota v ${issue2.origin}`;
-      default:
-        return `Neplatný vstup`;
-    }
-  };
-};
-function cs_default() {
-  return {
-    localeError: error6()
-  };
-}
-// node_modules/zod/v4/locales/da.js
-var error7 = () => {
-  const Sizable = {
-    string: { unit: "tegn", verb: "havde" },
-    file: { unit: "bytes", verb: "havde" },
-    array: { unit: "elementer", verb: "indeholdt" },
-    set: { unit: "elementer", verb: "indeholdt" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "input",
-    email: "e-mailadresse",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO dato- og klokkeslæt",
-    date: "ISO-dato",
-    time: "ISO-klokkeslæt",
-    duration: "ISO-varighed",
-    ipv4: "IPv4-område",
-    ipv6: "IPv6-område",
-    cidrv4: "IPv4-spektrum",
-    cidrv6: "IPv6-spektrum",
-    base64: "base64-kodet streng",
-    base64url: "base64url-kodet streng",
-    json_string: "JSON-streng",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    string: "streng",
-    number: "tal",
-    boolean: "boolean",
-    array: "liste",
-    object: "objekt",
-    set: "sæt",
-    file: "fil"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Ugyldigt input: forventede instanceof ${issue2.expected}, fik ${received}`;
-        }
-        return `Ugyldigt input: forventede ${expected}, fik ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ugyldig værdi: forventede ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ugyldigt valg: forventede en af følgende ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        if (sizing)
-          return `For stor: forventede ${origin ?? "value"} ${sizing.verb} ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "elementer"}`;
-        return `For stor: forventede ${origin ?? "value"} havde ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        if (sizing) {
-          return `For lille: forventede ${origin} ${sizing.verb} ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `For lille: forventede ${origin} havde ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ugyldig streng: skal starte med "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Ugyldig streng: skal ende med "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ugyldig streng: skal indeholde "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ugyldig streng: skal matche mønsteret ${_issue.pattern}`;
-        return `Ugyldig ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ugyldigt tal: skal være deleligt med ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Ukendte nøgler" : "Ukendt nøgle"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ugyldig nøgle i ${issue2.origin}`;
-      case "invalid_union":
-        return "Ugyldigt input: matcher ingen af de tilladte typer";
-      case "invalid_element":
-        return `Ugyldig værdi i ${issue2.origin}`;
-      default:
-        return `Ugyldigt input`;
-    }
-  };
-};
-function da_default() {
-  return {
-    localeError: error7()
-  };
-}
-// node_modules/zod/v4/locales/de.js
-var error8 = () => {
-  const Sizable = {
-    string: { unit: "Zeichen", verb: "zu haben" },
-    file: { unit: "Bytes", verb: "zu haben" },
-    array: { unit: "Elemente", verb: "zu haben" },
-    set: { unit: "Elemente", verb: "zu haben" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "Eingabe",
-    email: "E-Mail-Adresse",
-    url: "URL",
-    emoji: "Emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-Datum und -Uhrzeit",
-    date: "ISO-Datum",
-    time: "ISO-Uhrzeit",
-    duration: "ISO-Dauer",
-    ipv4: "IPv4-Adresse",
-    ipv6: "IPv6-Adresse",
-    cidrv4: "IPv4-Bereich",
-    cidrv6: "IPv6-Bereich",
-    base64: "Base64-codierter String",
-    base64url: "Base64-URL-codierter String",
-    json_string: "JSON-String",
-    e164: "E.164-Nummer",
-    jwt: "JWT",
-    template_literal: "Eingabe"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "Zahl",
-    array: "Array"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Ungültige Eingabe: erwartet instanceof ${issue2.expected}, erhalten ${received}`;
-        }
-        return `Ungültige Eingabe: erwartet ${expected}, erhalten ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ungültige Eingabe: erwartet ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ungültige Option: erwartet eine von ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Zu groß: erwartet, dass ${issue2.origin ?? "Wert"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "Elemente"} hat`;
-        return `Zu groß: erwartet, dass ${issue2.origin ?? "Wert"} ${adj}${issue2.maximum.toString()} ist`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Zu klein: erwartet, dass ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit} hat`;
-        }
-        return `Zu klein: erwartet, dass ${issue2.origin} ${adj}${issue2.minimum.toString()} ist`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ungültiger String: muss mit "${_issue.prefix}" beginnen`;
-        if (_issue.format === "ends_with")
-          return `Ungültiger String: muss mit "${_issue.suffix}" enden`;
-        if (_issue.format === "includes")
-          return `Ungültiger String: muss "${_issue.includes}" enthalten`;
-        if (_issue.format === "regex")
-          return `Ungültiger String: muss dem Muster ${_issue.pattern} entsprechen`;
-        return `Ungültig: ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ungültige Zahl: muss ein Vielfaches von ${issue2.divisor} sein`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Unbekannte Schlüssel" : "Unbekannter Schlüssel"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ungültiger Schlüssel in ${issue2.origin}`;
-      case "invalid_union":
-        return "Ungültige Eingabe";
-      case "invalid_element":
-        return `Ungültiger Wert in ${issue2.origin}`;
-      default:
-        return `Ungültige Eingabe`;
-    }
-  };
-};
-function de_default() {
-  return {
-    localeError: error8()
-  };
-}
-// node_modules/zod/v4/locales/el.js
-var error9 = () => {
-  const Sizable = {
-    string: { unit: "χαρακτήρες", verb: "να έχει" },
-    file: { unit: "bytes", verb: "να έχει" },
-    array: { unit: "στοιχεία", verb: "να έχει" },
-    set: { unit: "στοιχεία", verb: "να έχει" },
-    map: { unit: "καταχωρήσεις", verb: "να έχει" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "είσοδος",
-    email: "διεύθυνση email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO ημερομηνία και ώρα",
-    date: "ISO ημερομηνία",
-    time: "ISO ώρα",
-    duration: "ISO διάρκεια",
-    ipv4: "διεύθυνση IPv4",
-    ipv6: "διεύθυνση IPv6",
-    mac: "διεύθυνση MAC",
-    cidrv4: "εύρος IPv4",
-    cidrv6: "εύρος IPv6",
-    base64: "συμβολοσειρά κωδικοποιημένη σε base64",
-    base64url: "συμβολοσειρά κωδικοποιημένη σε base64url",
-    json_string: "συμβολοσειρά JSON",
-    e164: "αριθμός E.164",
-    jwt: "JWT",
-    template_literal: "είσοδος"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (typeof issue2.expected === "string" && /^[A-Z]/.test(issue2.expected)) {
-          return `Μη έγκυρη είσοδος: αναμενόταν instanceof ${issue2.expected}, λήφθηκε ${received}`;
-        }
-        return `Μη έγκυρη είσοδος: αναμενόταν ${expected}, λήφθηκε ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Μη έγκυρη είσοδος: αναμενόταν ${stringifyPrimitive(issue2.values[0])}`;
-        return `Μη έγκυρη επιλογή: αναμενόταν ένα από ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Πολύ μεγάλο: αναμενόταν ${issue2.origin ?? "τιμή"} να έχει ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "στοιχεία"}`;
-        return `Πολύ μεγάλο: αναμενόταν ${issue2.origin ?? "τιμή"} να είναι ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Πολύ μικρό: αναμενόταν ${issue2.origin} να έχει ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Πολύ μικρό: αναμενόταν ${issue2.origin} να είναι ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Μη έγκυρη συμβολοσειρά: πρέπει να ξεκινά με "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Μη έγκυρη συμβολοσειρά: πρέπει να τελειώνει με "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Μη έγκυρη συμβολοσειρά: πρέπει να περιέχει "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Μη έγκυρη συμβολοσειρά: πρέπει να ταιριάζει με το μοτίβο ${_issue.pattern}`;
-        return `Μη έγκυρο: ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Μη έγκυρος αριθμός: πρέπει να είναι πολλαπλάσιο του ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Άγνωστ${issue2.keys.length > 1 ? "α" : "ο"} κλειδ${issue2.keys.length > 1 ? "ιά" : "ί"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Μη έγκυρο κλειδί στο ${issue2.origin}`;
-      case "invalid_union":
-        return "Μη έγκυρη είσοδος";
-      case "invalid_element":
-        return `Μη έγκυρη τιμή στο ${issue2.origin}`;
-      default:
-        return `Μη έγκυρη είσοδος`;
-    }
-  };
-};
-function el_default() {
-  return {
-    localeError: error9()
-  };
-}
 // node_modules/zod/v4/locales/en.js
-var error10 = () => {
+var error = () => {
   const Sizable = {
     string: { unit: "characters", verb: "to have" },
     file: { unit: "bytes", verb: "to have" },
@@ -12014,35 +9197,35 @@ var error10 = () => {
   const TypeDictionary = {
     nan: "NaN"
   };
-  return (issue2) => {
-    switch (issue2.code) {
+  return (issue) => {
+    switch (issue.code) {
       case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
+        const expected = TypeDictionary[issue.expected] ?? issue.expected;
+        const receivedType = parsedType(issue.input);
         const received = TypeDictionary[receivedType] ?? receivedType;
         return `Invalid input: expected ${expected}, received ${received}`;
       }
       case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Invalid input: expected ${stringifyPrimitive(issue2.values[0])}`;
-        return `Invalid option: expected one of ${joinValues(issue2.values, "|")}`;
+        if (issue.values.length === 1)
+          return `Invalid input: expected ${stringifyPrimitive(issue.values[0])}`;
+        return `Invalid option: expected one of ${joinValues(issue.values, "|")}`;
       case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
+        const adj = issue.inclusive ? "<=" : "<";
+        const sizing = getSizing(issue.origin);
         if (sizing)
-          return `Too big: expected ${issue2.origin ?? "value"} to have ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elements"}`;
-        return `Too big: expected ${issue2.origin ?? "value"} to be ${adj}${issue2.maximum.toString()}`;
+          return `Too big: expected ${issue.origin ?? "value"} to have ${adj}${issue.maximum.toString()} ${sizing.unit ?? "elements"}`;
+        return `Too big: expected ${issue.origin ?? "value"} to be ${adj}${issue.maximum.toString()}`;
       }
       case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
+        const adj = issue.inclusive ? ">=" : ">";
+        const sizing = getSizing(issue.origin);
         if (sizing) {
-          return `Too small: expected ${issue2.origin} to have ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
+          return `Too small: expected ${issue.origin} to have ${adj}${issue.minimum.toString()} ${sizing.unit}`;
         }
-        return `Too small: expected ${issue2.origin} to be ${adj}${issue2.minimum.toString()}`;
+        return `Too small: expected ${issue.origin} to be ${adj}${issue.minimum.toString()}`;
       }
       case "invalid_format": {
-        const _issue = issue2;
+        const _issue = issue;
         if (_issue.format === "starts_with") {
           return `Invalid string: must start with "${_issue.prefix}"`;
         }
@@ -12052,22 +9235,22 @@ var error10 = () => {
           return `Invalid string: must include "${_issue.includes}"`;
         if (_issue.format === "regex")
           return `Invalid string: must match pattern ${_issue.pattern}`;
-        return `Invalid ${FormatDictionary[_issue.format] ?? issue2.format}`;
+        return `Invalid ${FormatDictionary[_issue.format] ?? issue.format}`;
       }
       case "not_multiple_of":
-        return `Invalid number: must be a multiple of ${issue2.divisor}`;
+        return `Invalid number: must be a multiple of ${issue.divisor}`;
       case "unrecognized_keys":
-        return `Unrecognized key${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
+        return `Unrecognized key${issue.keys.length > 1 ? "s" : ""}: ${joinValues(issue.keys, ", ")}`;
       case "invalid_key":
-        return `Invalid key in ${issue2.origin}`;
+        return `Invalid key in ${issue.origin}`;
       case "invalid_union":
-        if (issue2.options && Array.isArray(issue2.options) && issue2.options.length > 0) {
-          const opts = issue2.options.map((o) => `'${o}'`).join(" | ");
+        if (issue.options && Array.isArray(issue.options) && issue.options.length > 0) {
+          const opts = issue.options.map((o) => `'${o}'`).join(" | ");
           return `Invalid discriminator value. Expected ${opts}`;
         }
         return "Invalid input";
       case "invalid_element":
-        return `Invalid value in ${issue2.origin}`;
+        return `Invalid value in ${issue.origin}`;
       default:
         return `Invalid input`;
     }
@@ -12075,4704 +9258,7 @@ var error10 = () => {
 };
 function en_default() {
   return {
-    localeError: error10()
-  };
-}
-// node_modules/zod/v4/locales/eo.js
-var error11 = () => {
-  const Sizable = {
-    string: { unit: "karaktrojn", verb: "havi" },
-    file: { unit: "bajtojn", verb: "havi" },
-    array: { unit: "elementojn", verb: "havi" },
-    set: { unit: "elementojn", verb: "havi" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "enigo",
-    email: "retadreso",
-    url: "URL",
-    emoji: "emoĝio",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-datotempo",
-    date: "ISO-dato",
-    time: "ISO-tempo",
-    duration: "ISO-daŭro",
-    ipv4: "IPv4-adreso",
-    ipv6: "IPv6-adreso",
-    cidrv4: "IPv4-rango",
-    cidrv6: "IPv6-rango",
-    base64: "64-ume kodita karaktraro",
-    base64url: "URL-64-ume kodita karaktraro",
-    json_string: "JSON-karaktraro",
-    e164: "E.164-nombro",
-    jwt: "JWT",
-    template_literal: "enigo"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "nombro",
-    array: "tabelo",
-    null: "senvalora"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Nevalida enigo: atendiĝis instanceof ${issue2.expected}, riceviĝis ${received}`;
-        }
-        return `Nevalida enigo: atendiĝis ${expected}, riceviĝis ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Nevalida enigo: atendiĝis ${stringifyPrimitive(issue2.values[0])}`;
-        return `Nevalida opcio: atendiĝis unu el ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Tro granda: atendiĝis ke ${issue2.origin ?? "valoro"} havu ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementojn"}`;
-        return `Tro granda: atendiĝis ke ${issue2.origin ?? "valoro"} havu ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Tro malgranda: atendiĝis ke ${issue2.origin} havu ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Tro malgranda: atendiĝis ke ${issue2.origin} estu ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Nevalida karaktraro: devas komenciĝi per "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Nevalida karaktraro: devas finiĝi per "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Nevalida karaktraro: devas inkluzivi "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Nevalida karaktraro: devas kongrui kun la modelo ${_issue.pattern}`;
-        return `Nevalida ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Nevalida nombro: devas esti oblo de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Nekonata${issue2.keys.length > 1 ? "j" : ""} ŝlosilo${issue2.keys.length > 1 ? "j" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Nevalida ŝlosilo en ${issue2.origin}`;
-      case "invalid_union":
-        return "Nevalida enigo";
-      case "invalid_element":
-        return `Nevalida valoro en ${issue2.origin}`;
-      default:
-        return `Nevalida enigo`;
-    }
-  };
-};
-function eo_default() {
-  return {
-    localeError: error11()
-  };
-}
-// node_modules/zod/v4/locales/es.js
-var error12 = () => {
-  const Sizable = {
-    string: { unit: "caracteres", verb: "tener" },
-    file: { unit: "bytes", verb: "tener" },
-    array: { unit: "elementos", verb: "tener" },
-    set: { unit: "elementos", verb: "tener" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "entrada",
-    email: "dirección de correo electrónico",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "fecha y hora ISO",
-    date: "fecha ISO",
-    time: "hora ISO",
-    duration: "duración ISO",
-    ipv4: "dirección IPv4",
-    ipv6: "dirección IPv6",
-    cidrv4: "rango IPv4",
-    cidrv6: "rango IPv6",
-    base64: "cadena codificada en base64",
-    base64url: "URL codificada en base64",
-    json_string: "cadena JSON",
-    e164: "número E.164",
-    jwt: "JWT",
-    template_literal: "entrada"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    string: "texto",
-    number: "número",
-    boolean: "booleano",
-    array: "arreglo",
-    object: "objeto",
-    set: "conjunto",
-    file: "archivo",
-    date: "fecha",
-    bigint: "número grande",
-    symbol: "símbolo",
-    undefined: "indefinido",
-    null: "nulo",
-    function: "función",
-    map: "mapa",
-    record: "registro",
-    tuple: "tupla",
-    enum: "enumeración",
-    union: "unión",
-    literal: "literal",
-    promise: "promesa",
-    void: "vacío",
-    never: "nunca",
-    unknown: "desconocido",
-    any: "cualquiera"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Entrada inválida: se esperaba instanceof ${issue2.expected}, recibido ${received}`;
-        }
-        return `Entrada inválida: se esperaba ${expected}, recibido ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrada inválida: se esperaba ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opción inválida: se esperaba una de ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        if (sizing)
-          return `Demasiado grande: se esperaba que ${origin ?? "valor"} tuviera ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementos"}`;
-        return `Demasiado grande: se esperaba que ${origin ?? "valor"} fuera ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        if (sizing) {
-          return `Demasiado pequeño: se esperaba que ${origin} tuviera ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Demasiado pequeño: se esperaba que ${origin} fuera ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Cadena inválida: debe comenzar con "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Cadena inválida: debe terminar en "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Cadena inválida: debe incluir "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Cadena inválida: debe coincidir con el patrón ${_issue.pattern}`;
-        return `Inválido ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Número inválido: debe ser múltiplo de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Llave${issue2.keys.length > 1 ? "s" : ""} desconocida${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Llave inválida en ${TypeDictionary[issue2.origin] ?? issue2.origin}`;
-      case "invalid_union":
-        return "Entrada inválida";
-      case "invalid_element":
-        return `Valor inválido en ${TypeDictionary[issue2.origin] ?? issue2.origin}`;
-      default:
-        return `Entrada inválida`;
-    }
-  };
-};
-function es_default() {
-  return {
-    localeError: error12()
-  };
-}
-// node_modules/zod/v4/locales/fa.js
-var error13 = () => {
-  const Sizable = {
-    string: { unit: "کاراکتر", verb: "داشته باشد" },
-    file: { unit: "بایت", verb: "داشته باشد" },
-    array: { unit: "آیتم", verb: "داشته باشد" },
-    set: { unit: "آیتم", verb: "داشته باشد" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "ورودی",
-    email: "آدرس ایمیل",
-    url: "URL",
-    emoji: "ایموجی",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "تاریخ و زمان ایزو",
-    date: "تاریخ ایزو",
-    time: "زمان ایزو",
-    duration: "مدت زمان ایزو",
-    ipv4: "IPv4 آدرس",
-    ipv6: "IPv6 آدرس",
-    cidrv4: "IPv4 دامنه",
-    cidrv6: "IPv6 دامنه",
-    base64: "base64-encoded رشته",
-    base64url: "base64url-encoded رشته",
-    json_string: "JSON رشته",
-    e164: "E.164 عدد",
-    jwt: "JWT",
-    template_literal: "ورودی"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "عدد",
-    array: "آرایه"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `ورودی نامعتبر: می‌بایست instanceof ${issue2.expected} می‌بود، ${received} دریافت شد`;
-        }
-        return `ورودی نامعتبر: می‌بایست ${expected} می‌بود، ${received} دریافت شد`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1) {
-          return `ورودی نامعتبر: می‌بایست ${stringifyPrimitive(issue2.values[0])} می‌بود`;
-        }
-        return `گزینه نامعتبر: می‌بایست یکی از ${joinValues(issue2.values, "|")} می‌بود`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `خیلی بزرگ: ${issue2.origin ?? "مقدار"} باید ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "عنصر"} باشد`;
-        }
-        return `خیلی بزرگ: ${issue2.origin ?? "مقدار"} باید ${adj}${issue2.maximum.toString()} باشد`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `خیلی کوچک: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} ${sizing.unit} باشد`;
-        }
-        return `خیلی کوچک: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} باشد`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `رشته نامعتبر: باید با "${_issue.prefix}" شروع شود`;
-        }
-        if (_issue.format === "ends_with") {
-          return `رشته نامعتبر: باید با "${_issue.suffix}" تمام شود`;
-        }
-        if (_issue.format === "includes") {
-          return `رشته نامعتبر: باید شامل "${_issue.includes}" باشد`;
-        }
-        if (_issue.format === "regex") {
-          return `رشته نامعتبر: باید با الگوی ${_issue.pattern} مطابقت داشته باشد`;
-        }
-        return `${FormatDictionary[_issue.format] ?? issue2.format} نامعتبر`;
-      }
-      case "not_multiple_of":
-        return `عدد نامعتبر: باید مضرب ${issue2.divisor} باشد`;
-      case "unrecognized_keys":
-        return `کلید${issue2.keys.length > 1 ? "های" : ""} ناشناس: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `کلید ناشناس در ${issue2.origin}`;
-      case "invalid_union":
-        return `ورودی نامعتبر`;
-      case "invalid_element":
-        return `مقدار نامعتبر در ${issue2.origin}`;
-      default:
-        return `ورودی نامعتبر`;
-    }
-  };
-};
-function fa_default() {
-  return {
-    localeError: error13()
-  };
-}
-// node_modules/zod/v4/locales/fi.js
-var error14 = () => {
-  const Sizable = {
-    string: { unit: "merkkiä", subject: "merkkijonon" },
-    file: { unit: "tavua", subject: "tiedoston" },
-    array: { unit: "alkiota", subject: "listan" },
-    set: { unit: "alkiota", subject: "joukon" },
-    number: { unit: "", subject: "luvun" },
-    bigint: { unit: "", subject: "suuren kokonaisluvun" },
-    int: { unit: "", subject: "kokonaisluvun" },
-    date: { unit: "", subject: "päivämäärän" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "säännöllinen lauseke",
-    email: "sähköpostiosoite",
-    url: "URL-osoite",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-aikaleima",
-    date: "ISO-päivämäärä",
-    time: "ISO-aika",
-    duration: "ISO-kesto",
-    ipv4: "IPv4-osoite",
-    ipv6: "IPv6-osoite",
-    cidrv4: "IPv4-alue",
-    cidrv6: "IPv6-alue",
-    base64: "base64-koodattu merkkijono",
-    base64url: "base64url-koodattu merkkijono",
-    json_string: "JSON-merkkijono",
-    e164: "E.164-luku",
-    jwt: "JWT",
-    template_literal: "templaattimerkkijono"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Virheellinen tyyppi: odotettiin instanceof ${issue2.expected}, oli ${received}`;
-        }
-        return `Virheellinen tyyppi: odotettiin ${expected}, oli ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Virheellinen syöte: täytyy olla ${stringifyPrimitive(issue2.values[0])}`;
-        return `Virheellinen valinta: täytyy olla yksi seuraavista: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Liian suuri: ${sizing.subject} täytyy olla ${adj}${issue2.maximum.toString()} ${sizing.unit}`.trim();
-        }
-        return `Liian suuri: arvon täytyy olla ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Liian pieni: ${sizing.subject} täytyy olla ${adj}${issue2.minimum.toString()} ${sizing.unit}`.trim();
-        }
-        return `Liian pieni: arvon täytyy olla ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Virheellinen syöte: täytyy alkaa "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Virheellinen syöte: täytyy loppua "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Virheellinen syöte: täytyy sisältää "${_issue.includes}"`;
-        if (_issue.format === "regex") {
-          return `Virheellinen syöte: täytyy vastata säännöllistä lauseketta ${_issue.pattern}`;
-        }
-        return `Virheellinen ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Virheellinen luku: täytyy olla luvun ${issue2.divisor} monikerta`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Tuntemattomat avaimet" : "Tuntematon avain"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return "Virheellinen avain tietueessa";
-      case "invalid_union":
-        return "Virheellinen unioni";
-      case "invalid_element":
-        return "Virheellinen arvo joukossa";
-      default:
-        return `Virheellinen syöte`;
-    }
-  };
-};
-function fi_default() {
-  return {
-    localeError: error14()
-  };
-}
-// node_modules/zod/v4/locales/fr.js
-var error15 = () => {
-  const Sizable = {
-    string: { unit: "caractères", verb: "avoir" },
-    file: { unit: "octets", verb: "avoir" },
-    array: { unit: "éléments", verb: "avoir" },
-    set: { unit: "éléments", verb: "avoir" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "entrée",
-    email: "adresse e-mail",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "date et heure ISO",
-    date: "date ISO",
-    time: "heure ISO",
-    duration: "durée ISO",
-    ipv4: "adresse IPv4",
-    ipv6: "adresse IPv6",
-    cidrv4: "plage IPv4",
-    cidrv6: "plage IPv6",
-    base64: "chaîne encodée en base64",
-    base64url: "chaîne encodée en base64url",
-    json_string: "chaîne JSON",
-    e164: "numéro E.164",
-    jwt: "JWT",
-    template_literal: "entrée"
-  };
-  const TypeDictionary = {
-    string: "chaîne",
-    number: "nombre",
-    int: "entier",
-    boolean: "booléen",
-    bigint: "grand entier",
-    symbol: "symbole",
-    undefined: "indéfini",
-    null: "null",
-    never: "jamais",
-    void: "vide",
-    date: "date",
-    array: "tableau",
-    object: "objet",
-    tuple: "tuple",
-    record: "enregistrement",
-    map: "carte",
-    set: "ensemble",
-    file: "fichier",
-    nonoptional: "non-optionnel",
-    nan: "NaN",
-    function: "fonction"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Entrée invalide : instanceof ${issue2.expected} attendu, ${received} reçu`;
-        }
-        return `Entrée invalide : ${expected} attendu, ${received} reçu`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrée invalide : ${stringifyPrimitive(issue2.values[0])} attendu`;
-        return `Option invalide : une valeur parmi ${joinValues(issue2.values, "|")} attendue`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Trop grand : ${TypeDictionary[issue2.origin] ?? "valeur"} doit ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "élément(s)"}`;
-        return `Trop grand : ${TypeDictionary[issue2.origin] ?? "valeur"} doit être ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Trop petit : ${TypeDictionary[issue2.origin] ?? "valeur"} doit ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        return `Trop petit : ${TypeDictionary[issue2.origin] ?? "valeur"} doit être ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Chaîne invalide : doit commencer par "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Chaîne invalide : doit se terminer par "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Chaîne invalide : doit inclure "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Chaîne invalide : doit correspondre au modèle ${_issue.pattern}`;
-        return `${FormatDictionary[_issue.format] ?? issue2.format} invalide`;
-      }
-      case "not_multiple_of":
-        return `Nombre invalide : doit être un multiple de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Clé${issue2.keys.length > 1 ? "s" : ""} non reconnue${issue2.keys.length > 1 ? "s" : ""} : ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Clé invalide dans ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrée invalide";
-      case "invalid_element":
-        return `Valeur invalide dans ${issue2.origin}`;
-      default:
-        return `Entrée invalide`;
-    }
-  };
-};
-function fr_default() {
-  return {
-    localeError: error15()
-  };
-}
-// node_modules/zod/v4/locales/fr-CA.js
-var error16 = () => {
-  const Sizable = {
-    string: { unit: "caractères", verb: "avoir" },
-    file: { unit: "octets", verb: "avoir" },
-    array: { unit: "éléments", verb: "avoir" },
-    set: { unit: "éléments", verb: "avoir" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "entrée",
-    email: "adresse courriel",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "date-heure ISO",
-    date: "date ISO",
-    time: "heure ISO",
-    duration: "durée ISO",
-    ipv4: "adresse IPv4",
-    ipv6: "adresse IPv6",
-    cidrv4: "plage IPv4",
-    cidrv6: "plage IPv6",
-    base64: "chaîne encodée en base64",
-    base64url: "chaîne encodée en base64url",
-    json_string: "chaîne JSON",
-    e164: "numéro E.164",
-    jwt: "JWT",
-    template_literal: "entrée"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Entrée invalide : attendu instanceof ${issue2.expected}, reçu ${received}`;
-        }
-        return `Entrée invalide : attendu ${expected}, reçu ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrée invalide : attendu ${stringifyPrimitive(issue2.values[0])}`;
-        return `Option invalide : attendu l'une des valeurs suivantes ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "≤" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Trop grand : attendu que ${issue2.origin ?? "la valeur"} ait ${adj}${issue2.maximum.toString()} ${sizing.unit}`;
-        return `Trop grand : attendu que ${issue2.origin ?? "la valeur"} soit ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "≥" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Trop petit : attendu que ${issue2.origin} ait ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Trop petit : attendu que ${issue2.origin} soit ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Chaîne invalide : doit commencer par "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Chaîne invalide : doit se terminer par "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Chaîne invalide : doit inclure "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Chaîne invalide : doit correspondre au motif ${_issue.pattern}`;
-        return `${FormatDictionary[_issue.format] ?? issue2.format} invalide`;
-      }
-      case "not_multiple_of":
-        return `Nombre invalide : doit être un multiple de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Clé${issue2.keys.length > 1 ? "s" : ""} non reconnue${issue2.keys.length > 1 ? "s" : ""} : ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Clé invalide dans ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrée invalide";
-      case "invalid_element":
-        return `Valeur invalide dans ${issue2.origin}`;
-      default:
-        return `Entrée invalide`;
-    }
-  };
-};
-function fr_CA_default() {
-  return {
-    localeError: error16()
-  };
-}
-// node_modules/zod/v4/locales/he.js
-var error17 = () => {
-  const TypeNames = {
-    string: { label: "מחרוזת", gender: "f" },
-    number: { label: "מספר", gender: "m" },
-    boolean: { label: "ערך בוליאני", gender: "m" },
-    bigint: { label: "BigInt", gender: "m" },
-    date: { label: "תאריך", gender: "m" },
-    array: { label: "מערך", gender: "m" },
-    object: { label: "אובייקט", gender: "m" },
-    null: { label: "ערך ריק (null)", gender: "m" },
-    undefined: { label: "ערך לא מוגדר (undefined)", gender: "m" },
-    symbol: { label: "סימבול (Symbol)", gender: "m" },
-    function: { label: "פונקציה", gender: "f" },
-    map: { label: "מפה (Map)", gender: "f" },
-    set: { label: "קבוצה (Set)", gender: "f" },
-    file: { label: "קובץ", gender: "m" },
-    promise: { label: "Promise", gender: "m" },
-    NaN: { label: "NaN", gender: "m" },
-    unknown: { label: "ערך לא ידוע", gender: "m" },
-    value: { label: "ערך", gender: "m" }
-  };
-  const Sizable = {
-    string: { unit: "תווים", shortLabel: "קצר", longLabel: "ארוך" },
-    file: { unit: "בייטים", shortLabel: "קטן", longLabel: "גדול" },
-    array: { unit: "פריטים", shortLabel: "קטן", longLabel: "גדול" },
-    set: { unit: "פריטים", shortLabel: "קטן", longLabel: "גדול" },
-    number: { unit: "", shortLabel: "קטן", longLabel: "גדול" }
-  };
-  const typeEntry = (t) => t ? TypeNames[t] : undefined;
-  const typeLabel = (t) => {
-    const e = typeEntry(t);
-    if (e)
-      return e.label;
-    return t ?? TypeNames.unknown.label;
-  };
-  const withDefinite = (t) => `ה${typeLabel(t)}`;
-  const verbFor = (t) => {
-    const e = typeEntry(t);
-    const gender = e?.gender ?? "m";
-    return gender === "f" ? "צריכה להיות" : "צריך להיות";
-  };
-  const getSizing = (origin) => {
-    if (!origin)
-      return null;
-    return Sizable[origin] ?? null;
-  };
-  const FormatDictionary = {
-    regex: { label: "קלט", gender: "m" },
-    email: { label: "כתובת אימייל", gender: "f" },
-    url: { label: "כתובת רשת", gender: "f" },
-    emoji: { label: "אימוג'י", gender: "m" },
-    uuid: { label: "UUID", gender: "m" },
-    nanoid: { label: "nanoid", gender: "m" },
-    guid: { label: "GUID", gender: "m" },
-    cuid: { label: "cuid", gender: "m" },
-    cuid2: { label: "cuid2", gender: "m" },
-    ulid: { label: "ULID", gender: "m" },
-    xid: { label: "XID", gender: "m" },
-    ksuid: { label: "KSUID", gender: "m" },
-    datetime: { label: "תאריך וזמן ISO", gender: "m" },
-    date: { label: "תאריך ISO", gender: "m" },
-    time: { label: "זמן ISO", gender: "m" },
-    duration: { label: "משך זמן ISO", gender: "m" },
-    ipv4: { label: "כתובת IPv4", gender: "f" },
-    ipv6: { label: "כתובת IPv6", gender: "f" },
-    cidrv4: { label: "טווח IPv4", gender: "m" },
-    cidrv6: { label: "טווח IPv6", gender: "m" },
-    base64: { label: "מחרוזת בבסיס 64", gender: "f" },
-    base64url: { label: "מחרוזת בבסיס 64 לכתובות רשת", gender: "f" },
-    json_string: { label: "מחרוזת JSON", gender: "f" },
-    e164: { label: "מספר E.164", gender: "m" },
-    jwt: { label: "JWT", gender: "m" },
-    ends_with: { label: "קלט", gender: "m" },
-    includes: { label: "קלט", gender: "m" },
-    lowercase: { label: "קלט", gender: "m" },
-    starts_with: { label: "קלט", gender: "m" },
-    uppercase: { label: "קלט", gender: "m" }
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expectedKey = issue2.expected;
-        const expected = TypeDictionary[expectedKey ?? ""] ?? typeLabel(expectedKey);
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? TypeNames[receivedType]?.label ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `קלט לא תקין: צריך להיות instanceof ${issue2.expected}, התקבל ${received}`;
-        }
-        return `קלט לא תקין: צריך להיות ${expected}, התקבל ${received}`;
-      }
-      case "invalid_value": {
-        if (issue2.values.length === 1) {
-          return `ערך לא תקין: הערך חייב להיות ${stringifyPrimitive(issue2.values[0])}`;
-        }
-        const stringified = issue2.values.map((v) => stringifyPrimitive(v));
-        if (issue2.values.length === 2) {
-          return `ערך לא תקין: האפשרויות המתאימות הן ${stringified[0]} או ${stringified[1]}`;
-        }
-        const lastValue = stringified[stringified.length - 1];
-        const restValues = stringified.slice(0, -1).join(", ");
-        return `ערך לא תקין: האפשרויות המתאימות הן ${restValues} או ${lastValue}`;
-      }
-      case "too_big": {
-        const sizing = getSizing(issue2.origin);
-        const subject = withDefinite(issue2.origin ?? "value");
-        if (issue2.origin === "string") {
-          return `${sizing?.longLabel ?? "ארוך"} מדי: ${subject} צריכה להכיל ${issue2.maximum.toString()} ${sizing?.unit ?? ""} ${issue2.inclusive ? "או פחות" : "לכל היותר"}`.trim();
-        }
-        if (issue2.origin === "number") {
-          const comparison = issue2.inclusive ? `קטן או שווה ל-${issue2.maximum}` : `קטן מ-${issue2.maximum}`;
-          return `גדול מדי: ${subject} צריך להיות ${comparison}`;
-        }
-        if (issue2.origin === "array" || issue2.origin === "set") {
-          const verb = issue2.origin === "set" ? "צריכה" : "צריך";
-          const comparison = issue2.inclusive ? `${issue2.maximum} ${sizing?.unit ?? ""} או פחות` : `פחות מ-${issue2.maximum} ${sizing?.unit ?? ""}`;
-          return `גדול מדי: ${subject} ${verb} להכיל ${comparison}`.trim();
-        }
-        const adj = issue2.inclusive ? "<=" : "<";
-        const be = verbFor(issue2.origin ?? "value");
-        if (sizing?.unit) {
-          return `${sizing.longLabel} מדי: ${subject} ${be} ${adj}${issue2.maximum.toString()} ${sizing.unit}`;
-        }
-        return `${sizing?.longLabel ?? "גדול"} מדי: ${subject} ${be} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const sizing = getSizing(issue2.origin);
-        const subject = withDefinite(issue2.origin ?? "value");
-        if (issue2.origin === "string") {
-          return `${sizing?.shortLabel ?? "קצר"} מדי: ${subject} צריכה להכיל ${issue2.minimum.toString()} ${sizing?.unit ?? ""} ${issue2.inclusive ? "או יותר" : "לפחות"}`.trim();
-        }
-        if (issue2.origin === "number") {
-          const comparison = issue2.inclusive ? `גדול או שווה ל-${issue2.minimum}` : `גדול מ-${issue2.minimum}`;
-          return `קטן מדי: ${subject} צריך להיות ${comparison}`;
-        }
-        if (issue2.origin === "array" || issue2.origin === "set") {
-          const verb = issue2.origin === "set" ? "צריכה" : "צריך";
-          if (issue2.minimum === 1 && issue2.inclusive) {
-            const singularPhrase = issue2.origin === "set" ? "לפחות פריט אחד" : "לפחות פריט אחד";
-            return `קטן מדי: ${subject} ${verb} להכיל ${singularPhrase}`;
-          }
-          const comparison = issue2.inclusive ? `${issue2.minimum} ${sizing?.unit ?? ""} או יותר` : `יותר מ-${issue2.minimum} ${sizing?.unit ?? ""}`;
-          return `קטן מדי: ${subject} ${verb} להכיל ${comparison}`.trim();
-        }
-        const adj = issue2.inclusive ? ">=" : ">";
-        const be = verbFor(issue2.origin ?? "value");
-        if (sizing?.unit) {
-          return `${sizing.shortLabel} מדי: ${subject} ${be} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `${sizing?.shortLabel ?? "קטן"} מדי: ${subject} ${be} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `המחרוזת חייבת להתחיל ב "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `המחרוזת חייבת להסתיים ב "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `המחרוזת חייבת לכלול "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `המחרוזת חייבת להתאים לתבנית ${_issue.pattern}`;
-        const nounEntry = FormatDictionary[_issue.format];
-        const noun = nounEntry?.label ?? _issue.format;
-        const gender = nounEntry?.gender ?? "m";
-        const adjective = gender === "f" ? "תקינה" : "תקין";
-        return `${noun} לא ${adjective}`;
-      }
-      case "not_multiple_of":
-        return `מספר לא תקין: חייב להיות מכפלה של ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `מפתח${issue2.keys.length > 1 ? "ות" : ""} לא מזוה${issue2.keys.length > 1 ? "ים" : "ה"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key": {
-        return `שדה לא תקין באובייקט`;
-      }
-      case "invalid_union":
-        return "קלט לא תקין";
-      case "invalid_element": {
-        const place = withDefinite(issue2.origin ?? "array");
-        return `ערך לא תקין ב${place}`;
-      }
-      default:
-        return `קלט לא תקין`;
-    }
-  };
-};
-function he_default() {
-  return {
-    localeError: error17()
-  };
-}
-// node_modules/zod/v4/locales/hr.js
-var error18 = () => {
-  const Sizable = {
-    string: { unit: "znakova", verb: "imati" },
-    file: { unit: "bajtova", verb: "imati" },
-    array: { unit: "stavki", verb: "imati" },
-    set: { unit: "stavki", verb: "imati" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "unos",
-    email: "email adresa",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datum i vrijeme",
-    date: "ISO datum",
-    time: "ISO vrijeme",
-    duration: "ISO trajanje",
-    ipv4: "IPv4 adresa",
-    ipv6: "IPv6 adresa",
-    cidrv4: "IPv4 raspon",
-    cidrv6: "IPv6 raspon",
-    base64: "base64 kodirani tekst",
-    base64url: "base64url kodirani tekst",
-    json_string: "JSON tekst",
-    e164: "E.164 broj",
-    jwt: "JWT",
-    template_literal: "unos"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    string: "tekst",
-    number: "broj",
-    boolean: "boolean",
-    array: "niz",
-    object: "objekt",
-    set: "skup",
-    file: "datoteka",
-    date: "datum",
-    bigint: "bigint",
-    symbol: "simbol",
-    undefined: "undefined",
-    null: "null",
-    function: "funkcija",
-    map: "mapa"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Neispravan unos: očekuje se instanceof ${issue2.expected}, a primljeno je ${received}`;
-        }
-        return `Neispravan unos: očekuje se ${expected}, a primljeno je ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Neispravna vrijednost: očekivano ${stringifyPrimitive(issue2.values[0])}`;
-        return `Neispravna opcija: očekivano jedno od ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        if (sizing)
-          return `Preveliko: očekivano da ${origin ?? "vrijednost"} ima ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elemenata"}`;
-        return `Preveliko: očekivano da ${origin ?? "vrijednost"} bude ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        if (sizing) {
-          return `Premalo: očekivano da ${origin} ima ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Premalo: očekivano da ${origin} bude ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Neispravan tekst: mora započinjati s "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Neispravan tekst: mora završavati s "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Neispravan tekst: mora sadržavati "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Neispravan tekst: mora odgovarati uzorku ${_issue.pattern}`;
-        return `Neispravna ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Neispravan broj: mora biti višekratnik od ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Neprepoznat${issue2.keys.length > 1 ? "i ključevi" : " ključ"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Neispravan ključ u ${TypeDictionary[issue2.origin] ?? issue2.origin}`;
-      case "invalid_union":
-        return "Neispravan unos";
-      case "invalid_element":
-        return `Neispravna vrijednost u ${TypeDictionary[issue2.origin] ?? issue2.origin}`;
-      default:
-        return `Neispravan unos`;
-    }
-  };
-};
-function hr_default() {
-  return {
-    localeError: error18()
-  };
-}
-// node_modules/zod/v4/locales/hu.js
-var error19 = () => {
-  const Sizable = {
-    string: { unit: "karakter", verb: "legyen" },
-    file: { unit: "byte", verb: "legyen" },
-    array: { unit: "elem", verb: "legyen" },
-    set: { unit: "elem", verb: "legyen" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "bemenet",
-    email: "email cím",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO időbélyeg",
-    date: "ISO dátum",
-    time: "ISO idő",
-    duration: "ISO időintervallum",
-    ipv4: "IPv4 cím",
-    ipv6: "IPv6 cím",
-    cidrv4: "IPv4 tartomány",
-    cidrv6: "IPv6 tartomány",
-    base64: "base64-kódolt string",
-    base64url: "base64url-kódolt string",
-    json_string: "JSON string",
-    e164: "E.164 szám",
-    jwt: "JWT",
-    template_literal: "bemenet"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "szám",
-    array: "tömb"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Érvénytelen bemenet: a várt érték instanceof ${issue2.expected}, a kapott érték ${received}`;
-        }
-        return `Érvénytelen bemenet: a várt érték ${expected}, a kapott érték ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Érvénytelen bemenet: a várt érték ${stringifyPrimitive(issue2.values[0])}`;
-        return `Érvénytelen opció: valamelyik érték várt ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Túl nagy: ${issue2.origin ?? "érték"} mérete túl nagy ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elem"}`;
-        return `Túl nagy: a bemeneti érték ${issue2.origin ?? "érték"} túl nagy: ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Túl kicsi: a bemeneti érték ${issue2.origin} mérete túl kicsi ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Túl kicsi: a bemeneti érték ${issue2.origin} túl kicsi ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Érvénytelen string: "${_issue.prefix}" értékkel kell kezdődnie`;
-        if (_issue.format === "ends_with")
-          return `Érvénytelen string: "${_issue.suffix}" értékkel kell végződnie`;
-        if (_issue.format === "includes")
-          return `Érvénytelen string: "${_issue.includes}" értéket kell tartalmaznia`;
-        if (_issue.format === "regex")
-          return `Érvénytelen string: ${_issue.pattern} mintának kell megfelelnie`;
-        return `Érvénytelen ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Érvénytelen szám: ${issue2.divisor} többszörösének kell lennie`;
-      case "unrecognized_keys":
-        return `Ismeretlen kulcs${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Érvénytelen kulcs ${issue2.origin}`;
-      case "invalid_union":
-        return "Érvénytelen bemenet";
-      case "invalid_element":
-        return `Érvénytelen érték: ${issue2.origin}`;
-      default:
-        return `Érvénytelen bemenet`;
-    }
-  };
-};
-function hu_default() {
-  return {
-    localeError: error19()
-  };
-}
-// node_modules/zod/v4/locales/hy.js
-function getArmenianPlural(count, one, many) {
-  return Math.abs(count) === 1 ? one : many;
-}
-function withDefiniteArticle(word) {
-  if (!word)
-    return "";
-  const vowels = ["ա", "ե", "ը", "ի", "ո", "ու", "օ"];
-  const lastChar = word[word.length - 1];
-  return word + (vowels.includes(lastChar) ? "ն" : "ը");
-}
-var error20 = () => {
-  const Sizable = {
-    string: {
-      unit: {
-        one: "նշան",
-        many: "նշաններ"
-      },
-      verb: "ունենալ"
-    },
-    file: {
-      unit: {
-        one: "բայթ",
-        many: "բայթեր"
-      },
-      verb: "ունենալ"
-    },
-    array: {
-      unit: {
-        one: "տարր",
-        many: "տարրեր"
-      },
-      verb: "ունենալ"
-    },
-    set: {
-      unit: {
-        one: "տարր",
-        many: "տարրեր"
-      },
-      verb: "ունենալ"
-    }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "մուտք",
-    email: "էլ. հասցե",
-    url: "URL",
-    emoji: "էմոջի",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO ամսաթիվ և ժամ",
-    date: "ISO ամսաթիվ",
-    time: "ISO ժամ",
-    duration: "ISO տևողություն",
-    ipv4: "IPv4 հասցե",
-    ipv6: "IPv6 հասցե",
-    cidrv4: "IPv4 միջակայք",
-    cidrv6: "IPv6 միջակայք",
-    base64: "base64 ձևաչափով տող",
-    base64url: "base64url ձևաչափով տող",
-    json_string: "JSON տող",
-    e164: "E.164 համար",
-    jwt: "JWT",
-    template_literal: "մուտք"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "թիվ",
-    array: "զանգված"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Սխալ մուտքագրում․ սպասվում էր instanceof ${issue2.expected}, ստացվել է ${received}`;
-        }
-        return `Սխալ մուտքագրում․ սպասվում էր ${expected}, ստացվել է ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Սխալ մուտքագրում․ սպասվում էր ${stringifyPrimitive(issue2.values[1])}`;
-        return `Սխալ տարբերակ․ սպասվում էր հետևյալներից մեկը՝ ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const maxValue = Number(issue2.maximum);
-          const unit = getArmenianPlural(maxValue, sizing.unit.one, sizing.unit.many);
-          return `Չափազանց մեծ արժեք․ սպասվում է, որ ${withDefiniteArticle(issue2.origin ?? "արժեք")} կունենա ${adj}${issue2.maximum.toString()} ${unit}`;
-        }
-        return `Չափազանց մեծ արժեք․ սպասվում է, որ ${withDefiniteArticle(issue2.origin ?? "արժեք")} լինի ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const minValue = Number(issue2.minimum);
-          const unit = getArmenianPlural(minValue, sizing.unit.one, sizing.unit.many);
-          return `Չափազանց փոքր արժեք․ սպասվում է, որ ${withDefiniteArticle(issue2.origin)} կունենա ${adj}${issue2.minimum.toString()} ${unit}`;
-        }
-        return `Չափազանց փոքր արժեք․ սպասվում է, որ ${withDefiniteArticle(issue2.origin)} լինի ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Սխալ տող․ պետք է սկսվի "${_issue.prefix}"-ով`;
-        if (_issue.format === "ends_with")
-          return `Սխալ տող․ պետք է ավարտվի "${_issue.suffix}"-ով`;
-        if (_issue.format === "includes")
-          return `Սխալ տող․ պետք է պարունակի "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Սխալ տող․ պետք է համապատասխանի ${_issue.pattern} ձևաչափին`;
-        return `Սխալ ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Սխալ թիվ․ պետք է բազմապատիկ լինի ${issue2.divisor}-ի`;
-      case "unrecognized_keys":
-        return `Չճանաչված բանալի${issue2.keys.length > 1 ? "ներ" : ""}. ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Սխալ բանալի ${withDefiniteArticle(issue2.origin)}-ում`;
-      case "invalid_union":
-        return "Սխալ մուտքագրում";
-      case "invalid_element":
-        return `Սխալ արժեք ${withDefiniteArticle(issue2.origin)}-ում`;
-      default:
-        return `Սխալ մուտքագրում`;
-    }
-  };
-};
-function hy_default() {
-  return {
-    localeError: error20()
-  };
-}
-// node_modules/zod/v4/locales/id.js
-var error21 = () => {
-  const Sizable = {
-    string: { unit: "karakter", verb: "memiliki" },
-    file: { unit: "byte", verb: "memiliki" },
-    array: { unit: "item", verb: "memiliki" },
-    set: { unit: "item", verb: "memiliki" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "input",
-    email: "alamat email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "tanggal dan waktu format ISO",
-    date: "tanggal format ISO",
-    time: "jam format ISO",
-    duration: "durasi format ISO",
-    ipv4: "alamat IPv4",
-    ipv6: "alamat IPv6",
-    cidrv4: "rentang alamat IPv4",
-    cidrv6: "rentang alamat IPv6",
-    base64: "string dengan enkode base64",
-    base64url: "string dengan enkode base64url",
-    json_string: "string JSON",
-    e164: "angka E.164",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Input tidak valid: diharapkan instanceof ${issue2.expected}, diterima ${received}`;
-        }
-        return `Input tidak valid: diharapkan ${expected}, diterima ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Input tidak valid: diharapkan ${stringifyPrimitive(issue2.values[0])}`;
-        return `Pilihan tidak valid: diharapkan salah satu dari ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Terlalu besar: diharapkan ${issue2.origin ?? "value"} memiliki ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elemen"}`;
-        return `Terlalu besar: diharapkan ${issue2.origin ?? "value"} menjadi ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Terlalu kecil: diharapkan ${issue2.origin} memiliki ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Terlalu kecil: diharapkan ${issue2.origin} menjadi ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `String tidak valid: harus dimulai dengan "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `String tidak valid: harus berakhir dengan "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `String tidak valid: harus menyertakan "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `String tidak valid: harus sesuai pola ${_issue.pattern}`;
-        return `${FormatDictionary[_issue.format] ?? issue2.format} tidak valid`;
-      }
-      case "not_multiple_of":
-        return `Angka tidak valid: harus kelipatan dari ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Kunci tidak dikenali ${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Kunci tidak valid di ${issue2.origin}`;
-      case "invalid_union":
-        return "Input tidak valid";
-      case "invalid_element":
-        return `Nilai tidak valid di ${issue2.origin}`;
-      default:
-        return `Input tidak valid`;
-    }
-  };
-};
-function id_default() {
-  return {
-    localeError: error21()
-  };
-}
-// node_modules/zod/v4/locales/is.js
-var error22 = () => {
-  const Sizable = {
-    string: { unit: "stafi", verb: "að hafa" },
-    file: { unit: "bæti", verb: "að hafa" },
-    array: { unit: "hluti", verb: "að hafa" },
-    set: { unit: "hluti", verb: "að hafa" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "gildi",
-    email: "netfang",
-    url: "vefslóð",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO dagsetning og tími",
-    date: "ISO dagsetning",
-    time: "ISO tími",
-    duration: "ISO tímalengd",
-    ipv4: "IPv4 address",
-    ipv6: "IPv6 address",
-    cidrv4: "IPv4 range",
-    cidrv6: "IPv6 range",
-    base64: "base64-encoded strengur",
-    base64url: "base64url-encoded strengur",
-    json_string: "JSON strengur",
-    e164: "E.164 tölugildi",
-    jwt: "JWT",
-    template_literal: "gildi"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "númer",
-    array: "fylki"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Rangt gildi: Þú slóst inn ${received} þar sem á að vera instanceof ${issue2.expected}`;
-        }
-        return `Rangt gildi: Þú slóst inn ${received} þar sem á að vera ${expected}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Rangt gildi: gert ráð fyrir ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ógilt val: má vera eitt af eftirfarandi ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Of stórt: gert er ráð fyrir að ${issue2.origin ?? "gildi"} hafi ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "hluti"}`;
-        return `Of stórt: gert er ráð fyrir að ${issue2.origin ?? "gildi"} sé ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Of lítið: gert er ráð fyrir að ${issue2.origin} hafi ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Of lítið: gert er ráð fyrir að ${issue2.origin} sé ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Ógildur strengur: verður að byrja á "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Ógildur strengur: verður að enda á "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ógildur strengur: verður að innihalda "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ógildur strengur: verður að fylgja mynstri ${_issue.pattern}`;
-        return `Rangt ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Röng tala: verður að vera margfeldi af ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Óþekkt ${issue2.keys.length > 1 ? "ir lyklar" : "ur lykill"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Rangur lykill í ${issue2.origin}`;
-      case "invalid_union":
-        return "Rangt gildi";
-      case "invalid_element":
-        return `Rangt gildi í ${issue2.origin}`;
-      default:
-        return `Rangt gildi`;
-    }
-  };
-};
-function is_default() {
-  return {
-    localeError: error22()
-  };
-}
-// node_modules/zod/v4/locales/it.js
-var error23 = () => {
-  const Sizable = {
-    string: { unit: "caratteri", verb: "avere" },
-    file: { unit: "byte", verb: "avere" },
-    array: { unit: "elementi", verb: "avere" },
-    set: { unit: "elementi", verb: "avere" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "input",
-    email: "indirizzo email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data e ora ISO",
-    date: "data ISO",
-    time: "ora ISO",
-    duration: "durata ISO",
-    ipv4: "indirizzo IPv4",
-    ipv6: "indirizzo IPv6",
-    cidrv4: "intervallo IPv4",
-    cidrv6: "intervallo IPv6",
-    base64: "stringa codificata in base64",
-    base64url: "URL codificata in base64",
-    json_string: "stringa JSON",
-    e164: "numero E.164",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "numero",
-    array: "vettore"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Input non valido: atteso instanceof ${issue2.expected}, ricevuto ${received}`;
-        }
-        return `Input non valido: atteso ${expected}, ricevuto ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Input non valido: atteso ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opzione non valida: atteso uno tra ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Troppo grande: ${issue2.origin ?? "valore"} deve avere ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementi"}`;
-        return `Troppo grande: ${issue2.origin ?? "valore"} deve essere ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Troppo piccolo: ${issue2.origin} deve avere ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Troppo piccolo: ${issue2.origin} deve essere ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Stringa non valida: deve iniziare con "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Stringa non valida: deve terminare con "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Stringa non valida: deve includere "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Stringa non valida: deve corrispondere al pattern ${_issue.pattern}`;
-        return `Input non valido: ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Numero non valido: deve essere un multiplo di ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Chiav${issue2.keys.length > 1 ? "i" : "e"} non riconosciut${issue2.keys.length > 1 ? "e" : "a"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Chiave non valida in ${issue2.origin}`;
-      case "invalid_union":
-        return "Input non valido";
-      case "invalid_element":
-        return `Valore non valido in ${issue2.origin}`;
-      default:
-        return `Input non valido`;
-    }
-  };
-};
-function it_default() {
-  return {
-    localeError: error23()
-  };
-}
-// node_modules/zod/v4/locales/ja.js
-var error24 = () => {
-  const Sizable = {
-    string: { unit: "文字", verb: "である" },
-    file: { unit: "バイト", verb: "である" },
-    array: { unit: "要素", verb: "である" },
-    set: { unit: "要素", verb: "である" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "入力値",
-    email: "メールアドレス",
-    url: "URL",
-    emoji: "絵文字",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO日時",
-    date: "ISO日付",
-    time: "ISO時刻",
-    duration: "ISO期間",
-    ipv4: "IPv4アドレス",
-    ipv6: "IPv6アドレス",
-    cidrv4: "IPv4範囲",
-    cidrv6: "IPv6範囲",
-    base64: "base64エンコード文字列",
-    base64url: "base64urlエンコード文字列",
-    json_string: "JSON文字列",
-    e164: "E.164番号",
-    jwt: "JWT",
-    template_literal: "入力値"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "数値",
-    array: "配列"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `無効な入力: instanceof ${issue2.expected}が期待されましたが、${received}が入力されました`;
-        }
-        return `無効な入力: ${expected}が期待されましたが、${received}が入力されました`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `無効な入力: ${stringifyPrimitive(issue2.values[0])}が期待されました`;
-        return `無効な選択: ${joinValues(issue2.values, "、")}のいずれかである必要があります`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "以下である" : "より小さい";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `大きすぎる値: ${issue2.origin ?? "値"}は${issue2.maximum.toString()}${sizing.unit ?? "要素"}${adj}必要があります`;
-        return `大きすぎる値: ${issue2.origin ?? "値"}は${issue2.maximum.toString()}${adj}必要があります`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "以上である" : "より大きい";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `小さすぎる値: ${issue2.origin}は${issue2.minimum.toString()}${sizing.unit}${adj}必要があります`;
-        return `小さすぎる値: ${issue2.origin}は${issue2.minimum.toString()}${adj}必要があります`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `無効な文字列: "${_issue.prefix}"で始まる必要があります`;
-        if (_issue.format === "ends_with")
-          return `無効な文字列: "${_issue.suffix}"で終わる必要があります`;
-        if (_issue.format === "includes")
-          return `無効な文字列: "${_issue.includes}"を含む必要があります`;
-        if (_issue.format === "regex")
-          return `無効な文字列: パターン${_issue.pattern}に一致する必要があります`;
-        return `無効な${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `無効な数値: ${issue2.divisor}の倍数である必要があります`;
-      case "unrecognized_keys":
-        return `認識されていないキー${issue2.keys.length > 1 ? "群" : ""}: ${joinValues(issue2.keys, "、")}`;
-      case "invalid_key":
-        return `${issue2.origin}内の無効なキー`;
-      case "invalid_union":
-        return "無効な入力";
-      case "invalid_element":
-        return `${issue2.origin}内の無効な値`;
-      default:
-        return `無効な入力`;
-    }
-  };
-};
-function ja_default() {
-  return {
-    localeError: error24()
-  };
-}
-// node_modules/zod/v4/locales/ka.js
-var error25 = () => {
-  const Sizable = {
-    string: { unit: "სიმბოლო", verb: "უნდა შეიცავდეს" },
-    file: { unit: "ბაიტი", verb: "უნდა შეიცავდეს" },
-    array: { unit: "ელემენტი", verb: "უნდა შეიცავდეს" },
-    set: { unit: "ელემენტი", verb: "უნდა შეიცავდეს" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "შეყვანა",
-    email: "ელ-ფოსტის მისამართი",
-    url: "URL",
-    emoji: "ემოჯი",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "თარიღი-დრო",
-    date: "თარიღი",
-    time: "დრო",
-    duration: "ხანგრძლივობა",
-    ipv4: "IPv4 მისამართი",
-    ipv6: "IPv6 მისამართი",
-    cidrv4: "IPv4 დიაპაზონი",
-    cidrv6: "IPv6 დიაპაზონი",
-    base64: "base64-კოდირებული ველი",
-    base64url: "base64url-კოდირებული ველი",
-    json_string: "JSON ველი",
-    e164: "E.164 ნომერი",
-    jwt: "JWT",
-    template_literal: "შეყვანა"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "რიცხვი",
-    string: "ველი",
-    boolean: "ბულეანი",
-    function: "ფუნქცია",
-    array: "მასივი"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `არასწორი შეყვანა: მოსალოდნელი instanceof ${issue2.expected}, მიღებული ${received}`;
-        }
-        return `არასწორი შეყვანა: მოსალოდნელი ${expected}, მიღებული ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `არასწორი შეყვანა: მოსალოდნელი ${stringifyPrimitive(issue2.values[0])}`;
-        return `არასწორი ვარიანტი: მოსალოდნელია ერთ-ერთი ${joinValues(issue2.values, "|")}-დან`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `ზედმეტად დიდი: მოსალოდნელი ${issue2.origin ?? "მნიშვნელობა"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit}`;
-        return `ზედმეტად დიდი: მოსალოდნელი ${issue2.origin ?? "მნიშვნელობა"} იყოს ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `ზედმეტად პატარა: მოსალოდნელი ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `ზედმეტად პატარა: მოსალოდნელი ${issue2.origin} იყოს ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `არასწორი ველი: უნდა იწყებოდეს "${_issue.prefix}"-ით`;
-        }
-        if (_issue.format === "ends_with")
-          return `არასწორი ველი: უნდა მთავრდებოდეს "${_issue.suffix}"-ით`;
-        if (_issue.format === "includes")
-          return `არასწორი ველი: უნდა შეიცავდეს "${_issue.includes}"-ს`;
-        if (_issue.format === "regex")
-          return `არასწორი ველი: უნდა შეესაბამებოდეს შაბლონს ${_issue.pattern}`;
-        return `არასწორი ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `არასწორი რიცხვი: უნდა იყოს ${issue2.divisor}-ის ჯერადი`;
-      case "unrecognized_keys":
-        return `უცნობი გასაღებ${issue2.keys.length > 1 ? "ები" : "ი"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `არასწორი გასაღები ${issue2.origin}-ში`;
-      case "invalid_union":
-        return "არასწორი შეყვანა";
-      case "invalid_element":
-        return `არასწორი მნიშვნელობა ${issue2.origin}-ში`;
-      default:
-        return `არასწორი შეყვანა`;
-    }
-  };
-};
-function ka_default() {
-  return {
-    localeError: error25()
-  };
-}
-// node_modules/zod/v4/locales/km.js
-var error26 = () => {
-  const Sizable = {
-    string: { unit: "តួអក្សរ", verb: "គួរមាន" },
-    file: { unit: "បៃ", verb: "គួរមាន" },
-    array: { unit: "ធាតុ", verb: "គួរមាន" },
-    set: { unit: "ធាតុ", verb: "គួរមាន" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "ទិន្នន័យបញ្ចូល",
-    email: "អាសយដ្ឋានអ៊ីមែល",
-    url: "URL",
-    emoji: "សញ្ញាអារម្មណ៍",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "កាលបរិច្ឆេទ និងម៉ោង ISO",
-    date: "កាលបរិច្ឆេទ ISO",
-    time: "ម៉ោង ISO",
-    duration: "រយៈពេល ISO",
-    ipv4: "អាសយដ្ឋាន IPv4",
-    ipv6: "អាសយដ្ឋាន IPv6",
-    cidrv4: "ដែនអាសយដ្ឋាន IPv4",
-    cidrv6: "ដែនអាសយដ្ឋាន IPv6",
-    base64: "ខ្សែអក្សរអ៊ិកូដ base64",
-    base64url: "ខ្សែអក្សរអ៊ិកូដ base64url",
-    json_string: "ខ្សែអក្សរ JSON",
-    e164: "លេខ E.164",
-    jwt: "JWT",
-    template_literal: "ទិន្នន័យបញ្ចូល"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "លេខ",
-    array: "អារេ (Array)",
-    null: "គ្មានតម្លៃ (null)"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `ទិន្នន័យបញ្ចូលមិនត្រឹមត្រូវ៖ ត្រូវការ instanceof ${issue2.expected} ប៉ុន្តែទទួលបាន ${received}`;
-        }
-        return `ទិន្នន័យបញ្ចូលមិនត្រឹមត្រូវ៖ ត្រូវការ ${expected} ប៉ុន្តែទទួលបាន ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `ទិន្នន័យបញ្ចូលមិនត្រឹមត្រូវ៖ ត្រូវការ ${stringifyPrimitive(issue2.values[0])}`;
-        return `ជម្រើសមិនត្រឹមត្រូវ៖ ត្រូវជាមួយក្នុងចំណោម ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `ធំពេក៖ ត្រូវការ ${issue2.origin ?? "តម្លៃ"} ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "ធាតុ"}`;
-        return `ធំពេក៖ ត្រូវការ ${issue2.origin ?? "តម្លៃ"} ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `តូចពេក៖ ត្រូវការ ${issue2.origin} ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `តូចពេក៖ ត្រូវការ ${issue2.origin} ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវចាប់ផ្តើមដោយ "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវបញ្ចប់ដោយ "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវមាន "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវតែផ្គូផ្គងនឹងទម្រង់ដែលបានកំណត់ ${_issue.pattern}`;
-        return `មិនត្រឹមត្រូវ៖ ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `លេខមិនត្រឹមត្រូវ៖ ត្រូវតែជាពហុគុណនៃ ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `រកឃើញសោមិនស្គាល់៖ ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `សោមិនត្រឹមត្រូវនៅក្នុង ${issue2.origin}`;
-      case "invalid_union":
-        return `ទិន្នន័យមិនត្រឹមត្រូវ`;
-      case "invalid_element":
-        return `ទិន្នន័យមិនត្រឹមត្រូវនៅក្នុង ${issue2.origin}`;
-      default:
-        return `ទិន្នន័យមិនត្រឹមត្រូវ`;
-    }
-  };
-};
-function km_default() {
-  return {
-    localeError: error26()
-  };
-}
-
-// node_modules/zod/v4/locales/kh.js
-function kh_default() {
-  return km_default();
-}
-// node_modules/zod/v4/locales/ko.js
-var error27 = () => {
-  const Sizable = {
-    string: { unit: "문자", verb: "to have" },
-    file: { unit: "바이트", verb: "to have" },
-    array: { unit: "개", verb: "to have" },
-    set: { unit: "개", verb: "to have" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "입력",
-    email: "이메일 주소",
-    url: "URL",
-    emoji: "이모지",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO 날짜시간",
-    date: "ISO 날짜",
-    time: "ISO 시간",
-    duration: "ISO 기간",
-    ipv4: "IPv4 주소",
-    ipv6: "IPv6 주소",
-    cidrv4: "IPv4 범위",
-    cidrv6: "IPv6 범위",
-    base64: "base64 인코딩 문자열",
-    base64url: "base64url 인코딩 문자열",
-    json_string: "JSON 문자열",
-    e164: "E.164 번호",
-    jwt: "JWT",
-    template_literal: "입력"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `잘못된 입력: 예상 타입은 instanceof ${issue2.expected}, 받은 타입은 ${received}입니다`;
-        }
-        return `잘못된 입력: 예상 타입은 ${expected}, 받은 타입은 ${received}입니다`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `잘못된 입력: 값은 ${stringifyPrimitive(issue2.values[0])} 이어야 합니다`;
-        return `잘못된 옵션: ${joinValues(issue2.values, "또는 ")} 중 하나여야 합니다`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "이하" : "미만";
-        const suffix = adj === "미만" ? "이어야 합니다" : "여야 합니다";
-        const sizing = getSizing(issue2.origin);
-        const unit = sizing?.unit ?? "요소";
-        if (sizing)
-          return `${issue2.origin ?? "값"}이 너무 큽니다: ${issue2.maximum.toString()}${unit} ${adj}${suffix}`;
-        return `${issue2.origin ?? "값"}이 너무 큽니다: ${issue2.maximum.toString()} ${adj}${suffix}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "이상" : "초과";
-        const suffix = adj === "이상" ? "이어야 합니다" : "여야 합니다";
-        const sizing = getSizing(issue2.origin);
-        const unit = sizing?.unit ?? "요소";
-        if (sizing) {
-          return `${issue2.origin ?? "값"}이 너무 작습니다: ${issue2.minimum.toString()}${unit} ${adj}${suffix}`;
-        }
-        return `${issue2.origin ?? "값"}이 너무 작습니다: ${issue2.minimum.toString()} ${adj}${suffix}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `잘못된 문자열: "${_issue.prefix}"(으)로 시작해야 합니다`;
-        }
-        if (_issue.format === "ends_with")
-          return `잘못된 문자열: "${_issue.suffix}"(으)로 끝나야 합니다`;
-        if (_issue.format === "includes")
-          return `잘못된 문자열: "${_issue.includes}"을(를) 포함해야 합니다`;
-        if (_issue.format === "regex")
-          return `잘못된 문자열: 정규식 ${_issue.pattern} 패턴과 일치해야 합니다`;
-        return `잘못된 ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `잘못된 숫자: ${issue2.divisor}의 배수여야 합니다`;
-      case "unrecognized_keys":
-        return `인식할 수 없는 키: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `잘못된 키: ${issue2.origin}`;
-      case "invalid_union":
-        return `잘못된 입력`;
-      case "invalid_element":
-        return `잘못된 값: ${issue2.origin}`;
-      default:
-        return `잘못된 입력`;
-    }
-  };
-};
-function ko_default() {
-  return {
-    localeError: error27()
-  };
-}
-// node_modules/zod/v4/locales/lt.js
-var capitalizeFirstCharacter = (text) => {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
-function getUnitTypeFromNumber(number2) {
-  const abs = Math.abs(number2);
-  const last = abs % 10;
-  const last2 = abs % 100;
-  if (last2 >= 11 && last2 <= 19 || last === 0)
-    return "many";
-  if (last === 1)
-    return "one";
-  return "few";
-}
-var error28 = () => {
-  const Sizable = {
-    string: {
-      unit: {
-        one: "simbolis",
-        few: "simboliai",
-        many: "simbolių"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi būti ne ilgesnė kaip",
-          notInclusive: "turi būti trumpesnė kaip"
-        },
-        bigger: {
-          inclusive: "turi būti ne trumpesnė kaip",
-          notInclusive: "turi būti ilgesnė kaip"
-        }
-      }
-    },
-    file: {
-      unit: {
-        one: "baitas",
-        few: "baitai",
-        many: "baitų"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi būti ne didesnis kaip",
-          notInclusive: "turi būti mažesnis kaip"
-        },
-        bigger: {
-          inclusive: "turi būti ne mažesnis kaip",
-          notInclusive: "turi būti didesnis kaip"
-        }
-      }
-    },
-    array: {
-      unit: {
-        one: "elementą",
-        few: "elementus",
-        many: "elementų"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi turėti ne daugiau kaip",
-          notInclusive: "turi turėti mažiau kaip"
-        },
-        bigger: {
-          inclusive: "turi turėti ne mažiau kaip",
-          notInclusive: "turi turėti daugiau kaip"
-        }
-      }
-    },
-    set: {
-      unit: {
-        one: "elementą",
-        few: "elementus",
-        many: "elementų"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi turėti ne daugiau kaip",
-          notInclusive: "turi turėti mažiau kaip"
-        },
-        bigger: {
-          inclusive: "turi turėti ne mažiau kaip",
-          notInclusive: "turi turėti daugiau kaip"
-        }
-      }
-    }
-  };
-  function getSizing(origin, unitType, inclusive, targetShouldBe) {
-    const result = Sizable[origin] ?? null;
-    if (result === null)
-      return result;
-    return {
-      unit: result.unit[unitType],
-      verb: result.verb[targetShouldBe][inclusive ? "inclusive" : "notInclusive"]
-    };
-  }
-  const FormatDictionary = {
-    regex: "įvestis",
-    email: "el. pašto adresas",
-    url: "URL",
-    emoji: "jaustukas",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO data ir laikas",
-    date: "ISO data",
-    time: "ISO laikas",
-    duration: "ISO trukmė",
-    ipv4: "IPv4 adresas",
-    ipv6: "IPv6 adresas",
-    cidrv4: "IPv4 tinklo prefiksas (CIDR)",
-    cidrv6: "IPv6 tinklo prefiksas (CIDR)",
-    base64: "base64 užkoduota eilutė",
-    base64url: "base64url užkoduota eilutė",
-    json_string: "JSON eilutė",
-    e164: "E.164 numeris",
-    jwt: "JWT",
-    template_literal: "įvestis"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "skaičius",
-    bigint: "sveikasis skaičius",
-    string: "eilutė",
-    boolean: "loginė reikšmė",
-    undefined: "neapibrėžta reikšmė",
-    function: "funkcija",
-    symbol: "simbolis",
-    array: "masyvas",
-    object: "objektas",
-    null: "nulinė reikšmė"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Gautas tipas ${received}, o tikėtasi - instanceof ${issue2.expected}`;
-        }
-        return `Gautas tipas ${received}, o tikėtasi - ${expected}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Privalo būti ${stringifyPrimitive(issue2.values[0])}`;
-        return `Privalo būti vienas iš ${joinValues(issue2.values, "|")} pasirinkimų`;
-      case "too_big": {
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        const sizing = getSizing(issue2.origin, getUnitTypeFromNumber(Number(issue2.maximum)), issue2.inclusive ?? false, "smaller");
-        if (sizing?.verb)
-          return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} ${sizing.verb} ${issue2.maximum.toString()} ${sizing.unit ?? "elementų"}`;
-        const adj = issue2.inclusive ? "ne didesnis kaip" : "mažesnis kaip";
-        return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} turi būti ${adj} ${issue2.maximum.toString()} ${sizing?.unit}`;
-      }
-      case "too_small": {
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        const sizing = getSizing(issue2.origin, getUnitTypeFromNumber(Number(issue2.minimum)), issue2.inclusive ?? false, "bigger");
-        if (sizing?.verb)
-          return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} ${sizing.verb} ${issue2.minimum.toString()} ${sizing.unit ?? "elementų"}`;
-        const adj = issue2.inclusive ? "ne mažesnis kaip" : "didesnis kaip";
-        return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} turi būti ${adj} ${issue2.minimum.toString()} ${sizing?.unit}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Eilutė privalo prasidėti "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Eilutė privalo pasibaigti "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Eilutė privalo įtraukti "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Eilutė privalo atitikti ${_issue.pattern}`;
-        return `Neteisingas ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Skaičius privalo būti ${issue2.divisor} kartotinis.`;
-      case "unrecognized_keys":
-        return `Neatpažint${issue2.keys.length > 1 ? "i" : "as"} rakt${issue2.keys.length > 1 ? "ai" : "as"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return "Rastas klaidingas raktas";
-      case "invalid_union":
-        return "Klaidinga įvestis";
-      case "invalid_element": {
-        const origin = TypeDictionary[issue2.origin] ?? issue2.origin;
-        return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} turi klaidingą įvestį`;
-      }
-      default:
-        return "Klaidinga įvestis";
-    }
-  };
-};
-function lt_default() {
-  return {
-    localeError: error28()
-  };
-}
-// node_modules/zod/v4/locales/mk.js
-var error29 = () => {
-  const Sizable = {
-    string: { unit: "знаци", verb: "да имаат" },
-    file: { unit: "бајти", verb: "да имаат" },
-    array: { unit: "ставки", verb: "да имаат" },
-    set: { unit: "ставки", verb: "да имаат" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "внес",
-    email: "адреса на е-пошта",
-    url: "URL",
-    emoji: "емоџи",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO датум и време",
-    date: "ISO датум",
-    time: "ISO време",
-    duration: "ISO времетраење",
-    ipv4: "IPv4 адреса",
-    ipv6: "IPv6 адреса",
-    cidrv4: "IPv4 опсег",
-    cidrv6: "IPv6 опсег",
-    base64: "base64-енкодирана низа",
-    base64url: "base64url-енкодирана низа",
-    json_string: "JSON низа",
-    e164: "E.164 број",
-    jwt: "JWT",
-    template_literal: "внес"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "број",
-    array: "низа"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Грешен внес: се очекува instanceof ${issue2.expected}, примено ${received}`;
-        }
-        return `Грешен внес: се очекува ${expected}, примено ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Invalid input: expected ${stringifyPrimitive(issue2.values[0])}`;
-        return `Грешана опција: се очекува една ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Премногу голем: се очекува ${issue2.origin ?? "вредноста"} да има ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "елементи"}`;
-        return `Премногу голем: се очекува ${issue2.origin ?? "вредноста"} да биде ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Премногу мал: се очекува ${issue2.origin} да има ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Премногу мал: се очекува ${issue2.origin} да биде ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Неважечка низа: мора да започнува со "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Неважечка низа: мора да завршува со "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Неважечка низа: мора да вклучува "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Неважечка низа: мора да одгоара на патернот ${_issue.pattern}`;
-        return `Invalid ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Грешен број: мора да биде делив со ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Непрепознаени клучеви" : "Непрепознаен клуч"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Грешен клуч во ${issue2.origin}`;
-      case "invalid_union":
-        return "Грешен внес";
-      case "invalid_element":
-        return `Грешна вредност во ${issue2.origin}`;
-      default:
-        return `Грешен внес`;
-    }
-  };
-};
-function mk_default() {
-  return {
-    localeError: error29()
-  };
-}
-// node_modules/zod/v4/locales/ms.js
-var error30 = () => {
-  const Sizable = {
-    string: { unit: "aksara", verb: "mempunyai" },
-    file: { unit: "bait", verb: "mempunyai" },
-    array: { unit: "elemen", verb: "mempunyai" },
-    set: { unit: "elemen", verb: "mempunyai" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "input",
-    email: "alamat e-mel",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "tarikh masa ISO",
-    date: "tarikh ISO",
-    time: "masa ISO",
-    duration: "tempoh ISO",
-    ipv4: "alamat IPv4",
-    ipv6: "alamat IPv6",
-    cidrv4: "julat IPv4",
-    cidrv6: "julat IPv6",
-    base64: "string dikodkan base64",
-    base64url: "string dikodkan base64url",
-    json_string: "string JSON",
-    e164: "nombor E.164",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "nombor"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Input tidak sah: dijangka instanceof ${issue2.expected}, diterima ${received}`;
-        }
-        return `Input tidak sah: dijangka ${expected}, diterima ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Input tidak sah: dijangka ${stringifyPrimitive(issue2.values[0])}`;
-        return `Pilihan tidak sah: dijangka salah satu daripada ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Terlalu besar: dijangka ${issue2.origin ?? "nilai"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elemen"}`;
-        return `Terlalu besar: dijangka ${issue2.origin ?? "nilai"} adalah ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Terlalu kecil: dijangka ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Terlalu kecil: dijangka ${issue2.origin} adalah ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `String tidak sah: mesti bermula dengan "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `String tidak sah: mesti berakhir dengan "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `String tidak sah: mesti mengandungi "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `String tidak sah: mesti sepadan dengan corak ${_issue.pattern}`;
-        return `${FormatDictionary[_issue.format] ?? issue2.format} tidak sah`;
-      }
-      case "not_multiple_of":
-        return `Nombor tidak sah: perlu gandaan ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Kunci tidak dikenali: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Kunci tidak sah dalam ${issue2.origin}`;
-      case "invalid_union":
-        return "Input tidak sah";
-      case "invalid_element":
-        return `Nilai tidak sah dalam ${issue2.origin}`;
-      default:
-        return `Input tidak sah`;
-    }
-  };
-};
-function ms_default() {
-  return {
-    localeError: error30()
-  };
-}
-// node_modules/zod/v4/locales/nl.js
-var error31 = () => {
-  const Sizable = {
-    string: { unit: "tekens", verb: "heeft" },
-    file: { unit: "bytes", verb: "heeft" },
-    array: { unit: "elementen", verb: "heeft" },
-    set: { unit: "elementen", verb: "heeft" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "invoer",
-    email: "emailadres",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datum en tijd",
-    date: "ISO datum",
-    time: "ISO tijd",
-    duration: "ISO duur",
-    ipv4: "IPv4-adres",
-    ipv6: "IPv6-adres",
-    cidrv4: "IPv4-bereik",
-    cidrv6: "IPv6-bereik",
-    base64: "base64-gecodeerde tekst",
-    base64url: "base64 URL-gecodeerde tekst",
-    json_string: "JSON string",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "invoer"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "getal"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Ongeldige invoer: verwacht instanceof ${issue2.expected}, ontving ${received}`;
-        }
-        return `Ongeldige invoer: verwacht ${expected}, ontving ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ongeldige invoer: verwacht ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ongeldige optie: verwacht één van ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        const longName = issue2.origin === "date" ? "laat" : issue2.origin === "string" ? "lang" : "groot";
-        if (sizing)
-          return `Te ${longName}: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementen"} ${sizing.verb}`;
-        return `Te ${longName}: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} is`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        const shortName = issue2.origin === "date" ? "vroeg" : issue2.origin === "string" ? "kort" : "klein";
-        if (sizing) {
-          return `Te ${shortName}: verwacht dat ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit} ${sizing.verb}`;
-        }
-        return `Te ${shortName}: verwacht dat ${issue2.origin} ${adj}${issue2.minimum.toString()} is`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Ongeldige tekst: moet met "${_issue.prefix}" beginnen`;
-        }
-        if (_issue.format === "ends_with")
-          return `Ongeldige tekst: moet op "${_issue.suffix}" eindigen`;
-        if (_issue.format === "includes")
-          return `Ongeldige tekst: moet "${_issue.includes}" bevatten`;
-        if (_issue.format === "regex")
-          return `Ongeldige tekst: moet overeenkomen met patroon ${_issue.pattern}`;
-        return `Ongeldig: ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ongeldig getal: moet een veelvoud van ${issue2.divisor} zijn`;
-      case "unrecognized_keys":
-        return `Onbekende key${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ongeldige key in ${issue2.origin}`;
-      case "invalid_union":
-        return "Ongeldige invoer";
-      case "invalid_element":
-        return `Ongeldige waarde in ${issue2.origin}`;
-      default:
-        return `Ongeldige invoer`;
-    }
-  };
-};
-function nl_default() {
-  return {
-    localeError: error31()
-  };
-}
-// node_modules/zod/v4/locales/no.js
-var error32 = () => {
-  const Sizable = {
-    string: { unit: "tegn", verb: "å ha" },
-    file: { unit: "bytes", verb: "å ha" },
-    array: { unit: "elementer", verb: "å inneholde" },
-    set: { unit: "elementer", verb: "å inneholde" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "input",
-    email: "e-postadresse",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO dato- og klokkeslett",
-    date: "ISO-dato",
-    time: "ISO-klokkeslett",
-    duration: "ISO-varighet",
-    ipv4: "IPv4-område",
-    ipv6: "IPv6-område",
-    cidrv4: "IPv4-spekter",
-    cidrv6: "IPv6-spekter",
-    base64: "base64-enkodet streng",
-    base64url: "base64url-enkodet streng",
-    json_string: "JSON-streng",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "tall",
-    array: "liste"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Ugyldig input: forventet instanceof ${issue2.expected}, fikk ${received}`;
-        }
-        return `Ugyldig input: forventet ${expected}, fikk ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ugyldig verdi: forventet ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ugyldig valg: forventet en av ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `For stor(t): forventet ${issue2.origin ?? "value"} til å ha ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementer"}`;
-        return `For stor(t): forventet ${issue2.origin ?? "value"} til å ha ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `For lite(n): forventet ${issue2.origin} til å ha ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `For lite(n): forventet ${issue2.origin} til å ha ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ugyldig streng: må starte med "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Ugyldig streng: må ende med "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ugyldig streng: må inneholde "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ugyldig streng: må matche mønsteret ${_issue.pattern}`;
-        return `Ugyldig ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ugyldig tall: må være et multiplum av ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Ukjente nøkler" : "Ukjent nøkkel"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ugyldig nøkkel i ${issue2.origin}`;
-      case "invalid_union":
-        return "Ugyldig input";
-      case "invalid_element":
-        return `Ugyldig verdi i ${issue2.origin}`;
-      default:
-        return `Ugyldig input`;
-    }
-  };
-};
-function no_default() {
-  return {
-    localeError: error32()
-  };
-}
-// node_modules/zod/v4/locales/ota.js
-var error33 = () => {
-  const Sizable = {
-    string: { unit: "harf", verb: "olmalıdır" },
-    file: { unit: "bayt", verb: "olmalıdır" },
-    array: { unit: "unsur", verb: "olmalıdır" },
-    set: { unit: "unsur", verb: "olmalıdır" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "giren",
-    email: "epostagâh",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO hengâmı",
-    date: "ISO tarihi",
-    time: "ISO zamanı",
-    duration: "ISO müddeti",
-    ipv4: "IPv4 nişânı",
-    ipv6: "IPv6 nişânı",
-    cidrv4: "IPv4 menzili",
-    cidrv6: "IPv6 menzili",
-    base64: "base64-şifreli metin",
-    base64url: "base64url-şifreli metin",
-    json_string: "JSON metin",
-    e164: "E.164 sayısı",
-    jwt: "JWT",
-    template_literal: "giren"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "numara",
-    array: "saf",
-    null: "gayb"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Fâsit giren: umulan instanceof ${issue2.expected}, alınan ${received}`;
-        }
-        return `Fâsit giren: umulan ${expected}, alınan ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Fâsit giren: umulan ${stringifyPrimitive(issue2.values[0])}`;
-        return `Fâsit tercih: mûteberler ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Fazla büyük: ${issue2.origin ?? "value"}, ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elements"} sahip olmalıydı.`;
-        return `Fazla büyük: ${issue2.origin ?? "value"}, ${adj}${issue2.maximum.toString()} olmalıydı.`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Fazla küçük: ${issue2.origin}, ${adj}${issue2.minimum.toString()} ${sizing.unit} sahip olmalıydı.`;
-        }
-        return `Fazla küçük: ${issue2.origin}, ${adj}${issue2.minimum.toString()} olmalıydı.`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Fâsit metin: "${_issue.prefix}" ile başlamalı.`;
-        if (_issue.format === "ends_with")
-          return `Fâsit metin: "${_issue.suffix}" ile bitmeli.`;
-        if (_issue.format === "includes")
-          return `Fâsit metin: "${_issue.includes}" ihtivâ etmeli.`;
-        if (_issue.format === "regex")
-          return `Fâsit metin: ${_issue.pattern} nakşına uymalı.`;
-        return `Fâsit ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Fâsit sayı: ${issue2.divisor} katı olmalıydı.`;
-      case "unrecognized_keys":
-        return `Tanınmayan anahtar ${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} için tanınmayan anahtar var.`;
-      case "invalid_union":
-        return "Giren tanınamadı.";
-      case "invalid_element":
-        return `${issue2.origin} için tanınmayan kıymet var.`;
-      default:
-        return `Kıymet tanınamadı.`;
-    }
-  };
-};
-function ota_default() {
-  return {
-    localeError: error33()
-  };
-}
-// node_modules/zod/v4/locales/ps.js
-var error34 = () => {
-  const Sizable = {
-    string: { unit: "توکي", verb: "ولري" },
-    file: { unit: "بایټس", verb: "ولري" },
-    array: { unit: "توکي", verb: "ولري" },
-    set: { unit: "توکي", verb: "ولري" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "ورودي",
-    email: "بریښنالیک",
-    url: "یو آر ال",
-    emoji: "ایموجي",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "نیټه او وخت",
-    date: "نېټه",
-    time: "وخت",
-    duration: "موده",
-    ipv4: "د IPv4 پته",
-    ipv6: "د IPv6 پته",
-    cidrv4: "د IPv4 ساحه",
-    cidrv6: "د IPv6 ساحه",
-    base64: "base64-encoded متن",
-    base64url: "base64url-encoded متن",
-    json_string: "JSON متن",
-    e164: "د E.164 شمېره",
-    jwt: "JWT",
-    template_literal: "ورودي"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "عدد",
-    array: "ارې"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `ناسم ورودي: باید instanceof ${issue2.expected} وای, مګر ${received} ترلاسه شو`;
-        }
-        return `ناسم ورودي: باید ${expected} وای, مګر ${received} ترلاسه شو`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1) {
-          return `ناسم ورودي: باید ${stringifyPrimitive(issue2.values[0])} وای`;
-        }
-        return `ناسم انتخاب: باید یو له ${joinValues(issue2.values, "|")} څخه وای`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `ډیر لوی: ${issue2.origin ?? "ارزښت"} باید ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "عنصرونه"} ولري`;
-        }
-        return `ډیر لوی: ${issue2.origin ?? "ارزښت"} باید ${adj}${issue2.maximum.toString()} وي`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `ډیر کوچنی: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} ${sizing.unit} ولري`;
-        }
-        return `ډیر کوچنی: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} وي`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `ناسم متن: باید د "${_issue.prefix}" سره پیل شي`;
-        }
-        if (_issue.format === "ends_with") {
-          return `ناسم متن: باید د "${_issue.suffix}" سره پای ته ورسيږي`;
-        }
-        if (_issue.format === "includes") {
-          return `ناسم متن: باید "${_issue.includes}" ولري`;
-        }
-        if (_issue.format === "regex") {
-          return `ناسم متن: باید د ${_issue.pattern} سره مطابقت ولري`;
-        }
-        return `${FormatDictionary[_issue.format] ?? issue2.format} ناسم دی`;
-      }
-      case "not_multiple_of":
-        return `ناسم عدد: باید د ${issue2.divisor} مضرب وي`;
-      case "unrecognized_keys":
-        return `ناسم ${issue2.keys.length > 1 ? "کلیډونه" : "کلیډ"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `ناسم کلیډ په ${issue2.origin} کې`;
-      case "invalid_union":
-        return `ناسمه ورودي`;
-      case "invalid_element":
-        return `ناسم عنصر په ${issue2.origin} کې`;
-      default:
-        return `ناسمه ورودي`;
-    }
-  };
-};
-function ps_default() {
-  return {
-    localeError: error34()
-  };
-}
-// node_modules/zod/v4/locales/pl.js
-var error35 = () => {
-  const Sizable = {
-    string: { unit: "znaków", verb: "mieć" },
-    file: { unit: "bajtów", verb: "mieć" },
-    array: { unit: "elementów", verb: "mieć" },
-    set: { unit: "elementów", verb: "mieć" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "wyrażenie",
-    email: "adres email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data i godzina w formacie ISO",
-    date: "data w formacie ISO",
-    time: "godzina w formacie ISO",
-    duration: "czas trwania ISO",
-    ipv4: "adres IPv4",
-    ipv6: "adres IPv6",
-    cidrv4: "zakres IPv4",
-    cidrv6: "zakres IPv6",
-    base64: "ciąg znaków zakodowany w formacie base64",
-    base64url: "ciąg znaków zakodowany w formacie base64url",
-    json_string: "ciąg znaków w formacie JSON",
-    e164: "liczba E.164",
-    jwt: "JWT",
-    template_literal: "wejście"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "liczba",
-    array: "tablica"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Nieprawidłowe dane wejściowe: oczekiwano instanceof ${issue2.expected}, otrzymano ${received}`;
-        }
-        return `Nieprawidłowe dane wejściowe: oczekiwano ${expected}, otrzymano ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Nieprawidłowe dane wejściowe: oczekiwano ${stringifyPrimitive(issue2.values[0])}`;
-        return `Nieprawidłowa opcja: oczekiwano jednej z wartości ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Za duża wartość: oczekiwano, że ${issue2.origin ?? "wartość"} będzie mieć ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementów"}`;
-        }
-        return `Zbyt duż(y/a/e): oczekiwano, że ${issue2.origin ?? "wartość"} będzie wynosić ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Za mała wartość: oczekiwano, że ${issue2.origin ?? "wartość"} będzie mieć ${adj}${issue2.minimum.toString()} ${sizing.unit ?? "elementów"}`;
-        }
-        return `Zbyt mał(y/a/e): oczekiwano, że ${issue2.origin ?? "wartość"} będzie wynosić ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Nieprawidłowy ciąg znaków: musi zaczynać się od "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Nieprawidłowy ciąg znaków: musi kończyć się na "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Nieprawidłowy ciąg znaków: musi zawierać "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Nieprawidłowy ciąg znaków: musi odpowiadać wzorcowi ${_issue.pattern}`;
-        return `Nieprawidłow(y/a/e) ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Nieprawidłowa liczba: musi być wielokrotnością ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Nierozpoznane klucze${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Nieprawidłowy klucz w ${issue2.origin}`;
-      case "invalid_union":
-        return "Nieprawidłowe dane wejściowe";
-      case "invalid_element":
-        return `Nieprawidłowa wartość w ${issue2.origin}`;
-      default:
-        return `Nieprawidłowe dane wejściowe`;
-    }
-  };
-};
-function pl_default() {
-  return {
-    localeError: error35()
-  };
-}
-// node_modules/zod/v4/locales/pt.js
-var error36 = () => {
-  const Sizable = {
-    string: { unit: "caracteres", verb: "ter" },
-    file: { unit: "bytes", verb: "ter" },
-    array: { unit: "itens", verb: "ter" },
-    set: { unit: "itens", verb: "ter" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "padrão",
-    email: "endereço de e-mail",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data e hora ISO",
-    date: "data ISO",
-    time: "hora ISO",
-    duration: "duração ISO",
-    ipv4: "endereço IPv4",
-    ipv6: "endereço IPv6",
-    cidrv4: "faixa de IPv4",
-    cidrv6: "faixa de IPv6",
-    base64: "texto codificado em base64",
-    base64url: "URL codificada em base64",
-    json_string: "texto JSON",
-    e164: "número E.164",
-    jwt: "JWT",
-    template_literal: "entrada"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "número",
-    null: "nulo"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Tipo inválido: esperado instanceof ${issue2.expected}, recebido ${received}`;
-        }
-        return `Tipo inválido: esperado ${expected}, recebido ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrada inválida: esperado ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opção inválida: esperada uma das ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Muito grande: esperado que ${issue2.origin ?? "valor"} tivesse ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementos"}`;
-        return `Muito grande: esperado que ${issue2.origin ?? "valor"} fosse ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Muito pequeno: esperado que ${issue2.origin} tivesse ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Muito pequeno: esperado que ${issue2.origin} fosse ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Texto inválido: deve começar com "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Texto inválido: deve terminar com "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Texto inválido: deve incluir "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Texto inválido: deve corresponder ao padrão ${_issue.pattern}`;
-        return `${FormatDictionary[_issue.format] ?? issue2.format} inválido`;
-      }
-      case "not_multiple_of":
-        return `Número inválido: deve ser múltiplo de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Chave${issue2.keys.length > 1 ? "s" : ""} desconhecida${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Chave inválida em ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrada inválida";
-      case "invalid_element":
-        return `Valor inválido em ${issue2.origin}`;
-      default:
-        return `Campo inválido`;
-    }
-  };
-};
-function pt_default() {
-  return {
-    localeError: error36()
-  };
-}
-// node_modules/zod/v4/locales/ro.js
-var error37 = () => {
-  const Sizable = {
-    string: { unit: "caractere", verb: "să aibă" },
-    file: { unit: "octeți", verb: "să aibă" },
-    array: { unit: "elemente", verb: "să aibă" },
-    set: { unit: "elemente", verb: "să aibă" },
-    map: { unit: "intrări", verb: "să aibă" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "intrare",
-    email: "adresă de email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "dată și oră ISO",
-    date: "dată ISO",
-    time: "oră ISO",
-    duration: "durată ISO",
-    ipv4: "adresă IPv4",
-    ipv6: "adresă IPv6",
-    mac: "adresă MAC",
-    cidrv4: "interval IPv4",
-    cidrv6: "interval IPv6",
-    base64: "șir codat base64",
-    base64url: "șir codat base64url",
-    json_string: "șir JSON",
-    e164: "număr E.164",
-    jwt: "JWT",
-    template_literal: "intrare"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    string: "șir",
-    number: "număr",
-    boolean: "boolean",
-    function: "funcție",
-    array: "matrice",
-    object: "obiect",
-    undefined: "nedefinit",
-    symbol: "simbol",
-    bigint: "număr mare",
-    void: "void",
-    never: "never",
-    map: "hartă",
-    set: "set"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        return `Intrare invalidă: așteptat ${expected}, primit ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Intrare invalidă: așteptat ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opțiune invalidă: așteptat una dintre ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Prea mare: așteptat ca ${issue2.origin ?? "valoarea"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elemente"}`;
-        return `Prea mare: așteptat ca ${issue2.origin ?? "valoarea"} să fie ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Prea mic: așteptat ca ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Prea mic: așteptat ca ${issue2.origin} să fie ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Șir invalid: trebuie să înceapă cu "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Șir invalid: trebuie să se termine cu "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Șir invalid: trebuie să includă "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Șir invalid: trebuie să se potrivească cu modelul ${_issue.pattern}`;
-        return `Format invalid: ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Număr invalid: trebuie să fie multiplu de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Chei nerecunoscute: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Cheie invalidă în ${issue2.origin}`;
-      case "invalid_union":
-        return "Intrare invalidă";
-      case "invalid_element":
-        return `Valoare invalidă în ${issue2.origin}`;
-      default:
-        return `Intrare invalidă`;
-    }
-  };
-};
-function ro_default() {
-  return {
-    localeError: error37()
-  };
-}
-// node_modules/zod/v4/locales/ru.js
-function getRussianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
-  const lastDigit = absCount % 10;
-  const lastTwoDigits = absCount % 100;
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
-    return many;
-  }
-  if (lastDigit === 1) {
-    return one;
-  }
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return few;
-  }
-  return many;
-}
-var error38 = () => {
-  const Sizable = {
-    string: {
-      unit: {
-        one: "символ",
-        few: "символа",
-        many: "символов"
-      },
-      verb: "иметь"
-    },
-    file: {
-      unit: {
-        one: "байт",
-        few: "байта",
-        many: "байт"
-      },
-      verb: "иметь"
-    },
-    array: {
-      unit: {
-        one: "элемент",
-        few: "элемента",
-        many: "элементов"
-      },
-      verb: "иметь"
-    },
-    set: {
-      unit: {
-        one: "элемент",
-        few: "элемента",
-        many: "элементов"
-      },
-      verb: "иметь"
-    }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "ввод",
-    email: "email адрес",
-    url: "URL",
-    emoji: "эмодзи",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO дата и время",
-    date: "ISO дата",
-    time: "ISO время",
-    duration: "ISO длительность",
-    ipv4: "IPv4 адрес",
-    ipv6: "IPv6 адрес",
-    cidrv4: "IPv4 диапазон",
-    cidrv6: "IPv6 диапазон",
-    base64: "строка в формате base64",
-    base64url: "строка в формате base64url",
-    json_string: "JSON строка",
-    e164: "номер E.164",
-    jwt: "JWT",
-    template_literal: "ввод"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "число",
-    array: "массив"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Неверный ввод: ожидалось instanceof ${issue2.expected}, получено ${received}`;
-        }
-        return `Неверный ввод: ожидалось ${expected}, получено ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Неверный ввод: ожидалось ${stringifyPrimitive(issue2.values[0])}`;
-        return `Неверный вариант: ожидалось одно из ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const maxValue = Number(issue2.maximum);
-          const unit = getRussianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Слишком большое значение: ожидалось, что ${issue2.origin ?? "значение"} будет иметь ${adj}${issue2.maximum.toString()} ${unit}`;
-        }
-        return `Слишком большое значение: ожидалось, что ${issue2.origin ?? "значение"} будет ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const minValue = Number(issue2.minimum);
-          const unit = getRussianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Слишком маленькое значение: ожидалось, что ${issue2.origin} будет иметь ${adj}${issue2.minimum.toString()} ${unit}`;
-        }
-        return `Слишком маленькое значение: ожидалось, что ${issue2.origin} будет ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Неверная строка: должна начинаться с "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Неверная строка: должна заканчиваться на "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Неверная строка: должна содержать "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Неверная строка: должна соответствовать шаблону ${_issue.pattern}`;
-        return `Неверный ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Неверное число: должно быть кратным ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Нераспознанн${issue2.keys.length > 1 ? "ые" : "ый"} ключ${issue2.keys.length > 1 ? "и" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Неверный ключ в ${issue2.origin}`;
-      case "invalid_union":
-        return "Неверные входные данные";
-      case "invalid_element":
-        return `Неверное значение в ${issue2.origin}`;
-      default:
-        return `Неверные входные данные`;
-    }
-  };
-};
-function ru_default() {
-  return {
-    localeError: error38()
-  };
-}
-// node_modules/zod/v4/locales/sl.js
-var error39 = () => {
-  const Sizable = {
-    string: { unit: "znakov", verb: "imeti" },
-    file: { unit: "bajtov", verb: "imeti" },
-    array: { unit: "elementov", verb: "imeti" },
-    set: { unit: "elementov", verb: "imeti" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "vnos",
-    email: "e-poštni naslov",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datum in čas",
-    date: "ISO datum",
-    time: "ISO čas",
-    duration: "ISO trajanje",
-    ipv4: "IPv4 naslov",
-    ipv6: "IPv6 naslov",
-    cidrv4: "obseg IPv4",
-    cidrv6: "obseg IPv6",
-    base64: "base64 kodiran niz",
-    base64url: "base64url kodiran niz",
-    json_string: "JSON niz",
-    e164: "E.164 številka",
-    jwt: "JWT",
-    template_literal: "vnos"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "število",
-    array: "tabela"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Neveljaven vnos: pričakovano instanceof ${issue2.expected}, prejeto ${received}`;
-        }
-        return `Neveljaven vnos: pričakovano ${expected}, prejeto ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Neveljaven vnos: pričakovano ${stringifyPrimitive(issue2.values[0])}`;
-        return `Neveljavna možnost: pričakovano eno izmed ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Preveliko: pričakovano, da bo ${issue2.origin ?? "vrednost"} imelo ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementov"}`;
-        return `Preveliko: pričakovano, da bo ${issue2.origin ?? "vrednost"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Premajhno: pričakovano, da bo ${issue2.origin} imelo ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Premajhno: pričakovano, da bo ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Neveljaven niz: mora se začeti z "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Neveljaven niz: mora se končati z "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Neveljaven niz: mora vsebovati "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Neveljaven niz: mora ustrezati vzorcu ${_issue.pattern}`;
-        return `Neveljaven ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Neveljavno število: mora biti večkratnik ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Neprepoznan${issue2.keys.length > 1 ? "i ključi" : " ključ"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Neveljaven ključ v ${issue2.origin}`;
-      case "invalid_union":
-        return "Neveljaven vnos";
-      case "invalid_element":
-        return `Neveljavna vrednost v ${issue2.origin}`;
-      default:
-        return "Neveljaven vnos";
-    }
-  };
-};
-function sl_default() {
-  return {
-    localeError: error39()
-  };
-}
-// node_modules/zod/v4/locales/sv.js
-var error40 = () => {
-  const Sizable = {
-    string: { unit: "tecken", verb: "att ha" },
-    file: { unit: "bytes", verb: "att ha" },
-    array: { unit: "objekt", verb: "att innehålla" },
-    set: { unit: "objekt", verb: "att innehålla" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "reguljärt uttryck",
-    email: "e-postadress",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-datum och tid",
-    date: "ISO-datum",
-    time: "ISO-tid",
-    duration: "ISO-varaktighet",
-    ipv4: "IPv4-intervall",
-    ipv6: "IPv6-intervall",
-    cidrv4: "IPv4-spektrum",
-    cidrv6: "IPv6-spektrum",
-    base64: "base64-kodad sträng",
-    base64url: "base64url-kodad sträng",
-    json_string: "JSON-sträng",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "mall-literal"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "antal",
-    array: "lista"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Ogiltig inmatning: förväntat instanceof ${issue2.expected}, fick ${received}`;
-        }
-        return `Ogiltig inmatning: förväntat ${expected}, fick ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ogiltig inmatning: förväntat ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ogiltigt val: förväntade en av ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `För stor(t): förväntade ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "element"}`;
-        }
-        return `För stor(t): förväntat ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `För lite(t): förväntade ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `För lite(t): förväntade ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Ogiltig sträng: måste börja med "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Ogiltig sträng: måste sluta med "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ogiltig sträng: måste innehålla "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ogiltig sträng: måste matcha mönstret "${_issue.pattern}"`;
-        return `Ogiltig(t) ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ogiltigt tal: måste vara en multipel av ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Okända nycklar" : "Okänd nyckel"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ogiltig nyckel i ${issue2.origin ?? "värdet"}`;
-      case "invalid_union":
-        return "Ogiltig input";
-      case "invalid_element":
-        return `Ogiltigt värde i ${issue2.origin ?? "värdet"}`;
-      default:
-        return `Ogiltig input`;
-    }
-  };
-};
-function sv_default() {
-  return {
-    localeError: error40()
-  };
-}
-// node_modules/zod/v4/locales/ta.js
-var error41 = () => {
-  const Sizable = {
-    string: { unit: "எழுத்துக்கள்", verb: "கொண்டிருக்க வேண்டும்" },
-    file: { unit: "பைட்டுகள்", verb: "கொண்டிருக்க வேண்டும்" },
-    array: { unit: "உறுப்புகள்", verb: "கொண்டிருக்க வேண்டும்" },
-    set: { unit: "உறுப்புகள்", verb: "கொண்டிருக்க வேண்டும்" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "உள்ளீடு",
-    email: "மின்னஞ்சல் முகவரி",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO தேதி நேரம்",
-    date: "ISO தேதி",
-    time: "ISO நேரம்",
-    duration: "ISO கால அளவு",
-    ipv4: "IPv4 முகவரி",
-    ipv6: "IPv6 முகவரி",
-    cidrv4: "IPv4 வரம்பு",
-    cidrv6: "IPv6 வரம்பு",
-    base64: "base64-encoded சரம்",
-    base64url: "base64url-encoded சரம்",
-    json_string: "JSON சரம்",
-    e164: "E.164 எண்",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "எண்",
-    array: "அணி",
-    null: "வெறுமை"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `தவறான உள்ளீடு: எதிர்பார்க்கப்பட்டது instanceof ${issue2.expected}, பெறப்பட்டது ${received}`;
-        }
-        return `தவறான உள்ளீடு: எதிர்பார்க்கப்பட்டது ${expected}, பெறப்பட்டது ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `தவறான உள்ளீடு: எதிர்பார்க்கப்பட்டது ${stringifyPrimitive(issue2.values[0])}`;
-        return `தவறான விருப்பம்: எதிர்பார்க்கப்பட்டது ${joinValues(issue2.values, "|")} இல் ஒன்று`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `மிக பெரியது: எதிர்பார்க்கப்பட்டது ${issue2.origin ?? "மதிப்பு"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "உறுப்புகள்"} ஆக இருக்க வேண்டும்`;
-        }
-        return `மிக பெரியது: எதிர்பார்க்கப்பட்டது ${issue2.origin ?? "மதிப்பு"} ${adj}${issue2.maximum.toString()} ஆக இருக்க வேண்டும்`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `மிகச் சிறியது: எதிர்பார்க்கப்பட்டது ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit} ஆக இருக்க வேண்டும்`;
-        }
-        return `மிகச் சிறியது: எதிர்பார்க்கப்பட்டது ${issue2.origin} ${adj}${issue2.minimum.toString()} ஆக இருக்க வேண்டும்`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `தவறான சரம்: "${_issue.prefix}" இல் தொடங்க வேண்டும்`;
-        if (_issue.format === "ends_with")
-          return `தவறான சரம்: "${_issue.suffix}" இல் முடிவடைய வேண்டும்`;
-        if (_issue.format === "includes")
-          return `தவறான சரம்: "${_issue.includes}" ஐ உள்ளடக்க வேண்டும்`;
-        if (_issue.format === "regex")
-          return `தவறான சரம்: ${_issue.pattern} முறைபாட்டுடன் பொருந்த வேண்டும்`;
-        return `தவறான ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `தவறான எண்: ${issue2.divisor} இன் பலமாக இருக்க வேண்டும்`;
-      case "unrecognized_keys":
-        return `அடையாளம் தெரியாத விசை${issue2.keys.length > 1 ? "கள்" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} இல் தவறான விசை`;
-      case "invalid_union":
-        return "தவறான உள்ளீடு";
-      case "invalid_element":
-        return `${issue2.origin} இல் தவறான மதிப்பு`;
-      default:
-        return `தவறான உள்ளீடு`;
-    }
-  };
-};
-function ta_default() {
-  return {
-    localeError: error41()
-  };
-}
-// node_modules/zod/v4/locales/th.js
-var error42 = () => {
-  const Sizable = {
-    string: { unit: "ตัวอักษร", verb: "ควรมี" },
-    file: { unit: "ไบต์", verb: "ควรมี" },
-    array: { unit: "รายการ", verb: "ควรมี" },
-    set: { unit: "รายการ", verb: "ควรมี" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "ข้อมูลที่ป้อน",
-    email: "ที่อยู่อีเมล",
-    url: "URL",
-    emoji: "อิโมจิ",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "วันที่เวลาแบบ ISO",
-    date: "วันที่แบบ ISO",
-    time: "เวลาแบบ ISO",
-    duration: "ช่วงเวลาแบบ ISO",
-    ipv4: "ที่อยู่ IPv4",
-    ipv6: "ที่อยู่ IPv6",
-    cidrv4: "ช่วง IP แบบ IPv4",
-    cidrv6: "ช่วง IP แบบ IPv6",
-    base64: "ข้อความแบบ Base64",
-    base64url: "ข้อความแบบ Base64 สำหรับ URL",
-    json_string: "ข้อความแบบ JSON",
-    e164: "เบอร์โทรศัพท์ระหว่างประเทศ (E.164)",
-    jwt: "โทเคน JWT",
-    template_literal: "ข้อมูลที่ป้อน"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "ตัวเลข",
-    array: "อาร์เรย์ (Array)",
-    null: "ไม่มีค่า (null)"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `ประเภทข้อมูลไม่ถูกต้อง: ควรเป็น instanceof ${issue2.expected} แต่ได้รับ ${received}`;
-        }
-        return `ประเภทข้อมูลไม่ถูกต้อง: ควรเป็น ${expected} แต่ได้รับ ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `ค่าไม่ถูกต้อง: ควรเป็น ${stringifyPrimitive(issue2.values[0])}`;
-        return `ตัวเลือกไม่ถูกต้อง: ควรเป็นหนึ่งใน ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "ไม่เกิน" : "น้อยกว่า";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `เกินกำหนด: ${issue2.origin ?? "ค่า"} ควรมี${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "รายการ"}`;
-        return `เกินกำหนด: ${issue2.origin ?? "ค่า"} ควรมี${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "อย่างน้อย" : "มากกว่า";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `น้อยกว่ากำหนด: ${issue2.origin} ควรมี${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `น้อยกว่ากำหนด: ${issue2.origin} ควรมี${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `รูปแบบไม่ถูกต้อง: ข้อความต้องขึ้นต้นด้วย "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `รูปแบบไม่ถูกต้อง: ข้อความต้องลงท้ายด้วย "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `รูปแบบไม่ถูกต้อง: ข้อความต้องมี "${_issue.includes}" อยู่ในข้อความ`;
-        if (_issue.format === "regex")
-          return `รูปแบบไม่ถูกต้อง: ต้องตรงกับรูปแบบที่กำหนด ${_issue.pattern}`;
-        return `รูปแบบไม่ถูกต้อง: ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `ตัวเลขไม่ถูกต้อง: ต้องเป็นจำนวนที่หารด้วย ${issue2.divisor} ได้ลงตัว`;
-      case "unrecognized_keys":
-        return `พบคีย์ที่ไม่รู้จัก: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `คีย์ไม่ถูกต้องใน ${issue2.origin}`;
-      case "invalid_union":
-        return "ข้อมูลไม่ถูกต้อง: ไม่ตรงกับรูปแบบยูเนียนที่กำหนดไว้";
-      case "invalid_element":
-        return `ข้อมูลไม่ถูกต้องใน ${issue2.origin}`;
-      default:
-        return `ข้อมูลไม่ถูกต้อง`;
-    }
-  };
-};
-function th_default() {
-  return {
-    localeError: error42()
-  };
-}
-// node_modules/zod/v4/locales/tr.js
-var error43 = () => {
-  const Sizable = {
-    string: { unit: "karakter", verb: "olmalı" },
-    file: { unit: "bayt", verb: "olmalı" },
-    array: { unit: "öğe", verb: "olmalı" },
-    set: { unit: "öğe", verb: "olmalı" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "girdi",
-    email: "e-posta adresi",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO tarih ve saat",
-    date: "ISO tarih",
-    time: "ISO saat",
-    duration: "ISO süre",
-    ipv4: "IPv4 adresi",
-    ipv6: "IPv6 adresi",
-    cidrv4: "IPv4 aralığı",
-    cidrv6: "IPv6 aralığı",
-    base64: "base64 ile şifrelenmiş metin",
-    base64url: "base64url ile şifrelenmiş metin",
-    json_string: "JSON dizesi",
-    e164: "E.164 sayısı",
-    jwt: "JWT",
-    template_literal: "Şablon dizesi"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Geçersiz değer: beklenen instanceof ${issue2.expected}, alınan ${received}`;
-        }
-        return `Geçersiz değer: beklenen ${expected}, alınan ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Geçersiz değer: beklenen ${stringifyPrimitive(issue2.values[0])}`;
-        return `Geçersiz seçenek: aşağıdakilerden biri olmalı: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çok büyük: beklenen ${issue2.origin ?? "değer"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "öğe"}`;
-        return `Çok büyük: beklenen ${issue2.origin ?? "değer"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çok küçük: beklenen ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        return `Çok küçük: beklenen ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Geçersiz metin: "${_issue.prefix}" ile başlamalı`;
-        if (_issue.format === "ends_with")
-          return `Geçersiz metin: "${_issue.suffix}" ile bitmeli`;
-        if (_issue.format === "includes")
-          return `Geçersiz metin: "${_issue.includes}" içermeli`;
-        if (_issue.format === "regex")
-          return `Geçersiz metin: ${_issue.pattern} desenine uymalı`;
-        return `Geçersiz ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Geçersiz sayı: ${issue2.divisor} ile tam bölünebilmeli`;
-      case "unrecognized_keys":
-        return `Tanınmayan anahtar${issue2.keys.length > 1 ? "lar" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} içinde geçersiz anahtar`;
-      case "invalid_union":
-        return "Geçersiz değer";
-      case "invalid_element":
-        return `${issue2.origin} içinde geçersiz değer`;
-      default:
-        return `Geçersiz değer`;
-    }
-  };
-};
-function tr_default() {
-  return {
-    localeError: error43()
-  };
-}
-// node_modules/zod/v4/locales/uk.js
-var error44 = () => {
-  const Sizable = {
-    string: { unit: "символів", verb: "матиме" },
-    file: { unit: "байтів", verb: "матиме" },
-    array: { unit: "елементів", verb: "матиме" },
-    set: { unit: "елементів", verb: "матиме" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "вхідні дані",
-    email: "адреса електронної пошти",
-    url: "URL",
-    emoji: "емодзі",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "дата та час ISO",
-    date: "дата ISO",
-    time: "час ISO",
-    duration: "тривалість ISO",
-    ipv4: "адреса IPv4",
-    ipv6: "адреса IPv6",
-    cidrv4: "діапазон IPv4",
-    cidrv6: "діапазон IPv6",
-    base64: "рядок у кодуванні base64",
-    base64url: "рядок у кодуванні base64url",
-    json_string: "рядок JSON",
-    e164: "номер E.164",
-    jwt: "JWT",
-    template_literal: "вхідні дані"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "число",
-    array: "масив"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Неправильні вхідні дані: очікується instanceof ${issue2.expected}, отримано ${received}`;
-        }
-        return `Неправильні вхідні дані: очікується ${expected}, отримано ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Неправильні вхідні дані: очікується ${stringifyPrimitive(issue2.values[0])}`;
-        return `Неправильна опція: очікується одне з ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Занадто велике: очікується, що ${issue2.origin ?? "значення"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "елементів"}`;
-        return `Занадто велике: очікується, що ${issue2.origin ?? "значення"} буде ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Занадто мале: очікується, що ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Занадто мале: очікується, що ${issue2.origin} буде ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Неправильний рядок: повинен починатися з "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Неправильний рядок: повинен закінчуватися на "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Неправильний рядок: повинен містити "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Неправильний рядок: повинен відповідати шаблону ${_issue.pattern}`;
-        return `Неправильний ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Неправильне число: повинно бути кратним ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Нерозпізнаний ключ${issue2.keys.length > 1 ? "і" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Неправильний ключ у ${issue2.origin}`;
-      case "invalid_union":
-        return "Неправильні вхідні дані";
-      case "invalid_element":
-        return `Неправильне значення у ${issue2.origin}`;
-      default:
-        return `Неправильні вхідні дані`;
-    }
-  };
-};
-function uk_default() {
-  return {
-    localeError: error44()
-  };
-}
-
-// node_modules/zod/v4/locales/ua.js
-function ua_default() {
-  return uk_default();
-}
-// node_modules/zod/v4/locales/ur.js
-var error45 = () => {
-  const Sizable = {
-    string: { unit: "حروف", verb: "ہونا" },
-    file: { unit: "بائٹس", verb: "ہونا" },
-    array: { unit: "آئٹمز", verb: "ہونا" },
-    set: { unit: "آئٹمز", verb: "ہونا" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "ان پٹ",
-    email: "ای میل ایڈریس",
-    url: "یو آر ایل",
-    emoji: "ایموجی",
-    uuid: "یو یو آئی ڈی",
-    uuidv4: "یو یو آئی ڈی وی 4",
-    uuidv6: "یو یو آئی ڈی وی 6",
-    nanoid: "نینو آئی ڈی",
-    guid: "جی یو آئی ڈی",
-    cuid: "سی یو آئی ڈی",
-    cuid2: "سی یو آئی ڈی 2",
-    ulid: "یو ایل آئی ڈی",
-    xid: "ایکس آئی ڈی",
-    ksuid: "کے ایس یو آئی ڈی",
-    datetime: "آئی ایس او ڈیٹ ٹائم",
-    date: "آئی ایس او تاریخ",
-    time: "آئی ایس او وقت",
-    duration: "آئی ایس او مدت",
-    ipv4: "آئی پی وی 4 ایڈریس",
-    ipv6: "آئی پی وی 6 ایڈریس",
-    cidrv4: "آئی پی وی 4 رینج",
-    cidrv6: "آئی پی وی 6 رینج",
-    base64: "بیس 64 ان کوڈڈ سٹرنگ",
-    base64url: "بیس 64 یو آر ایل ان کوڈڈ سٹرنگ",
-    json_string: "جے ایس او این سٹرنگ",
-    e164: "ای 164 نمبر",
-    jwt: "جے ڈبلیو ٹی",
-    template_literal: "ان پٹ"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "نمبر",
-    array: "آرے",
-    null: "نل"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `غلط ان پٹ: instanceof ${issue2.expected} متوقع تھا، ${received} موصول ہوا`;
-        }
-        return `غلط ان پٹ: ${expected} متوقع تھا، ${received} موصول ہوا`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `غلط ان پٹ: ${stringifyPrimitive(issue2.values[0])} متوقع تھا`;
-        return `غلط آپشن: ${joinValues(issue2.values, "|")} میں سے ایک متوقع تھا`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `بہت بڑا: ${issue2.origin ?? "ویلیو"} کے ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "عناصر"} ہونے متوقع تھے`;
-        return `بہت بڑا: ${issue2.origin ?? "ویلیو"} کا ${adj}${issue2.maximum.toString()} ہونا متوقع تھا`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `بہت چھوٹا: ${issue2.origin} کے ${adj}${issue2.minimum.toString()} ${sizing.unit} ہونے متوقع تھے`;
-        }
-        return `بہت چھوٹا: ${issue2.origin} کا ${adj}${issue2.minimum.toString()} ہونا متوقع تھا`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `غلط سٹرنگ: "${_issue.prefix}" سے شروع ہونا چاہیے`;
-        }
-        if (_issue.format === "ends_with")
-          return `غلط سٹرنگ: "${_issue.suffix}" پر ختم ہونا چاہیے`;
-        if (_issue.format === "includes")
-          return `غلط سٹرنگ: "${_issue.includes}" شامل ہونا چاہیے`;
-        if (_issue.format === "regex")
-          return `غلط سٹرنگ: پیٹرن ${_issue.pattern} سے میچ ہونا چاہیے`;
-        return `غلط ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `غلط نمبر: ${issue2.divisor} کا مضاعف ہونا چاہیے`;
-      case "unrecognized_keys":
-        return `غیر تسلیم شدہ کی${issue2.keys.length > 1 ? "ز" : ""}: ${joinValues(issue2.keys, "، ")}`;
-      case "invalid_key":
-        return `${issue2.origin} میں غلط کی`;
-      case "invalid_union":
-        return "غلط ان پٹ";
-      case "invalid_element":
-        return `${issue2.origin} میں غلط ویلیو`;
-      default:
-        return `غلط ان پٹ`;
-    }
-  };
-};
-function ur_default() {
-  return {
-    localeError: error45()
-  };
-}
-// node_modules/zod/v4/locales/uz.js
-var error46 = () => {
-  const Sizable = {
-    string: { unit: "belgi", verb: "bo‘lishi kerak" },
-    file: { unit: "bayt", verb: "bo‘lishi kerak" },
-    array: { unit: "element", verb: "bo‘lishi kerak" },
-    set: { unit: "element", verb: "bo‘lishi kerak" },
-    map: { unit: "yozuv", verb: "bo‘lishi kerak" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "kirish",
-    email: "elektron pochta manzili",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO sana va vaqti",
-    date: "ISO sana",
-    time: "ISO vaqt",
-    duration: "ISO davomiylik",
-    ipv4: "IPv4 manzil",
-    ipv6: "IPv6 manzil",
-    mac: "MAC manzil",
-    cidrv4: "IPv4 diapazon",
-    cidrv6: "IPv6 diapazon",
-    base64: "base64 kodlangan satr",
-    base64url: "base64url kodlangan satr",
-    json_string: "JSON satr",
-    e164: "E.164 raqam",
-    jwt: "JWT",
-    template_literal: "kirish"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "raqam",
-    array: "massiv"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Noto‘g‘ri kirish: kutilgan instanceof ${issue2.expected}, qabul qilingan ${received}`;
-        }
-        return `Noto‘g‘ri kirish: kutilgan ${expected}, qabul qilingan ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Noto‘g‘ri kirish: kutilgan ${stringifyPrimitive(issue2.values[0])}`;
-        return `Noto‘g‘ri variant: quyidagilardan biri kutilgan ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Juda katta: kutilgan ${issue2.origin ?? "qiymat"} ${adj}${issue2.maximum.toString()} ${sizing.unit} ${sizing.verb}`;
-        return `Juda katta: kutilgan ${issue2.origin ?? "qiymat"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Juda kichik: kutilgan ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit} ${sizing.verb}`;
-        }
-        return `Juda kichik: kutilgan ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Noto‘g‘ri satr: "${_issue.prefix}" bilan boshlanishi kerak`;
-        if (_issue.format === "ends_with")
-          return `Noto‘g‘ri satr: "${_issue.suffix}" bilan tugashi kerak`;
-        if (_issue.format === "includes")
-          return `Noto‘g‘ri satr: "${_issue.includes}" ni o‘z ichiga olishi kerak`;
-        if (_issue.format === "regex")
-          return `Noto‘g‘ri satr: ${_issue.pattern} shabloniga mos kelishi kerak`;
-        return `Noto‘g‘ri ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Noto‘g‘ri raqam: ${issue2.divisor} ning karralisi bo‘lishi kerak`;
-      case "unrecognized_keys":
-        return `Noma’lum kalit${issue2.keys.length > 1 ? "lar" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} dagi kalit noto‘g‘ri`;
-      case "invalid_union":
-        return "Noto‘g‘ri kirish";
-      case "invalid_element":
-        return `${issue2.origin} da noto‘g‘ri qiymat`;
-      default:
-        return `Noto‘g‘ri kirish`;
-    }
-  };
-};
-function uz_default() {
-  return {
-    localeError: error46()
-  };
-}
-// node_modules/zod/v4/locales/vi.js
-var error47 = () => {
-  const Sizable = {
-    string: { unit: "ký tự", verb: "có" },
-    file: { unit: "byte", verb: "có" },
-    array: { unit: "phần tử", verb: "có" },
-    set: { unit: "phần tử", verb: "có" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "đầu vào",
-    email: "địa chỉ email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ngày giờ ISO",
-    date: "ngày ISO",
-    time: "giờ ISO",
-    duration: "khoảng thời gian ISO",
-    ipv4: "địa chỉ IPv4",
-    ipv6: "địa chỉ IPv6",
-    cidrv4: "dải IPv4",
-    cidrv6: "dải IPv6",
-    base64: "chuỗi mã hóa base64",
-    base64url: "chuỗi mã hóa base64url",
-    json_string: "chuỗi JSON",
-    e164: "số E.164",
-    jwt: "JWT",
-    template_literal: "đầu vào"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "số",
-    array: "mảng"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Đầu vào không hợp lệ: mong đợi instanceof ${issue2.expected}, nhận được ${received}`;
-        }
-        return `Đầu vào không hợp lệ: mong đợi ${expected}, nhận được ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Đầu vào không hợp lệ: mong đợi ${stringifyPrimitive(issue2.values[0])}`;
-        return `Tùy chọn không hợp lệ: mong đợi một trong các giá trị ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Quá lớn: mong đợi ${issue2.origin ?? "giá trị"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "phần tử"}`;
-        return `Quá lớn: mong đợi ${issue2.origin ?? "giá trị"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Quá nhỏ: mong đợi ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Quá nhỏ: mong đợi ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Chuỗi không hợp lệ: phải bắt đầu bằng "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Chuỗi không hợp lệ: phải kết thúc bằng "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Chuỗi không hợp lệ: phải bao gồm "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Chuỗi không hợp lệ: phải khớp với mẫu ${_issue.pattern}`;
-        return `${FormatDictionary[_issue.format] ?? issue2.format} không hợp lệ`;
-      }
-      case "not_multiple_of":
-        return `Số không hợp lệ: phải là bội số của ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Khóa không được nhận dạng: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Khóa không hợp lệ trong ${issue2.origin}`;
-      case "invalid_union":
-        return "Đầu vào không hợp lệ";
-      case "invalid_element":
-        return `Giá trị không hợp lệ trong ${issue2.origin}`;
-      default:
-        return `Đầu vào không hợp lệ`;
-    }
-  };
-};
-function vi_default() {
-  return {
-    localeError: error47()
-  };
-}
-// node_modules/zod/v4/locales/zh-CN.js
-var error48 = () => {
-  const Sizable = {
-    string: { unit: "字符", verb: "包含" },
-    file: { unit: "字节", verb: "包含" },
-    array: { unit: "项", verb: "包含" },
-    set: { unit: "项", verb: "包含" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "输入",
-    email: "电子邮件",
-    url: "URL",
-    emoji: "表情符号",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO日期时间",
-    date: "ISO日期",
-    time: "ISO时间",
-    duration: "ISO时长",
-    ipv4: "IPv4地址",
-    ipv6: "IPv6地址",
-    cidrv4: "IPv4网段",
-    cidrv6: "IPv6网段",
-    base64: "base64编码字符串",
-    base64url: "base64url编码字符串",
-    json_string: "JSON字符串",
-    e164: "E.164号码",
-    jwt: "JWT",
-    template_literal: "输入"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "数字",
-    array: "数组",
-    null: "空值(null)"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `无效输入：期望 instanceof ${issue2.expected}，实际接收 ${received}`;
-        }
-        return `无效输入：期望 ${expected}，实际接收 ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `无效输入：期望 ${stringifyPrimitive(issue2.values[0])}`;
-        return `无效选项：期望以下之一 ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `数值过大：期望 ${issue2.origin ?? "值"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "个元素"}`;
-        return `数值过大：期望 ${issue2.origin ?? "值"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `数值过小：期望 ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `数值过小：期望 ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `无效字符串：必须以 "${_issue.prefix}" 开头`;
-        if (_issue.format === "ends_with")
-          return `无效字符串：必须以 "${_issue.suffix}" 结尾`;
-        if (_issue.format === "includes")
-          return `无效字符串：必须包含 "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `无效字符串：必须满足正则表达式 ${_issue.pattern}`;
-        return `无效${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `无效数字：必须是 ${issue2.divisor} 的倍数`;
-      case "unrecognized_keys":
-        return `出现未知的键(key): ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} 中的键(key)无效`;
-      case "invalid_union":
-        return "无效输入";
-      case "invalid_element":
-        return `${issue2.origin} 中包含无效值(value)`;
-      default:
-        return `无效输入`;
-    }
-  };
-};
-function zh_CN_default() {
-  return {
-    localeError: error48()
-  };
-}
-// node_modules/zod/v4/locales/zh-TW.js
-var error49 = () => {
-  const Sizable = {
-    string: { unit: "字元", verb: "擁有" },
-    file: { unit: "位元組", verb: "擁有" },
-    array: { unit: "項目", verb: "擁有" },
-    set: { unit: "項目", verb: "擁有" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "輸入",
-    email: "郵件地址",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO 日期時間",
-    date: "ISO 日期",
-    time: "ISO 時間",
-    duration: "ISO 期間",
-    ipv4: "IPv4 位址",
-    ipv6: "IPv6 位址",
-    cidrv4: "IPv4 範圍",
-    cidrv6: "IPv6 範圍",
-    base64: "base64 編碼字串",
-    base64url: "base64url 編碼字串",
-    json_string: "JSON 字串",
-    e164: "E.164 數值",
-    jwt: "JWT",
-    template_literal: "輸入"
-  };
-  const TypeDictionary = {
-    nan: "NaN"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `無效的輸入值：預期為 instanceof ${issue2.expected}，但收到 ${received}`;
-        }
-        return `無效的輸入值：預期為 ${expected}，但收到 ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `無效的輸入值：預期為 ${stringifyPrimitive(issue2.values[0])}`;
-        return `無效的選項：預期為以下其中之一 ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `數值過大：預期 ${issue2.origin ?? "值"} 應為 ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "個元素"}`;
-        return `數值過大：預期 ${issue2.origin ?? "值"} 應為 ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `數值過小：預期 ${issue2.origin} 應為 ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `數值過小：預期 ${issue2.origin} 應為 ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `無效的字串：必須以 "${_issue.prefix}" 開頭`;
-        }
-        if (_issue.format === "ends_with")
-          return `無效的字串：必須以 "${_issue.suffix}" 結尾`;
-        if (_issue.format === "includes")
-          return `無效的字串：必須包含 "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `無效的字串：必須符合格式 ${_issue.pattern}`;
-        return `無效的 ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `無效的數字：必須為 ${issue2.divisor} 的倍數`;
-      case "unrecognized_keys":
-        return `無法識別的鍵值${issue2.keys.length > 1 ? "們" : ""}：${joinValues(issue2.keys, "、")}`;
-      case "invalid_key":
-        return `${issue2.origin} 中有無效的鍵值`;
-      case "invalid_union":
-        return "無效的輸入值";
-      case "invalid_element":
-        return `${issue2.origin} 中有無效的值`;
-      default:
-        return `無效的輸入值`;
-    }
-  };
-};
-function zh_TW_default() {
-  return {
-    localeError: error49()
-  };
-}
-// node_modules/zod/v4/locales/yo.js
-var error50 = () => {
-  const Sizable = {
-    string: { unit: "àmi", verb: "ní" },
-    file: { unit: "bytes", verb: "ní" },
-    array: { unit: "nkan", verb: "ní" },
-    set: { unit: "nkan", verb: "ní" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const FormatDictionary = {
-    regex: "ẹ̀rọ ìbáwọlé",
-    email: "àdírẹ́sì ìmẹ́lì",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "àkókò ISO",
-    date: "ọjọ́ ISO",
-    time: "àkókò ISO",
-    duration: "àkókò tó pé ISO",
-    ipv4: "àdírẹ́sì IPv4",
-    ipv6: "àdírẹ́sì IPv6",
-    cidrv4: "àgbègbè IPv4",
-    cidrv6: "àgbègbè IPv6",
-    base64: "ọ̀rọ̀ tí a kọ́ ní base64",
-    base64url: "ọ̀rọ̀ base64url",
-    json_string: "ọ̀rọ̀ JSON",
-    e164: "nọ́mbà E.164",
-    jwt: "JWT",
-    template_literal: "ẹ̀rọ ìbáwọlé"
-  };
-  const TypeDictionary = {
-    nan: "NaN",
-    number: "nọ́mbà",
-    array: "akopọ"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type": {
-        const expected = TypeDictionary[issue2.expected] ?? issue2.expected;
-        const receivedType = parsedType(issue2.input);
-        const received = TypeDictionary[receivedType] ?? receivedType;
-        if (/^[A-Z]/.test(issue2.expected)) {
-          return `Ìbáwọlé aṣìṣe: a ní láti fi instanceof ${issue2.expected}, àmọ̀ a rí ${received}`;
-        }
-        return `Ìbáwọlé aṣìṣe: a ní láti fi ${expected}, àmọ̀ a rí ${received}`;
-      }
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ìbáwọlé aṣìṣe: a ní láti fi ${stringifyPrimitive(issue2.values[0])}`;
-        return `Àṣàyàn aṣìṣe: yan ọ̀kan lára ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Tó pọ̀ jù: a ní láti jẹ́ pé ${issue2.origin ?? "iye"} ${sizing.verb} ${adj}${issue2.maximum} ${sizing.unit}`;
-        return `Tó pọ̀ jù: a ní láti jẹ́ ${adj}${issue2.maximum}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Kéré ju: a ní láti jẹ́ pé ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum} ${sizing.unit}`;
-        return `Kéré ju: a ní láti jẹ́ ${adj}${issue2.minimum}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ bẹ̀rẹ̀ pẹ̀lú "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ parí pẹ̀lú "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ ní "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ bá àpẹẹrẹ mu ${_issue.pattern}`;
-        return `Aṣìṣe: ${FormatDictionary[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Nọ́mbà aṣìṣe: gbọ́dọ̀ jẹ́ èyà pípín ti ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Bọtìnì àìmọ̀: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Bọtìnì aṣìṣe nínú ${issue2.origin}`;
-      case "invalid_union":
-        return "Ìbáwọlé aṣìṣe";
-      case "invalid_element":
-        return `Iye aṣìṣe nínú ${issue2.origin}`;
-      default:
-        return "Ìbáwọlé aṣìṣe";
-    }
-  };
-};
-function yo_default() {
-  return {
-    localeError: error50()
+    localeError: error()
   };
 }
 // node_modules/zod/v4/core/registries.js
@@ -16826,21 +9312,14 @@ function registry() {
 (_a2 = globalThis).__zod_globalRegistry ?? (_a2.__zod_globalRegistry = registry());
 var globalRegistry = globalThis.__zod_globalRegistry;
 // node_modules/zod/v4/core/api.js
-function _string(Class2, params) {
-  return new Class2({
+function _string(Class, params) {
+  return new Class({
     type: "string",
     ...normalizeParams(params)
   });
 }
-function _coercedString(Class2, params) {
-  return new Class2({
-    type: "string",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _email(Class2, params) {
-  return new Class2({
+function _email(Class, params) {
+  return new Class({
     type: "string",
     format: "email",
     check: "string_format",
@@ -16848,8 +9327,8 @@ function _email(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _guid(Class2, params) {
-  return new Class2({
+function _guid(Class, params) {
+  return new Class({
     type: "string",
     format: "guid",
     check: "string_format",
@@ -16857,8 +9336,8 @@ function _guid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuid(Class2, params) {
-  return new Class2({
+function _uuid(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -16866,8 +9345,8 @@ function _uuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv4(Class2, params) {
-  return new Class2({
+function _uuidv4(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -16876,8 +9355,8 @@ function _uuidv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv6(Class2, params) {
-  return new Class2({
+function _uuidv6(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -16886,8 +9365,8 @@ function _uuidv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv7(Class2, params) {
-  return new Class2({
+function _uuidv7(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -16896,8 +9375,8 @@ function _uuidv7(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _url(Class2, params) {
-  return new Class2({
+function _url(Class, params) {
+  return new Class({
     type: "string",
     format: "url",
     check: "string_format",
@@ -16905,8 +9384,8 @@ function _url(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _emoji2(Class2, params) {
-  return new Class2({
+function _emoji2(Class, params) {
+  return new Class({
     type: "string",
     format: "emoji",
     check: "string_format",
@@ -16914,8 +9393,8 @@ function _emoji2(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _nanoid(Class2, params) {
-  return new Class2({
+function _nanoid(Class, params) {
+  return new Class({
     type: "string",
     format: "nanoid",
     check: "string_format",
@@ -16923,8 +9402,8 @@ function _nanoid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cuid(Class2, params) {
-  return new Class2({
+function _cuid(Class, params) {
+  return new Class({
     type: "string",
     format: "cuid",
     check: "string_format",
@@ -16932,8 +9411,8 @@ function _cuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cuid2(Class2, params) {
-  return new Class2({
+function _cuid2(Class, params) {
+  return new Class({
     type: "string",
     format: "cuid2",
     check: "string_format",
@@ -16941,8 +9420,8 @@ function _cuid2(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ulid(Class2, params) {
-  return new Class2({
+function _ulid(Class, params) {
+  return new Class({
     type: "string",
     format: "ulid",
     check: "string_format",
@@ -16950,8 +9429,8 @@ function _ulid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _xid(Class2, params) {
-  return new Class2({
+function _xid(Class, params) {
+  return new Class({
     type: "string",
     format: "xid",
     check: "string_format",
@@ -16959,8 +9438,8 @@ function _xid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ksuid(Class2, params) {
-  return new Class2({
+function _ksuid(Class, params) {
+  return new Class({
     type: "string",
     format: "ksuid",
     check: "string_format",
@@ -16968,8 +9447,8 @@ function _ksuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ipv4(Class2, params) {
-  return new Class2({
+function _ipv4(Class, params) {
+  return new Class({
     type: "string",
     format: "ipv4",
     check: "string_format",
@@ -16977,8 +9456,8 @@ function _ipv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ipv6(Class2, params) {
-  return new Class2({
+function _ipv6(Class, params) {
+  return new Class({
     type: "string",
     format: "ipv6",
     check: "string_format",
@@ -16986,17 +9465,8 @@ function _ipv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _mac(Class2, params) {
-  return new Class2({
-    type: "string",
-    format: "mac",
-    check: "string_format",
-    abort: false,
-    ...normalizeParams(params)
-  });
-}
-function _cidrv4(Class2, params) {
-  return new Class2({
+function _cidrv4(Class, params) {
+  return new Class({
     type: "string",
     format: "cidrv4",
     check: "string_format",
@@ -17004,8 +9474,8 @@ function _cidrv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cidrv6(Class2, params) {
-  return new Class2({
+function _cidrv6(Class, params) {
+  return new Class({
     type: "string",
     format: "cidrv6",
     check: "string_format",
@@ -17013,8 +9483,8 @@ function _cidrv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _base64(Class2, params) {
-  return new Class2({
+function _base64(Class, params) {
+  return new Class({
     type: "string",
     format: "base64",
     check: "string_format",
@@ -17022,8 +9492,8 @@ function _base64(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _base64url(Class2, params) {
-  return new Class2({
+function _base64url(Class, params) {
+  return new Class({
     type: "string",
     format: "base64url",
     check: "string_format",
@@ -17031,8 +9501,8 @@ function _base64url(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _e164(Class2, params) {
-  return new Class2({
+function _e164(Class, params) {
+  return new Class({
     type: "string",
     format: "e164",
     check: "string_format",
@@ -17040,8 +9510,8 @@ function _e164(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _jwt(Class2, params) {
-  return new Class2({
+function _jwt(Class, params) {
+  return new Class({
     type: "string",
     format: "jwt",
     check: "string_format",
@@ -17049,15 +9519,8 @@ function _jwt(Class2, params) {
     ...normalizeParams(params)
   });
 }
-var TimePrecision = {
-  Any: null,
-  Minute: -1,
-  Second: 0,
-  Millisecond: 3,
-  Microsecond: 6
-};
-function _isoDateTime(Class2, params) {
-  return new Class2({
+function _isoDateTime(Class, params) {
+  return new Class({
     type: "string",
     format: "datetime",
     check: "string_format",
@@ -17067,16 +9530,16 @@ function _isoDateTime(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _isoDate(Class2, params) {
-  return new Class2({
+function _isoDate(Class, params) {
+  return new Class({
     type: "string",
     format: "date",
     check: "string_format",
     ...normalizeParams(params)
   });
 }
-function _isoTime(Class2, params) {
-  return new Class2({
+function _isoTime(Class, params) {
+  return new Class({
     type: "string",
     format: "time",
     check: "string_format",
@@ -17084,31 +9547,31 @@ function _isoTime(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _isoDuration(Class2, params) {
-  return new Class2({
+function _isoDuration(Class, params) {
+  return new Class({
     type: "string",
     format: "duration",
     check: "string_format",
     ...normalizeParams(params)
   });
 }
-function _number(Class2, params) {
-  return new Class2({
+function _number(Class, params) {
+  return new Class({
     type: "number",
     checks: [],
     ...normalizeParams(params)
   });
 }
-function _coercedNumber(Class2, params) {
-  return new Class2({
+function _coercedNumber(Class, params) {
+  return new Class({
     type: "number",
     coerce: true,
     checks: [],
     ...normalizeParams(params)
   });
 }
-function _int(Class2, params) {
-  return new Class2({
+function _int(Class, params) {
+  return new Class({
     type: "number",
     check: "number_format",
     abort: false,
@@ -17116,142 +9579,31 @@ function _int(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _float32(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "float32",
-    ...normalizeParams(params)
-  });
-}
-function _float64(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "float64",
-    ...normalizeParams(params)
-  });
-}
-function _int32(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "int32",
-    ...normalizeParams(params)
-  });
-}
-function _uint32(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "uint32",
-    ...normalizeParams(params)
-  });
-}
-function _boolean(Class2, params) {
-  return new Class2({
+function _boolean(Class, params) {
+  return new Class({
     type: "boolean",
     ...normalizeParams(params)
   });
 }
-function _coercedBoolean(Class2, params) {
-  return new Class2({
-    type: "boolean",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _bigint(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    ...normalizeParams(params)
-  });
-}
-function _coercedBigint(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _int64(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    check: "bigint_format",
-    abort: false,
-    format: "int64",
-    ...normalizeParams(params)
-  });
-}
-function _uint64(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    check: "bigint_format",
-    abort: false,
-    format: "uint64",
-    ...normalizeParams(params)
-  });
-}
-function _symbol(Class2, params) {
-  return new Class2({
-    type: "symbol",
-    ...normalizeParams(params)
-  });
-}
-function _undefined2(Class2, params) {
-  return new Class2({
-    type: "undefined",
-    ...normalizeParams(params)
-  });
-}
-function _null2(Class2, params) {
-  return new Class2({
+function _null2(Class, params) {
+  return new Class({
     type: "null",
     ...normalizeParams(params)
   });
 }
-function _any(Class2) {
-  return new Class2({
+function _any(Class) {
+  return new Class({
     type: "any"
   });
 }
-function _unknown(Class2) {
-  return new Class2({
+function _unknown(Class) {
+  return new Class({
     type: "unknown"
   });
 }
-function _never(Class2, params) {
-  return new Class2({
+function _never(Class, params) {
+  return new Class({
     type: "never",
-    ...normalizeParams(params)
-  });
-}
-function _void(Class2, params) {
-  return new Class2({
-    type: "void",
-    ...normalizeParams(params)
-  });
-}
-function _date(Class2, params) {
-  return new Class2({
-    type: "date",
-    ...normalizeParams(params)
-  });
-}
-function _coercedDate(Class2, params) {
-  return new Class2({
-    type: "date",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _nan(Class2, params) {
-  return new Class2({
-    type: "nan",
     ...normalizeParams(params)
   });
 }
@@ -17287,44 +9639,11 @@ function _gte(value, params) {
     inclusive: true
   });
 }
-function _positive(params) {
-  return _gt(0, params);
-}
-function _negative(params) {
-  return _lt(0, params);
-}
-function _nonpositive(params) {
-  return _lte(0, params);
-}
-function _nonnegative(params) {
-  return _gte(0, params);
-}
 function _multipleOf(value, params) {
   return new $ZodCheckMultipleOf({
     check: "multiple_of",
     ...normalizeParams(params),
     value
-  });
-}
-function _maxSize(maximum, params) {
-  return new $ZodCheckMaxSize({
-    check: "max_size",
-    ...normalizeParams(params),
-    maximum
-  });
-}
-function _minSize(minimum, params) {
-  return new $ZodCheckMinSize({
-    check: "min_size",
-    ...normalizeParams(params),
-    minimum
-  });
-}
-function _size(size, params) {
-  return new $ZodCheckSizeEquals({
-    check: "size_equals",
-    ...normalizeParams(params),
-    size
   });
 }
 function _maxLength(maximum, params) {
@@ -17395,21 +9714,6 @@ function _endsWith(suffix, params) {
     suffix
   });
 }
-function _property(property, schema, params) {
-  return new $ZodCheckProperty({
-    check: "property",
-    property,
-    schema,
-    ...normalizeParams(params)
-  });
-}
-function _mime(types, params) {
-  return new $ZodCheckMimeType({
-    check: "mime_type",
-    mime: types,
-    ...normalizeParams(params)
-  });
-}
 function _overwrite(tx) {
   return new $ZodCheckOverwrite({
     check: "overwrite",
@@ -17431,197 +9735,15 @@ function _toUpperCase() {
 function _slugify() {
   return _overwrite((input) => slugify(input));
 }
-function _array(Class2, element, params) {
-  return new Class2({
+function _array(Class, element, params) {
+  return new Class({
     type: "array",
     element,
     ...normalizeParams(params)
   });
 }
-function _union(Class2, options, params) {
-  return new Class2({
-    type: "union",
-    options,
-    ...normalizeParams(params)
-  });
-}
-function _xor(Class2, options, params) {
-  return new Class2({
-    type: "union",
-    options,
-    inclusive: false,
-    ...normalizeParams(params)
-  });
-}
-function _discriminatedUnion(Class2, discriminator, options, params) {
-  return new Class2({
-    type: "union",
-    options,
-    discriminator,
-    ...normalizeParams(params)
-  });
-}
-function _intersection(Class2, left, right) {
-  return new Class2({
-    type: "intersection",
-    left,
-    right
-  });
-}
-function _tuple(Class2, items, _paramsOrRest, _params) {
-  const hasRest = _paramsOrRest instanceof $ZodType;
-  const params = hasRest ? _params : _paramsOrRest;
-  const rest = hasRest ? _paramsOrRest : null;
-  return new Class2({
-    type: "tuple",
-    items,
-    rest,
-    ...normalizeParams(params)
-  });
-}
-function _record(Class2, keyType, valueType, params) {
-  return new Class2({
-    type: "record",
-    keyType,
-    valueType,
-    ...normalizeParams(params)
-  });
-}
-function _map(Class2, keyType, valueType, params) {
-  return new Class2({
-    type: "map",
-    keyType,
-    valueType,
-    ...normalizeParams(params)
-  });
-}
-function _set(Class2, valueType, params) {
-  return new Class2({
-    type: "set",
-    valueType,
-    ...normalizeParams(params)
-  });
-}
-function _enum(Class2, values, params) {
-  const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
-  return new Class2({
-    type: "enum",
-    entries,
-    ...normalizeParams(params)
-  });
-}
-function _nativeEnum(Class2, entries, params) {
-  return new Class2({
-    type: "enum",
-    entries,
-    ...normalizeParams(params)
-  });
-}
-function _literal(Class2, value, params) {
-  return new Class2({
-    type: "literal",
-    values: Array.isArray(value) ? value : [value],
-    ...normalizeParams(params)
-  });
-}
-function _file(Class2, params) {
-  return new Class2({
-    type: "file",
-    ...normalizeParams(params)
-  });
-}
-function _transform(Class2, fn) {
-  return new Class2({
-    type: "transform",
-    transform: fn
-  });
-}
-function _optional(Class2, innerType) {
-  return new Class2({
-    type: "optional",
-    innerType
-  });
-}
-function _nullable(Class2, innerType) {
-  return new Class2({
-    type: "nullable",
-    innerType
-  });
-}
-function _default(Class2, innerType, defaultValue) {
-  return new Class2({
-    type: "default",
-    innerType,
-    get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
-    }
-  });
-}
-function _nonoptional(Class2, innerType, params) {
-  return new Class2({
-    type: "nonoptional",
-    innerType,
-    ...normalizeParams(params)
-  });
-}
-function _success(Class2, innerType) {
-  return new Class2({
-    type: "success",
-    innerType
-  });
-}
-function _catch(Class2, innerType, catchValue) {
-  return new Class2({
-    type: "catch",
-    innerType,
-    catchValue: typeof catchValue === "function" ? catchValue : () => catchValue
-  });
-}
-function _pipe(Class2, in_, out) {
-  return new Class2({
-    type: "pipe",
-    in: in_,
-    out
-  });
-}
-function _readonly(Class2, innerType) {
-  return new Class2({
-    type: "readonly",
-    innerType
-  });
-}
-function _templateLiteral(Class2, parts, params) {
-  return new Class2({
-    type: "template_literal",
-    parts,
-    ...normalizeParams(params)
-  });
-}
-function _lazy(Class2, getter) {
-  return new Class2({
-    type: "lazy",
-    getter
-  });
-}
-function _promise(Class2, innerType) {
-  return new Class2({
-    type: "promise",
-    innerType
-  });
-}
-function _custom(Class2, fn, _params) {
-  const norm = normalizeParams(_params);
-  norm.abort ?? (norm.abort = true);
-  const schema = new Class2({
-    type: "custom",
-    check: "custom",
-    fn,
-    ...norm
-  });
-  return schema;
-}
-function _refine(Class2, fn, _params) {
-  const schema = new Class2({
+function _refine(Class, fn, _params) {
+  const schema = new Class({
     type: "custom",
     check: "custom",
     fn,
@@ -17657,94 +9779,6 @@ function _check(fn, params) {
   ch._zod.check = fn;
   return ch;
 }
-function describe(description) {
-  const ch = new $ZodCheck({ check: "describe" });
-  ch._zod.onattach = [
-    (inst) => {
-      const existing = globalRegistry.get(inst) ?? {};
-      globalRegistry.add(inst, { ...existing, description });
-    }
-  ];
-  ch._zod.check = () => {};
-  return ch;
-}
-function meta(metadata) {
-  const ch = new $ZodCheck({ check: "meta" });
-  ch._zod.onattach = [
-    (inst) => {
-      const existing = globalRegistry.get(inst) ?? {};
-      globalRegistry.add(inst, { ...existing, ...metadata });
-    }
-  ];
-  ch._zod.check = () => {};
-  return ch;
-}
-function _stringbool(Classes, _params) {
-  const params = normalizeParams(_params);
-  let truthyArray = params.truthy ?? ["true", "1", "yes", "on", "y", "enabled"];
-  let falsyArray = params.falsy ?? ["false", "0", "no", "off", "n", "disabled"];
-  if (params.case !== "sensitive") {
-    truthyArray = truthyArray.map((v) => typeof v === "string" ? v.toLowerCase() : v);
-    falsyArray = falsyArray.map((v) => typeof v === "string" ? v.toLowerCase() : v);
-  }
-  const truthySet = new Set(truthyArray);
-  const falsySet = new Set(falsyArray);
-  const _Codec = Classes.Codec ?? $ZodCodec;
-  const _Boolean = Classes.Boolean ?? $ZodBoolean;
-  const _String = Classes.String ?? $ZodString;
-  const stringSchema = new _String({ type: "string", error: params.error });
-  const booleanSchema = new _Boolean({ type: "boolean", error: params.error });
-  const codec = new _Codec({
-    type: "pipe",
-    in: stringSchema,
-    out: booleanSchema,
-    transform: (input, payload) => {
-      let data = input;
-      if (params.case !== "sensitive")
-        data = data.toLowerCase();
-      if (truthySet.has(data)) {
-        return true;
-      } else if (falsySet.has(data)) {
-        return false;
-      } else {
-        payload.issues.push({
-          code: "invalid_value",
-          expected: "stringbool",
-          values: [...truthySet, ...falsySet],
-          input: payload.value,
-          inst: codec,
-          continue: false
-        });
-        return {};
-      }
-    },
-    reverseTransform: (input, _payload) => {
-      if (input === true) {
-        return truthyArray[0] || "true";
-      } else {
-        return falsyArray[0] || "false";
-      }
-    },
-    error: params.error
-  });
-  return codec;
-}
-function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
-  const params = normalizeParams(_params);
-  const def = {
-    ...normalizeParams(_params),
-    check: "string_format",
-    type: "string",
-    format,
-    fn: typeof fnOrRegex === "function" ? fnOrRegex : (val) => fnOrRegex.test(val),
-    ...params
-  };
-  if (fnOrRegex instanceof RegExp) {
-    def.pattern = fnOrRegex;
-  }
-  const inst = new Class2(def);
-  return inst;
-}
 // node_modules/zod/v4/core/to-json-schema.js
 function initializeContext(params) {
   let target = params?.target ?? "draft-2020-12";
@@ -17767,7 +9801,7 @@ function initializeContext(params) {
   };
 }
 function process2(schema, ctx, _params = { path: [], schemaPath: [] }) {
-  var _a3;
+  var _a;
   const def = schema._zod.def;
   const seen = ctx.seen.get(schema);
   if (seen) {
@@ -17807,15 +9841,15 @@ function process2(schema, ctx, _params = { path: [], schemaPath: [] }) {
       ctx.seen.get(parent).isParent = true;
     }
   }
-  const meta2 = ctx.metadataRegistry.get(schema);
-  if (meta2)
-    Object.assign(result.schema, meta2);
+  const meta = ctx.metadataRegistry.get(schema);
+  if (meta)
+    Object.assign(result.schema, meta);
   if (ctx.io === "input" && isTransforming(schema)) {
     delete result.schema.examples;
     delete result.schema.default;
   }
   if (ctx.io === "input" && "_prefault" in result.schema)
-    (_a3 = result.schema).default ?? (_a3.default = result.schema._prefault);
+    (_a = result.schema).default ?? (_a.default = result.schema._prefault);
   delete result.schema._prefault;
   const _result = ctx.seen.get(schema);
   return _result.schema;
@@ -17839,7 +9873,7 @@ function extractDefs(ctx, schema) {
     const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
     if (ctx.external) {
       const externalId = ctx.external.registry.get(entry[0])?.id;
-      const uriGenerator = ctx.external.uri ?? ((id2) => id2);
+      const uriGenerator = ctx.external.uri ?? ((id) => id);
       if (externalId) {
         return { ref: uriGenerator(externalId) };
       }
@@ -17864,11 +9898,11 @@ function extractDefs(ctx, schema) {
     seen.def = { ...seen.schema };
     if (defId)
       seen.defId = defId;
-    const schema2 = seen.schema;
-    for (const key in schema2) {
-      delete schema2[key];
+    const schema = seen.schema;
+    for (const key in schema) {
+      delete schema[key];
     }
-    schema2.$ref = ref;
+    schema.$ref = ref;
   };
   if (ctx.cycles === "throw") {
     for (const entry of ctx.seen.entries()) {
@@ -17916,8 +9950,8 @@ function finalize(ctx, schema) {
     const seen = ctx.seen.get(zodSchema);
     if (seen.ref === null)
       return;
-    const schema2 = seen.def ?? seen.schema;
-    const _cached = { ...schema2 };
+    const schema = seen.def ?? seen.schema;
+    const _cached = { ...schema };
     const ref = seen.ref;
     seen.ref = null;
     if (ref) {
@@ -17925,28 +9959,28 @@ function finalize(ctx, schema) {
       const refSeen = ctx.seen.get(ref);
       const refSchema = refSeen.schema;
       if (refSchema.$ref && (ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0")) {
-        schema2.allOf = schema2.allOf ?? [];
-        schema2.allOf.push(refSchema);
+        schema.allOf = schema.allOf ?? [];
+        schema.allOf.push(refSchema);
       } else {
-        Object.assign(schema2, refSchema);
+        Object.assign(schema, refSchema);
       }
-      Object.assign(schema2, _cached);
+      Object.assign(schema, _cached);
       const isParentRef = zodSchema._zod.parent === ref;
       if (isParentRef) {
-        for (const key in schema2) {
+        for (const key in schema) {
           if (key === "$ref" || key === "allOf")
             continue;
           if (!(key in _cached)) {
-            delete schema2[key];
+            delete schema[key];
           }
         }
       }
       if (refSchema.$ref && refSeen.def) {
-        for (const key in schema2) {
+        for (const key in schema) {
           if (key === "$ref" || key === "allOf")
             continue;
-          if (key in refSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(refSeen.def[key])) {
-            delete schema2[key];
+          if (key in refSeen.def && JSON.stringify(schema[key]) === JSON.stringify(refSeen.def[key])) {
+            delete schema[key];
           }
         }
       }
@@ -17956,13 +9990,13 @@ function finalize(ctx, schema) {
       flattenRef(parent);
       const parentSeen = ctx.seen.get(parent);
       if (parentSeen?.schema.$ref) {
-        schema2.$ref = parentSeen.schema.$ref;
+        schema.$ref = parentSeen.schema.$ref;
         if (parentSeen.def) {
-          for (const key in schema2) {
+          for (const key in schema) {
             if (key === "$ref" || key === "allOf")
               continue;
-            if (key in parentSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(parentSeen.def[key])) {
-              delete schema2[key];
+            if (key in parentSeen.def && JSON.stringify(schema[key]) === JSON.stringify(parentSeen.def[key])) {
+              delete schema[key];
             }
           }
         }
@@ -17970,7 +10004,7 @@ function finalize(ctx, schema) {
     }
     ctx.override({
       zodSchema,
-      jsonSchema: schema2,
+      jsonSchema: schema,
       path: seen.path ?? []
     });
   };
@@ -18173,16 +10207,6 @@ var numberProcessor = (schema, ctx, _json, _params) => {
 var booleanProcessor = (_schema, _ctx, json, _params) => {
   json.type = "boolean";
 };
-var bigintProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("BigInt cannot be represented in JSON Schema");
-  }
-};
-var symbolProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("Symbols cannot be represented in JSON Schema");
-  }
-};
 var nullProcessor = (_schema, ctx, json, _params) => {
   if (ctx.target === "openapi-3.0") {
     json.type = "string";
@@ -18192,26 +10216,11 @@ var nullProcessor = (_schema, ctx, json, _params) => {
     json.type = "null";
   }
 };
-var undefinedProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("Undefined cannot be represented in JSON Schema");
-  }
-};
-var voidProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("Void cannot be represented in JSON Schema");
-  }
-};
 var neverProcessor = (_schema, _ctx, json, _params) => {
   json.not = {};
 };
 var anyProcessor = (_schema, _ctx, _json, _params) => {};
 var unknownProcessor = (_schema, _ctx, _json, _params) => {};
-var dateProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("Date cannot be represented in JSON Schema");
-  }
-};
 var enumProcessor = (schema, _ctx, json, _params) => {
   const def = schema._zod.def;
   const values = getEnumValues(def.entries);
@@ -18259,69 +10268,14 @@ var literalProcessor = (schema, ctx, json, _params) => {
     json.enum = vals;
   }
 };
-var nanProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("NaN cannot be represented in JSON Schema");
-  }
-};
-var templateLiteralProcessor = (schema, _ctx, json, _params) => {
-  const _json = json;
-  const pattern = schema._zod.pattern;
-  if (!pattern)
-    throw new Error("Pattern not found in template literal");
-  _json.type = "string";
-  _json.pattern = pattern.source;
-};
-var fileProcessor = (schema, _ctx, json, _params) => {
-  const _json = json;
-  const file = {
-    type: "string",
-    format: "binary",
-    contentEncoding: "binary"
-  };
-  const { minimum, maximum, mime } = schema._zod.bag;
-  if (minimum !== undefined)
-    file.minLength = minimum;
-  if (maximum !== undefined)
-    file.maxLength = maximum;
-  if (mime) {
-    if (mime.length === 1) {
-      file.contentMediaType = mime[0];
-      Object.assign(_json, file);
-    } else {
-      Object.assign(_json, file);
-      _json.anyOf = mime.map((m) => ({ contentMediaType: m }));
-    }
-  } else {
-    Object.assign(_json, file);
-  }
-};
-var successProcessor = (_schema, _ctx, json, _params) => {
-  json.type = "boolean";
-};
 var customProcessor = (_schema, ctx, _json, _params) => {
   if (ctx.unrepresentable === "throw") {
     throw new Error("Custom types cannot be represented in JSON Schema");
   }
 };
-var functionProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("Function types cannot be represented in JSON Schema");
-  }
-};
 var transformProcessor = (_schema, ctx, _json, _params) => {
   if (ctx.unrepresentable === "throw") {
     throw new Error("Transforms cannot be represented in JSON Schema");
-  }
-};
-var mapProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("Map cannot be represented in JSON Schema");
-  }
-};
-var setProcessor = (_schema, ctx, _json, _params) => {
-  if (ctx.unrepresentable === "throw") {
-    throw new Error("Set cannot be represented in JSON Schema");
   }
 };
 var arrayProcessor = (schema, ctx, _json, params) => {
@@ -18403,48 +10357,6 @@ var intersectionProcessor = (schema, ctx, json, params) => {
     ...isSimpleIntersection(b) ? b.allOf : [b]
   ];
   json.allOf = allOf;
-};
-var tupleProcessor = (schema, ctx, _json, params) => {
-  const json = _json;
-  const def = schema._zod.def;
-  json.type = "array";
-  const prefixPath = ctx.target === "draft-2020-12" ? "prefixItems" : "items";
-  const restPath = ctx.target === "draft-2020-12" ? "items" : ctx.target === "openapi-3.0" ? "items" : "additionalItems";
-  const prefixItems = def.items.map((x, i) => process2(x, ctx, {
-    ...params,
-    path: [...params.path, prefixPath, i]
-  }));
-  const rest = def.rest ? process2(def.rest, ctx, {
-    ...params,
-    path: [...params.path, restPath, ...ctx.target === "openapi-3.0" ? [def.items.length] : []]
-  }) : null;
-  if (ctx.target === "draft-2020-12") {
-    json.prefixItems = prefixItems;
-    if (rest) {
-      json.items = rest;
-    }
-  } else if (ctx.target === "openapi-3.0") {
-    json.items = {
-      anyOf: prefixItems
-    };
-    if (rest) {
-      json.items.anyOf.push(rest);
-    }
-    json.minItems = prefixItems.length;
-    if (!rest) {
-      json.maxItems = prefixItems.length;
-    }
-  } else {
-    json.items = prefixItems;
-    if (rest) {
-      json.additionalItems = rest;
-    }
-  }
-  const { minimum, maximum } = schema._zod.bag;
-  if (typeof minimum === "number")
-    json.minItems = minimum;
-  if (typeof maximum === "number")
-    json.maxItems = maximum;
 };
 var recordProcessor = (schema, ctx, _json, params) => {
   const json = _json;
@@ -18542,12 +10454,6 @@ var readonlyProcessor = (schema, ctx, json, params) => {
   seen.ref = def.innerType;
   json.readOnly = true;
 };
-var promiseProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
-  process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
-  seen.ref = def.innerType;
-};
 var optionalProcessor = (schema, ctx, _json, params) => {
   const def = schema._zod.def;
   process2(def.innerType, ctx, params);
@@ -18560,359 +10466,7 @@ var lazyProcessor = (schema, ctx, _json, params) => {
   const seen = ctx.seen.get(schema);
   seen.ref = innerType;
 };
-var allProcessors = {
-  string: stringProcessor,
-  number: numberProcessor,
-  boolean: booleanProcessor,
-  bigint: bigintProcessor,
-  symbol: symbolProcessor,
-  null: nullProcessor,
-  undefined: undefinedProcessor,
-  void: voidProcessor,
-  never: neverProcessor,
-  any: anyProcessor,
-  unknown: unknownProcessor,
-  date: dateProcessor,
-  enum: enumProcessor,
-  literal: literalProcessor,
-  nan: nanProcessor,
-  template_literal: templateLiteralProcessor,
-  file: fileProcessor,
-  success: successProcessor,
-  custom: customProcessor,
-  function: functionProcessor,
-  transform: transformProcessor,
-  map: mapProcessor,
-  set: setProcessor,
-  array: arrayProcessor,
-  object: objectProcessor,
-  union: unionProcessor,
-  intersection: intersectionProcessor,
-  tuple: tupleProcessor,
-  record: recordProcessor,
-  nullable: nullableProcessor,
-  nonoptional: nonoptionalProcessor,
-  default: defaultProcessor,
-  prefault: prefaultProcessor,
-  catch: catchProcessor,
-  pipe: pipeProcessor,
-  readonly: readonlyProcessor,
-  promise: promiseProcessor,
-  optional: optionalProcessor,
-  lazy: lazyProcessor
-};
-function toJSONSchema(input, params) {
-  if ("_idmap" in input) {
-    const registry2 = input;
-    const ctx2 = initializeContext({ ...params, processors: allProcessors });
-    const defs = {};
-    for (const entry of registry2._idmap.entries()) {
-      const [_, schema] = entry;
-      process2(schema, ctx2);
-    }
-    const schemas = {};
-    const external = {
-      registry: registry2,
-      uri: params?.uri,
-      defs
-    };
-    ctx2.external = external;
-    for (const entry of registry2._idmap.entries()) {
-      const [key, schema] = entry;
-      extractDefs(ctx2, schema);
-      schemas[key] = finalize(ctx2, schema);
-    }
-    if (Object.keys(defs).length > 0) {
-      const defsSegment = ctx2.target === "draft-2020-12" ? "$defs" : "definitions";
-      schemas.__shared = {
-        [defsSegment]: defs
-      };
-    }
-    return { schemas };
-  }
-  const ctx = initializeContext({ ...params, processors: allProcessors });
-  process2(input, ctx);
-  extractDefs(ctx, input);
-  return finalize(ctx, input);
-}
-// node_modules/zod/v4/core/json-schema-generator.js
-class JSONSchemaGenerator {
-  get metadataRegistry() {
-    return this.ctx.metadataRegistry;
-  }
-  get target() {
-    return this.ctx.target;
-  }
-  get unrepresentable() {
-    return this.ctx.unrepresentable;
-  }
-  get override() {
-    return this.ctx.override;
-  }
-  get io() {
-    return this.ctx.io;
-  }
-  get counter() {
-    return this.ctx.counter;
-  }
-  set counter(value) {
-    this.ctx.counter = value;
-  }
-  get seen() {
-    return this.ctx.seen;
-  }
-  constructor(params) {
-    let normalizedTarget = params?.target ?? "draft-2020-12";
-    if (normalizedTarget === "draft-4")
-      normalizedTarget = "draft-04";
-    if (normalizedTarget === "draft-7")
-      normalizedTarget = "draft-07";
-    this.ctx = initializeContext({
-      processors: allProcessors,
-      target: normalizedTarget,
-      ...params?.metadata && { metadata: params.metadata },
-      ...params?.unrepresentable && { unrepresentable: params.unrepresentable },
-      ...params?.override && { override: params.override },
-      ...params?.io && { io: params.io }
-    });
-  }
-  process(schema, _params = { path: [], schemaPath: [] }) {
-    return process2(schema, this.ctx, _params);
-  }
-  emit(schema, _params) {
-    if (_params) {
-      if (_params.cycles)
-        this.ctx.cycles = _params.cycles;
-      if (_params.reused)
-        this.ctx.reused = _params.reused;
-      if (_params.external)
-        this.ctx.external = _params.external;
-    }
-    extractDefs(this.ctx, schema);
-    const result = finalize(this.ctx, schema);
-    const { "~standard": _, ...plainResult } = result;
-    return plainResult;
-  }
-}
-// node_modules/zod/v4/core/json-schema.js
-var exports_json_schema = {};
-// node_modules/zod/v4/classic/schemas.js
-var exports_schemas2 = {};
-__export(exports_schemas2, {
-  xor: () => xor,
-  xid: () => xid2,
-  void: () => _void2,
-  uuidv7: () => uuidv7,
-  uuidv6: () => uuidv6,
-  uuidv4: () => uuidv4,
-  uuid: () => uuid2,
-  url: () => url,
-  unknown: () => unknown,
-  union: () => union,
-  undefined: () => _undefined3,
-  ulid: () => ulid2,
-  uint64: () => uint64,
-  uint32: () => uint32,
-  tuple: () => tuple,
-  transform: () => transform,
-  templateLiteral: () => templateLiteral,
-  symbol: () => symbol,
-  superRefine: () => superRefine,
-  success: () => success,
-  stringbool: () => stringbool,
-  stringFormat: () => stringFormat,
-  string: () => string2,
-  strictObject: () => strictObject,
-  set: () => set,
-  refine: () => refine,
-  record: () => record,
-  readonly: () => readonly,
-  promise: () => promise,
-  preprocess: () => preprocess,
-  prefault: () => prefault,
-  pipe: () => pipe,
-  partialRecord: () => partialRecord,
-  optional: () => optional,
-  object: () => object,
-  number: () => number2,
-  nullish: () => nullish2,
-  nullable: () => nullable,
-  null: () => _null3,
-  nonoptional: () => nonoptional,
-  never: () => never,
-  nativeEnum: () => nativeEnum,
-  nanoid: () => nanoid2,
-  nan: () => nan,
-  meta: () => meta2,
-  map: () => map,
-  mac: () => mac2,
-  looseRecord: () => looseRecord,
-  looseObject: () => looseObject,
-  literal: () => literal,
-  lazy: () => lazy,
-  ksuid: () => ksuid2,
-  keyof: () => keyof,
-  jwt: () => jwt,
-  json: () => json,
-  ipv6: () => ipv62,
-  ipv4: () => ipv42,
-  invertCodec: () => invertCodec,
-  intersection: () => intersection,
-  int64: () => int64,
-  int32: () => int32,
-  int: () => int,
-  instanceof: () => _instanceof,
-  httpUrl: () => httpUrl,
-  hostname: () => hostname2,
-  hex: () => hex2,
-  hash: () => hash,
-  guid: () => guid2,
-  function: () => _function,
-  float64: () => float64,
-  float32: () => float32,
-  file: () => file,
-  exactOptional: () => exactOptional,
-  enum: () => _enum2,
-  emoji: () => emoji2,
-  email: () => email2,
-  e164: () => e1642,
-  discriminatedUnion: () => discriminatedUnion,
-  describe: () => describe2,
-  date: () => date3,
-  custom: () => custom,
-  cuid2: () => cuid22,
-  cuid: () => cuid3,
-  codec: () => codec,
-  cidrv6: () => cidrv62,
-  cidrv4: () => cidrv42,
-  check: () => check,
-  catch: () => _catch2,
-  boolean: () => boolean2,
-  bigint: () => bigint2,
-  base64url: () => base64url2,
-  base64: () => base642,
-  array: () => array,
-  any: () => any,
-  _function: () => _function,
-  _default: () => _default2,
-  _ZodString: () => _ZodString,
-  ZodXor: () => ZodXor,
-  ZodXID: () => ZodXID,
-  ZodVoid: () => ZodVoid,
-  ZodUnknown: () => ZodUnknown,
-  ZodUnion: () => ZodUnion,
-  ZodUndefined: () => ZodUndefined,
-  ZodUUID: () => ZodUUID,
-  ZodURL: () => ZodURL,
-  ZodULID: () => ZodULID,
-  ZodType: () => ZodType,
-  ZodTuple: () => ZodTuple,
-  ZodTransform: () => ZodTransform,
-  ZodTemplateLiteral: () => ZodTemplateLiteral,
-  ZodSymbol: () => ZodSymbol,
-  ZodSuccess: () => ZodSuccess,
-  ZodStringFormat: () => ZodStringFormat,
-  ZodString: () => ZodString,
-  ZodSet: () => ZodSet,
-  ZodRecord: () => ZodRecord,
-  ZodReadonly: () => ZodReadonly,
-  ZodPromise: () => ZodPromise,
-  ZodPreprocess: () => ZodPreprocess,
-  ZodPrefault: () => ZodPrefault,
-  ZodPipe: () => ZodPipe,
-  ZodOptional: () => ZodOptional,
-  ZodObject: () => ZodObject,
-  ZodNumberFormat: () => ZodNumberFormat,
-  ZodNumber: () => ZodNumber,
-  ZodNullable: () => ZodNullable,
-  ZodNull: () => ZodNull,
-  ZodNonOptional: () => ZodNonOptional,
-  ZodNever: () => ZodNever,
-  ZodNanoID: () => ZodNanoID,
-  ZodNaN: () => ZodNaN,
-  ZodMap: () => ZodMap,
-  ZodMAC: () => ZodMAC,
-  ZodLiteral: () => ZodLiteral,
-  ZodLazy: () => ZodLazy,
-  ZodKSUID: () => ZodKSUID,
-  ZodJWT: () => ZodJWT,
-  ZodIntersection: () => ZodIntersection,
-  ZodIPv6: () => ZodIPv6,
-  ZodIPv4: () => ZodIPv4,
-  ZodGUID: () => ZodGUID,
-  ZodFunction: () => ZodFunction,
-  ZodFile: () => ZodFile,
-  ZodExactOptional: () => ZodExactOptional,
-  ZodEnum: () => ZodEnum,
-  ZodEmoji: () => ZodEmoji,
-  ZodEmail: () => ZodEmail,
-  ZodE164: () => ZodE164,
-  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
-  ZodDefault: () => ZodDefault,
-  ZodDate: () => ZodDate,
-  ZodCustomStringFormat: () => ZodCustomStringFormat,
-  ZodCustom: () => ZodCustom,
-  ZodCodec: () => ZodCodec,
-  ZodCatch: () => ZodCatch,
-  ZodCUID2: () => ZodCUID2,
-  ZodCUID: () => ZodCUID,
-  ZodCIDRv6: () => ZodCIDRv6,
-  ZodCIDRv4: () => ZodCIDRv4,
-  ZodBoolean: () => ZodBoolean,
-  ZodBigIntFormat: () => ZodBigIntFormat,
-  ZodBigInt: () => ZodBigInt,
-  ZodBase64URL: () => ZodBase64URL,
-  ZodBase64: () => ZodBase64,
-  ZodArray: () => ZodArray,
-  ZodAny: () => ZodAny
-});
-
-// node_modules/zod/v4/classic/checks.js
-var exports_checks2 = {};
-__export(exports_checks2, {
-  uppercase: () => _uppercase,
-  trim: () => _trim,
-  toUpperCase: () => _toUpperCase,
-  toLowerCase: () => _toLowerCase,
-  startsWith: () => _startsWith,
-  slugify: () => _slugify,
-  size: () => _size,
-  regex: () => _regex,
-  property: () => _property,
-  positive: () => _positive,
-  overwrite: () => _overwrite,
-  normalize: () => _normalize,
-  nonpositive: () => _nonpositive,
-  nonnegative: () => _nonnegative,
-  negative: () => _negative,
-  multipleOf: () => _multipleOf,
-  minSize: () => _minSize,
-  minLength: () => _minLength,
-  mime: () => _mime,
-  maxSize: () => _maxSize,
-  maxLength: () => _maxLength,
-  lte: () => _lte,
-  lt: () => _lt,
-  lowercase: () => _lowercase,
-  length: () => _length,
-  includes: () => _includes,
-  gte: () => _gte,
-  gt: () => _gt,
-  endsWith: () => _endsWith
-});
-
 // node_modules/zod/v4/classic/iso.js
-var exports_iso = {};
-__export(exports_iso, {
-  time: () => time2,
-  duration: () => duration2,
-  datetime: () => datetime2,
-  date: () => date2,
-  ZodISOTime: () => ZodISOTime,
-  ZodISODuration: () => ZodISODuration,
-  ZodISODateTime: () => ZodISODateTime,
-  ZodISODate: () => ZodISODate
-});
 var ZodISODateTime = /* @__PURE__ */ $constructor("ZodISODateTime", (inst, def) => {
   $ZodISODateTime.init(inst, def);
   ZodStringFormat.init(inst, def);
@@ -18954,14 +10508,14 @@ var initializer2 = (inst, issues) => {
       value: (mapper) => flattenError(inst, mapper)
     },
     addIssue: {
-      value: (issue2) => {
-        inst.issues.push(issue2);
+      value: (issue) => {
+        inst.issues.push(issue);
         inst.message = JSON.stringify(inst.issues, jsonStringifyReplacer, 2);
       }
     },
     addIssues: {
-      value: (issues2) => {
-        inst.issues.push(...issues2);
+      value: (issues) => {
+        inst.issues.push(...issues);
         inst.message = JSON.stringify(inst.issues, jsonStringifyReplacer, 2);
       }
     },
@@ -18972,7 +10526,6 @@ var initializer2 = (inst, issues) => {
     }
   });
 };
-var ZodError = /* @__PURE__ */ $constructor("ZodError", initializer2);
 var ZodRealError = /* @__PURE__ */ $constructor("ZodError", initializer2, {
   Parent: Error
 });
@@ -18982,14 +10535,14 @@ var parse3 = /* @__PURE__ */ _parse(ZodRealError);
 var parseAsync2 = /* @__PURE__ */ _parseAsync(ZodRealError);
 var safeParse2 = /* @__PURE__ */ _safeParse(ZodRealError);
 var safeParseAsync2 = /* @__PURE__ */ _safeParseAsync(ZodRealError);
-var encode2 = /* @__PURE__ */ _encode(ZodRealError);
-var decode2 = /* @__PURE__ */ _decode(ZodRealError);
-var encodeAsync2 = /* @__PURE__ */ _encodeAsync(ZodRealError);
-var decodeAsync2 = /* @__PURE__ */ _decodeAsync(ZodRealError);
-var safeEncode2 = /* @__PURE__ */ _safeEncode(ZodRealError);
-var safeDecode2 = /* @__PURE__ */ _safeDecode(ZodRealError);
-var safeEncodeAsync2 = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
-var safeDecodeAsync2 = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
+var encode = /* @__PURE__ */ _encode(ZodRealError);
+var decode = /* @__PURE__ */ _decode(ZodRealError);
+var encodeAsync = /* @__PURE__ */ _encodeAsync(ZodRealError);
+var decodeAsync = /* @__PURE__ */ _decodeAsync(ZodRealError);
+var safeEncode = /* @__PURE__ */ _safeEncode(ZodRealError);
+var safeDecode = /* @__PURE__ */ _safeDecode(ZodRealError);
+var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
+var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
 
 // node_modules/zod/v4/classic/schemas.js
 var _installedGroups = /* @__PURE__ */ new WeakMap;
@@ -19046,20 +10599,20 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   inst.parseAsync = async (data, params) => parseAsync2(inst, data, params, { callee: inst.parseAsync });
   inst.safeParseAsync = async (data, params) => safeParseAsync2(inst, data, params);
   inst.spa = inst.safeParseAsync;
-  inst.encode = (data, params) => encode2(inst, data, params);
-  inst.decode = (data, params) => decode2(inst, data, params);
-  inst.encodeAsync = async (data, params) => encodeAsync2(inst, data, params);
-  inst.decodeAsync = async (data, params) => decodeAsync2(inst, data, params);
-  inst.safeEncode = (data, params) => safeEncode2(inst, data, params);
-  inst.safeDecode = (data, params) => safeDecode2(inst, data, params);
-  inst.safeEncodeAsync = async (data, params) => safeEncodeAsync2(inst, data, params);
-  inst.safeDecodeAsync = async (data, params) => safeDecodeAsync2(inst, data, params);
+  inst.encode = (data, params) => encode(inst, data, params);
+  inst.decode = (data, params) => decode(inst, data, params);
+  inst.encodeAsync = async (data, params) => encodeAsync(inst, data, params);
+  inst.decodeAsync = async (data, params) => decodeAsync(inst, data, params);
+  inst.safeEncode = (data, params) => safeEncode(inst, data, params);
+  inst.safeDecode = (data, params) => safeDecode(inst, data, params);
+  inst.safeEncodeAsync = async (data, params) => safeEncodeAsync(inst, data, params);
+  inst.safeDecodeAsync = async (data, params) => safeDecodeAsync(inst, data, params);
   _installLazyMethods(inst, "ZodType", {
     check(...chks) {
-      const def2 = this.def;
-      return this.clone(exports_util.mergeDefs(def2, {
+      const def = this.def;
+      return this.clone(mergeDefs(def, {
         checks: [
-          ...def2.checks ?? [],
+          ...def.checks ?? [],
           ...chks.map((ch) => typeof ch === "function" ? { _zod: { check: ch, def: { check: "custom" }, onattach: [] } } : ch)
         ]
       }), { parent: true });
@@ -19067,14 +10620,14 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
     with(...chks) {
       return this.check(...chks);
     },
-    clone(def2, params) {
-      return clone(this, def2, params);
+    clone(def, params) {
+      return clone(this, def, params);
     },
     brand() {
       return this;
     },
-    register(reg, meta2) {
-      reg.add(this, meta2);
+    register(reg, meta) {
+      reg.add(this, meta);
       return this;
     },
     refine(check, params) {
@@ -19114,13 +10667,13 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
       return pipe(this, transform(tx));
     },
     default(d) {
-      return _default2(this, d);
+      return _default(this, d);
     },
     prefault(d) {
       return prefault(this, d);
     },
     catch(params) {
-      return _catch2(this, params);
+      return _catch(this, params);
     },
     pipe(target) {
       return pipe(this, target);
@@ -19256,32 +10809,14 @@ var ZodEmail = /* @__PURE__ */ $constructor("ZodEmail", (inst, def) => {
   $ZodEmail.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function email2(params) {
-  return _email(ZodEmail, params);
-}
 var ZodGUID = /* @__PURE__ */ $constructor("ZodGUID", (inst, def) => {
   $ZodGUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function guid2(params) {
-  return _guid(ZodGUID, params);
-}
 var ZodUUID = /* @__PURE__ */ $constructor("ZodUUID", (inst, def) => {
   $ZodUUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function uuid2(params) {
-  return _uuid(ZodUUID, params);
-}
-function uuidv4(params) {
-  return _uuidv4(ZodUUID, params);
-}
-function uuidv6(params) {
-  return _uuidv6(ZodUUID, params);
-}
-function uuidv7(params) {
-  return _uuidv7(ZodUUID, params);
-}
 var ZodURL = /* @__PURE__ */ $constructor("ZodURL", (inst, def) => {
   $ZodURL.init(inst, def);
   ZodStringFormat.init(inst, def);
@@ -19289,146 +10824,66 @@ var ZodURL = /* @__PURE__ */ $constructor("ZodURL", (inst, def) => {
 function url(params) {
   return _url(ZodURL, params);
 }
-function httpUrl(params) {
-  return _url(ZodURL, {
-    protocol: exports_regexes.httpProtocol,
-    hostname: exports_regexes.domain,
-    ...exports_util.normalizeParams(params)
-  });
-}
 var ZodEmoji = /* @__PURE__ */ $constructor("ZodEmoji", (inst, def) => {
   $ZodEmoji.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function emoji2(params) {
-  return _emoji2(ZodEmoji, params);
-}
 var ZodNanoID = /* @__PURE__ */ $constructor("ZodNanoID", (inst, def) => {
   $ZodNanoID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function nanoid2(params) {
-  return _nanoid(ZodNanoID, params);
-}
 var ZodCUID = /* @__PURE__ */ $constructor("ZodCUID", (inst, def) => {
   $ZodCUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cuid3(params) {
-  return _cuid(ZodCUID, params);
-}
 var ZodCUID2 = /* @__PURE__ */ $constructor("ZodCUID2", (inst, def) => {
   $ZodCUID2.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cuid22(params) {
-  return _cuid2(ZodCUID2, params);
-}
 var ZodULID = /* @__PURE__ */ $constructor("ZodULID", (inst, def) => {
   $ZodULID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ulid2(params) {
-  return _ulid(ZodULID, params);
-}
 var ZodXID = /* @__PURE__ */ $constructor("ZodXID", (inst, def) => {
   $ZodXID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function xid2(params) {
-  return _xid(ZodXID, params);
-}
 var ZodKSUID = /* @__PURE__ */ $constructor("ZodKSUID", (inst, def) => {
   $ZodKSUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ksuid2(params) {
-  return _ksuid(ZodKSUID, params);
-}
 var ZodIPv4 = /* @__PURE__ */ $constructor("ZodIPv4", (inst, def) => {
   $ZodIPv4.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ipv42(params) {
-  return _ipv4(ZodIPv4, params);
-}
-var ZodMAC = /* @__PURE__ */ $constructor("ZodMAC", (inst, def) => {
-  $ZodMAC.init(inst, def);
-  ZodStringFormat.init(inst, def);
-});
-function mac2(params) {
-  return _mac(ZodMAC, params);
-}
 var ZodIPv6 = /* @__PURE__ */ $constructor("ZodIPv6", (inst, def) => {
   $ZodIPv6.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ipv62(params) {
-  return _ipv6(ZodIPv6, params);
-}
 var ZodCIDRv4 = /* @__PURE__ */ $constructor("ZodCIDRv4", (inst, def) => {
   $ZodCIDRv4.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cidrv42(params) {
-  return _cidrv4(ZodCIDRv4, params);
-}
 var ZodCIDRv6 = /* @__PURE__ */ $constructor("ZodCIDRv6", (inst, def) => {
   $ZodCIDRv6.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cidrv62(params) {
-  return _cidrv6(ZodCIDRv6, params);
-}
 var ZodBase64 = /* @__PURE__ */ $constructor("ZodBase64", (inst, def) => {
   $ZodBase64.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function base642(params) {
-  return _base64(ZodBase64, params);
-}
 var ZodBase64URL = /* @__PURE__ */ $constructor("ZodBase64URL", (inst, def) => {
   $ZodBase64URL.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function base64url2(params) {
-  return _base64url(ZodBase64URL, params);
-}
 var ZodE164 = /* @__PURE__ */ $constructor("ZodE164", (inst, def) => {
   $ZodE164.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function e1642(params) {
-  return _e164(ZodE164, params);
-}
 var ZodJWT = /* @__PURE__ */ $constructor("ZodJWT", (inst, def) => {
   $ZodJWT.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function jwt(params) {
-  return _jwt(ZodJWT, params);
-}
-var ZodCustomStringFormat = /* @__PURE__ */ $constructor("ZodCustomStringFormat", (inst, def) => {
-  $ZodCustomStringFormat.init(inst, def);
-  ZodStringFormat.init(inst, def);
-});
-function stringFormat(format, fnOrRegex, _params = {}) {
-  return _stringFormat(ZodCustomStringFormat, format, fnOrRegex, _params);
-}
-function hostname2(_params) {
-  return _stringFormat(ZodCustomStringFormat, "hostname", exports_regexes.hostname, _params);
-}
-function hex2(_params) {
-  return _stringFormat(ZodCustomStringFormat, "hex", exports_regexes.hex, _params);
-}
-function hash(alg, params) {
-  const enc = params?.enc ?? "hex";
-  const format = `${alg}_${enc}`;
-  const regex = exports_regexes[format];
-  if (!regex)
-    throw new Error(`Unrecognized hash format: ${format}`);
-  return _stringFormat(ZodCustomStringFormat, format, regex, params);
-}
 var ZodNumber = /* @__PURE__ */ $constructor("ZodNumber", (inst, def) => {
   $ZodNumber.init(inst, def);
   ZodType.init(inst, def);
@@ -19497,18 +10952,6 @@ var ZodNumberFormat = /* @__PURE__ */ $constructor("ZodNumberFormat", (inst, def
 function int(params) {
   return _int(ZodNumberFormat, params);
 }
-function float32(params) {
-  return _float32(ZodNumberFormat, params);
-}
-function float64(params) {
-  return _float64(ZodNumberFormat, params);
-}
-function int32(params) {
-  return _int32(ZodNumberFormat, params);
-}
-function uint32(params) {
-  return _uint32(ZodNumberFormat, params);
-}
 var ZodBoolean = /* @__PURE__ */ $constructor("ZodBoolean", (inst, def) => {
   $ZodBoolean.init(inst, def);
   ZodType.init(inst, def);
@@ -19516,57 +10959,6 @@ var ZodBoolean = /* @__PURE__ */ $constructor("ZodBoolean", (inst, def) => {
 });
 function boolean2(params) {
   return _boolean(ZodBoolean, params);
-}
-var ZodBigInt = /* @__PURE__ */ $constructor("ZodBigInt", (inst, def) => {
-  $ZodBigInt.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => bigintProcessor(inst, ctx, json, params);
-  inst.gte = (value, params) => inst.check(_gte(value, params));
-  inst.min = (value, params) => inst.check(_gte(value, params));
-  inst.gt = (value, params) => inst.check(_gt(value, params));
-  inst.gte = (value, params) => inst.check(_gte(value, params));
-  inst.min = (value, params) => inst.check(_gte(value, params));
-  inst.lt = (value, params) => inst.check(_lt(value, params));
-  inst.lte = (value, params) => inst.check(_lte(value, params));
-  inst.max = (value, params) => inst.check(_lte(value, params));
-  inst.positive = (params) => inst.check(_gt(BigInt(0), params));
-  inst.negative = (params) => inst.check(_lt(BigInt(0), params));
-  inst.nonpositive = (params) => inst.check(_lte(BigInt(0), params));
-  inst.nonnegative = (params) => inst.check(_gte(BigInt(0), params));
-  inst.multipleOf = (value, params) => inst.check(_multipleOf(value, params));
-  const bag = inst._zod.bag;
-  inst.minValue = bag.minimum ?? null;
-  inst.maxValue = bag.maximum ?? null;
-  inst.format = bag.format ?? null;
-});
-function bigint2(params) {
-  return _bigint(ZodBigInt, params);
-}
-var ZodBigIntFormat = /* @__PURE__ */ $constructor("ZodBigIntFormat", (inst, def) => {
-  $ZodBigIntFormat.init(inst, def);
-  ZodBigInt.init(inst, def);
-});
-function int64(params) {
-  return _int64(ZodBigIntFormat, params);
-}
-function uint64(params) {
-  return _uint64(ZodBigIntFormat, params);
-}
-var ZodSymbol = /* @__PURE__ */ $constructor("ZodSymbol", (inst, def) => {
-  $ZodSymbol.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => symbolProcessor(inst, ctx, json, params);
-});
-function symbol(params) {
-  return _symbol(ZodSymbol, params);
-}
-var ZodUndefined = /* @__PURE__ */ $constructor("ZodUndefined", (inst, def) => {
-  $ZodUndefined.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => undefinedProcessor(inst, ctx, json, params);
-});
-function _undefined3(params) {
-  return _undefined2(ZodUndefined, params);
 }
 var ZodNull = /* @__PURE__ */ $constructor("ZodNull", (inst, def) => {
   $ZodNull.init(inst, def);
@@ -19600,27 +10992,6 @@ var ZodNever = /* @__PURE__ */ $constructor("ZodNever", (inst, def) => {
 function never(params) {
   return _never(ZodNever, params);
 }
-var ZodVoid = /* @__PURE__ */ $constructor("ZodVoid", (inst, def) => {
-  $ZodVoid.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => voidProcessor(inst, ctx, json, params);
-});
-function _void2(params) {
-  return _void(ZodVoid, params);
-}
-var ZodDate = /* @__PURE__ */ $constructor("ZodDate", (inst, def) => {
-  $ZodDate.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => dateProcessor(inst, ctx, json, params);
-  inst.min = (value, params) => inst.check(_gte(value, params));
-  inst.max = (value, params) => inst.check(_lte(value, params));
-  const c = inst._zod.bag;
-  inst.minDate = c.minimum ? new Date(c.minimum) : null;
-  inst.maxDate = c.maximum ? new Date(c.maximum) : null;
-});
-function date3(params) {
-  return _date(ZodDate, params);
-}
 var ZodArray = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
   $ZodArray.init(inst, def);
   ZodType.init(inst, def);
@@ -19647,20 +11018,16 @@ var ZodArray = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
 function array(element, params) {
   return _array(ZodArray, element, params);
 }
-function keyof(schema) {
-  const shape = schema._zod.def.shape;
-  return _enum2(Object.keys(shape));
-}
 var ZodObject = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
   $ZodObjectJIT.init(inst, def);
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => objectProcessor(inst, ctx, json, params);
-  exports_util.defineLazy(inst, "shape", () => {
+  defineLazy(inst, "shape", () => {
     return def.shape;
   });
   _installLazyMethods(inst, "ZodObject", {
     keyof() {
-      return _enum2(Object.keys(this._zod.def.shape));
+      return _enum(Object.keys(this._zod.def.shape));
     },
     catchall(catchall) {
       return this.clone({ ...this._zod.def, catchall });
@@ -19678,25 +11045,25 @@ var ZodObject = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
       return this.clone({ ...this._zod.def, catchall: undefined });
     },
     extend(incoming) {
-      return exports_util.extend(this, incoming);
+      return extend(this, incoming);
     },
     safeExtend(incoming) {
-      return exports_util.safeExtend(this, incoming);
+      return safeExtend(this, incoming);
     },
     merge(other) {
-      return exports_util.merge(this, other);
+      return merge(this, other);
     },
     pick(mask) {
-      return exports_util.pick(this, mask);
+      return pick(this, mask);
     },
     omit(mask) {
-      return exports_util.omit(this, mask);
+      return omit(this, mask);
     },
     partial(...args) {
-      return exports_util.partial(ZodOptional, this, args[0]);
+      return partial(ZodOptional, this, args[0]);
     },
     required(...args) {
-      return exports_util.required(ZodNonOptional, this, args[0]);
+      return required(ZodNonOptional, this, args[0]);
     }
   });
 });
@@ -19704,7 +11071,7 @@ function object(shape, params) {
   const def = {
     type: "object",
     shape: shape ?? {},
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   };
   return new ZodObject(def);
 }
@@ -19713,7 +11080,7 @@ function strictObject(shape, params) {
     type: "object",
     shape,
     catchall: never(),
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 function looseObject(shape, params) {
@@ -19721,7 +11088,7 @@ function looseObject(shape, params) {
     type: "object",
     shape,
     catchall: unknown(),
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodUnion = /* @__PURE__ */ $constructor("ZodUnion", (inst, def) => {
@@ -19734,21 +11101,7 @@ function union(options, params) {
   return new ZodUnion({
     type: "union",
     options,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodXor = /* @__PURE__ */ $constructor("ZodXor", (inst, def) => {
-  ZodUnion.init(inst, def);
-  $ZodXor.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => unionProcessor(inst, ctx, json, params);
-  inst.options = def.options;
-});
-function xor(options, params) {
-  return new ZodXor({
-    type: "union",
-    options,
-    inclusive: false,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("ZodDiscriminatedUnion", (inst, def) => {
@@ -19760,7 +11113,7 @@ function discriminatedUnion(discriminator, options, params) {
     type: "union",
     options,
     discriminator,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodIntersection = /* @__PURE__ */ $constructor("ZodIntersection", (inst, def) => {
@@ -19773,26 +11126,6 @@ function intersection(left, right) {
     type: "intersection",
     left,
     right
-  });
-}
-var ZodTuple = /* @__PURE__ */ $constructor("ZodTuple", (inst, def) => {
-  $ZodTuple.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => tupleProcessor(inst, ctx, json, params);
-  inst.rest = (rest) => inst.clone({
-    ...inst._zod.def,
-    rest
-  });
-});
-function tuple(items, _paramsOrRest, _params) {
-  const hasRest = _paramsOrRest instanceof $ZodType;
-  const params = hasRest ? _params : _paramsOrRest;
-  const rest = hasRest ? _paramsOrRest : null;
-  return new ZodTuple({
-    type: "tuple",
-    items,
-    rest,
-    ...exports_util.normalizeParams(params)
   });
 }
 var ZodRecord = /* @__PURE__ */ $constructor("ZodRecord", (inst, def) => {
@@ -19808,68 +11141,14 @@ function record(keyType, valueType, params) {
       type: "record",
       keyType: string2(),
       valueType: keyType,
-      ...exports_util.normalizeParams(valueType)
+      ...normalizeParams(valueType)
     });
   }
   return new ZodRecord({
     type: "record",
     keyType,
     valueType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-function partialRecord(keyType, valueType, params) {
-  const k = clone(keyType);
-  k._zod.values = undefined;
-  return new ZodRecord({
-    type: "record",
-    keyType: k,
-    valueType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-function looseRecord(keyType, valueType, params) {
-  return new ZodRecord({
-    type: "record",
-    keyType,
-    valueType,
-    mode: "loose",
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodMap = /* @__PURE__ */ $constructor("ZodMap", (inst, def) => {
-  $ZodMap.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => mapProcessor(inst, ctx, json, params);
-  inst.keyType = def.keyType;
-  inst.valueType = def.valueType;
-  inst.min = (...args) => inst.check(_minSize(...args));
-  inst.nonempty = (params) => inst.check(_minSize(1, params));
-  inst.max = (...args) => inst.check(_maxSize(...args));
-  inst.size = (...args) => inst.check(_size(...args));
-});
-function map(keyType, valueType, params) {
-  return new ZodMap({
-    type: "map",
-    keyType,
-    valueType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodSet = /* @__PURE__ */ $constructor("ZodSet", (inst, def) => {
-  $ZodSet.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => setProcessor(inst, ctx, json, params);
-  inst.min = (...args) => inst.check(_minSize(...args));
-  inst.nonempty = (params) => inst.check(_minSize(1, params));
-  inst.max = (...args) => inst.check(_maxSize(...args));
-  inst.size = (...args) => inst.check(_size(...args));
-});
-function set(valueType, params) {
-  return new ZodSet({
-    type: "set",
-    valueType,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
@@ -19890,7 +11169,7 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
     return new ZodEnum({
       ...def,
       checks: [],
-      ...exports_util.normalizeParams(params),
+      ...normalizeParams(params),
       entries: newEntries
     });
   };
@@ -19905,24 +11184,17 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
     return new ZodEnum({
       ...def,
       checks: [],
-      ...exports_util.normalizeParams(params),
+      ...normalizeParams(params),
       entries: newEntries
     });
   };
 });
-function _enum2(values, params) {
+function _enum(values, params) {
   const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
   return new ZodEnum({
     type: "enum",
     entries,
-    ...exports_util.normalizeParams(params)
-  });
-}
-function nativeEnum(entries, params) {
-  return new ZodEnum({
-    type: "enum",
-    entries,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodLiteral = /* @__PURE__ */ $constructor("ZodLiteral", (inst, def) => {
@@ -19943,19 +11215,8 @@ function literal(value, params) {
   return new ZodLiteral({
     type: "literal",
     values: Array.isArray(value) ? value : [value],
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
-}
-var ZodFile = /* @__PURE__ */ $constructor("ZodFile", (inst, def) => {
-  $ZodFile.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => fileProcessor(inst, ctx, json, params);
-  inst.min = (size, params) => inst.check(_minSize(size, params));
-  inst.max = (size, params) => inst.check(_maxSize(size, params));
-  inst.mime = (types, params) => inst.check(_mime(Array.isArray(types) ? types : [types], params));
-});
-function file(params) {
-  return _file(ZodFile, params);
 }
 var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
   $ZodTransform.init(inst, def);
@@ -19967,7 +11228,7 @@ var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
     }
     payload.addIssue = (issue2) => {
       if (typeof issue2 === "string") {
-        payload.issues.push(exports_util.issue(issue2, payload.value, def));
+        payload.issues.push(issue(issue2, payload.value, def));
       } else {
         const _issue = issue2;
         if (_issue.fatal)
@@ -19975,13 +11236,13 @@ var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
         _issue.code ?? (_issue.code = "custom");
         _issue.input ?? (_issue.input = payload.value);
         _issue.inst ?? (_issue.inst = inst);
-        payload.issues.push(exports_util.issue(_issue));
+        payload.issues.push(issue(_issue));
       }
     };
     const output = def.transform(payload.value, payload);
     if (output instanceof Promise) {
-      return output.then((output2) => {
-        payload.value = output2;
+      return output.then((output) => {
+        payload.value = output;
         payload.fallback = true;
         return payload;
       });
@@ -20033,9 +11294,6 @@ function nullable(innerType) {
     innerType
   });
 }
-function nullish2(innerType) {
-  return optional(nullable(innerType));
-}
 var ZodDefault = /* @__PURE__ */ $constructor("ZodDefault", (inst, def) => {
   $ZodDefault.init(inst, def);
   ZodType.init(inst, def);
@@ -20043,12 +11301,12 @@ var ZodDefault = /* @__PURE__ */ $constructor("ZodDefault", (inst, def) => {
   inst.unwrap = () => inst._zod.def.innerType;
   inst.removeDefault = inst.unwrap;
 });
-function _default2(innerType, defaultValue) {
+function _default(innerType, defaultValue) {
   return new ZodDefault({
     type: "default",
     innerType,
     get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : exports_util.shallowClone(defaultValue);
+      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
     }
   });
 }
@@ -20063,7 +11321,7 @@ function prefault(innerType, defaultValue) {
     type: "prefault",
     innerType,
     get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : exports_util.shallowClone(defaultValue);
+      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
     }
   });
 }
@@ -20077,19 +11335,7 @@ function nonoptional(innerType, params) {
   return new ZodNonOptional({
     type: "nonoptional",
     innerType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodSuccess = /* @__PURE__ */ $constructor("ZodSuccess", (inst, def) => {
-  $ZodSuccess.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => successProcessor(inst, ctx, json, params);
-  inst.unwrap = () => inst._zod.def.innerType;
-});
-function success(innerType) {
-  return new ZodSuccess({
-    type: "success",
-    innerType
+    ...normalizeParams(params)
   });
 }
 var ZodCatch = /* @__PURE__ */ $constructor("ZodCatch", (inst, def) => {
@@ -20099,20 +11345,12 @@ var ZodCatch = /* @__PURE__ */ $constructor("ZodCatch", (inst, def) => {
   inst.unwrap = () => inst._zod.def.innerType;
   inst.removeCatch = inst.unwrap;
 });
-function _catch2(innerType, catchValue) {
+function _catch(innerType, catchValue) {
   return new ZodCatch({
     type: "catch",
     innerType,
     catchValue: typeof catchValue === "function" ? catchValue : () => catchValue
   });
-}
-var ZodNaN = /* @__PURE__ */ $constructor("ZodNaN", (inst, def) => {
-  $ZodNaN.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => nanProcessor(inst, ctx, json, params);
-});
-function nan(params) {
-  return _nan(ZodNaN, params);
 }
 var ZodPipe = /* @__PURE__ */ $constructor("ZodPipe", (inst, def) => {
   $ZodPipe.init(inst, def);
@@ -20126,29 +11364,6 @@ function pipe(in_, out) {
     type: "pipe",
     in: in_,
     out
-  });
-}
-var ZodCodec = /* @__PURE__ */ $constructor("ZodCodec", (inst, def) => {
-  ZodPipe.init(inst, def);
-  $ZodCodec.init(inst, def);
-});
-function codec(in_, out, params) {
-  return new ZodCodec({
-    type: "pipe",
-    in: in_,
-    out,
-    transform: params.decode,
-    reverseTransform: params.encode
-  });
-}
-function invertCodec(codec2) {
-  const def = codec2._zod.def;
-  return new ZodCodec({
-    type: "pipe",
-    in: def.out,
-    out: def.in,
-    transform: def.reverseTransform,
-    reverseTransform: def.transform
   });
 }
 var ZodPreprocess = /* @__PURE__ */ $constructor("ZodPreprocess", (inst, def) => {
@@ -20167,18 +11382,6 @@ function readonly(innerType) {
     innerType
   });
 }
-var ZodTemplateLiteral = /* @__PURE__ */ $constructor("ZodTemplateLiteral", (inst, def) => {
-  $ZodTemplateLiteral.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => templateLiteralProcessor(inst, ctx, json, params);
-});
-function templateLiteral(parts, params) {
-  return new ZodTemplateLiteral({
-    type: "template_literal",
-    parts,
-    ...exports_util.normalizeParams(params)
-  });
-}
 var ZodLazy = /* @__PURE__ */ $constructor("ZodLazy", (inst, def) => {
   $ZodLazy.init(inst, def);
   ZodType.init(inst, def);
@@ -20191,85 +11394,16 @@ function lazy(getter) {
     getter
   });
 }
-var ZodPromise = /* @__PURE__ */ $constructor("ZodPromise", (inst, def) => {
-  $ZodPromise.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => promiseProcessor(inst, ctx, json, params);
-  inst.unwrap = () => inst._zod.def.innerType;
-});
-function promise(innerType) {
-  return new ZodPromise({
-    type: "promise",
-    innerType
-  });
-}
-var ZodFunction = /* @__PURE__ */ $constructor("ZodFunction", (inst, def) => {
-  $ZodFunction.init(inst, def);
-  ZodType.init(inst, def);
-  inst._zod.processJSONSchema = (ctx, json, params) => functionProcessor(inst, ctx, json, params);
-});
-function _function(params) {
-  return new ZodFunction({
-    type: "function",
-    input: Array.isArray(params?.input) ? tuple(params?.input) : params?.input ?? array(unknown()),
-    output: params?.output ?? unknown()
-  });
-}
 var ZodCustom = /* @__PURE__ */ $constructor("ZodCustom", (inst, def) => {
   $ZodCustom.init(inst, def);
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => customProcessor(inst, ctx, json, params);
 });
-function check(fn) {
-  const ch = new $ZodCheck({
-    check: "custom"
-  });
-  ch._zod.check = fn;
-  return ch;
-}
-function custom(fn, _params) {
-  return _custom(ZodCustom, fn ?? (() => true), _params);
-}
 function refine(fn, _params = {}) {
   return _refine(ZodCustom, fn, _params);
 }
 function superRefine(fn, params) {
   return _superRefine(fn, params);
-}
-var describe2 = describe;
-var meta2 = meta;
-function _instanceof(cls, params = {}) {
-  const inst = new ZodCustom({
-    type: "custom",
-    check: "custom",
-    fn: (data) => data instanceof cls,
-    abort: true,
-    ...exports_util.normalizeParams(params)
-  });
-  inst._zod.bag.Class = cls;
-  inst._zod.check = (payload) => {
-    if (!(payload.value instanceof cls)) {
-      payload.issues.push({
-        code: "invalid_type",
-        expected: cls.name,
-        input: payload.value,
-        inst,
-        path: [...inst._zod.def.path ?? []]
-      });
-    }
-  };
-  return inst;
-}
-var stringbool = (...args) => _stringbool({
-  Codec: ZodCodec,
-  Boolean: ZodBoolean,
-  String: ZodString
-}, ...args);
-function json(params) {
-  const jsonSchema = lazy(() => {
-    return union([string2(params), number2(), boolean2(), _null3(), array(jsonSchema), record(string2(), jsonSchema)]);
-  });
-  return jsonSchema;
 }
 function preprocess(fn, schema) {
   return new ZodPreprocess({
@@ -20292,506 +11426,11 @@ var ZodIssueCode = {
   invalid_value: "invalid_value",
   custom: "custom"
 };
-function setErrorMap(map2) {
-  config({
-    customError: map2
-  });
-}
-function getErrorMap() {
-  return config().customError;
-}
 var ZodFirstPartyTypeKind;
-(function(ZodFirstPartyTypeKind2) {})(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
-// node_modules/zod/v4/classic/from-json-schema.js
-var z = {
-  ...exports_schemas2,
-  ...exports_checks2,
-  iso: exports_iso
-};
-var RECOGNIZED_KEYS = /* @__PURE__ */ new Set([
-  "$schema",
-  "$ref",
-  "$defs",
-  "definitions",
-  "$id",
-  "id",
-  "$comment",
-  "$anchor",
-  "$vocabulary",
-  "$dynamicRef",
-  "$dynamicAnchor",
-  "type",
-  "enum",
-  "const",
-  "anyOf",
-  "oneOf",
-  "allOf",
-  "not",
-  "properties",
-  "required",
-  "additionalProperties",
-  "patternProperties",
-  "propertyNames",
-  "minProperties",
-  "maxProperties",
-  "items",
-  "prefixItems",
-  "additionalItems",
-  "minItems",
-  "maxItems",
-  "uniqueItems",
-  "contains",
-  "minContains",
-  "maxContains",
-  "minLength",
-  "maxLength",
-  "pattern",
-  "format",
-  "minimum",
-  "maximum",
-  "exclusiveMinimum",
-  "exclusiveMaximum",
-  "multipleOf",
-  "description",
-  "default",
-  "contentEncoding",
-  "contentMediaType",
-  "contentSchema",
-  "unevaluatedItems",
-  "unevaluatedProperties",
-  "if",
-  "then",
-  "else",
-  "dependentSchemas",
-  "dependentRequired",
-  "nullable",
-  "readOnly"
-]);
-function detectVersion(schema, defaultTarget) {
-  const $schema = schema.$schema;
-  if ($schema === "https://json-schema.org/draft/2020-12/schema") {
-    return "draft-2020-12";
-  }
-  if ($schema === "http://json-schema.org/draft-07/schema#") {
-    return "draft-7";
-  }
-  if ($schema === "http://json-schema.org/draft-04/schema#") {
-    return "draft-4";
-  }
-  return defaultTarget ?? "draft-2020-12";
-}
-function resolveRef(ref, ctx) {
-  if (!ref.startsWith("#")) {
-    throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
-  }
-  const path = ref.slice(1).split("/").filter(Boolean);
-  if (path.length === 0) {
-    return ctx.rootSchema;
-  }
-  const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path[0] === defsKey) {
-    const key = path[1];
-    if (!key || !ctx.defs[key]) {
-      throw new Error(`Reference not found: ${ref}`);
-    }
-    return ctx.defs[key];
-  }
-  throw new Error(`Reference not found: ${ref}`);
-}
-function convertBaseSchema(schema, ctx) {
-  if (schema.not !== undefined) {
-    if (typeof schema.not === "object" && Object.keys(schema.not).length === 0) {
-      return z.never();
-    }
-    throw new Error("not is not supported in Zod (except { not: {} } for never)");
-  }
-  if (schema.unevaluatedItems !== undefined) {
-    throw new Error("unevaluatedItems is not supported");
-  }
-  if (schema.unevaluatedProperties !== undefined) {
-    throw new Error("unevaluatedProperties is not supported");
-  }
-  if (schema.if !== undefined || schema.then !== undefined || schema.else !== undefined) {
-    throw new Error("Conditional schemas (if/then/else) are not supported");
-  }
-  if (schema.dependentSchemas !== undefined || schema.dependentRequired !== undefined) {
-    throw new Error("dependentSchemas and dependentRequired are not supported");
-  }
-  if (schema.$ref) {
-    const refPath = schema.$ref;
-    if (ctx.refs.has(refPath)) {
-      return ctx.refs.get(refPath);
-    }
-    if (ctx.processing.has(refPath)) {
-      return z.lazy(() => {
-        if (!ctx.refs.has(refPath)) {
-          throw new Error(`Circular reference not resolved: ${refPath}`);
-        }
-        return ctx.refs.get(refPath);
-      });
-    }
-    ctx.processing.add(refPath);
-    const resolved = resolveRef(refPath, ctx);
-    const zodSchema2 = convertSchema(resolved, ctx);
-    ctx.refs.set(refPath, zodSchema2);
-    ctx.processing.delete(refPath);
-    return zodSchema2;
-  }
-  if (schema.enum !== undefined) {
-    const enumValues = schema.enum;
-    if (ctx.version === "openapi-3.0" && schema.nullable === true && enumValues.length === 1 && enumValues[0] === null) {
-      return z.null();
-    }
-    if (enumValues.length === 0) {
-      return z.never();
-    }
-    if (enumValues.length === 1) {
-      return z.literal(enumValues[0]);
-    }
-    if (enumValues.every((v) => typeof v === "string")) {
-      return z.enum(enumValues);
-    }
-    const literalSchemas = enumValues.map((v) => z.literal(v));
-    if (literalSchemas.length < 2) {
-      return literalSchemas[0];
-    }
-    return z.union([literalSchemas[0], literalSchemas[1], ...literalSchemas.slice(2)]);
-  }
-  if (schema.const !== undefined) {
-    return z.literal(schema.const);
-  }
-  const type = schema.type;
-  if (Array.isArray(type)) {
-    const typeSchemas = type.map((t) => {
-      const typeSchema = { ...schema, type: t };
-      return convertBaseSchema(typeSchema, ctx);
-    });
-    if (typeSchemas.length === 0) {
-      return z.never();
-    }
-    if (typeSchemas.length === 1) {
-      return typeSchemas[0];
-    }
-    return z.union(typeSchemas);
-  }
-  if (!type) {
-    return z.any();
-  }
-  let zodSchema;
-  switch (type) {
-    case "string": {
-      let stringSchema = z.string();
-      if (schema.format) {
-        const format = schema.format;
-        if (format === "email") {
-          stringSchema = stringSchema.check(z.email());
-        } else if (format === "uri" || format === "uri-reference") {
-          stringSchema = stringSchema.check(z.url());
-        } else if (format === "uuid" || format === "guid") {
-          stringSchema = stringSchema.check(z.uuid());
-        } else if (format === "date-time") {
-          stringSchema = stringSchema.check(z.iso.datetime());
-        } else if (format === "date") {
-          stringSchema = stringSchema.check(z.iso.date());
-        } else if (format === "time") {
-          stringSchema = stringSchema.check(z.iso.time());
-        } else if (format === "duration") {
-          stringSchema = stringSchema.check(z.iso.duration());
-        } else if (format === "ipv4") {
-          stringSchema = stringSchema.check(z.ipv4());
-        } else if (format === "ipv6") {
-          stringSchema = stringSchema.check(z.ipv6());
-        } else if (format === "mac") {
-          stringSchema = stringSchema.check(z.mac());
-        } else if (format === "cidr") {
-          stringSchema = stringSchema.check(z.cidrv4());
-        } else if (format === "cidr-v6") {
-          stringSchema = stringSchema.check(z.cidrv6());
-        } else if (format === "base64") {
-          stringSchema = stringSchema.check(z.base64());
-        } else if (format === "base64url") {
-          stringSchema = stringSchema.check(z.base64url());
-        } else if (format === "e164") {
-          stringSchema = stringSchema.check(z.e164());
-        } else if (format === "jwt") {
-          stringSchema = stringSchema.check(z.jwt());
-        } else if (format === "emoji") {
-          stringSchema = stringSchema.check(z.emoji());
-        } else if (format === "nanoid") {
-          stringSchema = stringSchema.check(z.nanoid());
-        } else if (format === "cuid") {
-          stringSchema = stringSchema.check(z.cuid());
-        } else if (format === "cuid2") {
-          stringSchema = stringSchema.check(z.cuid2());
-        } else if (format === "ulid") {
-          stringSchema = stringSchema.check(z.ulid());
-        } else if (format === "xid") {
-          stringSchema = stringSchema.check(z.xid());
-        } else if (format === "ksuid") {
-          stringSchema = stringSchema.check(z.ksuid());
-        }
-      }
-      if (typeof schema.minLength === "number") {
-        stringSchema = stringSchema.min(schema.minLength);
-      }
-      if (typeof schema.maxLength === "number") {
-        stringSchema = stringSchema.max(schema.maxLength);
-      }
-      if (schema.pattern) {
-        stringSchema = stringSchema.regex(new RegExp(schema.pattern));
-      }
-      zodSchema = stringSchema;
-      break;
-    }
-    case "number":
-    case "integer": {
-      let numberSchema = type === "integer" ? z.number().int() : z.number();
-      if (typeof schema.minimum === "number") {
-        numberSchema = numberSchema.min(schema.minimum);
-      }
-      if (typeof schema.maximum === "number") {
-        numberSchema = numberSchema.max(schema.maximum);
-      }
-      if (typeof schema.exclusiveMinimum === "number") {
-        numberSchema = numberSchema.gt(schema.exclusiveMinimum);
-      } else if (schema.exclusiveMinimum === true && typeof schema.minimum === "number") {
-        numberSchema = numberSchema.gt(schema.minimum);
-      }
-      if (typeof schema.exclusiveMaximum === "number") {
-        numberSchema = numberSchema.lt(schema.exclusiveMaximum);
-      } else if (schema.exclusiveMaximum === true && typeof schema.maximum === "number") {
-        numberSchema = numberSchema.lt(schema.maximum);
-      }
-      if (typeof schema.multipleOf === "number") {
-        numberSchema = numberSchema.multipleOf(schema.multipleOf);
-      }
-      zodSchema = numberSchema;
-      break;
-    }
-    case "boolean": {
-      zodSchema = z.boolean();
-      break;
-    }
-    case "null": {
-      zodSchema = z.null();
-      break;
-    }
-    case "object": {
-      const shape = {};
-      const properties = schema.properties || {};
-      const requiredSet = new Set(schema.required || []);
-      for (const [key, propSchema] of Object.entries(properties)) {
-        const propZodSchema = convertSchema(propSchema, ctx);
-        shape[key] = requiredSet.has(key) ? propZodSchema : propZodSchema.optional();
-      }
-      if (schema.propertyNames) {
-        const keySchema = convertSchema(schema.propertyNames, ctx);
-        const valueSchema = schema.additionalProperties && typeof schema.additionalProperties === "object" ? convertSchema(schema.additionalProperties, ctx) : z.any();
-        if (Object.keys(shape).length === 0) {
-          zodSchema = z.record(keySchema, valueSchema);
-          break;
-        }
-        const objectSchema2 = z.object(shape).passthrough();
-        const recordSchema = z.looseRecord(keySchema, valueSchema);
-        zodSchema = z.intersection(objectSchema2, recordSchema);
-        break;
-      }
-      if (schema.patternProperties) {
-        const patternProps = schema.patternProperties;
-        const patternKeys = Object.keys(patternProps);
-        const looseRecords = [];
-        for (const pattern of patternKeys) {
-          const patternValue = convertSchema(patternProps[pattern], ctx);
-          const keySchema = z.string().regex(new RegExp(pattern));
-          looseRecords.push(z.looseRecord(keySchema, patternValue));
-        }
-        const schemasToIntersect = [];
-        if (Object.keys(shape).length > 0) {
-          schemasToIntersect.push(z.object(shape).passthrough());
-        }
-        schemasToIntersect.push(...looseRecords);
-        if (schemasToIntersect.length === 0) {
-          zodSchema = z.object({}).passthrough();
-        } else if (schemasToIntersect.length === 1) {
-          zodSchema = schemasToIntersect[0];
-        } else {
-          let result = z.intersection(schemasToIntersect[0], schemasToIntersect[1]);
-          for (let i = 2;i < schemasToIntersect.length; i++) {
-            result = z.intersection(result, schemasToIntersect[i]);
-          }
-          zodSchema = result;
-        }
-        break;
-      }
-      const objectSchema = z.object(shape);
-      if (schema.additionalProperties === false) {
-        zodSchema = objectSchema.strict();
-      } else if (typeof schema.additionalProperties === "object") {
-        zodSchema = objectSchema.catchall(convertSchema(schema.additionalProperties, ctx));
-      } else {
-        zodSchema = objectSchema.passthrough();
-      }
-      break;
-    }
-    case "array": {
-      const prefixItems = schema.prefixItems;
-      const items = schema.items;
-      if (prefixItems && Array.isArray(prefixItems)) {
-        const tupleItems = prefixItems.map((item) => convertSchema(item, ctx));
-        const rest = items && typeof items === "object" && !Array.isArray(items) ? convertSchema(items, ctx) : undefined;
-        if (rest) {
-          zodSchema = z.tuple(tupleItems).rest(rest);
-        } else {
-          zodSchema = z.tuple(tupleItems);
-        }
-        if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z.minLength(schema.minItems));
-        }
-        if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
-        }
-      } else if (Array.isArray(items)) {
-        const tupleItems = items.map((item) => convertSchema(item, ctx));
-        const rest = schema.additionalItems && typeof schema.additionalItems === "object" ? convertSchema(schema.additionalItems, ctx) : undefined;
-        if (rest) {
-          zodSchema = z.tuple(tupleItems).rest(rest);
-        } else {
-          zodSchema = z.tuple(tupleItems);
-        }
-        if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z.minLength(schema.minItems));
-        }
-        if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
-        }
-      } else if (items !== undefined) {
-        const element = convertSchema(items, ctx);
-        let arraySchema = z.array(element);
-        if (typeof schema.minItems === "number") {
-          arraySchema = arraySchema.min(schema.minItems);
-        }
-        if (typeof schema.maxItems === "number") {
-          arraySchema = arraySchema.max(schema.maxItems);
-        }
-        zodSchema = arraySchema;
-      } else {
-        zodSchema = z.array(z.any());
-      }
-      break;
-    }
-    default:
-      throw new Error(`Unsupported type: ${type}`);
-  }
-  return zodSchema;
-}
-function convertSchema(schema, ctx) {
-  if (typeof schema === "boolean") {
-    return schema ? z.any() : z.never();
-  }
-  let baseSchema = convertBaseSchema(schema, ctx);
-  const hasExplicitType = schema.type || schema.enum !== undefined || schema.const !== undefined;
-  if (schema.anyOf && Array.isArray(schema.anyOf)) {
-    const options = schema.anyOf.map((s) => convertSchema(s, ctx));
-    const anyOfUnion = z.union(options);
-    baseSchema = hasExplicitType ? z.intersection(baseSchema, anyOfUnion) : anyOfUnion;
-  }
-  if (schema.oneOf && Array.isArray(schema.oneOf)) {
-    const options = schema.oneOf.map((s) => convertSchema(s, ctx));
-    const oneOfUnion = z.xor(options);
-    baseSchema = hasExplicitType ? z.intersection(baseSchema, oneOfUnion) : oneOfUnion;
-  }
-  if (schema.allOf && Array.isArray(schema.allOf)) {
-    if (schema.allOf.length === 0) {
-      baseSchema = hasExplicitType ? baseSchema : z.any();
-    } else {
-      let result = hasExplicitType ? baseSchema : convertSchema(schema.allOf[0], ctx);
-      const startIdx = hasExplicitType ? 0 : 1;
-      for (let i = startIdx;i < schema.allOf.length; i++) {
-        result = z.intersection(result, convertSchema(schema.allOf[i], ctx));
-      }
-      baseSchema = result;
-    }
-  }
-  if (schema.nullable === true && ctx.version === "openapi-3.0") {
-    baseSchema = z.nullable(baseSchema);
-  }
-  if (schema.readOnly === true) {
-    baseSchema = z.readonly(baseSchema);
-  }
-  if (schema.default !== undefined) {
-    baseSchema = baseSchema.default(schema.default);
-  }
-  const extraMeta = {};
-  const coreMetadataKeys = ["$id", "id", "$comment", "$anchor", "$vocabulary", "$dynamicRef", "$dynamicAnchor"];
-  for (const key of coreMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
-    }
-  }
-  const contentMetadataKeys = ["contentEncoding", "contentMediaType", "contentSchema"];
-  for (const key of contentMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
-    }
-  }
-  for (const key of Object.keys(schema)) {
-    if (!RECOGNIZED_KEYS.has(key)) {
-      extraMeta[key] = schema[key];
-    }
-  }
-  if (Object.keys(extraMeta).length > 0) {
-    ctx.registry.add(baseSchema, extraMeta);
-  }
-  if (schema.description) {
-    baseSchema = baseSchema.describe(schema.description);
-  }
-  return baseSchema;
-}
-function fromJSONSchema(schema, params) {
-  if (typeof schema === "boolean") {
-    return schema ? z.any() : z.never();
-  }
-  let normalized;
-  try {
-    normalized = JSON.parse(JSON.stringify(schema));
-  } catch {
-    throw new Error("fromJSONSchema input is not valid JSON (possibly cyclic); use $defs/$ref for recursive schemas");
-  }
-  const version2 = detectVersion(normalized, params?.defaultTarget);
-  const defs = normalized.$defs || normalized.definitions || {};
-  const ctx = {
-    version: version2,
-    defs,
-    refs: new Map,
-    processing: new Set,
-    rootSchema: normalized,
-    registry: params?.registry ?? globalRegistry
-  };
-  return convertSchema(normalized, ctx);
-}
+(function(ZodFirstPartyTypeKind) {})(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
 // node_modules/zod/v4/classic/coerce.js
-var exports_coerce = {};
-__export(exports_coerce, {
-  string: () => string3,
-  number: () => number3,
-  date: () => date4,
-  boolean: () => boolean3,
-  bigint: () => bigint3
-});
-function string3(params) {
-  return _coercedString(ZodString, params);
-}
 function number3(params) {
   return _coercedNumber(ZodNumber, params);
-}
-function boolean3(params) {
-  return _coercedBoolean(ZodBoolean, params);
-}
-function bigint3(params) {
-  return _coercedBigint(ZodBigInt, params);
-}
-function date4(params) {
-  return _coercedDate(ZodDate, params);
 }
 
 // node_modules/zod/v4/classic/external.js
@@ -20855,8 +11494,8 @@ var SafeUrlSchema = url().superRefine((val, ctx) => {
     });
     return NEVER;
   }
-}).refine((url2) => {
-  const u = new URL(url2);
+}).refine((url) => {
+  const u = new URL(url);
   return u.protocol !== "javascript:" && u.protocol !== "data:" && u.protocol !== "vbscript:";
 }, { message: "URL cannot use javascript:, data:, or vbscript: scheme" });
 var OAuthProtectedResourceMetadataSchema = looseObject({
@@ -20942,7 +11581,7 @@ var OAuthTokensSchema = object({
   access_token: string2(),
   id_token: string2().optional(),
   token_type: string2(),
-  expires_in: exports_coerce.number().optional(),
+  expires_in: number3().optional(),
   scope: string2().optional(),
   refresh_token: string2().optional()
 }).strip();
@@ -21014,7 +11653,7 @@ var ProtocolErrorCode = /* @__PURE__ */ function(ProtocolErrorCode$1) {
   ProtocolErrorCode$1[ProtocolErrorCode$1["UrlElicitationRequired"] = -32042] = "UrlElicitationRequired";
   return ProtocolErrorCode$1;
 }({});
-var ProtocolError = class ProtocolError2 extends Error {
+var ProtocolError = class ProtocolError extends Error {
   constructor(code, message, data) {
     super(message);
     this.code = code;
@@ -21027,7 +11666,7 @@ var ProtocolError = class ProtocolError2 extends Error {
       if (errorData.elicitations)
         return new UrlElicitationRequiredError(errorData.elicitations, message);
     }
-    return new ProtocolError2(code, message, data);
+    return new ProtocolError(code, message, data);
   }
 };
 var UrlElicitationRequiredError = class extends ProtocolError {
@@ -21116,7 +11755,7 @@ var IconSchema = object({
   src: string2(),
   mimeType: string2().optional(),
   sizes: array(string2()).optional(),
-  theme: _enum2(["light", "dark"]).optional()
+  theme: _enum(["light", "dark"]).optional()
 });
 var IconsSchema = object({ icons: array(IconSchema).optional() });
 var BaseMetadataSchema = object({
@@ -21216,7 +11855,7 @@ var ProgressNotificationSchema = NotificationSchema.extend({
 var PaginatedRequestParamsSchema = BaseRequestParamsSchema.extend({ cursor: CursorSchema.optional() });
 var PaginatedRequestSchema = RequestSchema.extend({ params: PaginatedRequestParamsSchema.optional() });
 var PaginatedResultSchema = ResultSchema.extend({ nextCursor: CursorSchema.optional() });
-var TaskStatusSchema = _enum2([
+var TaskStatusSchema = _enum([
   "working",
   "input_required",
   "completed",
@@ -21270,11 +11909,11 @@ var Base64Schema = string2().refine((val) => {
   }
 }, { message: "Invalid Base64 string" });
 var BlobResourceContentsSchema = ResourceContentsSchema.extend({ blob: Base64Schema });
-var RoleSchema = _enum2(["user", "assistant"]);
+var RoleSchema = _enum(["user", "assistant"]);
 var AnnotationsSchema = object({
   audience: array(RoleSchema).optional(),
   priority: number2().min(0).max(1).optional(),
-  lastModified: exports_iso.datetime({ offset: true }).optional()
+  lastModified: datetime2({ offset: true }).optional()
 });
 var ResourceSchema = object({
   ...BaseMetadataSchema.shape,
@@ -21407,7 +12046,7 @@ var ToolAnnotationsSchema = object({
   idempotentHint: boolean2().optional(),
   openWorldHint: boolean2().optional()
 });
-var ToolExecutionSchema = object({ taskSupport: _enum2([
+var ToolExecutionSchema = object({ taskSupport: _enum([
   "required",
   "optional",
   "forbidden"
@@ -21454,7 +12093,7 @@ var ListChangedOptionsBaseSchema = object({
   autoRefresh: boolean2().default(true),
   debounceMs: number2().int().nonnegative().default(300)
 });
-var LoggingLevelSchema = _enum2([
+var LoggingLevelSchema = _enum([
   "debug",
   "info",
   "notice",
@@ -21485,7 +12124,7 @@ var ModelPreferencesSchema = object({
   speedPriority: number2().min(0).max(1).optional(),
   intelligencePriority: number2().min(0).max(1).optional()
 });
-var ToolChoiceSchema = object({ mode: _enum2([
+var ToolChoiceSchema = object({ mode: _enum([
   "auto",
   "required",
   "none"
@@ -21519,7 +12158,7 @@ var CreateMessageRequestParamsSchema = TaskAugmentedRequestParamsSchema.extend({
   messages: array(SamplingMessageSchema),
   modelPreferences: ModelPreferencesSchema.optional(),
   systemPrompt: string2().optional(),
-  includeContext: _enum2([
+  includeContext: _enum([
     "none",
     "thisServer",
     "allServers"
@@ -21537,7 +12176,7 @@ var CreateMessageRequestSchema = RequestSchema.extend({
 });
 var CreateMessageResultSchema = ResultSchema.extend({
   model: string2(),
-  stopReason: optional(_enum2([
+  stopReason: optional(_enum([
     "endTurn",
     "stopSequence",
     "maxTokens"
@@ -21547,7 +12186,7 @@ var CreateMessageResultSchema = ResultSchema.extend({
 });
 var CreateMessageResultWithToolsSchema = ResultSchema.extend({
   model: string2(),
-  stopReason: optional(_enum2([
+  stopReason: optional(_enum([
     "endTurn",
     "stopSequence",
     "maxTokens",
@@ -21568,7 +12207,7 @@ var StringSchemaSchema = object({
   description: string2().optional(),
   minLength: number2().optional(),
   maxLength: number2().optional(),
-  format: _enum2([
+  format: _enum([
     "email",
     "uri",
     "date",
@@ -21577,7 +12216,7 @@ var StringSchemaSchema = object({
   default: string2().optional()
 });
 var NumberSchemaSchema = object({
-  type: _enum2(["number", "integer"]),
+  type: _enum(["number", "integer"]),
   title: string2().optional(),
   description: string2().optional(),
   minimum: number2().optional(),
@@ -21672,7 +12311,7 @@ var ElicitationCompleteNotificationSchema = NotificationSchema.extend({
   params: ElicitationCompleteNotificationParamsSchema
 });
 var ElicitResultSchema = ResultSchema.extend({
-  action: _enum2([
+  action: _enum([
     "accept",
     "decline",
     "cancel"
@@ -21820,13 +12459,13 @@ var resultSchemas = {
 function getResultSchema(method) {
   return resultSchemas[method];
 }
-function buildSchemaMap(schemas3) {
-  const map2 = {};
-  for (const schema of schemas3) {
+function buildSchemaMap(schemas) {
+  const map = {};
+  for (const schema of schemas) {
     const method = schema.shape.method.value;
-    map2[method] = schema;
+    map[method] = schema;
   }
-  return map2;
+  return map;
 }
 var requestSchemas = buildSchemaMap([...ClientRequestSchema.options, ...ServerRequestSchema.options]);
 var notificationSchemas = buildSchemaMap([...ClientNotificationSchema.options, ...ServerNotificationSchema.options]);
@@ -21926,10 +12565,10 @@ var TaskManager = class {
           type: "result",
           result: await host.request(request, resultSchema, options)
         };
-      } catch (error51) {
+      } catch (error) {
         yield {
           type: "error",
-          error: error51 instanceof Error ? error51 : new Error(String(error51))
+          error: error instanceof Error ? error : new Error(String(error))
         };
       }
       return;
@@ -21985,10 +12624,10 @@ var TaskManager = class {
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         options?.signal?.throwIfAborted();
       }
-    } catch (error51) {
+    } catch (error) {
       yield {
         type: "error",
-        error: error51 instanceof Error ? error51 : new Error(String(error51))
+        error: error instanceof Error ? error : new Error(String(error))
       };
     }
   }
@@ -22075,8 +12714,8 @@ var TaskManager = class {
         nextCursor,
         _meta: {}
       };
-    } catch (error51) {
-      throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Failed to list tasks: ${error51 instanceof Error ? error51.message : String(error51)}`);
+    } catch (error) {
+      throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Failed to list tasks: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   async handleCancelTask(taskId, sessionId) {
@@ -22095,10 +12734,10 @@ var TaskManager = class {
         _meta: {},
         ...cancelledTask
       };
-    } catch (error51) {
-      if (error51 instanceof ProtocolError)
-        throw error51;
-      throw new ProtocolError(ProtocolErrorCode.InvalidRequest, `Failed to cancel task: ${error51 instanceof Error ? error51.message : String(error51)}`);
+    } catch (error) {
+      if (error instanceof ProtocolError)
+        throw error;
+      throw new ProtocolError(ProtocolErrorCode.InvalidRequest, `Failed to cancel task: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   prepareOutboundRequest(jsonrpcRequest, options, messageId, responseHandler, onError) {
@@ -22123,8 +12762,8 @@ var TaskManager = class {
         type: "request",
         message: jsonrpcRequest,
         timestamp: Date.now()
-      }).catch((error51) => {
-        onError(error51);
+      }).catch((error) => {
+        onError(error);
       });
       return true;
     }
@@ -22446,7 +13085,7 @@ var Protocol = class {
     const host = {
       request: (request, resultSchema, options) => this._requestWithSchema(request, resultSchema, options),
       notification: (notification, options) => this.notification(notification, options),
-      reportError: (error51) => this._onerror(error51),
+      reportError: (error) => this._onerror(error),
       removeProgressHandler: (token) => this._progressHandlers.delete(token),
       registerHandler: (method, handler) => {
         const schema = getRequestSchema(method);
@@ -22513,9 +13152,9 @@ var Protocol = class {
       }
     };
     const _onerror = this.transport?.onerror;
-    this._transport.onerror = (error51) => {
-      _onerror?.(error51);
-      this._onerror(error51);
+    this._transport.onerror = (error) => {
+      _onerror?.(error);
+      this._onerror(error);
     };
     const _onmessage = this._transport?.onmessage;
     this._transport.onmessage = (message, extra) => {
@@ -22543,25 +13182,25 @@ var Protocol = class {
     this._timeoutInfo.clear();
     const requestHandlerAbortControllers = this._requestHandlerAbortControllers;
     this._requestHandlerAbortControllers = /* @__PURE__ */ new Map;
-    const error51 = new SdkError(SdkErrorCode.ConnectionClosed, "Connection closed");
+    const error = new SdkError(SdkErrorCode.ConnectionClosed, "Connection closed");
     this._transport = undefined;
     try {
       this.onclose?.();
     } finally {
       for (const handler of responseHandlers.values())
-        handler(error51);
+        handler(error);
       for (const controller of requestHandlerAbortControllers.values())
-        controller.abort(error51);
+        controller.abort(error);
     }
   }
-  _onerror(error51) {
-    this.onerror?.(error51);
+  _onerror(error) {
+    this.onerror?.(error);
   }
   _onnotification(notification) {
     const handler = this._notificationHandlers.get(notification.method) ?? this.fallbackNotificationHandler;
     if (handler === undefined)
       return;
-    Promise.resolve().then(() => handler(notification)).catch((error51) => this._onerror(/* @__PURE__ */ new Error(`Uncaught error in notification handler: ${error51}`)));
+    Promise.resolve().then(() => handler(notification)).catch((error) => this._onerror(/* @__PURE__ */ new Error(`Uncaught error in notification handler: ${error}`)));
   }
   _onrequest(request, extra) {
     const handler = this._requestHandlers.get(request.method) ?? this.fallbackRequestHandler;
@@ -22596,8 +13235,8 @@ var Protocol = class {
       };
       routeResponse(errorResponse).then((routed) => {
         if (!routed)
-          capturedTransport?.send(errorResponse).catch((error51) => this._onerror(/* @__PURE__ */ new Error(`Failed to send an error response: ${error51}`)));
-      }).catch((error51) => this._onerror(/* @__PURE__ */ new Error(`Failed to enqueue error response: ${error51}`)));
+          capturedTransport?.send(errorResponse).catch((error) => this._onerror(/* @__PURE__ */ new Error(`Failed to send an error response: ${error}`)));
+      }).catch((error) => this._onerror(/* @__PURE__ */ new Error(`Failed to enqueue error response: ${error}`)));
       return;
     }
     const abortController = new AbortController;
@@ -22631,21 +13270,21 @@ var Protocol = class {
       };
       if (!await routeResponse(response))
         await capturedTransport?.send(response);
-    }, async (error51) => {
+    }, async (error) => {
       if (abortController.signal.aborted)
         return;
       const errorResponse = {
         jsonrpc: "2.0",
         id: request.id,
         error: {
-          code: Number.isSafeInteger(error51["code"]) ? error51["code"] : ProtocolErrorCode.InternalError,
-          message: error51.message ?? "Internal error",
-          ...error51["data"] !== undefined && { data: error51["data"] }
+          code: Number.isSafeInteger(error["code"]) ? error["code"] : ProtocolErrorCode.InternalError,
+          message: error.message ?? "Internal error",
+          ...error["data"] !== undefined && { data: error["data"] }
         }
       };
       if (!await routeResponse(errorResponse))
         await capturedTransport?.send(errorResponse);
-    }).catch((error51) => this._onerror(/* @__PURE__ */ new Error(`Failed to send response: ${error51}`))).finally(() => {
+    }).catch((error) => this._onerror(/* @__PURE__ */ new Error(`Failed to send response: ${error}`))).finally(() => {
       if (this._requestHandlerAbortControllers.get(request.id) === abortController)
         this._requestHandlerAbortControllers.delete(request.id);
     });
@@ -22663,11 +13302,11 @@ var Protocol = class {
     if (timeoutInfo && responseHandler && timeoutInfo.resetTimeoutOnProgress)
       try {
         this._resetTimeout(messageId);
-      } catch (error51) {
+      } catch (error) {
         this._responseHandlers.delete(messageId);
         this._progressHandlers.delete(messageId);
         this._cleanupTimeout(messageId);
-        responseHandler(error51);
+        responseHandler(error);
         return;
       }
     handler(params);
@@ -22707,8 +13346,8 @@ var Protocol = class {
     let onAbort;
     let cleanupMessageId;
     return new Promise((resolve, reject) => {
-      const earlyReject = (error51) => {
-        reject(error51);
+      const earlyReject = (error) => {
+        reject(error);
       };
       if (!this._transport) {
         earlyReject(/* @__PURE__ */ new Error("Not connected"));
@@ -22717,8 +13356,8 @@ var Protocol = class {
       if (this._options?.enforceStrictCapabilities === true)
         try {
           this.assertCapabilityForMethod(request.method);
-        } catch (error51) {
-          earlyReject(error51);
+        } catch (error) {
+          earlyReject(error);
           return;
         }
       options?.signal?.throwIfAborted();
@@ -22752,7 +13391,7 @@ var Protocol = class {
           relatedRequestId,
           resumptionToken,
           onresumptiontoken
-        }).catch((error51) => this._onerror(/* @__PURE__ */ new Error(`Failed to send cancellation: ${error51}`)));
+        }).catch((error) => this._onerror(/* @__PURE__ */ new Error(`Failed to send cancellation: ${error}`)));
         reject(reason instanceof SdkError ? reason : new SdkError(SdkErrorCode.RequestTimeout, String(reason)));
       };
       this._responseHandlers.set(messageId, (response) => {
@@ -22766,8 +13405,8 @@ var Protocol = class {
             resolve(parseResult.data);
           else
             reject(parseResult.error);
-        } catch (error51) {
-          reject(error51);
+        } catch (error) {
+          reject(error);
         }
       });
       onAbort = () => cancel(options?.signal?.reason);
@@ -22784,14 +13423,14 @@ var Protocol = class {
       };
       let outboundQueued = false;
       try {
-        if (this._taskManager.processOutboundRequest(jsonrpcRequest, options, messageId, responseHandler, (error51) => {
+        if (this._taskManager.processOutboundRequest(jsonrpcRequest, options, messageId, responseHandler, (error) => {
           this._progressHandlers.delete(messageId);
-          reject(error51);
+          reject(error);
         }).queued)
           outboundQueued = true;
-      } catch (error51) {
+      } catch (error) {
         this._progressHandlers.delete(messageId);
-        reject(error51);
+        reject(error);
         return;
       }
       if (!outboundQueued)
@@ -22799,9 +13438,9 @@ var Protocol = class {
           relatedRequestId,
           resumptionToken,
           onresumptiontoken
-        }).catch((error51) => {
+        }).catch((error) => {
           this._progressHandlers.delete(messageId);
-          reject(error51);
+          reject(error);
         });
     }).finally(() => {
       if (onAbort)
@@ -22829,7 +13468,7 @@ var Protocol = class {
         this._pendingDebouncedNotifications.delete(notification.method);
         if (!this._transport)
           return;
-        this._transport?.send(jsonrpcNotification, options).catch((error51) => this._onerror(error51));
+        this._transport?.send(jsonrpcNotification, options).catch((error) => this._onerror(error));
       });
       return;
     }
@@ -22894,10 +13533,10 @@ var ReadBuffer = class {
       this._buffer = this._buffer.subarray(index + 1);
       try {
         return deserializeMessage(line);
-      } catch (error51) {
-        if (error51 instanceof SyntaxError)
+      } catch (error) {
+        if (error instanceof SyntaxError)
           continue;
-        throw error51;
+        throw error;
       }
     }
     return null;
@@ -22966,7 +13605,7 @@ var MAX_TEMPLATE_LENGTH = 1e6;
 var MAX_VARIABLE_LENGTH = 1e6;
 var MAX_TEMPLATE_EXPRESSIONS = 1e4;
 var MAX_REGEX_LENGTH = 1e6;
-var UriTemplate = class UriTemplate2 {
+var UriTemplate = class UriTemplate {
   static isTemplate(str) {
     return /\{[^}\s]+\}/.test(str);
   }
@@ -22980,7 +13619,7 @@ var UriTemplate = class UriTemplate2 {
     return this.parts.flatMap((part) => typeof part === "string" ? [] : part.names);
   }
   constructor(template) {
-    UriTemplate2.validateLength(template, MAX_TEMPLATE_LENGTH, "Template");
+    UriTemplate.validateLength(template, MAX_TEMPLATE_LENGTH, "Template");
     this.template = template;
     this.parts = this.parse(template);
   }
@@ -23010,7 +13649,7 @@ var UriTemplate = class UriTemplate2 {
         const names = this.getNames(expr);
         const name = names[0];
         for (const name$1 of names)
-          UriTemplate2.validateLength(name$1, MAX_VARIABLE_LENGTH, "Variable name");
+          UriTemplate.validateLength(name$1, MAX_VARIABLE_LENGTH, "Variable name");
         parts.push({
           name,
           operator,
@@ -23041,7 +13680,7 @@ var UriTemplate = class UriTemplate2 {
     return expr.slice(operator.length).split(",").map((name) => name.replace("*", "").trim()).filter((name) => name.length > 0);
   }
   encodeValue(value, operator) {
-    UriTemplate2.validateLength(value, MAX_VARIABLE_LENGTH, "Variable value");
+    UriTemplate.validateLength(value, MAX_VARIABLE_LENGTH, "Variable value");
     if (operator === "+" || operator === "#")
       return encodeURI(value);
     return encodeURIComponent(value);
@@ -23106,7 +13745,7 @@ var UriTemplate = class UriTemplate2 {
   partToRegExp(part) {
     const patterns = [];
     for (const name$1 of part.names)
-      UriTemplate2.validateLength(name$1, MAX_VARIABLE_LENGTH, "Variable name");
+      UriTemplate.validateLength(name$1, MAX_VARIABLE_LENGTH, "Variable name");
     if (part.operator === "?" || part.operator === "&") {
       for (let i = 0;i < part.names.length; i++) {
         const name$1 = part.names[i];
@@ -23144,7 +13783,7 @@ var UriTemplate = class UriTemplate2 {
     return patterns;
   }
   match(uri) {
-    UriTemplate2.validateLength(uri, MAX_TEMPLATE_LENGTH, "URI");
+    UriTemplate.validateLength(uri, MAX_TEMPLATE_LENGTH, "URI");
     let pattern = "^";
     const names = [];
     for (const part of this.parts)
@@ -23161,7 +13800,7 @@ var UriTemplate = class UriTemplate2 {
         }
       }
     pattern += "$";
-    UriTemplate2.validateLength(pattern, MAX_REGEX_LENGTH, "Generated regex pattern");
+    UriTemplate.validateLength(pattern, MAX_REGEX_LENGTH, "Generated regex pattern");
     const regex = new RegExp(pattern);
     const match = uri.match(regex);
     if (!match)
@@ -23185,10 +13824,10 @@ function standardSchemaToJsonSchema(schema, io = "input") {
     ...result
   };
 }
-function formatIssue(issue2) {
-  if (!issue2.path?.length)
-    return issue2.message;
-  return `${issue2.path.map((p) => String(typeof p === "object" ? p.key : p)).join(".")}: ${issue2.message}`;
+function formatIssue(issue) {
+  if (!issue.path?.length)
+    return issue.message;
+  return `${issue.path.map((p) => String(typeof p === "object" ? p.key : p)).join(".")}: ${issue.message}`;
 }
 async function validateStandardSchema(schema, data) {
   const result = await schema["~standard"].validate(data);
@@ -23205,11 +13844,11 @@ async function validateStandardSchema(schema, data) {
 function promptArgumentsFromStandardSchema(schema) {
   const jsonSchema = standardSchemaToJsonSchema(schema, "input");
   const properties = jsonSchema.properties || {};
-  const required2 = jsonSchema.required || [];
+  const required = jsonSchema.required || [];
   return Object.entries(properties).map(([name, prop]) => ({
     name,
     description: prop?.description,
-    required: required2.includes(name)
+    required: required.includes(name)
   }));
 }
 var require_code$1 = /* @__PURE__ */ __commonJSMin((exports) => {
@@ -23252,12 +13891,12 @@ var require_code$1 = /* @__PURE__ */ __commonJSMin((exports) => {
       return item === "" || item === '""';
     }
     get str() {
-      var _a3;
-      return (_a3 = this._str) !== null && _a3 !== undefined ? _a3 : this._str = this._items.reduce((s, c) => `${s}${c}`, "");
+      var _a;
+      return (_a = this._str) !== null && _a !== undefined ? _a : this._str = this._items.reduce((s, c) => `${s}${c}`, "");
     }
     get names() {
-      var _a3;
-      return (_a3 = this._names) !== null && _a3 !== undefined ? _a3 : this._names = this._items.reduce((names, c) => {
+      var _a;
+      return (_a = this._names) !== null && _a !== undefined ? _a : this._names = this._items.reduce((names, c) => {
         if (c instanceof Name)
           names[c.str] = (names[c.str] || 0) + 1;
         return names;
@@ -23370,9 +14009,9 @@ var require_scope = /* @__PURE__ */ __commonJSMin((exports) => {
     }
   };
   var UsedValueState;
-  (function(UsedValueState2) {
-    UsedValueState2[UsedValueState2["Started"] = 0] = "Started";
-    UsedValueState2[UsedValueState2["Completed"] = 1] = "Completed";
+  (function(UsedValueState) {
+    UsedValueState[UsedValueState["Started"] = 0] = "Started";
+    UsedValueState[UsedValueState["Completed"] = 1] = "Completed";
   })(UsedValueState || (exports.UsedValueState = UsedValueState = {}));
   exports.varKinds = {
     const: new code_1.Name("const"),
@@ -23396,8 +14035,8 @@ var require_scope = /* @__PURE__ */ __commonJSMin((exports) => {
       return `${prefix}${ng.index++}`;
     }
     _nameGroup(prefix) {
-      var _a3, _b;
-      if (((_b = (_a3 = this._parent) === null || _a3 === undefined ? undefined : _a3._prefixes) === null || _b === undefined ? undefined : _b.has(prefix)) || this._prefixes && !this._prefixes.has(prefix))
+      var _a, _b;
+      if (((_b = (_a = this._parent) === null || _a === undefined ? undefined : _a._prefixes) === null || _b === undefined ? undefined : _b.has(prefix)) || this._prefixes && !this._prefixes.has(prefix))
         throw new Error(`CodeGen: prefix "${prefix}" is not allowed in this scope`);
       return this._names[prefix] = {
         prefix,
@@ -23435,12 +14074,12 @@ var require_scope = /* @__PURE__ */ __commonJSMin((exports) => {
       return new ValueScopeName(prefix, this._newName(prefix));
     }
     value(nameOrPrefix, value) {
-      var _a3;
+      var _a;
       if (value.ref === undefined)
         throw new Error("CodeGen: ref must be passed in value");
       const name = this.toName(nameOrPrefix);
       const { prefix } = name;
-      const valueKey = (_a3 = value.key) !== null && _a3 !== undefined ? _a3 : value.ref;
+      const valueKey = (_a = value.key) !== null && _a !== undefined ? _a : value.ref;
       let vs = this._values[prefix];
       if (vs) {
         const _name = vs.get(valueKey);
@@ -23677,9 +14316,9 @@ var require_codegen = /* @__PURE__ */ __commonJSMin((exports) => {
     }
   };
   var Throw = class extends Node {
-    constructor(error51) {
+    constructor(error) {
       super();
-      this.error = error51;
+      this.error = error;
     }
     render({ _n }) {
       return `throw ${this.error};` + _n;
@@ -23755,7 +14394,7 @@ var require_codegen = /* @__PURE__ */ __commonJSMin((exports) => {
   var Else = class extends BlockNode {
   };
   Else.kind = "else";
-  var If = class If2 extends BlockNode {
+  var If = class If extends BlockNode {
     constructor(condition, nodes) {
       super(nodes);
       this.condition = condition;
@@ -23778,18 +14417,18 @@ var require_codegen = /* @__PURE__ */ __commonJSMin((exports) => {
       }
       if (e) {
         if (cond === false)
-          return e instanceof If2 ? e : e.nodes;
+          return e instanceof If ? e : e.nodes;
         if (this.nodes.length)
           return this;
-        return new If2(not(cond), e instanceof If2 ? [e] : e.nodes);
+        return new If(not(cond), e instanceof If ? [e] : e.nodes);
       }
       if (cond === false || !this.nodes.length)
         return;
       return this;
     }
     optimizeNames(names, constants) {
-      var _a3;
-      this.else = (_a3 = this.else) === null || _a3 === undefined ? undefined : _a3.optimizeNames(names, constants);
+      var _a;
+      this.else = (_a = this.else) === null || _a === undefined ? undefined : _a.optimizeNames(names, constants);
       if (!(super.optimizeNames(names, constants) || this.else))
         return;
       this.condition = optimizeExpr(this.condition, names, constants);
@@ -23891,16 +14530,16 @@ var require_codegen = /* @__PURE__ */ __commonJSMin((exports) => {
       return code;
     }
     optimizeNodes() {
-      var _a3, _b;
+      var _a, _b;
       super.optimizeNodes();
-      (_a3 = this.catch) === null || _a3 === undefined || _a3.optimizeNodes();
+      (_a = this.catch) === null || _a === undefined || _a.optimizeNodes();
       (_b = this.finally) === null || _b === undefined || _b.optimizeNodes();
       return this;
     }
     optimizeNames(names, constants) {
-      var _a3, _b;
+      var _a, _b;
       super.optimizeNames(names, constants);
-      (_a3 = this.catch) === null || _a3 === undefined || _a3.optimizeNames(names, constants);
+      (_a = this.catch) === null || _a === undefined || _a.optimizeNames(names, constants);
       (_b = this.finally) === null || _b === undefined || _b.optimizeNames(names, constants);
       return this;
     }
@@ -23914,9 +14553,9 @@ var require_codegen = /* @__PURE__ */ __commonJSMin((exports) => {
     }
   };
   var Catch = class extends BlockNode {
-    constructor(error51) {
+    constructor(error) {
       super();
-      this.error = error51;
+      this.error = error;
     }
     render(opts) {
       return `catch(${this.error})` + super.render(opts);
@@ -24082,9 +14721,9 @@ var require_codegen = /* @__PURE__ */ __commonJSMin((exports) => {
       this._blockNode(node);
       this.code(tryBody);
       if (catchCode) {
-        const error51 = this.name("e");
-        this._currNode = node.catch = new Catch(error51);
-        catchCode(error51);
+        const error = this.name("e");
+        this._currNode = node.catch = new Catch(error);
+        catchCode(error);
       }
       if (finallyCode) {
         this._currNode = node.finally = new Finally;
@@ -24092,8 +14731,8 @@ var require_codegen = /* @__PURE__ */ __commonJSMin((exports) => {
       }
       return this._endBlockNode(Catch, Finally);
     }
-    throw(error51) {
-      return this._leafNode(new Throw(error51));
+    throw(error) {
+      return this._leafNode(new Throw(error));
     }
     block(body, nodeCount) {
       this._blockStarts.push(this._nodes.length);
@@ -24226,10 +14865,10 @@ var require_util = /* @__PURE__ */ __commonJSMin((exports) => {
   const codegen_1 = require_codegen();
   const code_1 = require_code$1();
   function toHash(arr) {
-    const hash2 = {};
+    const hash = {};
     for (const item of arr)
-      hash2[item] = true;
-    return hash2;
+      hash[item] = true;
+    return hash;
   }
   exports.toHash = toHash;
   function alwaysValidSchema(it, schema) {
@@ -24307,9 +14946,9 @@ var require_util = /* @__PURE__ */ __commonJSMin((exports) => {
       f(xs);
   }
   exports.eachItem = eachItem;
-  function makeMergeEvaluated({ mergeNames, mergeToName, mergeValues: mergeValues2, resultToName }) {
+  function makeMergeEvaluated({ mergeNames, mergeToName, mergeValues, resultToName }) {
     return (gen, from, to, toName) => {
-      const res = to === undefined ? from : to instanceof codegen_1.Name ? (from instanceof codegen_1.Name ? mergeNames(gen, from, to) : mergeToName(gen, from, to), to) : from instanceof codegen_1.Name ? (mergeToName(gen, to, from), from) : mergeValues2(from, to);
+      const res = to === undefined ? from : to instanceof codegen_1.Name ? (from instanceof codegen_1.Name ? mergeNames(gen, from, to) : mergeToName(gen, from, to), to) : from instanceof codegen_1.Name ? (mergeToName(gen, to, from), from) : mergeValues(from, to);
       return toName === codegen_1.Name && !(res instanceof codegen_1.Name) ? resultToName(gen, res) : res;
     };
   }
@@ -24361,9 +15000,9 @@ var require_util = /* @__PURE__ */ __commonJSMin((exports) => {
   }
   exports.useFunc = useFunc;
   var Type;
-  (function(Type2) {
-    Type2[Type2["Num"] = 0] = "Num";
-    Type2[Type2["Str"] = 1] = "Str";
+  (function(Type) {
+    Type[Type["Num"] = 0] = "Num";
+    Type[Type["Str"] = 1] = "Str";
   })(Type || (exports.Type = Type = {}));
   function getErrorPath(dataProp, dataPropType, jsPropertySyntax) {
     if (dataProp instanceof codegen_1.Name) {
@@ -24414,20 +15053,20 @@ var require_errors = /* @__PURE__ */ __commonJSMin((exports) => {
   const names_1 = require_names();
   exports.keywordError = { message: ({ keyword }) => (0, codegen_1.str)`must pass "${keyword}" keyword validation` };
   exports.keyword$DataError = { message: ({ keyword, schemaType }) => schemaType ? (0, codegen_1.str)`"${keyword}" keyword must be ${schemaType} ($data)` : (0, codegen_1.str)`"${keyword}" keyword is invalid ($data)` };
-  function reportError(cxt, error51 = exports.keywordError, errorPaths, overrideAllErrors) {
+  function reportError(cxt, error = exports.keywordError, errorPaths, overrideAllErrors) {
     const { it } = cxt;
     const { gen, compositeRule, allErrors } = it;
-    const errObj = errorObjectCode(cxt, error51, errorPaths);
+    const errObj = errorObjectCode(cxt, error, errorPaths);
     if (overrideAllErrors !== null && overrideAllErrors !== undefined ? overrideAllErrors : compositeRule || allErrors)
       addError(gen, errObj);
     else
       returnErrors(it, (0, codegen_1._)`[${errObj}]`);
   }
   exports.reportError = reportError;
-  function reportExtraError(cxt, error51 = exports.keywordError, errorPaths) {
+  function reportExtraError(cxt, error = exports.keywordError, errorPaths) {
     const { it } = cxt;
     const { gen, compositeRule, allErrors } = it;
-    addError(gen, errorObjectCode(cxt, error51, errorPaths));
+    addError(gen, errorObjectCode(cxt, error, errorPaths));
     if (!(compositeRule || allErrors))
       returnErrors(it, names_1.default.vErrors);
   }
@@ -24475,16 +15114,16 @@ var require_errors = /* @__PURE__ */ __commonJSMin((exports) => {
     schema: new codegen_1.Name("schema"),
     parentSchema: new codegen_1.Name("parentSchema")
   };
-  function errorObjectCode(cxt, error51, errorPaths) {
+  function errorObjectCode(cxt, error, errorPaths) {
     const { createErrors } = cxt.it;
     if (createErrors === false)
       return (0, codegen_1._)`{}`;
-    return errorObject(cxt, error51, errorPaths);
+    return errorObject(cxt, error, errorPaths);
   }
-  function errorObject(cxt, error51, errorPaths = {}) {
+  function errorObject(cxt, error, errorPaths = {}) {
     const { gen, it } = cxt;
     const keyValues = [errorInstancePath(it, errorPaths), errorSchemaPath(cxt, errorPaths)];
-    extraErrorProps(cxt, error51, keyValues);
+    extraErrorProps(cxt, error, keyValues);
     return gen.object(...keyValues);
   }
   function errorInstancePath({ errorPath }, { instancePath }) {
@@ -24621,8 +15260,8 @@ var require_applicability = /* @__PURE__ */ __commonJSMin((exports) => {
   }
   exports.shouldUseGroup = shouldUseGroup;
   function shouldUseRule(schema, rule) {
-    var _a3;
-    return schema[rule.keyword] !== undefined || ((_a3 = rule.definition.implements) === null || _a3 === undefined ? undefined : _a3.some((kwd) => schema[kwd] !== undefined));
+    var _a;
+    return schema[rule.keyword] !== undefined || ((_a = rule.definition.implements) === null || _a === undefined ? undefined : _a.some((kwd) => schema[kwd] !== undefined));
   }
   exports.shouldUseRule = shouldUseRule;
 });
@@ -24635,9 +15274,9 @@ var require_dataType = /* @__PURE__ */ __commonJSMin((exports) => {
   const codegen_1 = require_codegen();
   const util_1 = require_util();
   var DataType;
-  (function(DataType2) {
-    DataType2[DataType2["Correct"] = 0] = "Correct";
-    DataType2[DataType2["Wrong"] = 1] = "Wrong";
+  (function(DataType) {
+    DataType[DataType["Correct"] = 0] = "Correct";
+    DataType[DataType["Wrong"] = 1] = "Wrong";
   })(DataType || (exports.DataType = DataType = {}));
   function getSchemaTypes(schema) {
     const types = getJSONTypes(schema.type);
@@ -24983,13 +15622,13 @@ var require_keyword = /* @__PURE__ */ __commonJSMin((exports) => {
   }
   exports.macroKeywordCode = macroKeywordCode;
   function funcKeywordCode(cxt, def) {
-    var _a3;
+    var _a;
     const { gen, keyword, schema, parentSchema, $data, it } = cxt;
     checkAsyncKeyword(it, def);
     const validateRef = useKeyword(gen, keyword, !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate);
     const valid = gen.let("valid");
     cxt.block$data(valid, validateKeyword);
-    cxt.ok((_a3 = def.valid) !== null && _a3 !== undefined ? _a3 : valid);
+    cxt.ok((_a = def.valid) !== null && _a !== undefined ? _a : valid);
     function validateKeyword() {
       if (def.errors === false) {
         assignValid();
@@ -25019,9 +15658,9 @@ var require_keyword = /* @__PURE__ */ __commonJSMin((exports) => {
       const passSchema = !(("compile" in def) && !$data || def.schema === false);
       gen.assign(valid, (0, codegen_1._)`${_await}${(0, code_1.callValidateCode)(cxt, validateRef, passCxt, passSchema)}`, def.modifying);
     }
-    function reportErrs(errors3) {
+    function reportErrs(errors) {
       var _a$1;
-      gen.if((0, codegen_1.not)((_a$1 = def.valid) !== null && _a$1 !== undefined ? _a$1 : valid), errors3);
+      gen.if((0, codegen_1.not)((_a$1 = def.valid) !== null && _a$1 !== undefined ? _a$1 : valid), errors);
     }
   }
   exports.funcKeywordCode = funcKeywordCode;
@@ -25897,9 +16536,9 @@ var require_validate = /* @__PURE__ */ __commonJSMin((exports) => {
 var require_validation_error = /* @__PURE__ */ __commonJSMin((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var ValidationError = class extends Error {
-    constructor(errors3) {
+    constructor(errors) {
       super("validation failed");
-      this.errors = errors3;
+      this.errors = errors;
       this.ajv = this.validation = true;
     }
   };
@@ -25928,7 +16567,7 @@ var require_compile = /* @__PURE__ */ __commonJSMin((exports) => {
   const validate_1 = require_validate();
   var SchemaEnv = class {
     constructor(env) {
-      var _a3;
+      var _a;
       this.refs = {};
       this.dynamicAnchors = {};
       let schema;
@@ -25937,7 +16576,7 @@ var require_compile = /* @__PURE__ */ __commonJSMin((exports) => {
       this.schema = env.schema;
       this.schemaId = env.schemaId;
       this.root = env.root || this;
-      this.baseId = (_a3 = env.baseId) !== null && _a3 !== undefined ? _a3 : (0, resolve_1.normalizeId)(schema === null || schema === undefined ? undefined : schema[env.schemaId || "$id"]);
+      this.baseId = (_a = env.baseId) !== null && _a !== undefined ? _a : (0, resolve_1.normalizeId)(schema === null || schema === undefined ? undefined : schema[env.schemaId || "$id"]);
       this.schemaPath = env.schemaPath;
       this.localRefs = env.localRefs;
       this.meta = env.meta;
@@ -26039,15 +16678,15 @@ var require_compile = /* @__PURE__ */ __commonJSMin((exports) => {
     }
   }
   exports.compileSchema = compileSchema;
-  function resolveRef2(root, baseId, ref) {
-    var _a3;
+  function resolveRef(root, baseId, ref) {
+    var _a;
     ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, ref);
     const schOrFunc = root.refs[ref];
     if (schOrFunc)
       return schOrFunc;
     let _sch = resolve.call(this, root, ref);
     if (_sch === undefined) {
-      const schema = (_a3 = root.localRefs) === null || _a3 === undefined ? undefined : _a3[ref];
+      const schema = (_a = root.localRefs) === null || _a === undefined ? undefined : _a[ref];
       const { schemaId } = this.opts;
       if (schema)
         _sch = new SchemaEnv({
@@ -26061,7 +16700,7 @@ var require_compile = /* @__PURE__ */ __commonJSMin((exports) => {
       return;
     return root.refs[ref] = inlineOrCompile.call(this, _sch);
   }
-  exports.resolveRef = resolveRef2;
+  exports.resolveRef = resolveRef;
   function inlineOrCompile(sch) {
     if ((0, resolve_1.inlineRef)(sch.schema, this.opts.inlineRefs))
       return sch.schema;
@@ -26124,8 +16763,8 @@ var require_compile = /* @__PURE__ */ __commonJSMin((exports) => {
     "definitions"
   ]);
   function getJsonPointer(parsedRef, { baseId, schema, root }) {
-    var _a3;
-    if (((_a3 = parsedRef.fragment) === null || _a3 === undefined ? undefined : _a3[0]) !== "/")
+    var _a;
+    if (((_a = parsedRef.fragment) === null || _a === undefined ? undefined : _a[0]) !== "/")
       return;
     for (const part of parsedRef.fragment.slice(1).split("/")) {
       if (typeof schema === "boolean")
@@ -26198,9 +16837,9 @@ var require_utils = /* @__PURE__ */ __commonJSMin((exports, module) => {
   }
   function consumeHextets(buffer, address, output) {
     if (buffer.length) {
-      const hex3 = stringArrayToHexStripped(buffer);
-      if (hex3 !== "")
-        address.push(hex3);
+      const hex = stringArrayToHexStripped(buffer);
+      if (hex !== "")
+        address.push(hex);
       else {
         output.error = true;
         return false;
@@ -26263,13 +16902,13 @@ var require_utils = /* @__PURE__ */ __commonJSMin((exports, module) => {
         host,
         isIPV6: false
       };
-    const ipv63 = getIPV6(host);
-    if (!ipv63.error) {
-      let newHost = ipv63.address;
-      let escapedHost = ipv63.address;
-      if (ipv63.zone) {
-        newHost += "%" + ipv63.zone;
-        escapedHost += "%25" + ipv63.zone;
+    const ipv6 = getIPV6(host);
+    if (!ipv6.error) {
+      let newHost = ipv6.address;
+      let escapedHost = ipv6.address;
+      if (ipv6.zone) {
+        newHost += "%" + ipv6.zone;
+        escapedHost += "%25" + ipv6.zone;
       }
       return {
         host: newHost,
@@ -26362,8 +17001,8 @@ var require_utils = /* @__PURE__ */ __commonJSMin((exports, module) => {
     }
     return output.join("");
   }
-  function normalizeComponentEncoding(component, esc2) {
-    const func = esc2 !== true ? escape : unescape;
+  function normalizeComponentEncoding(component, esc) {
+    const func = esc !== true ? escape : unescape;
     if (component.scheme !== undefined)
       component.scheme = func(component.scheme);
     if (component.userinfo !== undefined)
@@ -26577,22 +17216,22 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin((exports, module) => {
   const { SCHEMES, getSchemeHandler } = require_schemes();
   function normalize(uri, options) {
     if (typeof uri === "string")
-      uri = serialize(parse5(uri, options), options);
+      uri = serialize(parse(uri, options), options);
     else if (typeof uri === "object")
-      uri = parse5(serialize(uri, options), options);
+      uri = parse(serialize(uri, options), options);
     return uri;
   }
   function resolve(baseURI, relativeURI, options) {
     const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
-    const resolved = resolveComponent(parse5(baseURI, schemelessOptions), parse5(relativeURI, schemelessOptions), schemelessOptions, true);
+    const resolved = resolveComponent(parse(baseURI, schemelessOptions), parse(relativeURI, schemelessOptions), schemelessOptions, true);
     schemelessOptions.skipEscape = true;
     return serialize(resolved, schemelessOptions);
   }
   function resolveComponent(base, relative, options, skipNormalization) {
     const target = {};
     if (!skipNormalization) {
-      base = parse5(serialize(base, options), options);
-      relative = parse5(serialize(relative, options), options);
+      base = parse(serialize(base, options), options);
+      relative = parse(serialize(relative, options), options);
     }
     options = options || {};
     if (!options.tolerant && relative.scheme) {
@@ -26642,7 +17281,7 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin((exports, module) => {
   function equal(uriA, uriB, options) {
     if (typeof uriA === "string") {
       uriA = unescape(uriA);
-      uriA = serialize(normalizeComponentEncoding(parse5(uriA, options), true), {
+      uriA = serialize(normalizeComponentEncoding(parse(uriA, options), true), {
         ...options,
         skipEscape: true
       });
@@ -26653,7 +17292,7 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin((exports, module) => {
       });
     if (typeof uriB === "string") {
       uriB = unescape(uriB);
-      uriB = serialize(normalizeComponentEncoding(parse5(uriB, options), true), {
+      uriB = serialize(normalizeComponentEncoding(parse(uriB, options), true), {
         ...options,
         skipEscape: true
       });
@@ -26718,7 +17357,7 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin((exports, module) => {
     return uriTokens.join("");
   }
   const URI_PARSE = /^(?:([^#/:?]+):)?(?:\/\/((?:([^#/?@]*)@)?(\[[^#/?\]]+\]|[^#/:?]*)(?::(\d*))?))?([^#?]*)(?:\?([^#]*))?(?:#((?:.|[\n\r])*))?/u;
-  function parse5(uri, opts) {
+  function parse(uri, opts) {
     const options = Object.assign({}, opts);
     const parsed = {
       scheme: undefined,
@@ -26797,7 +17436,7 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin((exports, module) => {
     resolveComponent,
     equal,
     serialize,
-    parse: parse5
+    parse
   };
   module.exports = fastUri;
   module.exports.default = fastUri;
@@ -26912,9 +17551,9 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
   };
   const MAX_EXPRESSION = 200;
   function requiredOptions(o) {
-    var _a3, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0;
     const s = o.strict;
-    const _optz = (_a3 = o.code) === null || _a3 === undefined ? undefined : _a3.optimize;
+    const _optz = (_a = o.code) === null || _a === undefined ? undefined : _a.optimize;
     const optimize = _optz === true || _optz === undefined ? 1 : _optz || 0;
     const regExp = (_c = (_b = o.code) === null || _b === undefined ? undefined : _b.regExp) !== null && _c !== undefined ? _c : defaultRegExp;
     const uriResolver = (_d = o.uriResolver) !== null && _d !== undefined ? _d : uri_1.default;
@@ -26987,19 +17626,19 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
       this.addKeyword("$async");
     }
     _addDefaultMetaSchema() {
-      const { $data, meta: meta3, schemaId } = this.opts;
+      const { $data, meta, schemaId } = this.opts;
       let _dataRefSchema = $dataRefSchema;
       if (schemaId === "id") {
         _dataRefSchema = { ...$dataRefSchema };
         _dataRefSchema.id = _dataRefSchema.$id;
         delete _dataRefSchema.$id;
       }
-      if (meta3 && $data)
+      if (meta && $data)
         this.addMetaSchema(_dataRefSchema, _dataRefSchema[schemaId], false);
     }
     defaultMeta() {
-      const { meta: meta3, schemaId } = this.opts;
-      return this.opts.defaultMeta = typeof meta3 == "object" ? meta3[schemaId] || meta3 : undefined;
+      const { meta, schemaId } = this.opts;
+      return this.opts.defaultMeta = typeof meta == "object" ? meta[schemaId] || meta : undefined;
     }
     validate(schemaKeyRef, data) {
       let v;
@@ -27018,11 +17657,11 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
       const sch = this._addSchema(schema, _meta);
       return sch.validate || this._compileSchemaEnv(sch);
     }
-    compileAsync(schema, meta3) {
+    compileAsync(schema, meta) {
       if (typeof this.opts.loadSchema != "function")
         throw new Error("options.loadSchema should be a function");
       const { loadSchema } = this.opts;
-      return runCompileAsync.call(this, schema, meta3);
+      return runCompileAsync.call(this, schema, meta);
       async function runCompileAsync(_schema, _meta) {
         await loadMetaSchema.call(this, _schema.$schema);
         const sch = this._addSchema(_schema, _meta);
@@ -27052,7 +17691,7 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
         if (!this.refs[ref])
           await loadMetaSchema.call(this, _schema.$schema);
         if (!this.refs[ref])
-          this.addSchema(_schema, ref, meta3);
+          this.addSchema(_schema, ref, meta);
       }
       async function _loadSchema(ref) {
         const p = this._loading[ref];
@@ -27217,10 +17856,10 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
       this.formats[name] = format;
       return this;
     }
-    errorsText(errors3 = this.errors, { separator = ", ", dataVar = "data" } = {}) {
-      if (!errors3 || errors3.length === 0)
+    errorsText(errors = this.errors, { separator = ", ", dataVar = "data" } = {}) {
+      if (!errors || errors.length === 0)
         return "No errors";
-      return errors3.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text, msg) => text + separator + msg);
+      return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text, msg) => text + separator + msg);
     }
     $dataMetaSchema(metaSchema, keywordsJsonPointers) {
       const rules = this.RULES.all;
@@ -27242,20 +17881,20 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
       }
       return metaSchema;
     }
-    _removeAllSchemas(schemas3, regex) {
-      for (const keyRef in schemas3) {
-        const sch = schemas3[keyRef];
+    _removeAllSchemas(schemas, regex) {
+      for (const keyRef in schemas) {
+        const sch = schemas[keyRef];
         if (!regex || regex.test(keyRef)) {
           if (typeof sch == "string")
-            delete schemas3[keyRef];
+            delete schemas[keyRef];
           else if (sch && !sch.meta) {
             this._cache.delete(sch.schema);
-            delete schemas3[keyRef];
+            delete schemas[keyRef];
           }
         }
       }
     }
-    _addSchema(schema, meta3, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
+    _addSchema(schema, meta, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
       let id;
       const { schemaId } = this.opts;
       if (typeof schema == "object")
@@ -27272,7 +17911,7 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
       sch = new compile_1.SchemaEnv({
         schema,
         schemaId,
-        meta: meta3,
+        meta,
         baseId,
         localRefs
       });
@@ -27388,7 +18027,7 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
       throw new Error('$data keyword must have "code" or "validate" function');
   }
   function addRule(keyword, definition, dataType) {
-    var _a3;
+    var _a;
     const post = definition === null || definition === undefined ? undefined : definition.post;
     if (dataType && post)
       throw new Error('keyword with "post" flag cannot have "type"');
@@ -27417,7 +18056,7 @@ var require_core$1 = /* @__PURE__ */ __commonJSMin((exports) => {
     else
       ruleGroup.rules.push(rule);
     RULES.all[keyword] = rule;
-    (_a3 = definition.implements) === null || _a3 === undefined || _a3.forEach((kwd) => this.addKeyword(kwd));
+    (_a = definition.implements) === null || _a === undefined || _a.forEach((kwd) => this.addKeyword(kwd));
   }
   function addBeforeRule(ruleGroup, rule, before) {
     const i = ruleGroup.rules.findIndex((_rule) => _rule.keyword === before);
@@ -27541,10 +18180,10 @@ var require_ref = /* @__PURE__ */ __commonJSMin((exports) => {
       gen.assign(names_1.default.errors, (0, codegen_1._)`${names_1.default.vErrors}.length`);
     }
     function addEvaluatedFrom(source) {
-      var _a3;
+      var _a;
       if (!it.opts.unevaluated)
         return;
-      const schEvaluated = (_a3 = sch === null || sch === undefined ? undefined : sch.validate) === null || _a3 === undefined ? undefined : _a3.evaluated;
+      const schEvaluated = (_a = sch === null || sch === undefined ? undefined : sch.validate) === null || _a === undefined ? undefined : _a.evaluated;
       if (it.props !== true)
         if (schEvaluated && !schEvaluated.dynamicProps) {
           if (schEvaluated.props !== undefined)
@@ -27570,7 +18209,7 @@ var require_core = /* @__PURE__ */ __commonJSMin((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   const id_1 = require_id();
   const ref_1 = require_ref();
-  const core2 = [
+  const core = [
     "$schema",
     "$id",
     "$defs",
@@ -27580,7 +18219,7 @@ var require_core = /* @__PURE__ */ __commonJSMin((exports) => {
     id_1.default,
     ref_1.default
   ];
-  exports.default = core2;
+  exports.default = core;
 });
 var require_limitNumber = /* @__PURE__ */ __commonJSMin((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
@@ -28449,13 +19088,13 @@ var require_additionalProperties = /* @__PURE__ */ __commonJSMin((exports) => {
           }
         }
       }
-      function applyAdditionalSchema(key, valid, errors3) {
+      function applyAdditionalSchema(key, valid, errors) {
         const subschema = {
           keyword: "additionalProperties",
           dataProp: key,
           dataPropType: util_1.Type.Str
         };
-        if (errors3 === false)
+        if (errors === false)
           Object.assign(subschema, {
             compositeRule: true,
             createErrors: false,
@@ -28946,9 +19585,9 @@ var require_types = /* @__PURE__ */ __commonJSMin((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.DiscrError = undefined;
   var DiscrError;
-  (function(DiscrError2) {
-    DiscrError2["Tag"] = "tag";
-    DiscrError2["Mapping"] = "mapping";
+  (function(DiscrError) {
+    DiscrError["Tag"] = "tag";
+    DiscrError["Mapping"] = "mapping";
   })(DiscrError || (exports.DiscrError = DiscrError = {}));
 });
 var require_discriminator = /* @__PURE__ */ __commonJSMin((exports) => {
@@ -29011,7 +19650,7 @@ var require_discriminator = /* @__PURE__ */ __commonJSMin((exports) => {
         return _valid;
       }
       function getMapping() {
-        var _a3;
+        var _a;
         const oneOfMapping = {};
         const topRequired = hasRequired(parentSchema);
         let tagRequired = true;
@@ -29025,7 +19664,7 @@ var require_discriminator = /* @__PURE__ */ __commonJSMin((exports) => {
             if (sch === undefined)
               throw new ref_error_1.default(it.opts.uriResolver, it.baseId, ref);
           }
-          const propSch = (_a3 = sch === null || sch === undefined ? undefined : sch.properties) === null || _a3 === undefined ? undefined : _a3[tagName];
+          const propSch = (_a = sch === null || sch === undefined ? undefined : sch.properties) === null || _a === undefined ? undefined : _a[tagName];
           if (typeof propSch != "object")
             throw new Error(`discriminator: oneOf subschemas (or referenced schemas) must have "properties/${tagName}"`);
           tagRequired = tagRequired && (topRequired || hasRequired(sch));
@@ -29034,8 +19673,8 @@ var require_discriminator = /* @__PURE__ */ __commonJSMin((exports) => {
         if (!tagRequired)
           throw new Error(`discriminator: "${tagName}" must be required`);
         return oneOfMapping;
-        function hasRequired({ required: required2 }) {
-          return Array.isArray(required2) && required2.includes(tagName);
+        function hasRequired({ required }) {
+          return Array.isArray(required) && required.includes(tagName);
         }
         function addMappings(sch, i) {
           if (sch.const)
@@ -29294,7 +19933,7 @@ var require_formats = /* @__PURE__ */ __commonJSMin((exports) => {
     };
   }
   exports.fullFormats = {
-    date: fmtDef(date5, compareDate),
+    date: fmtDef(date, compareDate),
     time: fmtDef(getTime(true), compareTime),
     "date-time": fmtDef(getDateTime(true), compareDateTime),
     "iso-time": fmtDef(getTime(), compareIsoTime),
@@ -29364,7 +20003,7 @@ var require_formats = /* @__PURE__ */ __commonJSMin((exports) => {
     30,
     31
   ];
-  function date5(str) {
+  function date(str) {
     const matches = DATE.exec(str);
     if (!matches)
       return false;
@@ -29384,7 +20023,7 @@ var require_formats = /* @__PURE__ */ __commonJSMin((exports) => {
   }
   const TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
   function getTime(strictTimeZone) {
-    return function time3(str) {
+    return function time(str) {
       const matches = TIME.exec(str);
       if (!matches)
         return false;
@@ -29430,10 +20069,10 @@ var require_formats = /* @__PURE__ */ __commonJSMin((exports) => {
   }
   const DATE_TIME_SEPARATOR = /t|\s/i;
   function getDateTime(strictTimeZone) {
-    const time3 = getTime(strictTimeZone);
+    const time = getTime(strictTimeZone);
     return function date_time(str) {
       const dateTime = str.split(DATE_TIME_SEPARATOR);
-      return dateTime.length === 2 && date5(dateTime[0]) && time3(dateTime[1]);
+      return dateTime.length === 2 && date(dateTime[0]) && time(dateTime[1]);
     };
   }
   function compareDateTime(dt1, dt2) {
@@ -29516,7 +20155,7 @@ var require_limit = /* @__PURE__ */ __commonJSMin((exports) => {
       fail: ops.LTE
     }
   };
-  const error51 = {
+  const error = {
     message: ({ keyword, schemaCode }) => (0, codegen_1.str)`should be ${KWDs[keyword].okStr} ${schemaCode}`,
     params: ({ keyword, schemaCode }) => (0, codegen_1._)`{comparison: ${KWDs[keyword].okStr}, limit: ${schemaCode}}`
   };
@@ -29525,7 +20164,7 @@ var require_limit = /* @__PURE__ */ __commonJSMin((exports) => {
     type: "string",
     schemaType: "string",
     $data: true,
-    error: error51,
+    error,
     code(cxt) {
       const { gen, data, schemaCode, keyword, it } = cxt;
       const { opts, self } = it;
@@ -29595,9 +20234,9 @@ var require_dist = /* @__PURE__ */ __commonJSMin((exports, module) => {
     return f;
   };
   function addFormats(ajv, list, fs, exportName) {
-    var _a3;
+    var _a;
     var _b;
-    (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== undefined || (_b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`);
+    (_a = (_b = ajv.opts.code).formats) !== null && _a !== undefined || (_b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`);
     for (const f of list)
       ajv.addFormat(f, fs[f]);
   }
@@ -29681,14 +20320,14 @@ var ExperimentalMcpServerTasks = class {
   constructor(_mcpServer) {
     this._mcpServer = _mcpServer;
   }
-  registerToolTask(name, config2, handler) {
+  registerToolTask(name, config, handler) {
     const execution = {
       taskSupport: "required",
-      ...config2.execution
+      ...config.execution
     };
     if (execution.taskSupport === "forbidden")
       throw new Error(`Cannot register task-based tool '${name}' with taskSupport 'forbidden'. Use registerTool() instead.`);
-    return this._mcpServer._createRegisteredTool(name, config2.title, config2.description, config2.inputSchema, config2.outputSchema, config2.annotations, execution, config2._meta, handler);
+    return this._mcpServer._createRegisteredTool(name, config.title, config.description, config.inputSchema, config.outputSchema, config.annotations, execution, config._meta, handler);
   }
 };
 var ExperimentalServerTasks = class {
@@ -30041,10 +20680,10 @@ var Server = class extends Protocol {
             const validationResult = this._jsonSchemaValidator.getValidator(formParams.requestedSchema)(result.content);
             if (!validationResult.valid)
               throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Elicitation response content does not match requested schema: ${validationResult.errorMessage}`);
-          } catch (error51) {
-            if (error51 instanceof ProtocolError)
-              throw error51;
-            throw new ProtocolError(ProtocolErrorCode.InternalError, `Error validating elicitation response: ${error51 instanceof Error ? error51.message : String(error51)}`);
+          } catch (error) {
+            if (error instanceof ProtocolError)
+              throw error;
+            throw new ProtocolError(ProtocolErrorCode.InternalError, `Error validating elicitation response: ${error instanceof Error ? error.message : String(error)}`);
           }
         return result;
       }
@@ -30151,10 +20790,10 @@ var McpServer = class {
           return result;
         await this.validateToolOutput(tool, result, request.params.name);
         return result;
-      } catch (error51) {
-        if (error51 instanceof ProtocolError && error51.code === ProtocolErrorCode.UrlElicitationRequired)
-          throw error51;
-        return this.createToolError(error51 instanceof Error ? error51.message : String(error51));
+      } catch (error) {
+        if (error instanceof ProtocolError && error.code === ProtocolErrorCode.UrlElicitationRequired)
+          throw error;
+        return this.createToolError(error instanceof Error ? error.message : String(error));
       }
     });
     this._toolHandlersInitialized = true;
@@ -30334,18 +20973,18 @@ var McpServer = class {
     });
     this._promptHandlersInitialized = true;
   }
-  registerResource(name, uriOrTemplate, config2, readCallback) {
+  registerResource(name, uriOrTemplate, config, readCallback) {
     if (typeof uriOrTemplate === "string") {
       if (this._registeredResources[uriOrTemplate])
         throw new Error(`Resource ${uriOrTemplate} is already registered`);
-      const registeredResource = this._createRegisteredResource(name, config2.title, uriOrTemplate, config2, readCallback);
+      const registeredResource = this._createRegisteredResource(name, config.title, uriOrTemplate, config, readCallback);
       this.setResourceRequestHandlers();
       this.sendResourceListChanged();
       return registeredResource;
     } else {
       if (this._registeredResourceTemplates[name])
         throw new Error(`Resource template ${name} is already registered`);
-      const registeredResourceTemplate = this._createRegisteredResourceTemplate(name, config2.title, uriOrTemplate, config2, readCallback);
+      const registeredResourceTemplate = this._createRegisteredResourceTemplate(name, config.title, uriOrTemplate, config, readCallback);
       this.setResourceRequestHandlers();
       this.sendResourceListChanged();
       return registeredResourceTemplate;
@@ -30529,16 +21168,16 @@ var McpServer = class {
     this.sendToolListChanged();
     return registeredTool;
   }
-  registerTool(name, config2, cb) {
+  registerTool(name, config, cb) {
     if (this._registeredTools[name])
       throw new Error(`Tool ${name} is already registered`);
-    const { title, description, inputSchema, outputSchema, annotations, _meta } = config2;
+    const { title, description, inputSchema, outputSchema, annotations, _meta } = config;
     return this._createRegisteredTool(name, title, description, inputSchema, outputSchema, annotations, { taskSupport: "forbidden" }, _meta, cb);
   }
-  registerPrompt(name, config2, cb) {
+  registerPrompt(name, config, cb) {
     if (this._registeredPrompts[name])
       throw new Error(`Prompt ${name} is already registered`);
-    const { title, description, argsSchema, _meta } = config2;
+    const { title, description, argsSchema, _meta } = config;
     const registeredPrompt = this._createRegisteredPrompt(name, title, description, argsSchema, cb, _meta);
     this.setPromptRequestHandlers();
     this.sendPromptListChanged();
@@ -30663,11 +21302,11 @@ var StdioServerTransport = class {
     this._readBuffer.append(chunk);
     this.processReadBuffer();
   };
-  _onerror = (error51) => {
-    this.onerror?.(error51);
+  _onerror = (error) => {
+    this.onerror?.(error);
   };
-  _onstdouterror = (error51) => {
-    this.onerror?.(error51);
+  _onstdouterror = (error) => {
+    this.onerror?.(error);
     this.close().catch(() => {});
   };
   async start() {
@@ -30685,8 +21324,8 @@ var StdioServerTransport = class {
         if (message === null)
           break;
         this.onmessage?.(message);
-      } catch (error51) {
-        this.onerror?.(error51);
+      } catch (error) {
+        this.onerror?.(error);
       }
   }
   async close() {
@@ -30705,15 +21344,15 @@ var StdioServerTransport = class {
     if (this._closed)
       return Promise.reject(/* @__PURE__ */ new Error("StdioServerTransport is closed"));
     return new Promise((resolve, reject) => {
-      const json2 = serializeMessage(message);
+      const json = serializeMessage(message);
       let settled = false;
-      const onError = (error51) => {
+      const onError = (error) => {
         if (settled)
           return;
         settled = true;
         this._stdout.off("error", onError);
         this._stdout.off("drain", onDrain);
-        reject(error51);
+        reject(error);
       };
       const onDrain = () => {
         if (settled)
@@ -30724,7 +21363,7 @@ var StdioServerTransport = class {
         resolve();
       };
       this._stdout.once("error", onError);
-      if (this._stdout.write(json2)) {
+      if (this._stdout.write(json)) {
         if (settled)
           return;
         settled = true;
@@ -36623,15 +27262,15 @@ function extend2(target, source) {
   }
   return target;
 }
-function repeat(string4, count) {
+function repeat(string, count) {
   var result = "", cycle;
   for (cycle = 0;cycle < count; cycle += 1) {
-    result += string4;
+    result += string;
   }
   return result;
 }
-function isNegativeZero(number4) {
-  return number4 === 0 && Number.NEGATIVE_INFINITY === 1 / number4;
+function isNegativeZero(number) {
+  return number === 0 && Number.NEGATIVE_INFINITY === 1 / number;
 }
 var isNothing_1 = isNothing;
 var isObject_1 = isObject2;
@@ -36697,8 +27336,8 @@ function getLine(buffer, lineStart, lineEnd, position, maxLineLength) {
     pos: position - lineStart + head.length
   };
 }
-function padStart(string4, max) {
-  return common.repeat(" ", max - string4.length) + string4;
+function padStart(string, max) {
+  return common.repeat(" ", max - string.length) + string;
 }
 function makeSnippet(mark, options) {
   options = Object.create(options || null);
@@ -36768,11 +27407,11 @@ var YAML_NODE_KINDS = [
   "sequence",
   "mapping"
 ];
-function compileStyleAliases(map2) {
+function compileStyleAliases(map) {
   var result = {};
-  if (map2 !== null) {
-    Object.keys(map2).forEach(function(style) {
-      map2[style].forEach(function(alias) {
+  if (map !== null) {
+    Object.keys(map).forEach(function(style) {
+      map[style].forEach(function(alias) {
         result[String(alias)] = style;
       });
     });
@@ -36833,12 +27472,12 @@ function compileMap() {
       fallback: []
     }
   }, index, length;
-  function collectType(type2) {
-    if (type2.multi) {
-      result.multi[type2.kind].push(type2);
-      result.multi["fallback"].push(type2);
+  function collectType(type) {
+    if (type.multi) {
+      result.multi[type.kind].push(type);
+      result.multi["fallback"].push(type);
     } else {
-      result[type2.kind][type2.tag] = result["fallback"][type2.tag] = type2;
+      result[type.kind][type.tag] = result["fallback"][type.tag] = type;
     }
   }
   for (index = 0, length = arguments.length;index < length; index += 1) {
@@ -36849,7 +27488,7 @@ function compileMap() {
 function Schema$1(definition) {
   return this.extend(definition);
 }
-Schema$1.prototype.extend = function extend3(definition) {
+Schema$1.prototype.extend = function extend(definition) {
   var implicit = [];
   var explicit = [];
   if (definition instanceof type) {
@@ -36901,7 +27540,7 @@ var seq = new type("tag:yaml.org,2002:seq", {
     return data !== null ? data : [];
   }
 });
-var map2 = new type("tag:yaml.org,2002:map", {
+var map = new type("tag:yaml.org,2002:map", {
   kind: "mapping",
   construct: function(data) {
     return data !== null ? data : {};
@@ -36911,7 +27550,7 @@ var failsafe = new schema({
   explicit: [
     str,
     seq,
-    map2
+    map
   ]
 });
 function resolveYamlNull(data) {
@@ -36923,8 +27562,8 @@ function resolveYamlNull(data) {
 function constructYamlNull() {
   return null;
 }
-function isNull(object2) {
-  return object2 === null;
+function isNull(object) {
+  return object === null;
 }
 var _null4 = new type("tag:yaml.org,2002:null", {
   kind: "scalar",
@@ -36959,8 +27598,8 @@ function resolveYamlBoolean(data) {
 function constructYamlBoolean(data) {
   return data === "true" || data === "True" || data === "TRUE";
 }
-function isBoolean(object2) {
-  return Object.prototype.toString.call(object2) === "[object Boolean]";
+function isBoolean(object) {
+  return Object.prototype.toString.call(object) === "[object Boolean]";
 }
 var bool = new type("tag:yaml.org,2002:bool", {
   kind: "scalar",
@@ -36968,14 +27607,14 @@ var bool = new type("tag:yaml.org,2002:bool", {
   construct: constructYamlBoolean,
   predicate: isBoolean,
   represent: {
-    lowercase: function(object2) {
-      return object2 ? "true" : "false";
+    lowercase: function(object) {
+      return object ? "true" : "false";
     },
-    uppercase: function(object2) {
-      return object2 ? "TRUE" : "FALSE";
+    uppercase: function(object) {
+      return object ? "TRUE" : "FALSE";
     },
-    camelcase: function(object2) {
-      return object2 ? "True" : "False";
+    camelcase: function(object) {
+      return object ? "True" : "False";
     }
   },
   defaultStyle: "lowercase"
@@ -37079,8 +27718,8 @@ function constructYamlInteger(data) {
   }
   return sign * parseInt(value, 10);
 }
-function isInteger(object2) {
-  return Object.prototype.toString.call(object2) === "[object Number]" && (object2 % 1 === 0 && !common.isNegativeZero(object2));
+function isInteger(object) {
+  return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 === 0 && !common.isNegativeZero(object));
 }
 var int2 = new type("tag:yaml.org,2002:int", {
   kind: "scalar",
@@ -37133,9 +27772,9 @@ function constructYamlFloat(data) {
   return sign * parseFloat(value, 10);
 }
 var SCIENTIFIC_WITHOUT_DOT = /^[-+]?[0-9]+e/;
-function representYamlFloat(object2, style) {
+function representYamlFloat(object, style) {
   var res;
-  if (isNaN(object2)) {
+  if (isNaN(object)) {
     switch (style) {
       case "lowercase":
         return ".nan";
@@ -37144,7 +27783,7 @@ function representYamlFloat(object2, style) {
       case "camelcase":
         return ".NaN";
     }
-  } else if (Number.POSITIVE_INFINITY === object2) {
+  } else if (Number.POSITIVE_INFINITY === object) {
     switch (style) {
       case "lowercase":
         return ".inf";
@@ -37153,7 +27792,7 @@ function representYamlFloat(object2, style) {
       case "camelcase":
         return ".Inf";
     }
-  } else if (Number.NEGATIVE_INFINITY === object2) {
+  } else if (Number.NEGATIVE_INFINITY === object) {
     switch (style) {
       case "lowercase":
         return "-.inf";
@@ -37162,14 +27801,14 @@ function representYamlFloat(object2, style) {
       case "camelcase":
         return "-.Inf";
     }
-  } else if (common.isNegativeZero(object2)) {
+  } else if (common.isNegativeZero(object)) {
     return "-0.0";
   }
-  res = object2.toString(10);
+  res = object.toString(10);
   return SCIENTIFIC_WITHOUT_DOT.test(res) ? res.replace("e", ".e") : res;
 }
-function isFloat(object2) {
-  return Object.prototype.toString.call(object2) === "[object Number]" && (object2 % 1 !== 0 || common.isNegativeZero(object2));
+function isFloat(object) {
+  return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 !== 0 || common.isNegativeZero(object));
 }
 var float = new type("tag:yaml.org,2002:float", {
   kind: "scalar",
@@ -37179,7 +27818,7 @@ var float = new type("tag:yaml.org,2002:float", {
   represent: representYamlFloat,
   defaultStyle: "lowercase"
 });
-var json2 = failsafe.extend({
+var json = failsafe.extend({
   implicit: [
     _null4,
     bool,
@@ -37187,7 +27826,7 @@ var json2 = failsafe.extend({
     float
   ]
 });
-var core2 = json2;
+var core2 = json;
 var YAML_DATE_REGEXP = new RegExp("^([0-9][0-9][0-9][0-9])" + "-([0-9][0-9])" + "-([0-9][0-9])$");
 var YAML_TIMESTAMP_REGEXP = new RegExp("^([0-9][0-9][0-9][0-9])" + "-([0-9][0-9]?)" + "-([0-9][0-9]?)" + "(?:[Tt]|[ \\t]+)" + "([0-9][0-9]?)" + ":([0-9][0-9])" + ":([0-9][0-9])" + "(?:\\.([0-9]*))?" + "(?:[ \\t]*(Z|([-+])([0-9][0-9]?)" + "(?::([0-9][0-9]))?))?$");
 function resolveYamlTimestamp(data) {
@@ -37200,7 +27839,7 @@ function resolveYamlTimestamp(data) {
   return false;
 }
 function constructYamlTimestamp(data) {
-  var match, year, month, day, hour, minute, second, fraction = 0, delta = null, tz_hour, tz_minute, date5;
+  var match, year, month, day, hour, minute, second, fraction = 0, delta = null, tz_hour, tz_minute, date;
   match = YAML_DATE_REGEXP.exec(data);
   if (match === null)
     match = YAML_TIMESTAMP_REGEXP.exec(data);
@@ -37229,13 +27868,13 @@ function constructYamlTimestamp(data) {
     if (match[9] === "-")
       delta = -delta;
   }
-  date5 = new Date(Date.UTC(year, month, day, hour, minute, second, fraction));
+  date = new Date(Date.UTC(year, month, day, hour, minute, second, fraction));
   if (delta)
-    date5.setTime(date5.getTime() - delta);
-  return date5;
+    date.setTime(date.getTime() - delta);
+  return date;
 }
-function representYamlTimestamp(object2) {
-  return object2.toISOString();
+function representYamlTimestamp(object) {
+  return object.toISOString();
 }
 var timestamp = new type("tag:yaml.org,2002:timestamp", {
   kind: "scalar",
@@ -37256,9 +27895,9 @@ var BASE64_MAP = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 function resolveYamlBinary(data) {
   if (data === null)
     return false;
-  var code, idx, bitlen = 0, max = data.length, map3 = BASE64_MAP;
+  var code, idx, bitlen = 0, max = data.length, map = BASE64_MAP;
   for (idx = 0;idx < max; idx++) {
-    code = map3.indexOf(data.charAt(idx));
+    code = map.indexOf(data.charAt(idx));
     if (code > 64)
       continue;
     if (code < 0)
@@ -37268,14 +27907,14 @@ function resolveYamlBinary(data) {
   return bitlen % 8 === 0;
 }
 function constructYamlBinary(data) {
-  var idx, tailbits, input = data.replace(/[\r\n=]/g, ""), max = input.length, map3 = BASE64_MAP, bits = 0, result = [];
+  var idx, tailbits, input = data.replace(/[\r\n=]/g, ""), max = input.length, map = BASE64_MAP, bits = 0, result = [];
   for (idx = 0;idx < max; idx++) {
     if (idx % 4 === 0 && idx) {
       result.push(bits >> 16 & 255);
       result.push(bits >> 8 & 255);
       result.push(bits & 255);
     }
-    bits = bits << 6 | map3.indexOf(input.charAt(idx));
+    bits = bits << 6 | map.indexOf(input.charAt(idx));
   }
   tailbits = max % 4 * 6;
   if (tailbits === 0) {
@@ -37290,33 +27929,33 @@ function constructYamlBinary(data) {
   }
   return new Uint8Array(result);
 }
-function representYamlBinary(object2) {
-  var result = "", bits = 0, idx, tail, max = object2.length, map3 = BASE64_MAP;
+function representYamlBinary(object) {
+  var result = "", bits = 0, idx, tail, max = object.length, map = BASE64_MAP;
   for (idx = 0;idx < max; idx++) {
     if (idx % 3 === 0 && idx) {
-      result += map3[bits >> 18 & 63];
-      result += map3[bits >> 12 & 63];
-      result += map3[bits >> 6 & 63];
-      result += map3[bits & 63];
+      result += map[bits >> 18 & 63];
+      result += map[bits >> 12 & 63];
+      result += map[bits >> 6 & 63];
+      result += map[bits & 63];
     }
-    bits = (bits << 8) + object2[idx];
+    bits = (bits << 8) + object[idx];
   }
   tail = max % 3;
   if (tail === 0) {
-    result += map3[bits >> 18 & 63];
-    result += map3[bits >> 12 & 63];
-    result += map3[bits >> 6 & 63];
-    result += map3[bits & 63];
+    result += map[bits >> 18 & 63];
+    result += map[bits >> 12 & 63];
+    result += map[bits >> 6 & 63];
+    result += map[bits & 63];
   } else if (tail === 2) {
-    result += map3[bits >> 10 & 63];
-    result += map3[bits >> 4 & 63];
-    result += map3[bits << 2 & 63];
-    result += map3[64];
+    result += map[bits >> 10 & 63];
+    result += map[bits >> 4 & 63];
+    result += map[bits << 2 & 63];
+    result += map[64];
   } else if (tail === 1) {
-    result += map3[bits >> 2 & 63];
-    result += map3[bits << 4 & 63];
-    result += map3[64];
-    result += map3[64];
+    result += map[bits >> 2 & 63];
+    result += map[bits << 4 & 63];
+    result += map[64];
+    result += map[64];
   }
   return result;
 }
@@ -37335,9 +27974,9 @@ var _toString$2 = Object.prototype.toString;
 function resolveYamlOmap(data) {
   if (data === null)
     return true;
-  var objectKeys = [], index, length, pair, pairKey, pairHasKey, object2 = data;
-  for (index = 0, length = object2.length;index < length; index += 1) {
-    pair = object2[index];
+  var objectKeys = [], index, length, pair, pairKey, pairHasKey, object = data;
+  for (index = 0, length = object.length;index < length; index += 1) {
+    pair = object[index];
     pairHasKey = false;
     if (_toString$2.call(pair) !== "[object Object]")
       return false;
@@ -37370,10 +28009,10 @@ var _toString$1 = Object.prototype.toString;
 function resolveYamlPairs(data) {
   if (data === null)
     return true;
-  var index, length, pair, keys, result, object2 = data;
-  result = new Array(object2.length);
-  for (index = 0, length = object2.length;index < length; index += 1) {
-    pair = object2[index];
+  var index, length, pair, keys, result, object = data;
+  result = new Array(object.length);
+  for (index = 0, length = object.length;index < length; index += 1) {
+    pair = object[index];
     if (_toString$1.call(pair) !== "[object Object]")
       return false;
     keys = Object.keys(pair);
@@ -37386,10 +28025,10 @@ function resolveYamlPairs(data) {
 function constructYamlPairs(data) {
   if (data === null)
     return [];
-  var index, length, pair, keys, result, object2 = data;
-  result = new Array(object2.length);
-  for (index = 0, length = object2.length;index < length; index += 1) {
-    pair = object2[index];
+  var index, length, pair, keys, result, object = data;
+  result = new Array(object.length);
+  for (index = 0, length = object.length;index < length; index += 1) {
+    pair = object[index];
     keys = Object.keys(pair);
     result[index] = [keys[0], pair[keys[0]]];
   }
@@ -37404,10 +28043,10 @@ var _hasOwnProperty$2 = Object.prototype.hasOwnProperty;
 function resolveYamlSet(data) {
   if (data === null)
     return true;
-  var key, object2 = data;
-  for (key in object2) {
-    if (_hasOwnProperty$2.call(object2, key)) {
-      if (object2[key] !== null)
+  var key, object = data;
+  for (key in object) {
+    if (_hasOwnProperty$2.call(object, key)) {
+      if (object[key] !== null)
         return false;
     }
   }
@@ -37416,12 +28055,12 @@ function resolveYamlSet(data) {
 function constructYamlSet(data) {
   return data !== null ? data : {};
 }
-var set2 = new type("tag:yaml.org,2002:set", {
+var set = new type("tag:yaml.org,2002:set", {
   kind: "mapping",
   resolve: resolveYamlSet,
   construct: constructYamlSet
 });
-var _default3 = core2.extend({
+var _default2 = core2.extend({
   implicit: [
     timestamp,
     merge2
@@ -37430,7 +28069,7 @@ var _default3 = core2.extend({
     binary,
     omap,
     pairs,
-    set2
+    set
   ]
 });
 var _hasOwnProperty$1 = Object.prototype.hasOwnProperty;
@@ -37500,16 +28139,16 @@ function charFromCodepoint(c) {
   }
   return String.fromCharCode((c - 65536 >> 10) + 55296, (c - 65536 & 1023) + 56320);
 }
-function setProperty(object2, key, value) {
+function setProperty(object, key, value) {
   if (key === "__proto__") {
-    Object.defineProperty(object2, key, {
+    Object.defineProperty(object, key, {
       configurable: true,
       enumerable: true,
       writable: true,
       value
     });
   } else {
-    object2[key] = value;
+    object[key] = value;
   }
 }
 var simpleEscapeCheck = new Array(256);
@@ -37522,7 +28161,7 @@ var i;
 function State$1(input, options) {
   this.input = input;
   this.filename = options["filename"] || null;
-  this.schema = options["schema"] || _default3;
+  this.schema = options["schema"] || _default2;
   this.onWarning = options["onWarning"] || null;
   this.legacy = options["legacy"] || false;
   this.json = options["json"] || false;
@@ -37605,11 +28244,11 @@ var directiveHandlers = {
   }
 };
 function captureSegment(state, start, end, checkJson) {
-  var _position, _length2, _character, _result;
+  var _position, _length, _character, _result;
   if (start < end) {
     _result = state.input.slice(start, end);
     if (checkJson) {
-      for (_position = 0, _length2 = _result.length;_position < _length2; _position += 1) {
+      for (_position = 0, _length = _result.length;_position < _length; _position += 1) {
         _character = _result.charCodeAt(_position);
         if (!(_character === 9 || 32 <= _character && _character <= 1114111)) {
           throwError(state, "expected valid JSON character");
@@ -37745,7 +28384,7 @@ function writeFoldedLines(state, count) {
   }
 }
 function readPlainScalar(state, nodeIndent, withinFlowCollection) {
-  var preceding, following, captureStart, captureEnd, hasPendingContent, _line, _lineStart, _lineIndent, _kind = state.kind, _result = state.result, ch;
+  var preceding, following, captureStart, captureEnd, hasPendingContent, _line, _lineStart, _lineIndent, { kind: _kind, result: _result } = state, ch;
   ch = state.input.charCodeAt(state.position);
   if (is_WS_OR_EOL(ch) || is_FLOW_INDICATOR(ch) || ch === 35 || ch === 38 || ch === 42 || ch === 33 || ch === 124 || ch === 62 || ch === 39 || ch === 34 || ch === 37 || ch === 64 || ch === 96) {
     return false;
@@ -38075,7 +28714,7 @@ function readBlockScalar(state, nodeIndent) {
   return true;
 }
 function readBlockSequence(state, nodeIndent) {
-  var _line, _tag = state.tag, _anchor = state.anchor, _result = [], following, detected = false, ch;
+  var _line, { tag: _tag, anchor: _anchor } = state, _result = [], following, detected = false, ch;
   if (state.firstTabInLine !== -1)
     return false;
   if (state.anchor !== null) {
@@ -38124,7 +28763,7 @@ function readBlockSequence(state, nodeIndent) {
   return false;
 }
 function readBlockMapping(state, nodeIndent, flowIndent) {
-  var following, allowCompact, _line, _keyLine, _keyLineStart, _keyPos, _tag = state.tag, _anchor = state.anchor, _result = {}, overridableKeys = Object.create(null), keyTag = null, keyNode = null, valueNode = null, atExplicitKey = false, detected = false, ch;
+  var following, allowCompact, _line, _keyLine, _keyLineStart, _keyPos, { tag: _tag, anchor: _anchor } = state, _result = {}, overridableKeys = Object.create(null), keyTag = null, keyNode = null, valueNode = null, atExplicitKey = false, detected = false, ch;
   if (state.firstTabInLine !== -1)
     return false;
   if (state.anchor !== null) {
@@ -38346,7 +28985,7 @@ function readAlias(state) {
   return true;
 }
 function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact) {
-  var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex, typeQuantity, typeList, type2, flowIndent, blockIndent;
+  var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex, typeQuantity, typeList, type, flowIndent, blockIndent;
   if (state.listener !== null) {
     state.listener("open", state);
   }
@@ -38428,10 +29067,10 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
       throwError(state, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state.kind + '"');
     }
     for (typeIndex = 0, typeQuantity = state.implicitTypes.length;typeIndex < typeQuantity; typeIndex += 1) {
-      type2 = state.implicitTypes[typeIndex];
-      if (type2.resolve(state.result)) {
-        state.result = type2.construct(state.result);
-        state.tag = type2.tag;
+      type = state.implicitTypes[typeIndex];
+      if (type.resolve(state.result)) {
+        state.result = type.construct(state.result);
+        state.tag = type.tag;
         if (state.anchor !== null) {
           state.anchorMap[state.anchor] = state.result;
         }
@@ -38440,27 +29079,27 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
     }
   } else if (state.tag !== "!") {
     if (_hasOwnProperty$1.call(state.typeMap[state.kind || "fallback"], state.tag)) {
-      type2 = state.typeMap[state.kind || "fallback"][state.tag];
+      type = state.typeMap[state.kind || "fallback"][state.tag];
     } else {
-      type2 = null;
+      type = null;
       typeList = state.typeMap.multi[state.kind || "fallback"];
       for (typeIndex = 0, typeQuantity = typeList.length;typeIndex < typeQuantity; typeIndex += 1) {
         if (state.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
-          type2 = typeList[typeIndex];
+          type = typeList[typeIndex];
           break;
         }
       }
     }
-    if (!type2) {
+    if (!type) {
       throwError(state, "unknown tag !<" + state.tag + ">");
     }
-    if (state.result !== null && type2.kind !== state.kind) {
-      throwError(state, "unacceptable node kind for !<" + state.tag + '> tag; it should be "' + type2.kind + '", not "' + state.kind + '"');
+    if (state.result !== null && type.kind !== state.kind) {
+      throwError(state, "unacceptable node kind for !<" + state.tag + '> tag; it should be "' + type.kind + '", not "' + state.kind + '"');
     }
-    if (!type2.resolve(state.result, state.tag)) {
+    if (!type.resolve(state.result, state.tag)) {
       throwError(state, "cannot resolve a node with !<" + state.tag + "> explicit tag");
     } else {
-      state.result = type2.construct(state.result, state.tag);
+      state.result = type.construct(state.result, state.tag);
       if (state.anchor !== null) {
         state.anchorMap[state.anchor] = state.result;
       }
@@ -38664,29 +29303,29 @@ var DEPRECATED_BOOLEANS_SYNTAX = [
   "OFF"
 ];
 var DEPRECATED_BASE60_SYNTAX = /^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/;
-function compileStyleMap(schema2, map3) {
-  var result, keys, index, length, tag, style, type2;
-  if (map3 === null)
+function compileStyleMap(schema, map) {
+  var result, keys, index, length, tag, style, type;
+  if (map === null)
     return {};
   result = {};
-  keys = Object.keys(map3);
+  keys = Object.keys(map);
   for (index = 0, length = keys.length;index < length; index += 1) {
     tag = keys[index];
-    style = String(map3[tag]);
+    style = String(map[tag]);
     if (tag.slice(0, 2) === "!!") {
       tag = "tag:yaml.org,2002:" + tag.slice(2);
     }
-    type2 = schema2.compiledTypeMap["fallback"][tag];
-    if (type2 && _hasOwnProperty.call(type2.styleAliases, style)) {
-      style = type2.styleAliases[style];
+    type = schema.compiledTypeMap["fallback"][tag];
+    if (type && _hasOwnProperty.call(type.styleAliases, style)) {
+      style = type.styleAliases[style];
     }
     result[tag] = style;
   }
   return result;
 }
 function encodeHex(character) {
-  var string4, handle, length;
-  string4 = character.toString(16).toUpperCase();
+  var string, handle, length;
+  string = character.toString(16).toUpperCase();
   if (character <= 255) {
     handle = "x";
     length = 2;
@@ -38699,12 +29338,12 @@ function encodeHex(character) {
   } else {
     throw new exception("code point within a string may not be greater than 0xFFFFFFFF");
   }
-  return "\\" + handle + common.repeat("0", length - string4.length) + string4;
+  return "\\" + handle + common.repeat("0", length - string.length) + string;
 }
 var QUOTING_TYPE_SINGLE = 1;
 var QUOTING_TYPE_DOUBLE = 2;
 function State(options) {
-  this.schema = options["schema"] || _default3;
+  this.schema = options["schema"] || _default2;
   this.indent = Math.max(1, options["indent"] || 2);
   this.noArrayIndent = options["noArrayIndent"] || false;
   this.skipInvalid = options["skipInvalid"] || false;
@@ -38725,16 +29364,16 @@ function State(options) {
   this.duplicates = [];
   this.usedDuplicates = null;
 }
-function indentString(string4, spaces) {
-  var ind = common.repeat(" ", spaces), position = 0, next = -1, result = "", line, length = string4.length;
+function indentString(string, spaces) {
+  var ind = common.repeat(" ", spaces), position = 0, next = -1, result = "", line, length = string.length;
   while (position < length) {
-    next = string4.indexOf(`
+    next = string.indexOf(`
 `, position);
     if (next === -1) {
-      line = string4.slice(position);
+      line = string.slice(position);
       position = length;
     } else {
-      line = string4.slice(position, next + 1);
+      line = string.slice(position, next + 1);
       position = next + 1;
     }
     if (line.length && line !== `
@@ -38748,11 +29387,11 @@ function generateNextLine(state, level) {
   return `
 ` + common.repeat(" ", state.indent * level);
 }
-function testImplicitResolving(state, str2) {
-  var index, length, type2;
+function testImplicitResolving(state, str) {
+  var index, length, type;
   for (index = 0, length = state.implicitTypes.length;index < length; index += 1) {
-    type2 = state.implicitTypes[index];
-    if (type2.resolve(str2)) {
+    type = state.implicitTypes[index];
+    if (type.resolve(str)) {
       return true;
     }
   }
@@ -38778,37 +29417,37 @@ function isPlainSafeFirst(c) {
 function isPlainSafeLast(c) {
   return !isWhitespace(c) && c !== CHAR_COLON;
 }
-function codePointAt(string4, pos) {
-  var first = string4.charCodeAt(pos), second;
-  if (first >= 55296 && first <= 56319 && pos + 1 < string4.length) {
-    second = string4.charCodeAt(pos + 1);
+function codePointAt(string, pos) {
+  var first = string.charCodeAt(pos), second;
+  if (first >= 55296 && first <= 56319 && pos + 1 < string.length) {
+    second = string.charCodeAt(pos + 1);
     if (second >= 56320 && second <= 57343) {
       return (first - 55296) * 1024 + second - 56320 + 65536;
     }
   }
   return first;
 }
-function needIndentIndicator(string4) {
+function needIndentIndicator(string) {
   var leadingSpaceRe = /^\n* /;
-  return leadingSpaceRe.test(string4);
+  return leadingSpaceRe.test(string);
 }
 var STYLE_PLAIN = 1;
 var STYLE_SINGLE = 2;
 var STYLE_LITERAL = 3;
 var STYLE_FOLDED = 4;
 var STYLE_DOUBLE = 5;
-function chooseScalarStyle(string4, singleLineOnly, indentPerLevel, lineWidth, testAmbiguousType, quotingType, forceQuotes, inblock) {
-  var i2;
+function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, testAmbiguousType, quotingType, forceQuotes, inblock) {
+  var i;
   var char = 0;
   var prevChar = null;
   var hasLineBreak = false;
   var hasFoldableLine = false;
   var shouldTrackWidth = lineWidth !== -1;
   var previousLineBreak = -1;
-  var plain = isPlainSafeFirst(codePointAt(string4, 0)) && isPlainSafeLast(codePointAt(string4, string4.length - 1));
+  var plain = isPlainSafeFirst(codePointAt(string, 0)) && isPlainSafeLast(codePointAt(string, string.length - 1));
   if (singleLineOnly || forceQuotes) {
-    for (i2 = 0;i2 < string4.length; char >= 65536 ? i2 += 2 : i2++) {
-      char = codePointAt(string4, i2);
+    for (i = 0;i < string.length; char >= 65536 ? i += 2 : i++) {
+      char = codePointAt(string, i);
       if (!isPrintable(char)) {
         return STYLE_DOUBLE;
       }
@@ -38816,13 +29455,13 @@ function chooseScalarStyle(string4, singleLineOnly, indentPerLevel, lineWidth, t
       prevChar = char;
     }
   } else {
-    for (i2 = 0;i2 < string4.length; char >= 65536 ? i2 += 2 : i2++) {
-      char = codePointAt(string4, i2);
+    for (i = 0;i < string.length; char >= 65536 ? i += 2 : i++) {
+      char = codePointAt(string, i);
       if (char === CHAR_LINE_FEED) {
         hasLineBreak = true;
         if (shouldTrackWidth) {
-          hasFoldableLine = hasFoldableLine || i2 - previousLineBreak - 1 > lineWidth && string4[previousLineBreak + 1] !== " ";
-          previousLineBreak = i2;
+          hasFoldableLine = hasFoldableLine || i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ";
+          previousLineBreak = i;
         }
       } else if (!isPrintable(char)) {
         return STYLE_DOUBLE;
@@ -38830,15 +29469,15 @@ function chooseScalarStyle(string4, singleLineOnly, indentPerLevel, lineWidth, t
       plain = plain && isPlainSafe(char, prevChar, inblock);
       prevChar = char;
     }
-    hasFoldableLine = hasFoldableLine || shouldTrackWidth && (i2 - previousLineBreak - 1 > lineWidth && string4[previousLineBreak + 1] !== " ");
+    hasFoldableLine = hasFoldableLine || shouldTrackWidth && (i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ");
   }
   if (!hasLineBreak && !hasFoldableLine) {
-    if (plain && !forceQuotes && !testAmbiguousType(string4)) {
+    if (plain && !forceQuotes && !testAmbiguousType(string)) {
       return STYLE_PLAIN;
     }
     return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
   }
-  if (indentPerLevel > 9 && needIndentIndicator(string4)) {
+  if (indentPerLevel > 9 && needIndentIndicator(string)) {
     return STYLE_DOUBLE;
   }
   if (!forceQuotes) {
@@ -38846,67 +29485,67 @@ function chooseScalarStyle(string4, singleLineOnly, indentPerLevel, lineWidth, t
   }
   return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
 }
-function writeScalar(state, string4, level, iskey, inblock) {
+function writeScalar(state, string, level, iskey, inblock) {
   state.dump = function() {
-    if (string4.length === 0) {
+    if (string.length === 0) {
       return state.quotingType === QUOTING_TYPE_DOUBLE ? '""' : "''";
     }
     if (!state.noCompatMode) {
-      if (DEPRECATED_BOOLEANS_SYNTAX.indexOf(string4) !== -1 || DEPRECATED_BASE60_SYNTAX.test(string4)) {
-        return state.quotingType === QUOTING_TYPE_DOUBLE ? '"' + string4 + '"' : "'" + string4 + "'";
+      if (DEPRECATED_BOOLEANS_SYNTAX.indexOf(string) !== -1 || DEPRECATED_BASE60_SYNTAX.test(string)) {
+        return state.quotingType === QUOTING_TYPE_DOUBLE ? '"' + string + '"' : "'" + string + "'";
       }
     }
     var indent = state.indent * Math.max(1, level);
     var lineWidth = state.lineWidth === -1 ? -1 : Math.max(Math.min(state.lineWidth, 40), state.lineWidth - indent);
     var singleLineOnly = iskey || state.flowLevel > -1 && level >= state.flowLevel;
-    function testAmbiguity(string5) {
-      return testImplicitResolving(state, string5);
+    function testAmbiguity(string) {
+      return testImplicitResolving(state, string);
     }
-    switch (chooseScalarStyle(string4, singleLineOnly, state.indent, lineWidth, testAmbiguity, state.quotingType, state.forceQuotes && !iskey, inblock)) {
+    switch (chooseScalarStyle(string, singleLineOnly, state.indent, lineWidth, testAmbiguity, state.quotingType, state.forceQuotes && !iskey, inblock)) {
       case STYLE_PLAIN:
-        return string4;
+        return string;
       case STYLE_SINGLE:
-        return "'" + string4.replace(/'/g, "''") + "'";
+        return "'" + string.replace(/'/g, "''") + "'";
       case STYLE_LITERAL:
-        return "|" + blockHeader(string4, state.indent) + dropEndingNewline(indentString(string4, indent));
+        return "|" + blockHeader(string, state.indent) + dropEndingNewline(indentString(string, indent));
       case STYLE_FOLDED:
-        return ">" + blockHeader(string4, state.indent) + dropEndingNewline(indentString(foldString(string4, lineWidth), indent));
+        return ">" + blockHeader(string, state.indent) + dropEndingNewline(indentString(foldString(string, lineWidth), indent));
       case STYLE_DOUBLE:
-        return '"' + escapeString(string4) + '"';
+        return '"' + escapeString(string) + '"';
       default:
         throw new exception("impossible error: invalid scalar style");
     }
   }();
 }
-function blockHeader(string4, indentPerLevel) {
-  var indentIndicator = needIndentIndicator(string4) ? String(indentPerLevel) : "";
-  var clip = string4[string4.length - 1] === `
+function blockHeader(string, indentPerLevel) {
+  var indentIndicator = needIndentIndicator(string) ? String(indentPerLevel) : "";
+  var clip = string[string.length - 1] === `
 `;
-  var keep = clip && (string4[string4.length - 2] === `
-` || string4 === `
+  var keep = clip && (string[string.length - 2] === `
+` || string === `
 `);
   var chomp = keep ? "+" : clip ? "" : "-";
   return indentIndicator + chomp + `
 `;
 }
-function dropEndingNewline(string4) {
-  return string4[string4.length - 1] === `
-` ? string4.slice(0, -1) : string4;
+function dropEndingNewline(string) {
+  return string[string.length - 1] === `
+` ? string.slice(0, -1) : string;
 }
-function foldString(string4, width) {
+function foldString(string, width) {
   var lineRe = /(\n+)([^\n]*)/g;
   var result = function() {
-    var nextLF = string4.indexOf(`
+    var nextLF = string.indexOf(`
 `);
-    nextLF = nextLF !== -1 ? nextLF : string4.length;
+    nextLF = nextLF !== -1 ? nextLF : string.length;
     lineRe.lastIndex = nextLF;
-    return foldLine(string4.slice(0, nextLF), width);
+    return foldLine(string.slice(0, nextLF), width);
   }();
-  var prevMoreIndented = string4[0] === `
-` || string4[0] === " ";
+  var prevMoreIndented = string[0] === `
+` || string[0] === " ";
   var moreIndented;
   var match;
-  while (match = lineRe.exec(string4)) {
+  while (match = lineRe.exec(string)) {
     var prefix = match[1], line = match[2];
     moreIndented = line[0] === " ";
     result += prefix + (!prevMoreIndented && !moreIndented && line !== "" ? `
@@ -38942,29 +29581,29 @@ function foldLine(line, width) {
   }
   return result.slice(1);
 }
-function escapeString(string4) {
+function escapeString(string) {
   var result = "";
   var char = 0;
   var escapeSeq;
-  for (var i2 = 0;i2 < string4.length; char >= 65536 ? i2 += 2 : i2++) {
-    char = codePointAt(string4, i2);
+  for (var i = 0;i < string.length; char >= 65536 ? i += 2 : i++) {
+    char = codePointAt(string, i);
     escapeSeq = ESCAPE_SEQUENCES[char];
     if (!escapeSeq && isPrintable(char)) {
-      result += string4[i2];
+      result += string[i];
       if (char >= 65536)
-        result += string4[i2 + 1];
+        result += string[i + 1];
     } else {
       result += escapeSeq || encodeHex(char);
     }
   }
   return result;
 }
-function writeFlowSequence(state, level, object2) {
+function writeFlowSequence(state, level, object) {
   var _result = "", _tag = state.tag, index, length, value;
-  for (index = 0, length = object2.length;index < length; index += 1) {
-    value = object2[index];
+  for (index = 0, length = object.length;index < length; index += 1) {
+    value = object[index];
     if (state.replacer) {
-      value = state.replacer.call(object2, String(index), value);
+      value = state.replacer.call(object, String(index), value);
     }
     if (writeNode(state, level, value, false, false) || typeof value === "undefined" && writeNode(state, level, null, false, false)) {
       if (_result !== "")
@@ -38975,12 +29614,12 @@ function writeFlowSequence(state, level, object2) {
   state.tag = _tag;
   state.dump = "[" + _result + "]";
 }
-function writeBlockSequence(state, level, object2, compact) {
+function writeBlockSequence(state, level, object, compact) {
   var _result = "", _tag = state.tag, index, length, value;
-  for (index = 0, length = object2.length;index < length; index += 1) {
-    value = object2[index];
+  for (index = 0, length = object.length;index < length; index += 1) {
+    value = object[index];
     if (state.replacer) {
-      value = state.replacer.call(object2, String(index), value);
+      value = state.replacer.call(object, String(index), value);
     }
     if (writeNode(state, level + 1, value, true, true, false, true) || typeof value === "undefined" && writeNode(state, level + 1, null, true, true, false, true)) {
       if (!compact || _result !== "") {
@@ -38997,8 +29636,8 @@ function writeBlockSequence(state, level, object2, compact) {
   state.tag = _tag;
   state.dump = _result || "[]";
 }
-function writeFlowMapping(state, level, object2) {
-  var _result = "", _tag = state.tag, objectKeyList = Object.keys(object2), index, length, objectKey, objectValue, pairBuffer;
+function writeFlowMapping(state, level, object) {
+  var _result = "", _tag = state.tag, objectKeyList = Object.keys(object), index, length, objectKey, objectValue, pairBuffer;
   for (index = 0, length = objectKeyList.length;index < length; index += 1) {
     pairBuffer = "";
     if (_result !== "")
@@ -39006,9 +29645,9 @@ function writeFlowMapping(state, level, object2) {
     if (state.condenseFlow)
       pairBuffer += '"';
     objectKey = objectKeyList[index];
-    objectValue = object2[objectKey];
+    objectValue = object[objectKey];
     if (state.replacer) {
-      objectValue = state.replacer.call(object2, objectKey, objectValue);
+      objectValue = state.replacer.call(object, objectKey, objectValue);
     }
     if (!writeNode(state, level, objectKey, false, false)) {
       continue;
@@ -39025,8 +29664,8 @@ function writeFlowMapping(state, level, object2) {
   state.tag = _tag;
   state.dump = "{" + _result + "}";
 }
-function writeBlockMapping(state, level, object2, compact) {
-  var _result = "", _tag = state.tag, objectKeyList = Object.keys(object2), index, length, objectKey, objectValue, explicitPair, pairBuffer;
+function writeBlockMapping(state, level, object, compact) {
+  var _result = "", _tag = state.tag, objectKeyList = Object.keys(object), index, length, objectKey, objectValue, explicitPair, pairBuffer;
   if (state.sortKeys === true) {
     objectKeyList.sort();
   } else if (typeof state.sortKeys === "function") {
@@ -39040,9 +29679,9 @@ function writeBlockMapping(state, level, object2, compact) {
       pairBuffer += generateNextLine(state, level);
     }
     objectKey = objectKeyList[index];
-    objectValue = object2[objectKey];
+    objectValue = object[objectKey];
     if (state.replacer) {
-      objectValue = state.replacer.call(object2, objectKey, objectValue);
+      objectValue = state.replacer.call(object, objectKey, objectValue);
     }
     if (!writeNode(state, level + 1, objectKey, true, true, true)) {
       continue;
@@ -39073,29 +29712,29 @@ function writeBlockMapping(state, level, object2, compact) {
   state.tag = _tag;
   state.dump = _result || "{}";
 }
-function detectType(state, object2, explicit) {
-  var _result, typeList, index, length, type2, style;
+function detectType(state, object, explicit) {
+  var _result, typeList, index, length, type, style;
   typeList = explicit ? state.explicitTypes : state.implicitTypes;
   for (index = 0, length = typeList.length;index < length; index += 1) {
-    type2 = typeList[index];
-    if ((type2.instanceOf || type2.predicate) && (!type2.instanceOf || typeof object2 === "object" && object2 instanceof type2.instanceOf) && (!type2.predicate || type2.predicate(object2))) {
+    type = typeList[index];
+    if ((type.instanceOf || type.predicate) && (!type.instanceOf || typeof object === "object" && object instanceof type.instanceOf) && (!type.predicate || type.predicate(object))) {
       if (explicit) {
-        if (type2.multi && type2.representName) {
-          state.tag = type2.representName(object2);
+        if (type.multi && type.representName) {
+          state.tag = type.representName(object);
         } else {
-          state.tag = type2.tag;
+          state.tag = type.tag;
         }
       } else {
         state.tag = "?";
       }
-      if (type2.represent) {
-        style = state.styleMap[type2.tag] || type2.defaultStyle;
-        if (_toString.call(type2.represent) === "[object Function]") {
-          _result = type2.represent(object2, style);
-        } else if (_hasOwnProperty.call(type2.represent, style)) {
-          _result = type2.represent[style](object2, style);
+      if (type.represent) {
+        style = state.styleMap[type.tag] || type.defaultStyle;
+        if (_toString.call(type.represent) === "[object Function]") {
+          _result = type.represent(object, style);
+        } else if (_hasOwnProperty.call(type.represent, style)) {
+          _result = type.represent[style](object, style);
         } else {
-          throw new exception("!<" + type2.tag + '> tag resolver accepts not "' + style + '" style');
+          throw new exception("!<" + type.tag + '> tag resolver accepts not "' + style + '" style');
         }
         state.dump = _result;
       }
@@ -39104,21 +29743,21 @@ function detectType(state, object2, explicit) {
   }
   return false;
 }
-function writeNode(state, level, object2, block, compact, iskey, isblockseq) {
+function writeNode(state, level, object, block, compact, iskey, isblockseq) {
   state.tag = null;
-  state.dump = object2;
-  if (!detectType(state, object2, false)) {
-    detectType(state, object2, true);
+  state.dump = object;
+  if (!detectType(state, object, false)) {
+    detectType(state, object, true);
   }
-  var type2 = _toString.call(state.dump);
+  var type = _toString.call(state.dump);
   var inblock = block;
   var tagStr;
   if (block) {
     block = state.flowLevel < 0 || state.flowLevel > level;
   }
-  var objectOrArray = type2 === "[object Object]" || type2 === "[object Array]", duplicateIndex, duplicate;
+  var objectOrArray = type === "[object Object]" || type === "[object Array]", duplicateIndex, duplicate;
   if (objectOrArray) {
-    duplicateIndex = state.duplicates.indexOf(object2);
+    duplicateIndex = state.duplicates.indexOf(object);
     duplicate = duplicateIndex !== -1;
   }
   if (state.tag !== null && state.tag !== "?" || duplicate || state.indent !== 2 && level > 0) {
@@ -39130,7 +29769,7 @@ function writeNode(state, level, object2, block, compact, iskey, isblockseq) {
     if (objectOrArray && duplicate && !state.usedDuplicates[duplicateIndex]) {
       state.usedDuplicates[duplicateIndex] = true;
     }
-    if (type2 === "[object Object]") {
+    if (type === "[object Object]") {
       if (block && Object.keys(state.dump).length !== 0) {
         writeBlockMapping(state, level, state.dump, compact);
         if (duplicate) {
@@ -39142,7 +29781,7 @@ function writeNode(state, level, object2, block, compact, iskey, isblockseq) {
           state.dump = "&ref_" + duplicateIndex + " " + state.dump;
         }
       }
-    } else if (type2 === "[object Array]") {
+    } else if (type === "[object Array]") {
       if (block && state.dump.length !== 0) {
         if (state.noArrayIndent && !isblockseq && level > 0) {
           writeBlockSequence(state, level - 1, state.dump, compact);
@@ -39158,16 +29797,16 @@ function writeNode(state, level, object2, block, compact, iskey, isblockseq) {
           state.dump = "&ref_" + duplicateIndex + " " + state.dump;
         }
       }
-    } else if (type2 === "[object String]") {
+    } else if (type === "[object String]") {
       if (state.tag !== "?") {
         writeScalar(state, state.dump, level, iskey, inblock);
       }
-    } else if (type2 === "[object Undefined]") {
+    } else if (type === "[object Undefined]") {
       return false;
     } else {
       if (state.skipInvalid)
         return false;
-      throw new exception("unacceptable kind of an object to dump " + type2);
+      throw new exception("unacceptable kind of an object to dump " + type);
     }
     if (state.tag !== null && state.tag !== "?") {
       tagStr = encodeURI(state.tag[0] === "!" ? state.tag.slice(1) : state.tag).replace(/!/g, "%21");
@@ -39183,32 +29822,32 @@ function writeNode(state, level, object2, block, compact, iskey, isblockseq) {
   }
   return true;
 }
-function getDuplicateReferences(object2, state) {
+function getDuplicateReferences(object, state) {
   var objects = [], duplicatesIndexes = [], index, length;
-  inspectNode(object2, objects, duplicatesIndexes);
+  inspectNode(object, objects, duplicatesIndexes);
   for (index = 0, length = duplicatesIndexes.length;index < length; index += 1) {
     state.duplicates.push(objects[duplicatesIndexes[index]]);
   }
   state.usedDuplicates = new Array(length);
 }
-function inspectNode(object2, objects, duplicatesIndexes) {
+function inspectNode(object, objects, duplicatesIndexes) {
   var objectKeyList, index, length;
-  if (object2 !== null && typeof object2 === "object") {
-    index = objects.indexOf(object2);
+  if (object !== null && typeof object === "object") {
+    index = objects.indexOf(object);
     if (index !== -1) {
       if (duplicatesIndexes.indexOf(index) === -1) {
         duplicatesIndexes.push(index);
       }
     } else {
-      objects.push(object2);
-      if (Array.isArray(object2)) {
-        for (index = 0, length = object2.length;index < length; index += 1) {
-          inspectNode(object2[index], objects, duplicatesIndexes);
+      objects.push(object);
+      if (Array.isArray(object)) {
+        for (index = 0, length = object.length;index < length; index += 1) {
+          inspectNode(object[index], objects, duplicatesIndexes);
         }
       } else {
-        objectKeyList = Object.keys(object2);
+        objectKeyList = Object.keys(object);
         for (index = 0, length = objectKeyList.length;index < length; index += 1) {
-          inspectNode(object2[objectKeyList[index]], objects, duplicatesIndexes);
+          inspectNode(object[objectKeyList[index]], objects, duplicatesIndexes);
         }
       }
     }
@@ -39240,9 +29879,9 @@ function renamed(from, to) {
 var Type = type;
 var Schema = schema;
 var FAILSAFE_SCHEMA = failsafe;
-var JSON_SCHEMA = json2;
+var JSON_SCHEMA = json;
 var CORE_SCHEMA = core2;
-var DEFAULT_SCHEMA = _default3;
+var DEFAULT_SCHEMA = _default2;
 var load = loader.load;
 var loadAll = loader.loadAll;
 var dump = dumper.dump;
@@ -39250,10 +29889,10 @@ var YAMLException = exception;
 var types = {
   binary,
   float,
-  map: map2,
+  map,
   null: _null4,
   pairs,
-  set: set2,
+  set,
   timestamp,
   bool,
   int: int2,
@@ -39350,14 +29989,14 @@ function describeOffendingCharacter(mark) {
   const display = escapeCharacterForDisplay(character);
   return label ? `'${display}' (${label}, ${describeCodePoint(codePoint)})` : `'${display}' (${describeCodePoint(codePoint)})`;
 }
-function buildYamlParseDetails(error51, source) {
+function buildYamlParseDetails(error, source) {
   return {
-    errorType: error51.name || "YAMLException",
-    reason: typeof error51.reason === "string" ? error51.reason : undefined,
-    line: typeof error51.mark?.line === "number" ? error51.mark.line + 1 : undefined,
-    column: typeof error51.mark?.column === "number" ? error51.mark.column + 1 : undefined,
-    snippet: typeof error51.mark?.snippet === "string" && error51.mark.snippet.trim().length > 0 ? error51.mark.snippet : undefined,
-    offendingCharacter: describeOffendingCharacter(error51.mark),
+    errorType: error.name || "YAMLException",
+    reason: typeof error.reason === "string" ? error.reason : undefined,
+    line: typeof error.mark?.line === "number" ? error.mark.line + 1 : undefined,
+    column: typeof error.mark?.column === "number" ? error.mark.column + 1 : undefined,
+    snippet: typeof error.mark?.snippet === "string" && error.mark.snippet.trim().length > 0 ? error.mark.snippet : undefined,
+    offendingCharacter: describeOffendingCharacter(error.mark),
     source
   };
 }
@@ -39425,34 +30064,34 @@ class YamlParseError extends Error {
     this.source = details.source;
   }
 }
-function getYamlParseDetails(error51) {
-  if (error51 instanceof YamlParseError) {
+function getYamlParseDetails(error) {
+  if (error instanceof YamlParseError) {
     return {
-      errorType: error51.errorType,
-      reason: error51.reason,
-      line: error51.line,
-      column: error51.column,
-      snippet: error51.snippet,
-      offendingCharacter: error51.offendingCharacter,
-      source: error51.source
+      errorType: error.errorType,
+      reason: error.reason,
+      line: error.line,
+      column: error.column,
+      snippet: error.snippet,
+      offendingCharacter: error.offendingCharacter,
+      source: error.source
     };
   }
-  if (error51 instanceof YAMLException) {
-    return buildYamlParseDetails(error51);
+  if (error instanceof YAMLException) {
+    return buildYamlParseDetails(error);
   }
   return null;
 }
 function parseYamlDocument(input, options) {
   try {
     return load(input);
-  } catch (error51) {
-    if (error51 instanceof YamlParseError) {
-      throw error51;
+  } catch (error) {
+    if (error instanceof YamlParseError) {
+      throw error;
     }
-    if (error51 instanceof YAMLException) {
-      throw new YamlParseError(buildYamlParseDetails(error51, options?.source));
+    if (error instanceof YAMLException) {
+      throw new YamlParseError(buildYamlParseDetails(error, options?.source));
     }
-    throw error51;
+    throw error;
   }
 }
 function stringifyYamlDocument(value) {
@@ -39481,14 +30120,14 @@ function getBundledSharedCacheAssets() {
   }).sort((left, right) => left.relativeCachePath.localeCompare(right.relativeCachePath));
 }
 function computeExportVersion(assets) {
-  const hash2 = createHash("sha256");
+  const hash = createHash("sha256");
   for (const asset of assets) {
-    hash2.update(asset.relativeCachePath);
-    hash2.update("\x00");
-    hash2.update(asset.content);
-    hash2.update("\x00");
+    hash.update(asset.relativeCachePath);
+    hash.update("\x00");
+    hash.update(asset.content);
+    hash.update("\x00");
   }
-  return `sha256:${hash2.digest("hex")}`;
+  return `sha256:${hash.digest("hex")}`;
 }
 function isStringArray(value) {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -39606,8 +30245,8 @@ function synchronizeSharedSchemaCache() {
     exportedFiles
   };
 }
-function formatSharedSchemaCacheWarning(error51, rootDir = getSharedSchemaCacheRoot()) {
-  const message = error51 instanceof Error ? error51.message : String(error51);
+function formatSharedSchemaCacheWarning(error, rootDir = getSharedSchemaCacheRoot()) {
+  const message = error instanceof Error ? error.message : String(error);
   return `shared schema cache at '${rootDir}' could not be synchronized: ${message}`;
 }
 
@@ -39650,8 +30289,8 @@ function loadBundledSchema(schemaFile) {
   return asObject(raw, `Schema file ${schemaFile}`);
 }
 function loadBundledSchemaRegistry() {
-  const registry2 = loadBundledSchema("registry.yaml");
-  const objectRegistry = asObject(registry2, "Bundled schema registry");
+  const registry = loadBundledSchema("registry.yaml");
+  const objectRegistry = asObject(registry, "Bundled schema registry");
   const entries = objectRegistry.entries;
   if (!Array.isArray(entries)) {
     throw new Error("Bundled schema registry is missing an entries sequence");
@@ -39730,8 +30369,8 @@ function resolveAssets(schemaFile, primaryExample, cacheRoot) {
 }
 function buildRegistryLookup() {
   const lookup = new Map;
-  const registry2 = loadBundledSchemaRegistry();
-  for (const entry of registry2.entries) {
+  const registry = loadBundledSchemaRegistry();
+  for (const entry of registry.entries) {
     const artifactType = asString(entry.artifact_type);
     const schemaFile = asString(entry.schema_file);
     const schemaId = asString(entry.schema_id);
@@ -39760,11 +30399,11 @@ function familyAssetsFrom(artifactTypes) {
   const { artifactType: _artifactType, schemaId: _schemaId, ...assets } = artifactTypes[0];
   return assets;
 }
-function buildFamily(kind, rawFamily, registry2, cacheRoot) {
+function buildFamily(kind, rawFamily, registry, cacheRoot) {
   const cliOwners = asStringArray(rawFamily.cli_owners);
   const operationStates = asRecord(rawFamily.operations) ?? {};
   const artifactTypes = asStringArray(rawFamily.artifact_types).map((artifactType) => {
-    const entry = registry2.get(artifactType);
+    const entry = registry.get(artifactType);
     return {
       artifactType,
       ...entry === undefined ? {} : { schemaId: entry.schemaId },
@@ -39790,13 +30429,13 @@ function loadYamlMutationSurface() {
     return cachedSurface;
   const inventory = parseYamlDocument(readInventoryContent(), { source: YAML_MUTATION_INVENTORY_PATH });
   const families = asRecord(inventory.artifact_families) ?? {};
-  const registry2 = buildRegistryLookup();
+  const registry = buildRegistryLookup();
   const cacheRoot = getSharedSchemaCacheRoot();
   cachedSurface = {
     inventoryPath: YAML_MUTATION_INVENTORY_PATH,
     schemaCacheRoot: cacheRoot,
     schemaCacheAvailable: isCacheDirectory(cacheRoot),
-    families: Object.entries(families).map(([kind, rawFamily]) => buildFamily(kind, asRecord(rawFamily) ?? {}, registry2, cacheRoot)).sort((left, right) => left.kind.localeCompare(right.kind))
+    families: Object.entries(families).map(([kind, rawFamily]) => buildFamily(kind, asRecord(rawFamily) ?? {}, registry, cacheRoot)).sort((left, right) => left.kind.localeCompare(right.kind))
   };
   return cachedSurface;
 }
@@ -39913,7 +30552,10 @@ var COMMAND_METADATA_ENTRIES = {
       description: "Human-readable lines naming the initialized root and the created and skipped file counts."
     },
     exitCodes: SUCCESS_EXIT_CODES,
-    notes: ["Existing scaffold files are skipped, never overwritten."]
+    notes: [
+      "Existing scaffold files are skipped, never overwritten.",
+      "Re-renders any generated document the workflow config write staled, printing each rewritten path; a generated document absent from disk is left absent."
+    ]
   },
   "check-workflow-state": {
     name: "check-workflow-state",
@@ -39959,11 +30601,12 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "operation", "rerenderedDocuments"],
       description: "A deterministic workflow-config mutation result with schema and example recovery identifiers."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "The target is always .strict-spec-driven/config.yaml; config creation remains owned by init and whole-config deletion is intentionally unavailable.",
       "Every unnamed field and nested entry is preserved; invalid complete candidates leave the file unchanged."
     ]
@@ -40668,11 +31311,12 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation", "rerenderedDocuments"],
       description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "Scalar and keyed restatement affects only the named content; removals are exact.",
       "Creation defaults to .strict-spec-driven/specs/<spec-id>.yaml and persists only after a title and complete requirement validate.",
       "Use schema-show main-spec and sample-show main-spec to inspect the artifact contract."
@@ -40707,11 +31351,12 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     output: {
       format: "json",
-      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation", "rerenderedDocuments"],
       description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "Scalar and keyed restatement affects only the named content; rule lists append uniquely and removals are exact.",
       "Creation defaults to .strict-spec-driven/tech/<standard-id>.yaml and persists only after a title, category, and complete rule validate.",
       "Use schema-show main-tech and sample-show main-tech to inspect the artifact contract."
@@ -40743,12 +31388,12 @@ var COMMAND_METADATA_ENTRIES = {
       ...["boundary", "dependency", "implementation", "flow-step", "flow-component", "alternative"].map((name) => ({ name: `--remove-${name}`, arity: "value", valueLabel: "<owner:value>", description: `Remove only the exact named ${name.replaceAll("-", " ")} from its owner.`, repeatable: true, repeatSemantics: "Each occurrence removes one exact nested list value." })),
       { name: "--delete", arity: "boolean", description: "Delete only architecture.yaml; cannot be combined with any edit or removal flag and never deletes ARCHITECTURE.md." }
     ],
-    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether architecture-generate must reconcile ARCHITECTURE.md." },
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument", "rerenderedDocuments"], description: "An artifact-aware mutation result reporting the committed change and any generated document re-rendered for it." },
     exitCodes: [
       { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
       { code: 1, meaning: "Usage, schema, relationship, confinement, or filesystem validation rejected the mutation and preserved prior state." }
     ],
-    notes: ["Source mutations never edit or delete ARCHITECTURE.md; run the reported generator after a changed mutation."]
+    notes: ["Source mutations never compose or delete ARCHITECTURE.md; a changed mutation re-renders an existing stale document through architecture-generate and names it in rerenderedDocuments."]
   },
   "architecture-generate": {
     name: "architecture-generate",
@@ -40849,12 +31494,14 @@ var COMMAND_METADATA_ENTRIES = {
       { name: "--remove-dont", arity: "value", valueLabel: "<exact-text>", description: "Remove one exact prohibited practice.", repeatable: true, repeatSemantics: "Each occurrence removes one exact value." },
       { name: "--delete", arity: "boolean", description: "Delete only design-system.yaml; cannot be combined with edits and never deletes DESIGN.md." }
     ],
-    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether design-generate must reconcile DESIGN.md." },
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument", "rerenderedDocuments"], description: "An artifact-aware mutation result reporting the committed change and any generated document re-rendered for it." },
     exitCodes: [
       { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
       { code: 1, meaning: "Usage, schema, confinement, or filesystem validation rejected the mutation and preserved prior state." }
     ],
-    notes: ["Source mutations never edit or delete DESIGN.md; run the reported generator after a changed mutation."]
+    notes: [
+      "Source mutations never compose or delete DESIGN.md; a changed mutation re-renders an existing stale document through design-generate and names it in rerenderedDocuments."
+    ]
   },
   "design-init": {
     name: "design-init",
@@ -40867,7 +31514,7 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["artifactPath", "created", "skipped"],
+      keys: ["artifactPath", "created", "skipped", "rerenderedDocuments"],
       description: "A JSON result naming the design-system artifact path and whether this run created it or skipped an existing one."
     },
     exitCodes: [
@@ -40875,6 +31522,7 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error or the bundled design-system scaffold asset could not be read." }
     ],
     notes: [
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "There are no flags: an existing artifact is reported as skipped and left byte-identical, never overwritten or merged.",
       "Separate from init on purpose: the design-system artifact is optional, so init does not scaffold it and a project with no user interface never runs this command.",
       "The created artifact is schema-valid but empty of tokens and components; fill it with /strict-spec-design, then render DESIGN.md with design-generate."
@@ -42472,11 +33120,14 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics"],
+      keys: ["valid", "diagnostics", "rerenderedDocuments"],
       description: "A JSON archive result describing merged artifacts and reconciled roadmap state."
     },
     exitCodes: VALIDITY_EXIT_CODES,
-    notes: ["An empty specs/ directory is allowed and does not block archive."]
+    notes: [
+      "An empty specs/ directory is allowed and does not block archive.",
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent."
+    ]
   },
   list: {
     name: "list",
@@ -42879,20 +33530,20 @@ var MCP_INVENTORY = {
 };
 
 // src/mcp/prompts.ts
-var optionalChangeSchema = exports_external.strictObject({
-  change: exports_external.string().min(1).optional(),
-  summary: exports_external.string().min(1).optional(),
-  roadmapItem: exports_external.string().min(1).optional()
+var optionalChangeSchema = strictObject({
+  change: string2().min(1).optional(),
+  summary: string2().min(1).optional(),
+  roadmapItem: string2().min(1).optional()
 });
-var changeSchema = exports_external.strictObject({
-  change: exports_external.string().min(1)
+var changeSchema = strictObject({
+  change: string2().min(1)
 });
-var roadmapSchema = exports_external.strictObject({
-  roadmapItem: exports_external.string().min(1).optional()
+var roadmapSchema = strictObject({
+  roadmapItem: string2().min(1).optional()
 });
-var harnessSchema = exports_external.strictObject({
-  session: exports_external.string().min(1),
-  environment: exports_external.string().min(1).optional()
+var harnessSchema = strictObject({
+  session: string2().min(1),
+  environment: string2().min(1).optional()
 });
 function promptInventory(name) {
   const inventory = MCP_PROMPT_INVENTORY.find((candidate) => candidate.name === name);
@@ -43000,7 +33651,7 @@ var SAFE_ID = /^[a-z0-9][a-z0-9-]*$/;
 var CHANGE_ARTIFACTS = new Set(["proposal", "design", "tasks", "questions"]);
 function registerStrictResources(server, projectRoot) {
   for (const resource of MCP_RESOURCE_INVENTORY) {
-    const config2 = {
+    const config = {
       title: resource.name,
       description: resource.description,
       mimeType: "text/plain"
@@ -43008,9 +33659,9 @@ function registerStrictResources(server, projectRoot) {
     if (resource.template) {
       server.registerResource(resource.name, new ResourceTemplate(resource.uri, {
         list: async () => listTemplateResources(projectRoot, resource)
-      }), config2, async (uri) => readStrictResource(projectRoot, uri.href));
+      }), config, async (uri) => readStrictResource(projectRoot, uri.href));
     } else {
-      server.registerResource(resource.name, resource.uri, config2, async (uri) => readStrictResource(projectRoot, uri.href));
+      server.registerResource(resource.name, resource.uri, config, async (uri) => readStrictResource(projectRoot, uri.href));
     }
   }
 }
@@ -43150,8 +33801,8 @@ function readAndValidateYaml(filePath) {
   const content = readFileSync5(filePath, "utf8");
   try {
     jsYaml.load(content);
-  } catch (error51) {
-    const message = error51 instanceof Error ? error51.message : String(error51);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     throw new Error(`malformed strict YAML resource: ${message}`);
   }
   return content;
@@ -43174,56 +33825,56 @@ import { spawnSync } from "child_process";
 import { existsSync as existsSync6 } from "fs";
 import path6 from "path";
 import { fileURLToPath as fileURLToPath4 } from "url";
-var emptySchema = exports_external.strictObject({});
-var changeSchema2 = exports_external.strictObject({ change: exports_external.string().min(1) });
-var optionalArtifactKindSchema = exports_external.strictObject({ artifactKind: exports_external.string().min(1).optional() });
-var confirmField = { confirm: exports_external.boolean().optional() };
-var confirmSchema = exports_external.strictObject({ ...confirmField });
-var changeConfirmSchema = exports_external.strictObject({ change: exports_external.string().min(1), ...confirmField });
-var generateArtifactSchema = exports_external.strictObject({
-  change: exports_external.string().min(1),
-  artifact: exports_external.enum(["proposal", "design", "questions", "delta-spec", "delta-tech"]),
-  args: exports_external.array(exports_external.string().min(1)).optional(),
+var emptySchema = strictObject({});
+var changeSchema2 = strictObject({ change: string2().min(1) });
+var optionalArtifactKindSchema = strictObject({ artifactKind: string2().min(1).optional() });
+var confirmField = { confirm: boolean2().optional() };
+var confirmSchema = strictObject({ ...confirmField });
+var changeConfirmSchema = strictObject({ change: string2().min(1), ...confirmField });
+var generateArtifactSchema = strictObject({
+  change: string2().min(1),
+  artifact: _enum(["proposal", "design", "questions", "delta-spec", "delta-tech"]),
+  args: array(string2().min(1)).optional(),
   ...confirmField
 });
-var roadmapSyncSchema = exports_external.strictObject({
-  materializePlannedChanges: exports_external.boolean().optional(),
+var roadmapSyncSchema = strictObject({
+  materializePlannedChanges: boolean2().optional(),
   ...confirmField
 });
-var harnessPlanSchema = exports_external.strictObject({
-  environment: exports_external.string().min(1).optional(),
-  components: exports_external.array(exports_external.string().min(1)).optional()
+var harnessPlanSchema = strictObject({
+  environment: string2().min(1).optional(),
+  components: array(string2().min(1)).optional()
 });
-var harnessLogsSchema = exports_external.strictObject({
-  component: exports_external.string().min(1).optional(),
-  tail: exports_external.number().int().positive().optional(),
-  all: exports_external.boolean().optional()
+var harnessLogsSchema = strictObject({
+  component: string2().min(1).optional(),
+  tail: number2().int().positive().optional(),
+  all: boolean2().optional()
 });
-var harnessLifecycleSchema = exports_external.strictObject({
-  environment: exports_external.string().min(1).optional(),
-  components: exports_external.array(exports_external.string().min(1)).optional(),
-  confirm: exports_external.boolean().optional()
+var harnessLifecycleSchema = strictObject({
+  environment: string2().min(1).optional(),
+  components: array(string2().min(1)).optional(),
+  confirm: boolean2().optional()
 });
-var harnessStopSchema = exports_external.strictObject({
-  confirm: exports_external.boolean().optional()
+var harnessStopSchema = strictObject({
+  confirm: boolean2().optional()
 });
-var harnessSessionCreateSchema = exports_external.strictObject({
-  session: exports_external.string().min(1),
+var harnessSessionCreateSchema = strictObject({
+  session: string2().min(1),
   ...confirmField
 });
-var artifactAuthorSchema = exports_external.strictObject({
-  args: exports_external.array(exports_external.string().min(1)).min(1),
+var artifactAuthorSchema = strictObject({
+  args: array(string2().min(1)).min(1),
   ...confirmField
 });
-var liveArtifactAuthorSchema = exports_external.strictObject({
-  id: exports_external.string().min(1),
-  args: exports_external.array(exports_external.string().min(1)).min(1),
+var liveArtifactAuthorSchema = strictObject({
+  id: string2().min(1),
+  args: array(string2().min(1)).min(1),
   ...confirmField
 });
-var harnessSessionMutateSchema = exports_external.strictObject({
-  action: exports_external.enum(["create", "edit", "delete", "archive"]),
-  session: exports_external.string().min(1),
-  args: exports_external.array(exports_external.string().min(1)).optional(),
+var harnessSessionMutateSchema = strictObject({
+  action: _enum(["create", "edit", "delete", "archive"]),
+  session: string2().min(1),
+  args: array(string2().min(1)).optional(),
   ...confirmField
 });
 function command(inventory, toCliArgs, inputSchema = emptySchema) {
@@ -43474,19 +34125,19 @@ function createStrictMcpServer(projectRoot, inventory = MCP_INVENTORY, runner) {
 async function connectStrictMcpServer(context, transport = new StdioServerTransport) {
   await context.server.connect(transport);
 }
-function formatMcpStartupError(error51) {
-  if (error51 instanceof McpStartupError) {
-    return JSON.stringify({ valid: false, code: error51.code, message: error51.message });
+function formatMcpStartupError(error) {
+  if (error instanceof McpStartupError) {
+    return JSON.stringify({ valid: false, code: error.code, message: error.message });
   }
-  const message = error51 instanceof Error ? error51.message : String(error51);
+  const message = error instanceof Error ? error.message : String(error);
   return JSON.stringify({ valid: false, code: "startup_error", message });
 }
 async function runMcpServer(argv, connect = connectStrictMcpServer) {
   const args = parseMcpServerArgs(argv);
   try {
     synchronizeSharedSchemaCache();
-  } catch (error51) {
-    process.stderr.write(`Warning: ${formatSharedSchemaCacheWarning(error51)}
+  } catch (error) {
+    process.stderr.write(`Warning: ${formatSharedSchemaCacheWarning(error)}
 `);
   }
   const context = createStrictMcpServer(args.projectRoot);
@@ -43494,8 +34145,8 @@ async function runMcpServer(argv, connect = connectStrictMcpServer) {
 }
 
 // src/mcp/entrypoint.ts
-runMcpServer(process.argv.slice(2)).catch((error51) => {
-  process.stderr.write(`${formatMcpStartupError(error51)}
+runMcpServer(process.argv.slice(2)).catch((error) => {
+  process.stderr.write(`${formatMcpStartupError(error)}
 `);
   process.exit(1);
 });

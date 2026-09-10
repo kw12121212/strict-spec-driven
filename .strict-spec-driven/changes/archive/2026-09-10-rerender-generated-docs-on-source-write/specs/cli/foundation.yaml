@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-generated-documents-rerender-on-source-write:
+      strength: MUST
+      statement: Every strict CLI command that successfully writes an artifact a generated document is rendered from MUST, after that write commits, re-render each generated document that already exists on disk and no longer matches its sources, MUST name the re-rendered document paths in the result it emits, in its structured result where it emits one and in its reported output otherwise, MUST leave a generated document that is absent from disk absent, and MUST skip a target whose source artifact cannot be read, so that a source write never leaves a committed generated document stale.
+      scenarios:
+        stale-document-is-rerendered-by-the-writing-command:
+          - GIVEN: a workflow whose generated document exists on disk and whose sources a command is about to change
+          - WHEN: that command completes a successful source write
+          - THEN: the generated document on disk matches its sources and the command's structured result names the re-rendered document path
+        absent-document-is-not-created:
+          - GIVEN: a workflow whose generated document has never been rendered and is absent from disk
+          - WHEN: a command completes a successful source write
+          - THEN: no generated document is created, and the command's structured result names no re-rendered path
+        unreadable-source-is-skipped:
+          - GIVEN: a workflow whose generated document exists on disk but whose source artifact is missing or unreadable
+          - WHEN: a command completes a successful source write
+          - THEN: the command completes without failing on the unrenderable target and the source write remains committed
+        rejected-write-renders-nothing:
+          - GIVEN: a command invocation whose source mutation is rejected
+          - WHEN: the command exits non-zero without writing the source
+          - THEN: no generated document is re-rendered and the document on disk is left exactly as it was
+  MODIFIED: {}
+  REMOVED: {}

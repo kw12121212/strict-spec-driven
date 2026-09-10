@@ -202,6 +202,40 @@ A strict change may legitimately have no delta spec. Do not invent a
   `ready`/`verify` checks, and archive-readiness or archive-merge checks when
   the change affects artifacts consumed by archive.
 
+## Review Independence
+
+This workflow implements and reviews the same change, so the review arrives
+already knowing why the code took its shape — the one seat a review must not be
+written from. Split it into two stances with a written boundary between them.
+
+**Reconstruct first.** Read only `proposal.yaml`, `design.yaml`, `questions.yaml`, and the delta specs,
+then write down the problem, the observable outcome, the non-goals and every
+`unchanged_behavior` item, and a numbered list of acceptance items — all of it
+before any implementation file, diff, or test file is read.
+Never derive the requirement from the implementation: one read off the diff is
+satisfied by whatever the diff happens to do. When the change carries no delta
+spec, build the items from `proposal.yaml`'s `summary.what`, `scope.in`, and
+`unchanged_behavior` plus the `design.yaml` decisions, so the list is never
+empty.
+
+**Then verify from outside.** Read the changed files as
+an outside reviewer who did not write them.
+What you remember doing during implementation is not evidence about the
+repository; only what the files show is.
+
+**Verdicts.** Answer every acceptance item with exactly one of
+`satisfied`, `not satisfied`, or `unprovable from evidence`, each carrying
+an implementation reference and a test reference
+— file and line where the evidence exists, or a statement of what is missing
+where it does not. A blanket claim that the implementation matches the proposal
+is not a substitute for per-item verdicts, and an item no test covers is not
+`satisfied`. Report the table before the findings.
+
+On a MUST-strength delta spec requirement, `unprovable from evidence`
+blocks the archive recommendation
+until a test or an explicit human decision resolves it; on any other acceptance
+item it is a SHOULD FIX finding that must be reported but does not block.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -368,12 +402,17 @@ run `init` from this skill.
    ```
    Fix safe blockers automatically, then rerun verification.
 
-9. **Review code quality** — read every changed implementation and test file
+9. **Review code quality** — run the Review Independence stances in order.
+   Reconstruct the requirement from the change's planning artifacts and delta
+   specs first, writing down the numbered acceptance items before reopening any
+   changed file; then read every changed implementation and test file
    yourself, including the files named by delta specs, `git status --short`, the
    relevant tracked diff, and any untracked source, test, documentation, or
    strict workflow files that belong to the change. Do not call a
    `strict-spec-cli review` command and do not treat deterministic validation
-   as code review evidence. Evaluate correctness, spec alignment,
+   as code review evidence. Record a verdict with its evidence for every
+   acceptance item before writing any finding, and report that table ahead of
+   the findings. Evaluate correctness, spec alignment,
    `unchanged_behavior`, test coverage and assertions, error handling, edge
    cases, security, performance, maintainability, user-visible behavior,
    documentation impact, generated artifacts, packaging impact, and
@@ -388,7 +427,8 @@ run `init` from this skill.
    workflow artifact changes are made, rerun strict verification and the
    configured complete project regression command before continuing. Unsafe,
    ambiguous, blocked, or out-of-scope fixes must stop archive rather than being
-   inferred or silently expanded.
+   inferred or silently expanded, and an unresolved MUST-strength unprovable
+   verdict stops archive on the same terms.
    After the review checklist, also reflect — non-blocking — on whether this
    change established a reusable engineering convention not yet captured under
    `.strict-spec-driven/tech/` (a coding, architecture, testing, tooling,
@@ -510,6 +550,8 @@ implementation or review requires starting declared components:
 - Do not call or rely on a `strict-spec-cli review` command
 - Do not run archive without direct code review evidence from changed
   implementation and test files
+- Reconstruct the requirement before reading the implementation, and do not run
+  archive while a MUST-strength acceptance item is unprovable from evidence
 - Automatically fix safe in-scope review findings before archive, and rerun
   strict verification plus the configured complete regression command after
   review-time changes

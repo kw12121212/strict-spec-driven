@@ -24,6 +24,9 @@ import {
   REQUIREMENT_INTERROGATION_HEADING,
   REQUIREMENT_INTERROGATION_SKILLS,
   REQUIREMENT_INTERROGATION_SNIPPETS,
+  REVIEW_INDEPENDENCE_HEADING,
+  REVIEW_INDEPENDENCE_SKILLS,
+  REVIEW_INDEPENDENCE_SNIPPETS,
   SKILL_COMMANDS_HEADING,
   STRICT_WORKFLOW_SHARED_ELEMENTS,
   directsTaskListAuthoring,
@@ -66,6 +69,51 @@ function validateRequirementInterrogationGuidance(
         skillPath,
         `proposal-oriented strict skills must document ${expectation.element}`,
         expectation.snippet,
+      ),
+    );
+  }
+}
+
+/**
+ * Requires the review-independence contract in every skill that reviews a change it implemented.
+ *
+ * The governed set is the explicit `REVIEW_INDEPENDENCE_SKILLS` list rather than a scan for
+ * review-shaped content, because this check's own subject is text the same change inserts: a scope
+ * derived from the guidance would read what it put there, and deleting the section from a skill
+ * would drop that skill out of scope instead of failing it. Whitespace is collapsed before matching
+ * so a line-wrapped phrase still counts as stated — the negative-case probe therefore has to remove
+ * every occurrence counted in normalized text, not every literal one.
+ */
+function validateReviewIndependenceGuidance(
+  skillName: string,
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  if (!(REVIEW_INDEPENDENCE_SKILLS as readonly string[]).includes(skillName)) return;
+
+  const section = skillSection(content, REVIEW_INDEPENDENCE_HEADING);
+  if (section === undefined) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.review_independence.heading.missing",
+        skillPath,
+        "a strict skill that reviews a change must carry a review-independence section that separates requirement reconstruction from reading the implementation",
+        REVIEW_INDEPENDENCE_HEADING,
+      ),
+    );
+    return;
+  }
+
+  const normalizedSection = normalizeWhitespace(section);
+  for (const { snippet, element } of REVIEW_INDEPENDENCE_SNIPPETS) {
+    if (normalizedSection.includes(normalizeWhitespace(snippet))) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.review_independence.element.missing",
+        skillPath,
+        `review-independence guidance must state ${element}`,
+        snippet,
       ),
     );
   }
@@ -818,6 +866,7 @@ export function validateCommandSection(
   validatePreferredHumanLanguageGuidance(content, skillPath, diagnostics);
   validateWorkflowStateGuidanceIsNotRestated(content, skillPath, diagnostics);
   validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
+  validateReviewIndependenceGuidance(skillName, content, skillPath, diagnostics);
   validateTaskOrderGuidance(skillName, content, skillPath, diagnostics);
   validateCliOnlyYamlPolicy(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateAuthoringProtocolPointer(skillName, content, normalizedCommands, skillPath, diagnostics);

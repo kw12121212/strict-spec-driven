@@ -7,6 +7,7 @@ import { parseYamlFile } from "../yaml.js";
 import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeOut, writeUsage } from "./output.js";
+import { withRerenderedDocuments } from "./generated-document-rerender.js";
 
 const STRICT_WORKFLOW_STATE_DIR = ".strict-spec-driven";
 const WORKFLOW_CONFIG_RELATIVE_PATH = `${STRICT_WORKFLOW_STATE_DIR}/config.yaml`;
@@ -86,7 +87,7 @@ function parseConfigEditArgs(argv: string[]): WorkflowConfigAuthorInput {
 export function runConfigEdit(argv: string[]): number {
   if (handleHelpRequest("config-edit", argv)) return 0;
   try {
-    const result = authorWorkflowConfig(process.cwd(), parseConfigEditArgs(argv));
+    const result = withRerenderedDocuments(process.cwd(), authorWorkflowConfig(process.cwd(), parseConfigEditArgs(argv)));
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {

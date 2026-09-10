@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-failing-regression-gate-may-be-failing-at-head-38dc77
+  title: A failing regression gate may be failing at HEAD, not because of your change
+category: tooling
+status: active
+created_at: '2026-09-10T06:00:18.437Z'
+updated_at: '2026-09-10T06:00:18.437Z'
+context: The complete regression gate ran at the end of implementation for a change that touched two skills, one validation check, and one test suite. It exited non-zero with 2 of 4455 tests failing, both reporting that ARCHITECTURE.md was stale against .strict-spec-driven/specs/INDEX.yaml.
+observation: 'Neither failing assertion named a file this change had touched: ARCHITECTURE.md and .strict-spec-driven/specs/ were both unmodified in git status. Stashing every source, test, skill, and dist change and rerunning architecture-generate --check still exited non-zero, so the drift predated the change by three requirements that an earlier archive had merged into cli-foundation without re-rendering. The gate still blocked archive, because the rule is that the configured command must pass, not that the change must be blameless.'
+takeaway: 'Before treating a regression failure as your own, check whether the failing assertion names anything the change touched, then stash the change and rerun the failing command at HEAD. A pre-existing failure blocks archive exactly like a caused one, but the response is different: a caused failure is fixed in place, while a pre-existing one is an explicit scope decision between fixing it here and fixing it as its own change, and it belongs to the operator rather than being absorbed silently. Recording that decision as an added task and scope entry is what keeps the widening from being silent.'
+applies_when: The configured complete project regression command fails and the failing assertions name files the change did not touch, or name a generated document rather than the implementation under change.
+occurrences:
+  - origin: independent-requirement-first-review
+    date: '2026-09-10'
+    evidence: 2 of 4455 assertions failed on stale ARCHITECTURE.md; git status showed ARCHITECTURE.md and .strict-spec-driven/specs/ unmodified; architecture-generate --check exited 1 with the change stashed; after an operator decision the re-render was added as scope entry and task rerender-stale-architecture-document, and the rerun passed 4455/4455 at 85.57% coverage.
