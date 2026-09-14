@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harness-neutral-skill-handoff
+sections:
+  Implementation:
+    add-handoff-matcher:
+      text: 'Add src/skills/handoff.ts owning the harness-mechanism matcher: a line that routes the reader to a skill while naming a determiner, capitalised name, and the word tool, excluding CLI, returning the matched mechanism and its 1-based line.'
+      status: complete
+    wire-validation-check:
+      text: Add the validator to src/skills/content.ts that turns each match into a skill.handoff.harness_tool_mechanism diagnostic naming the SKILL.md path, line, and mechanism, and call it from src/skills.ts for every discovered package so scope comes from the filesystem.
+      status: complete
+    reword-recommend-handoff:
+      text: Reword step 6 of skills/strict-roadmap-recommend/SKILL.md into a plain handoff to the strict-spec-auto skill that leaves loading to the running harness, keeping every snippet the shipped checks require for that skill.
+      status: complete
+    add-guidance-fixture:
+      text: Add the committed non-compliant package test/fixtures/guidance-skills/strict-spec-fixture-harness-specific-handoff/ carrying exactly one handoff defect, valid in every other respect so the paired control run validates cleanly.
+      status: complete
+    add-regression-coverage:
+      text: 'Cover the check in test/suites/entrypoint-and-skills.ts: claim the new fixture in the guidance-fixture manifest so the shipped validate-skills is driven over it and its control run, and assert the matcher fires on a realistic handoff line and stays silent on a program named outside a handoff.'
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild dist/ so the shipped command and the dist-based suite run the edited sources.
+      status: complete
+      command: bun run build
+  Testing:
+    run-lint:
+      text: Run the project lint command.
+      status: complete
+      command: bun run lint
+    run-validate-skills:
+      text: Run the shipped skill validation over the bundled skill set and confirm it exits zero with no diagnostics.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    run-regression:
+      text: Run the complete project regression suite with the coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict verification for the change.
+      status: complete
+      command: strict-spec-cli verify harness-neutral-skill-handoff
+    review-changed-files:
+      text: Read every changed implementation, guidance, fixture, and test file against the proposal scope, the unchanged-behavior list, the delta spec requirement, and the applicable technical standards.
+      status: complete
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-regression

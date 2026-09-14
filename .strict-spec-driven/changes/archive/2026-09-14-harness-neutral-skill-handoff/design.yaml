@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: harness-neutral-skill-handoff
+approach:
+  - 'Reword step 6 of the strict-roadmap-recommend guidance so the automatic continuation reads as a plain handoff to the strict-spec-auto skill, replacing the named-mechanism clause with the repository idiom already used by the delegated-procedure sections: follow the named skill, however the running harness loads it. The wording keeps every snippet the shipped checks already require for that skill.'
+  - Back the wording with a shipped check so it cannot regress. A new src/skills/handoff.ts owns the matcher and is consumed by a validator in src/skills/content.ts that skills.ts calls for every discovered package, alongside the existing packaged-reference check. The scope therefore comes from the filesystem rather than from the guidance being read. A delta spec records the observable validation behavior and a delta tech rule records the authoring policy.
+  - 'Prove the check through the command an operator actually runs: a committed non-compliant package under test/fixtures/guidance-skills/ joins the existing guidance-fixture manifest, so the shipped validate-skills is driven over it and over the paired control run with the offending line removed. Direct matcher assertions cover the accept case that no fixture can show.'
+decisions:
+  matcher-requires-a-skill-reference-on-the-line:
+    decision: A finding requires both a named tool mechanism and, on the same line and outside the matched phrase, a reference to a skill.
+    rationale: The rule governs how a skill handoff is worded, not every mention of a program. Requiring only the mechanism phrase would report a line that names a command-line program for an unrelated reason, and requiring the skill mention to sit outside the matched phrase stops the words "Skill tool" from satisfying the skill half of the test by themselves.
+  generic-tool-phrase-over-an-enumerated-tool-list:
+    decision: The mechanism half matches a determiner followed by a capitalised name and the word tool, rather than an enumeration of known harness tool names.
+    rationale: An enumeration only ever covers the harnesses someone thought of, and the defect is that guidance names a mechanism a different harness does not offer — so the next unlisted name would reproduce the exact failure the rule exists to stop.
+  cli-excluded-from-the-mechanism-half:
+    decision: The name CLI is excluded from the mechanism half of the matcher.
+    rationale: The strict CLI is a command-line program every skill legitimately runs and names next to the word skill, so admitting it would make the check report correct guidance rather than the defect.
+  one-delta-spec-requirement-rather-than-two:
+    decision: The change adds one requirement covering the validation behavior and does not add a roadmap-handoff scenario asserting the recommend skill words its own handoff correctly.
+    rationale: The shipped check runs over the whole bundled set, so the recommend skill is covered by the same requirement; restating the long roadmap handoff statement to append a scenario would add artifact noise without adding coverage.
+alternatives:
+  - option: Edit the wording only, with no spec requirement, technical standard, or shipped check.
+    reason: 'Nothing would stop the phrasing returning: no existing requirement or check reads how a skill handoff is worded, so the same defect could ship again unnoticed.'
+  - option: Match the mechanism phrase anywhere in a SKILL.md, without requiring a skill reference on the line.
+    reason: It reports a skill that names a command-line program for reasons unrelated to a handoff, which makes the check a source of false findings a future author would be pushed to work around.
+  - option: Enforce the policy through a required snippet on strict-roadmap-recommend instead of a scanning check.
+    reason: A required snippet proves the correct sentence is present, not that a harness mechanism is absent, so the defect could be added back beside it and still pass.
+risks:
+  - The mechanism half can match prose that names some other capitalised program on a line that also mentions a skill; the CLI exclusion covers the only case present today, and a further false positive would have to be handled by refining the matcher rather than by exempting a skill.
+  - The wording change touches guidance a shipped content check reads by snippet, so an edit that drops a required phrase would fail validation rather than degrade silently.

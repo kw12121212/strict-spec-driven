@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: harness-neutral-skill-handoff
+  status: proposed
+summary:
+  what:
+    - Reword the strict-roadmap-recommend automatic-continuation step so the handoff to strict-spec-auto is stated as a plain skill handoff instead of an invocation through a named harness tool.
+    - Add a shipped skill-validation check that reports bundled skill guidance naming a harness-specific invocation mechanism as the way to reach another skill.
+  why:
+    - The phrase "via the Skill tool" names a mechanism only some harnesses expose, so an agent that does not recognize it reads the automatic-continuation step as unexecutable and the recommend-to-auto handoff stalls.
+    - Nothing today prevents the phrasing from returning, because no spec requirement, technical standard, or shipped check governs how a bundled skill words a handoff to another skill.
+scope:
+  in:
+    - Reword step 6 of skills/strict-roadmap-recommend/SKILL.md to a harness-neutral handoff, keeping the anti-shell-invocation meaning through the repository idiom for harness-provided loading.
+    - Add a harness-neutral-handoff check to the shipped skill validation, reporting the offending SKILL.md path, line, and named mechanism, and exiting non-zero.
+    - Add a delta spec requirement for the new validation behavior and a delta tech rule stating the authoring policy.
+    - Add a committed non-compliant guidance fixture driven through the shipped validate-skills command, with the paired control run.
+  out:
+    - Changing which skill strict-roadmap-recommend hands off to, or its populated-scaffold resume behavior.
+    - Rewording harness-conditional guidance that is not a skill handoff, such as the AskUserQuestion note in strict-spec-propose.
+    - Reworking the delegated-procedure mechanism or the packaged-skill reference check.
+unchanged_behavior:
+  - strict-roadmap-recommend still continues automatically into strict-spec-auto with the populated change scaffold and still does not offer the user a choice of workflow.
+  - Every required snippet the shipped checks already enforce for strict-roadmap-recommend keeps matching its guidance.
+  - validate-skills keeps exiting zero with no diagnostics for the bundled skill set.

@@ -1,6 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { validateCommandSection, validateDelegations, validateSkillReferences } from "./skills/content.js";
+import {
+  validateCommandSection,
+  validateDelegations,
+  validateGuidanceProductNames,
+  validateSkillHandoffMechanisms,
+  validateSkillReferences,
+} from "./skills/content.js";
 import { sortDiagnostics } from "./skills/diagnostics.js";
 import { validateRequiredSymlink, validateMarketplaceMetadata } from "./skills/fs-checks.js";
 import { parseFrontmatter, validateFrontmatterFields, validateLegacyReferences } from "./skills/frontmatter.js";
@@ -92,6 +98,8 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
     validateCommandSection(skillName, content, skillPath, diagnostics);
     validateDelegations(skillName, content, skillContents, skillPath, diagnostics);
     validateSkillReferences(content, skillNames, skillPath, diagnostics);
+    validateSkillHandoffMechanisms(content, skillPath, diagnostics);
+    validateGuidanceProductNames(content, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
   }
 

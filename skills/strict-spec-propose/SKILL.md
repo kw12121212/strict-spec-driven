@@ -1,6 +1,6 @@
 ---
 name: strict-spec-propose
-description: Propose a new strict change from a user request, standalone or scoped to a named roadmap milestone. Use when Codex should scaffold proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and optional delta artifacts under .strict-spec-driven/changes/<name>/, sourcing the planned change from roadmap-recommend when the request names a milestone and stopping at proposal validation either way.
+description: Propose a new strict change from a user request, standalone or scoped to a named roadmap milestone. Use to scaffold proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and optional delta artifacts under .strict-spec-driven/changes/<name>/, sourcing the planned change from roadmap-recommend when the request names a milestone and stopping at proposal validation either way.
 metadata:
   skill_id: strict_spec_propose
   author: strict-spec-driven

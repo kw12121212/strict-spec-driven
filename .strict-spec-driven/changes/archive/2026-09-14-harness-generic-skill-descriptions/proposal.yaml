@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: harness-generic-skill-descriptions
+  status: proposed
+summary:
+  what:
+    - Rewrite the two bundled skill descriptions that name a specific AI product as the actor so they describe the work without an agent subject, matching the agent-less framing every other bundled description already uses.
+    - Add a shipped skill-validation check that reports bundled skill guidance naming a specific AI product or casting a named product as the actor, reading the frontmatter description as well as the body.
+  why:
+    - The frontmatter descriptions of strict-spec-propose and strict-spec-bugfix read "Use when Codex should scaffold" and "Use when Codex has a concrete defect". The description is the text a router and a human read first when deciding whether a skill applies, so an agent that is not that product can reasonably read the skill as not being for it.
+    - The frontmatter description sits outside every content check the repository runs, which a recorded lesson already names as a blind spot, so nothing today stops a product name from being written into it.
+scope:
+  in:
+    - Rewrite the strict-spec-propose and strict-spec-bugfix frontmatter descriptions to drop the named-product actor while keeping their routing meaning.
+    - Add a product-name check to the shipped skill validation covering a named-product mention and the named-product-as-actor sentence form, reporting the offending SKILL.md path, line, and matched text, and exiting non-zero.
+    - Scan the whole SKILL.md, frontmatter included, so the surface the lesson names as unchecked is covered for this rule.
+    - Add a delta spec requirement for the new validation behavior and a delta tech rule stating the authoring policy.
+    - Add a committed non-compliant guidance fixture driven through the shipped validate-skills command, with the paired control run.
+  out:
+    - Bringing the rest of the frontmatter description under the body content checks, which is the wider blind spot the lesson names and is not limited to product naming.
+    - Changing what either skill does, when it applies, or any routing decision its description expresses.
+    - Renaming or rewording guidance that names a harness capability generically rather than a product.
+unchanged_behavior:
+  - 'Both skills still route the same work to themselves: the described trigger conditions and artifacts are preserved, only the actor is dropped.'
+  - Every required snippet and heading the shipped checks already enforce keeps matching each skill.
+  - validate-skills keeps exiting zero with no diagnostics for the bundled skill set.

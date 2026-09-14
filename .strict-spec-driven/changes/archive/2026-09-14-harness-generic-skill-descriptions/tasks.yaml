@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harness-generic-skill-descriptions
+sections:
+  Implementation:
+    add-product-matcher:
+      text: 'Extend src/skills/handoff.ts with the named-product matching: an unambiguous product-name list and a structural capitalised-actor-plus-modal use-when clause, returning the matched text, its category, and its 1-based line.'
+      status: complete
+    wire-product-check:
+      text: Report each match from src/skills/content.ts as a skill.guidance.named_ai_product diagnostic naming the SKILL.md path, line, and matched text, called from src/skills.ts over the whole file so the frontmatter description is scanned too.
+      status: complete
+    rewrite-skill-descriptions:
+      text: Rewrite the strict-spec-propose and strict-spec-bugfix frontmatter descriptions to the agent-less framing the other bundled descriptions use, preserving every routing condition and artifact each names.
+      status: complete
+    add-product-fixture:
+      text: Add the committed non-compliant package test/fixtures/guidance-skills/strict-spec-fixture-named-ai-product/ carrying exactly one product-named description, valid in every other respect so the paired control run validates cleanly.
+      status: complete
+    add-product-coverage:
+      text: 'Cover the check in test/suites/entrypoint-and-skills.ts: claim the new fixture in the guidance-fixture manifest, assert the shipped diagnostic names the line and matched text, fire each matcher category on realistic input, and assert a condition-subject use-when clause is not reported.'
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild dist/ so the shipped command and the dist-based suite run the edited sources.
+      status: complete
+      command: bun run build
+  Testing:
+    run-lint:
+      text: Run the project lint command.
+      status: complete
+      command: bun run lint
+    run-validate-skills:
+      text: Run the shipped skill validation over the bundled skill set and confirm it exits zero with no diagnostics.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    run-regression:
+      text: Run the complete project regression suite with the coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict verification for the change.
+      status: complete
+      command: strict-spec-cli verify harness-generic-skill-descriptions
+    review-changed-files:
+      text: Read every changed implementation, guidance, fixture, and test file against the proposal scope, the unchanged-behavior list, the delta spec requirement, and the applicable technical standards.
+      status: complete
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-regression

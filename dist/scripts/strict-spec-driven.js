@@ -33579,6 +33579,70 @@ import path50 from "path";
 import { existsSync as existsSync45, readdirSync as readdirSync16, readFileSync as readFileSync31, statSync as statSync28 } from "node:fs";
 import path48 from "node:path";
 
+// src/skills/handoff.ts
+var HARNESS_TOOL_MECHANISM_PATTERN = /\b(?:the|a|your|its|our)\s+`?([A-Z][A-Za-z]*)`?\s+tool\b/g;
+var NON_HARNESS_MECHANISM_NAMES = new Set(["CLI"]);
+var SKILL_ROUTING_PATTERN = /\bskills?\b|strict-(?:spec|roadmap|tech)-[a-z0-9-]+/i;
+function blockAround(text, index) {
+  const separator = /\n[ \t]*\n/g;
+  const preceding = [...text.slice(0, index).matchAll(separator)].pop();
+  const start = preceding === undefined ? 0 : (preceding.index ?? 0) + preceding[0].length;
+  const following = text.slice(index).match(/\n[ \t]*\n/);
+  const end = index + (following?.index ?? text.length - index);
+  return text.slice(start, end);
+}
+function findHarnessMechanismHandoffs(text) {
+  const found = [];
+  for (const match of text.matchAll(HARNESS_TOOL_MECHANISM_PATTERN)) {
+    if (NON_HARNESS_MECHANISM_NAMES.has(match[1]))
+      continue;
+    const index = match.index ?? 0;
+    const routingContext = blockAround(text, index).split(match[0]).join(" ");
+    if (!SKILL_ROUTING_PATTERN.test(routingContext))
+      continue;
+    found.push({
+      mechanism: match[0].replace(/\s+/g, " "),
+      line: text.slice(0, index).split(`
+`).length
+    });
+  }
+  return found;
+}
+var NAMED_AI_PRODUCTS = [
+  "Aider",
+  "Anthropic",
+  "ChatGPT",
+  "Claude",
+  "Codex",
+  "Copilot",
+  "Cursor",
+  "Devin",
+  "Gemini",
+  "GPT",
+  "OpenAI",
+  "Windsurf"
+];
+var NAMED_AI_PRODUCT_PATTERN = new RegExp(`\\b(?:${NAMED_AI_PRODUCTS.join("|")})\\b`, "g");
+var PRODUCT_ACTOR_CLAUSE_PATTERN = /\b[Uu]se\s+when\s+([A-Z][A-Za-z]+)\s+(?:should|shall|has|have|needs?|must|wants?|can|is|are)\b/g;
+function findNamedAiProducts(text) {
+  const lineOf = (index) => text.slice(0, index).split(`
+`).length;
+  const found = [];
+  for (const match of text.matchAll(NAMED_AI_PRODUCT_PATTERN)) {
+    found.push({ text: match[0], category: "named-product", line: lineOf(match.index ?? 0) });
+  }
+  for (const match of text.matchAll(PRODUCT_ACTOR_CLAUSE_PATTERN)) {
+    if (NAMED_AI_PRODUCTS.includes(match[1]))
+      continue;
+    found.push({
+      text: match[0].replace(/\s+/g, " "),
+      category: "product-actor-clause",
+      line: lineOf(match.index ?? 0)
+    });
+  }
+  return found;
+}
+
 // src/skills/references.ts
 var ROUTING_SKILL_REFERENCE_PATTERN = /(?<![A-Za-z0-9-])(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)/g;
 var NON_SKILL_STRICT_IDENTIFIERS = new Set([
@@ -34891,6 +34955,16 @@ function validateSkillReferences(content, packagedSkillNames, skillPath, diagnos
     diagnostics.push(makeDiagnostic5("skill.reference.unpackaged", `${skillPath}:${line}`, `guidance names the skill '${name}', which has no package under skills/, so the slash command it routes to does not exist`, "a skill name with a package under skills/", name));
   }
 }
+function validateSkillHandoffMechanisms(content, skillPath, diagnostics) {
+  for (const { mechanism, line } of findHarnessMechanismHandoffs(content)) {
+    diagnostics.push(makeDiagnostic5("skill.handoff.harness_tool_mechanism", `${skillPath}:${line}`, `guidance reaches a skill through '${mechanism}', a mechanism an agent on another harness does not have`, "a plain skill handoff, leaving how the named skill is loaded to the running harness", mechanism));
+  }
+}
+function validateGuidanceProductNames(content, skillPath, diagnostics) {
+  for (const { text, category, line } of findNamedAiProducts(content)) {
+    diagnostics.push(makeDiagnostic5(category === "named-product" ? "skill.guidance.named_ai_product" : "skill.guidance.named_agent_actor", `${skillPath}:${line}`, `guidance names '${text}', which addresses one AI product rather than whichever agent is running the skill`, "guidance that addresses the running agent without naming a product", text));
+  }
+}
 
 // src/skills/diagnostics.ts
 function sortDiagnostics2(diagnostics) {
@@ -35202,6 +35276,8 @@ function validateStrictSkillPackaging(rootDir) {
     validateCommandSection(skillName, content, skillPath, diagnostics);
     validateDelegations(skillName, content, skillContents, skillPath, diagnostics);
     validateSkillReferences(content, skillNames, skillPath, diagnostics);
+    validateSkillHandoffMechanisms(content, skillPath, diagnostics);
+    validateGuidanceProductNames(content, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
   }
   const marketplaceCount = validateMarketplaceMetadata(rootDir, skillNames, diagnostics);

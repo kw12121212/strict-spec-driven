@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED:
+    skill-guidance-addresses-a-generic-agent:
+      strength: MUST
+      statement: Bundled skill guidance MUST address whichever agent is running it and MUST NOT name a specific AI product, in the body or in the frontmatter description, either as a bare mention or as the actor a use-when clause casts. An automated check MUST fail, naming the offending skill file, the line, and the matched text, when such text is present. A clause whose actor is a condition rather than a capitalised product name is outside the rule.
+      rationale: 'A skill description is the routing text an agent and a human read first when deciding whether the skill applies to them, so a product name there is not a cosmetic detail: an agent that is not the named product can correctly conclude the skill is addressed to someone else and route elsewhere, and the frontmatter is outside every check that reads the body, so the mistake survives a green suite.'
+      enforcement:
+        method: test
+        detail: The shipped skill validation command scans every bundled SKILL.md including its frontmatter for a known product name and for a capitalised actor followed by a modal in a use-when clause, with a committed non-compliant fixture driven through that command and a paired control run.
+      examples:
+        good:
+          - Use when a concrete defect, expected behavior, and enough reproduction evidence are in hand to implement a minimal fix.
+        bad:
+          - Use when Codex has a concrete defect, expected behavior, and enough reproduction evidence to implement a minimal fix.
+      exceptions:
+        - Naming a harness capability generically, such as a capability the running harness may or may not provide, which describes what is available rather than who the guidance is for.
+  MODIFIED: {}
+  REMOVED: {}

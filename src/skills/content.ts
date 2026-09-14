@@ -1,4 +1,5 @@
 import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument } from "../yaml.js";
+import { findHarnessMechanismHandoffs, findNamedAiProducts } from "./handoff.js";
 import { findUnpackagedSkillReferences } from "./references.js";
 import {
   AUTHORING_PROTOCOL_HEADING,
@@ -1045,6 +1046,61 @@ export function validateSkillReferences(
         `guidance names the skill '${name}', which has no package under skills/, so the slash command it routes to does not exist`,
         "a skill name with a package under skills/",
         name,
+      ),
+    );
+  }
+}
+
+/**
+ * Rejects guidance that reaches another skill through a named harness mechanism.
+ *
+ * Every discovered package is read, so the scope comes from the filesystem rather than from the
+ * guidance: a skill that starts routing to another skill later inherits the check instead of
+ * escaping a list. The path carries the line because a mechanism name is a few words inside a long
+ * step, and a reader given only the file has to hunt for the sentence that stopped being portable.
+ */
+export function validateSkillHandoffMechanisms(
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  for (const { mechanism, line } of findHarnessMechanismHandoffs(content)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.handoff.harness_tool_mechanism",
+        `${skillPath}:${line}`,
+        `guidance reaches a skill through '${mechanism}', a mechanism an agent on another harness does not have`,
+        "a plain skill handoff, leaving how the named skill is loaded to the running harness",
+        mechanism,
+      ),
+    );
+  }
+}
+
+/**
+ * Rejects guidance that ties a bundled skill to one named AI product.
+ *
+ * The whole file is read, frontmatter included. That is the point rather than an implementation
+ * convenience: the description is the routing text an agent and a human consult first when deciding
+ * whether a skill applies to them, and it is outside every check that reads the body — a defect
+ * living there survives a clean validation run and a green suite, which is exactly how the two
+ * instances this check was written for went unnoticed.
+ */
+export function validateGuidanceProductNames(
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  for (const { text, category, line } of findNamedAiProducts(content)) {
+    diagnostics.push(
+      makeDiagnostic(
+        category === "named-product"
+          ? "skill.guidance.named_ai_product"
+          : "skill.guidance.named_agent_actor",
+        `${skillPath}:${line}`,
+        `guidance names '${text}', which addresses one AI product rather than whichever agent is running the skill`,
+        "guidance that addresses the running agent without naming a product",
+        text,
       ),
     );
   }

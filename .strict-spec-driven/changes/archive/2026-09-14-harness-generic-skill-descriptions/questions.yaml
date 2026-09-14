@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: harness-generic-skill-descriptions
+open: []
+resolved:
+  - id: requirement-problem
+    question: What concretely goes wrong today, and for whom?
+    context: Names the failing behavior the change must remove, so scope and the delta spec are written against the real defect rather than a guessed one.
+    answer: 'Two bundled skill frontmatter descriptions name one AI product as the actor: strict-spec-propose reads "Use when Codex should scaffold" and strict-spec-bugfix reads "Use when Codex has a concrete defect". The description is what a router and a human read first when deciding whether the skill applies, so an agent that is not that product can read the skill as not being addressed to it and route elsewhere.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Fixes the acceptance evidence, so review can prove the outcome from the shipped guidance and the shipped validation command rather than from intent.
+    answer: No bundled skill names a specific AI product anywhere, the two descriptions state their routing conditions without an agent subject, and the shipped skill validation reports a diagnostic naming the file, line, and matched text when a product name or a named-product actor is written into any bundled skill again.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: Tests whether the trigger is real, which decides whether the change is worth carrying a spec requirement and a shipped check rather than being left as a note.
+    answer: A sweep for guidance written against one specific harness, run immediately after the harness-neutral handoff change, surfaced these two as the remaining instances, and the requester asked for them to be fixed so the guidance applies to a generic harness.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Becomes the unchanged-behavior list review checks the result against, so the rewrite cannot quietly alter what either skill claims to do.
+    answer: 'Neither skill changes what it does or when it applies: the trigger conditions and artifacts each description names stay as they are and only the named actor is dropped. The wider blind spot the recorded lesson names — that the frontmatter description sits outside the body content checks generally — is not closed by this change beyond the product-name rule.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Should the check match a list of product names, a structural named-actor sentence form, or both?
+    context: 'The two readings miss different defects: a name list goes stale as new products appear, and a structural form misses a product named outside that sentence shape. Recommended both, because each covers the other failure and the marginal cost over one is a second matcher category and its firing case.'
+    answer: Both. The check carries an unambiguous product-name list and a structural matcher for a capitalised actor followed by a modal in a "use when" style clause, so a new product name is caught by the sentence form and a known product is caught wherever it is written.
+    status: resolved
+    kind: requirement
+    answered_by: human

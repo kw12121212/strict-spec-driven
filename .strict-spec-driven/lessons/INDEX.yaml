@@ -126,6 +126,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/a-hand-built-probe-carries-only-the-structure-it-430c3a.yaml
+    a-line-deleting-control-run-takes-a-required-fie-280dc1:
+      title: A line-deleting control run takes a required field down with the defect on it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-line-deleting-control-run-takes-a-required-fie-280dc1.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

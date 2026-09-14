@@ -5,7 +5,12 @@ exactly one shared-guidance defect that `validate-skills` must reject. They are
 separate from `test/fixtures/policy-skills/`, whose packages exist one per
 CLI-only YAML policy category and are registered as mutation surfaces; the
 packages here instruct no YAML write at all, because the defects they carry are
-about how guidance names skills and how often it states a shared instruction.
+about how guidance names skills, how it words a handoff to one, which agent it
+addresses, and how often it states a shared instruction.
+
+One of them carries its defect inside the frontmatter description rather than in
+the body, written as a folded scalar so the control run can drop the offending
+sentence without leaving the package without a description at all.
 
 `test/suites/entrypoint-and-skills.ts` copies each one into a temporary root
 alongside the whole bundled skill set and runs the shipped `validate-skills` CLI

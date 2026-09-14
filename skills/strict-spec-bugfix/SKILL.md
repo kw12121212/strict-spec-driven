@@ -1,6 +1,6 @@
 ---
 name: strict-spec-bugfix
-description: Fix a known bug through a narrow strict YAML change. Use when Codex has a concrete defect, expected behavior, and enough reproduction evidence to implement a minimal fix with regression coverage; route unclear, unreproduced, or evidence-gathering investigations to strict-spec-brainstorm first, and route open-ended product ideas to strict-spec-brainstorm or strict-spec-propose.
+description: Fix a known bug through a narrow strict YAML change. Use when a concrete defect, expected behavior, and enough reproduction evidence are in hand to implement a minimal fix with regression coverage; route unclear, unreproduced, or evidence-gathering investigations to strict-spec-brainstorm first, and route open-ended product ideas to strict-spec-brainstorm or strict-spec-propose.
 metadata:
   skill_id: strict_spec_bugfix
   author: strict-spec-driven

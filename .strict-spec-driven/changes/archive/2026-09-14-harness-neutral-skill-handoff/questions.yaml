@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: harness-neutral-skill-handoff
+open: []
+resolved:
+  - id: requirement-problem
+    question: What concretely goes wrong today, and for whom?
+    context: Names the failing behavior the change must remove, so scope and the delta spec are written against the real defect rather than a guessed one.
+    answer: Step 6 of skills/strict-roadmap-recommend/SKILL.md tells the agent to invoke strict-spec-auto "via the Skill tool". Some AI agents do not recognize "the Skill tool" as a mechanism they have, so the automatic-continuation instruction reads as unexecutable and the recommend-to-auto handoff stalls at exactly the point it is supposed to run unattended.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Fixes the acceptance evidence for the change, so review can prove the outcome from the shipped guidance and the shipped validation command rather than from intent.
+    answer: The step reads as a plain handoff to the strict-spec-auto skill with no named harness tool, and the shipped skill validation reports a diagnostic naming the file, line, and mechanism when any bundled skill words a skill handoff through a named harness tool again.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: Tests whether the trigger is real, which decides whether the change is worth carrying a spec requirement and a shipped check rather than being left as a note.
+    answer: The requester observed agents failing to act on the phrase, and raised it as the change to make now. Left alone, every roadmap-backed recommendation that reaches step 6 on such an agent stops instead of continuing into implementation.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Becomes the unchanged-behavior list review checks the result against, so the reword cannot quietly drop a guard or retarget the handoff.
+    answer: 'The handoff target and its automatic, no-choice continuation into strict-spec-auto with the populated scaffold stay as they are, and the meaning of the existing guard against running strict-spec-auto as a shell command is preserved rather than dropped: the requester chose to restate it as the repository idiom that loading is whatever the running harness provides.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Is this a one-line wording fix, or does the harness-neutral phrasing become a checked constraint?
+    context: 'The two readings produce materially different work: a single edit, or a spec requirement plus a shipped validation check, a negative fixture, and a technical-standard rule. Recommended the checked constraint, because the repository backs every other authored-guidance policy with a spec requirement and a shipped check, and nothing else would stop the phrasing returning.'
+    answer: 'Both: reword the step and make the harness-neutral handoff a checked constraint, carried as a delta spec requirement for the validation behavior, a delta tech rule for the authoring policy, and a committed non-compliant fixture driven through the shipped validate-skills command.'
+    status: resolved
+    kind: requirement
+    answered_by: human

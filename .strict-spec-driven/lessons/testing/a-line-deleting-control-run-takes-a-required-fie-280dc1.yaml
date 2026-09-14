@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-line-deleting-control-run-takes-a-required-fie-280dc1
+  title: A line-deleting control run takes a required field down with the defect on it
+category: testing
+status: active
+created_at: '2026-09-14T12:09:09.414Z'
+updated_at: '2026-09-14T12:09:09.414Z'
+context: Adding a committed negative fixture for the check that rejects a named AI product in bundled skill guidance, where the defect had to live in the frontmatter description because that is the surface the check exists to cover.
+observation: 'The shared guidance-fixture harness builds its control run by dropping every line that contains the violation text. With the description written as one `description: ...` line, the control run removed the field itself, so the package failed on a missing description instead of validating cleanly, and the pairing proved nothing about the check under test.'
+takeaway: When a negative fixture carries its defect on a required single-line field, write the field as a YAML folded scalar so the offending sentence occupies a line of its own; the line-deleting control run then removes the defect and leaves the field.
+applies_when: Adding a committed negative fixture whose defect sits in frontmatter or any other required single-line field, in a harness whose control run is constructed by deleting the lines containing the violation text.
+occurrences:
+  - origin: harness-generic-skill-descriptions
+    date: '2026-09-14'
+    evidence: test/fixtures/guidance-skills/strict-spec-fixture-named-ai-product/SKILL.md writes description as a `>-` folded scalar so the offending sentence is its own line, and test/suites/entrypoint-and-skills.ts builds the control run by filtering lines containing the violation and requires status 0 with zero diagnostics.

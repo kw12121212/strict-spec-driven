@@ -107,3 +107,31 @@ rules:
         - The requirement-interrogation, review-independence, and task-order guidance checks each return early when the skill declares the matching delegation, and each requirement states that a skill may satisfy it by stating the guidance or by a checked delegation.
       bad:
         - A check that fails a skill for omitting placement guidance the skill has delegated to its owner, so the only way to pass is to restate a procedure the delegating-skills rule forbids restating.
+  skill-handoff-names-no-harness-mechanism:
+    strength: MUST
+    statement: A bundled skill that routes an agent to another skill MUST state a plain skill handoff and MUST NOT name a harness tool as the mechanism for reaching it, because how a named skill is loaded belongs to the running harness rather than to the guidance. An automated check MUST fail, naming the offending skill file, the line, and the named mechanism, when a line that routes the reader to a skill also names such a mechanism. Naming a command-line program on a line that routes the reader to no skill is outside the rule.
+    rationale: A mechanism name means something only on the harness that offers it. An agent running elsewhere reads the step as naming something it does not have, so it stops at the handoff instead of continuing into the work the handoff exists to start, and the automatic parts of the workflow silently become manual.
+    enforcement:
+      method: test
+      detail: The shipped skill validation command scans every bundled SKILL.md and reports a line that routes the reader to a skill while naming a determiner-plus-capitalised-name-plus-tool mechanism, with a committed non-compliant fixture driven through that command and a paired control run.
+    examples:
+      good:
+        - hand off to the `strict-spec-auto` skill and follow its guidance, however the running harness loads it
+      bad:
+        - invoke the `strict-spec-auto` skill via the Skill tool
+    exceptions:
+      - Naming the strict CLI, which is a command-line program a skill runs rather than a mechanism for reaching another skill.
+  skill-guidance-addresses-a-generic-agent:
+    strength: MUST
+    statement: Bundled skill guidance MUST address whichever agent is running it and MUST NOT name a specific AI product, in the body or in the frontmatter description, either as a bare mention or as the actor a use-when clause casts. An automated check MUST fail, naming the offending skill file, the line, and the matched text, when such text is present. A clause whose actor is a condition rather than a capitalised product name is outside the rule.
+    rationale: 'A skill description is the routing text an agent and a human read first when deciding whether the skill applies to them, so a product name there is not a cosmetic detail: an agent that is not the named product can correctly conclude the skill is addressed to someone else and route elsewhere, and the frontmatter is outside every check that reads the body, so the mistake survives a green suite.'
+    enforcement:
+      method: test
+      detail: The shipped skill validation command scans every bundled SKILL.md including its frontmatter for a known product name and for a capitalised actor followed by a modal in a use-when clause, with a committed non-compliant fixture driven through that command and a paired control run.
+    examples:
+      good:
+        - Use when a concrete defect, expected behavior, and enough reproduction evidence are in hand to implement a minimal fix.
+      bad:
+        - Use when Codex has a concrete defect, expected behavior, and enough reproduction evidence to implement a minimal fix.
+    exceptions:
+      - Naming a harness capability generically, such as a capability the running harness may or may not provide, which describes what is available rather than who the guidance is for.

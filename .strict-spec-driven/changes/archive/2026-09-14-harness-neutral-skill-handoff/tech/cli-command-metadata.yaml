@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED:
+    skill-handoff-names-no-harness-mechanism:
+      strength: MUST
+      statement: A bundled skill that routes an agent to another skill MUST state a plain skill handoff and MUST NOT name a harness tool as the mechanism for reaching it, because how a named skill is loaded belongs to the running harness rather than to the guidance. An automated check MUST fail, naming the offending skill file, the line, and the named mechanism, when a line that routes the reader to a skill also names such a mechanism. Naming a command-line program on a line that routes the reader to no skill is outside the rule.
+      rationale: A mechanism name means something only on the harness that offers it. An agent running elsewhere reads the step as naming something it does not have, so it stops at the handoff instead of continuing into the work the handoff exists to start, and the automatic parts of the workflow silently become manual.
+      enforcement:
+        method: test
+        detail: The shipped skill validation command scans every bundled SKILL.md and reports a line that routes the reader to a skill while naming a determiner-plus-capitalised-name-plus-tool mechanism, with a committed non-compliant fixture driven through that command and a paired control run.
+      examples:
+        good:
+          - hand off to the `strict-spec-auto` skill and follow its guidance, however the running harness loads it
+        bad:
+          - invoke the `strict-spec-auto` skill via the Skill tool
+      exceptions:
+        - Naming the strict CLI, which is a command-line program a skill runs rather than a mechanism for reaching another skill.
+  MODIFIED: {}
+  REMOVED: {}

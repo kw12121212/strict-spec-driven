@@ -283,15 +283,15 @@ run `init` from this skill.
    for `strict-spec-auto` or `strict-spec-apply` to surface before
    implementation.
 
-6. **Automatically continue with implementation** — immediately invoke the
+6. **Automatically continue with implementation** — immediately hand off to the
    `/strict-spec-auto <change-name>` skill with the populated change scaffold
    to carry the recommended change through the rest of the strict lifecycle
    (review, apply, verify, archive). If `questions.yaml.open` is non-empty,
    `strict-spec-auto` will surface those questions before implementation
-   begins. Do not offer a choice or ask the user which workflow to use —
-   invoke the `strict-spec-auto` skill via the Skill tool (do not run it as a
-   bash command or raw slash command), and rely on its populated-scaffold
-   resume path instead of regenerating the planning artifacts.
+   begins. Do not offer a choice or ask the user which workflow to use — hand
+   off to `strict-spec-auto` and follow its guidance, however the running
+   harness loads it, relying on its populated-scaffold resume path instead of
+   regenerating the planning artifacts.
 
 ## Rules
 

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: harness-generic-skill-descriptions
+approach:
+  - Rewrite both frontmatter descriptions to the agent-less framing the other twenty-two bundled descriptions already use, so the routing conditions and the artifacts each names survive verbatim and only the actor is removed. The repository supplies the target idiom, so the rewrite is a match against existing evidence rather than a new style decision.
+  - Extend src/skills/handoff.ts, which already owns the harness-portability matching the previous change introduced, with a second matcher for named AI products, and report it through the same validator path so one module answers the question of whether shipped guidance is tied to a particular agent. The whole SKILL.md is scanned, frontmatter included, because the description is exactly where this defect lives and the recorded lesson names it as a surface no content check reads.
+  - 'Carry two matcher categories: an unambiguous product-name list, and a structural clause matching a capitalised actor followed by a modal. Each fires on realistic input in the suite, and a committed non-compliant fixture is driven through the shipped validate-skills command with the paired control run so the reject side is proven by the command an operator actually runs.'
+decisions:
+  two-matcher-categories-rather-than-one:
+    decision: The check carries both a product-name list and a structural named-actor clause matcher.
+    rationale: 'Each covers the failure the other misses: a list cannot name a product that does not exist yet, and a sentence form cannot catch a known product written outside that shape. The observed defect matches both, so either alone would have caught it and left the other route open.'
+  product-list-limited-to-unambiguous-names:
+    decision: The product list carries only names that are not ordinary English words in this repository prose.
+    rationale: Names that double as common words would report correct guidance, and a check that argues with correct text teaches an author to work around it rather than obey it; the structural matcher is what covers the ambiguous names the list deliberately omits.
+  scan-includes-the-frontmatter:
+    decision: The scan reads the whole SKILL.md rather than the body alone.
+    rationale: Both observed instances are in the frontmatter description, so a body-only scan would have reported the bundled set clean while the defect the change exists to fix sat untouched.
+  reuse-the-handoff-module:
+    decision: The product matching joins src/skills/handoff.ts instead of a new module.
+    rationale: Both rules answer one question — whether shipped guidance assumes a particular agent or harness — so splitting them across modules would hide that a future author has two places to look for the same concern.
+alternatives:
+  - option: Rewrite the two descriptions only, with no spec requirement, technical standard, or shipped check.
+    reason: The frontmatter description is outside every content check, which is precisely why the defect survived; without a check the next edit can reintroduce it with the suite still green.
+  - option: Match only the structural named-actor clause and carry no product list.
+    reason: A product named outside that clause — in a heading, a rule, or a parenthetical — would pass, and nothing in the rule limits the defect to one sentence shape.
+  - option: Close the whole frontmatter blind spot by running the body content checks over the description too.
+    reason: The body checks assert headings, command mappings, and required snippets that a one-paragraph description cannot carry, so every bundled skill would fail; that is a separate change with its own contract.
+risks:
+  - The product list goes stale as new agents appear; the structural matcher limits the damage, and a name that starts appearing in guidance is added to the list rather than exempted.
+  - The structural matcher can fire on a capitalised non-product actor in a use-when clause; no bundled skill has one today, and a future false positive is answered by refining the clause rather than exempting a skill.

@@ -4260,7 +4260,7 @@ context.assert(
   "every seeded policy category also has an end-to-end fixture package",
 );
 
-type SkillDiagnostic = { code?: string; path?: string; message?: string; expected?: string };
+type SkillDiagnostic = { code?: string; path?: string; message?: string; expected?: string; actual?: string };
 
 /**
  * Runs the shipped validate-skills against a throwaway root holding the whole bundled skill set
@@ -4396,6 +4396,16 @@ const GUIDANCE_FIXTURES: { pkg: string; code: string; violation: string }[] = [
     code: "skill.delegation.owner.section.missing",
     violation: "- review-independence: owned by `strict-spec-apply`",
   },
+  {
+    pkg: "strict-spec-fixture-harness-specific-handoff",
+    code: "skill.handoff.harness_tool_mechanism",
+    violation: "invoke the `strict-spec-auto` skill via the Skill tool and stop",
+  },
+  {
+    pkg: "strict-spec-fixture-named-ai-product",
+    code: "skill.guidance.named_ai_product",
+    violation: "Use when Codex should read the roadmap rather than addressing whichever agent is running the skill.",
+  },
 ];
 
 // The manifest is hand-written, so it is checked against the directory rather than trusted: a
@@ -4438,6 +4448,188 @@ for (const { pkg, code, violation } of GUIDANCE_FIXTURES) {
     `status ${compliant.status}; ${describeDiagnostics(compliant.diagnostics)}`,
   );
 }
+
+// --- Harness-neutral skill handoffs ------------------------------------------------------------
+// The fixture above proves the shipped command reports the defect. It cannot prove the accept side:
+// a fixture only ever carries the phrasing that must fail, so the matcher is fired here on the
+// realistic forms it must and must not report, and the bundled skill that carried the defect is read
+// back to confirm the reword left nothing behind.
+
+type HandoffModule = {
+  findHarnessMechanismHandoffs: (text: string) => Array<{ mechanism: string; line: number }>;
+  findNamedAiProducts: (
+    text: string,
+  ) => Array<{ text: string; category: "named-product" | "product-actor-clause"; line: number }>;
+};
+const handoffModule = await loadDistModule<HandoffModule>("skills/handoff.js");
+
+// The guidance-fixture loop above asserts the diagnostic code, which leaves the rest of the
+// requirement unproven: a diagnostic that named the file alone, or named some other phrase as the
+// offender, would satisfy it. The same fixture is therefore re-run here for the line and the
+// mechanism, both derived from the fixture text rather than restated.
+const handoffFixtureText = readFileSync(
+  path.join(GUIDANCE_FIXTURE_ROOT, "strict-spec-fixture-harness-specific-handoff", "SKILL.md"),
+  "utf8",
+);
+const handoffMechanismLine =
+  handoffFixtureText.slice(0, handoffFixtureText.indexOf("the Skill tool")).split("\n").length;
+const handoffFixtureRun = validateSkillsOverPackage(
+  "strict-spec-fixture-harness-specific-handoff",
+  handoffFixtureText,
+);
+context.assert(
+  handoffFixtureRun.diagnostics.some(
+    (diagnostic) =>
+      diagnostic.path === `skills/strict-spec-fixture-harness-specific-handoff/SKILL.md:${handoffMechanismLine}`
+      && diagnostic.expected?.includes("plain skill handoff") === true,
+  ),
+  "shipped validate-skills names the offending line and the handoff it expected instead",
+  describeDiagnostics(handoffFixtureRun.diagnostics),
+);
+context.assert(
+  handoffFixtureRun.diagnostics.some((diagnostic) => diagnostic.message?.includes("'the Skill tool'") === true),
+  "shipped validate-skills names the mechanism the guidance reached the skill through",
+  JSON.stringify(handoffFixtureRun.diagnostics),
+);
+
+// The accept side of the requirement, driven through the same shipped command: a program named in a
+// passage that routes the reader to no skill is not a handoff, and reporting it would make the check
+// argue with correct guidance rather than catch the defect.
+const programOutsideHandoff = validateSkillsOverPackage(
+  "strict-spec-fixture-harness-specific-handoff",
+  handoffFixtureText.split("\n").filter((line) => !line.includes("via the Skill tool")).join("\n")
+    + "\nRender the archived report with the Pandoc tool before publishing it.\n",
+);
+context.assert(
+  programOutsideHandoff.status === 0 && programOutsideHandoff.diagnostics.length === 0,
+  "shipped validate-skills accepts a package naming a program in a passage that routes the reader to no skill",
+  `status ${programOutsideHandoff.status}; ${describeDiagnostics(programOutsideHandoff.diagnostics)}`,
+);
+
+// Wrapped across lines on purpose: a step long enough to name a mechanism is wrapped in every
+// bundled skill, so a line-at-a-time matcher would find nothing and report the guidance as clean.
+const wrappedMechanismHandoff = [
+  "1. **Continue with implementation** — when the scaffold is populated, invoke the",
+  "   `strict-spec-auto` skill via the Skill",
+  "   tool and stop.",
+].join("\n");
+const wrappedFindings = handoffModule.findHarnessMechanismHandoffs(wrappedMechanismHandoff);
+context.assert(
+  wrappedFindings.length === 1
+    && wrappedFindings[0]?.mechanism === "the Skill tool"
+    && wrappedFindings[0]?.line === 2,
+  "the handoff matcher reports a mechanism the author wrapped across lines, naming the whole phrase and the line it starts on",
+  JSON.stringify(wrappedFindings),
+);
+
+context.assert(
+  handoffModule.findHarnessMechanismHandoffs(
+    "Render the archived report with the Pandoc tool before publishing it.",
+  ).length === 0,
+  "naming a program in guidance that routes the reader to no skill is not reported",
+);
+
+context.assert(
+  handoffModule.findHarnessMechanismHandoffs(
+    "This skill runs every mutation through the CLI tool rather than editing the YAML by hand.",
+  ).length === 0,
+  "naming the CLI beside the word skill is not reported as a harness mechanism",
+);
+
+const recommendSkillText = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
+context.assert(
+  handoffModule.findHarnessMechanismHandoffs(recommendSkillText).length === 0,
+  "the roadmap recommend skill names no harness mechanism in its handoff to strict-spec-auto",
+  JSON.stringify(handoffModule.findHarnessMechanismHandoffs(recommendSkillText)),
+);
+context.assert(
+  recommendSkillText.replace(/\s+/g, " ").includes(
+    "hand off to `strict-spec-auto` and follow its guidance, however the running harness loads it",
+  ),
+  "the roadmap recommend skill still states the automatic continuation as a plain skill handoff",
+);
+
+// --- Guidance that names one AI product ---------------------------------------------------------
+// The fixture carries its defect in the frontmatter description, which is the surface that made this
+// check necessary: nothing else reads it, so a product name there survives a clean validation run.
+// The shipped diagnostic is therefore checked for the line and the matched name, and each matcher
+// category is fired separately, since the fixture only ever exercises the one it carries.
+
+const productFixtureText = readFileSync(
+  path.join(GUIDANCE_FIXTURE_ROOT, "strict-spec-fixture-named-ai-product", "SKILL.md"),
+  "utf8",
+);
+const productNameLine = productFixtureText.slice(0, productFixtureText.indexOf("Codex")).split("\n").length;
+const productFixtureRun = validateSkillsOverPackage("strict-spec-fixture-named-ai-product", productFixtureText);
+context.assert(
+  productFixtureRun.diagnostics.some(
+    (diagnostic) =>
+      diagnostic.path === `skills/strict-spec-fixture-named-ai-product/SKILL.md:${productNameLine}`
+      && diagnostic.actual === "Codex",
+  ),
+  "shipped validate-skills names the frontmatter line and the product the description addressed",
+  describeDiagnostics(productFixtureRun.diagnostics),
+);
+
+// The list covers a known name wherever it appears; the clause covers the product it cannot know
+// about yet. Both are fired here because a fixture carries one defect and so exercises one category.
+const knownProductFindings = handoffModule.findNamedAiProducts(
+  "description: Fix a known bug. Use when Codex has a concrete defect and reproduction evidence.",
+);
+context.assert(
+  knownProductFindings.length === 1
+    && knownProductFindings[0]?.category === "named-product"
+    && knownProductFindings[0]?.text === "Codex",
+  "a product the list names is reported once, as a named product rather than also as a clause",
+  JSON.stringify(knownProductFindings),
+);
+
+const unknownProductFindings = handoffModule.findNamedAiProducts(
+  "Fix a known bug. Use when Fablebot has a concrete defect and reproduction evidence.",
+);
+context.assert(
+  unknownProductFindings.length === 1
+    && unknownProductFindings[0]?.category === "product-actor-clause"
+    && unknownProductFindings[0]?.text === "Use when Fablebot has",
+  "an actor the product list has never heard of is still reported through the routing clause",
+  JSON.stringify(unknownProductFindings),
+);
+
+// The accept side: every shipped description words this clause around a condition, and reporting
+// those would make the check argue with the guidance it is supposed to protect.
+context.assert(
+  handoffModule.findNamedAiProducts(
+    "Propose a new strict change. Use when the request names a milestone, and stop at proposal validation.",
+  ).length === 0,
+  "a use-when clause whose subject is a condition rather than a named actor is not reported",
+);
+context.assert(
+  handoffModule.findNamedAiProducts(
+    "Check that scope, task coverage, and delta tech use when applicable are all decision-ready.",
+  ).length === 0,
+  "the unrelated phrase 'use when applicable' in bundled guidance is not reported",
+);
+
+for (const skillName of ["strict-spec-propose", "strict-spec-bugfix"]) {
+  const text = readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8");
+  context.assert(
+    handoffModule.findNamedAiProducts(text).length === 0,
+    `${skillName} addresses whichever agent runs it rather than a named product`,
+    JSON.stringify(handoffModule.findNamedAiProducts(text)),
+  );
+}
+context.assert(
+  readFileSync(path.join(ROOT, "skills", "strict-spec-bugfix", "SKILL.md"), "utf8").includes(
+    "Use when a concrete defect, expected behavior, and enough reproduction evidence are in hand",
+  ),
+  "the bugfix description still states the same routing conditions after the actor was dropped",
+);
+context.assert(
+  readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8").includes(
+    "Use to scaffold proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and optional delta artifacts",
+  ),
+  "the propose description still names the same artifacts after the actor was dropped",
+);
 
 // --- Delegated procedures ----------------------------------------------------------------------
 // The bundled set validates cleanly with delegations in place, which is evidence about the set and

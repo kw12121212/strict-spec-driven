@@ -3133,3 +3133,35 @@ requirements:
         - GIVEN: a new bundled skill declares a delegation and no list of delegations is updated
         - WHEN: validate-skills runs
         - THEN: the new delegation is resolved and checked, because the check derives its scope from the skills themselves
+  skill-handoff-states-no-harness-mechanism:
+    strength: MUST
+    statement: Skill packaging validation MUST report a diagnostic when a bundled skill routes an agent to another skill through a named harness tool instead of stating a plain skill handoff, and the diagnostic MUST name the offending SKILL.md path, the line the phrasing appears on, and the named mechanism; the validation command MUST exit non-zero when any such phrasing is present, so a project that runs only the shipped command observes the failure without depending on this repository regression suite. Guidance that names a command-line program on a line that routes the reader to no skill MUST NOT be reported, because the rule governs how a handoff is worded rather than every mention of a program.
+    scenarios:
+      named-harness-mechanism-fails-validation:
+        - GIVEN: a bundled skill whose guidance tells the agent to reach another skill through a named harness tool
+        - WHEN: the shipped skill validation command runs over the skill set
+        - THEN: the command exits non-zero and reports a diagnostic naming that SKILL.md path, the line the phrasing appears on, and the named mechanism
+      plain-skill-handoff-passes-validation:
+        - GIVEN: the same bundled skill with the handoff stated as a plain skill handoff that leaves loading to the running harness
+        - WHEN: the shipped skill validation command runs over the skill set
+        - THEN: the command exits zero and reports no harness-mechanism diagnostic for that skill
+      naming-a-program-outside-a-handoff-is-not-reported:
+        - GIVEN: bundled skill guidance that names a command-line program on a line that routes the reader to no skill
+        - WHEN: the shipped skill validation command runs over the skill set
+        - THEN: no harness-mechanism diagnostic is reported for that line
+  skill-guidance-names-no-ai-product:
+    strength: MUST
+    statement: Skill packaging validation MUST report a diagnostic when bundled skill guidance names a specific AI product or casts a named product as the actor the guidance addresses, and the diagnostic MUST name the offending SKILL.md path, the line the text appears on, and the matched text; the validation command MUST exit non-zero when any such text is present, so a project that runs only the shipped command observes the failure without depending on this repository regression suite. The scan MUST read the whole SKILL.md including its frontmatter, because a skill description is the routing text a reader consults first and sits outside the checks that read the body.
+    scenarios:
+      product-named-in-a-skill-description-fails-validation:
+        - GIVEN: a bundled skill whose frontmatter description names a specific AI product as the actor the skill is for
+        - WHEN: the shipped skill validation command runs over the skill set
+        - THEN: the command exits non-zero and reports a diagnostic naming that SKILL.md path, the line the text appears on, and the matched text
+      agent-less-description-passes-validation:
+        - GIVEN: the same bundled skill with its description stating the same routing conditions without an agent subject
+        - WHEN: the shipped skill validation command runs over the skill set
+        - THEN: the command exits zero and reports no product-name diagnostic for that skill
+      unnamed-actor-in-a-use-when-clause-is-not-reported:
+        - GIVEN: bundled skill guidance whose use-when clause names a condition rather than a capitalised actor
+        - WHEN: the shipped skill validation command runs over the skill set
+        - THEN: no product-name diagnostic is reported for that clause
