@@ -33950,6 +33950,7 @@ var REVIEW_INDEPENDENCE_SNIPPETS = [
 ];
 var DELEGATED_PROCEDURES_HEADING = "## Delegated Procedures";
 var DELEGATION_DECLARATION_PATTERN = /^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+`(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)`/gm;
+var delegationDeclaration = (obligation, owner) => `${obligation}: owned by \`${owner}\``;
 var DELEGABLE_OBLIGATIONS = {
   "requirement-interrogation": {
     element: "the requirement-interrogation guidance",
@@ -34259,6 +34260,12 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       BUGFIX_REGRESSION_TEST_SNIPPET,
       BUGFIX_MINIMAL_FIX_SNIPPET,
       BUGFIX_UNCLEAR_ISSUE_HANDOFF_SNIPPET,
+      delegationDeclaration("requirement-interrogation", "strict-spec-propose"),
+      delegationDeclaration("change-intake-gate", "strict-spec-propose"),
+      delegationDeclaration("spec-artifact-routing", "strict-spec-propose"),
+      delegationDeclaration("delta-artifact-authoring", "strict-spec-propose"),
+      delegationDeclaration("implementation-order", "strict-spec-apply"),
+      delegationDeclaration("lesson-outcome", "strict-spec-review"),
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",

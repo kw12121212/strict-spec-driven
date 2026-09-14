@@ -1,0 +1,60 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: delegate-bugfix-phase-procedures
+sections:
+  Implementation:
+    audit-deleted-guidance:
+      text: Audit every sentence of skills/strict-spec-bugfix/SKILL.md proposed for deletion, resolving each against the named owning skill's wording and against the owning CLI command's help, and record each item as covered-by-owner, covered-by-command-help, or retained-as-increment before any deletion is made.
+      status: complete
+    declare-delegations:
+      text: 'Add a Delegated Procedures section to skills/strict-spec-bugfix/SKILL.md declaring, for each lifecycle procedure the audit found an owner for, a line of the form ''<obligation-id>: owned by `<skill-name>`'', restricted to obligation ids that DELEGABLE_OBLIGATIONS recognizes and to owners whose content the delegation-target check resolves.'
+      status: complete
+    delete-copied-sections:
+      text: Delete the Requirement Interrogation, Change Intake Question Gate, and Spec and Technical Artifact Routing sections from skills/strict-spec-bugfix/SKILL.md, relocating each bugfix-specific increment those sections carried into the step or rule that needs it.
+      status: complete
+    delete-steps-restatement:
+      text: Remove the sentences in Steps 8 through 13 of skills/strict-spec-bugfix/SKILL.md that restate the apply, review, lesson-outcome, and archive procedures their owning skills state, keeping the bugfix-specific discipline and the regression-evidence carve-out stated inline.
+      status: complete
+    update-expectation-registry:
+      text: Update the strict-spec-bugfix entry in CORE_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts so each required snippet the delegation now covers is removed, and every snippet that remains is one bugfix still states.
+      status: complete
+    rebuild-dist:
+      text: Run bun run build so dist/ reflects the edited src/skills/model.ts before any dist-based check or suite run.
+      status: complete
+    update-suite-assertions:
+      text: Update test/suites/entrypoint-and-skills.ts so the bugfix assertions for delegated content are replaced by delegation-resolution assertions naming the owner, following the pattern the auto delegation already uses, and refresh the per-skill line budget comment with a fresh measurement.
+      status: complete
+    rerender-generated-docs:
+      text: Re-render any generated document whose source this change wrote, including ARCHITECTURE.md when its strict source changed, so no generated output is left stale.
+      status: complete
+  Testing:
+    lint:
+      text: Run the project lint command and confirm it exits zero.
+      status: complete
+      command: bun run lint
+    validate-skills:
+      text: Run the shipped skill validation command and confirm it reports 24 packages with zero diagnostics, so every declared bugfix delegation resolves against its owner and no restatement remains.
+      status: complete
+      command: bun run validate-skills
+    delegation-negative-case:
+      text: Prove the delegation check still fails for bugfix by temporarily restoring one restated element and one unresolvable owner in a throwaway copy, observing the skill.delegation.restated and owner-element diagnostics name strict-spec-bugfix, then discarding the copy.
+      status: complete
+      command: bun run validate-skills
+    full-regression:
+      text: Run the complete project regression suite with the coverage gate and confirm it exits zero.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-verify:
+      text: Run strict verification for this change and confirm it reports no blockers.
+      status: complete
+      command: strict-spec-cli verify delegate-bugfix-phase-procedures
+    archive-readiness:
+      text: 'Confirm the change is archive-ready: the delta spec merges into contracts-yaml-artifacts, the reduction is measured against the recorded 393-line baseline, and review evidence is complete.'
+      status: complete
+      command: strict-spec-cli ready delegate-bugfix-phase-procedures
+testing_gates:
+  validation_task: validate-skills
+  unit_test_task: full-regression

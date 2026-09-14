@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+operations:
+  ADDED: {}
+  MODIFIED:
+    proposal-skills-change-intake-question-gate:
+      strength: MUST
+      statement: Proposal-oriented skill guidance MUST run a required evidence-backed change-intake pass before implementation or proposal handoff, answer recoverable checklist items from project evidence, write missing required answers to questions.yaml.open with stable language-neutral ids and preferred_human_language human-facing text, stop while open questions remain, and resolve answered items into questions.yaml.resolved before implementation continues. A skill MAY satisfy this either by stating that guidance itself or by declaring a checked delegation to the skill that owns it; a delegation is accepted only when the delegation-target check confirms the named owning skill itself states every element, and delegation does not remove the obligation that the gate runs.
+      scenarios:
+        proposal-skills-answer-before-asking:
+          - GIVEN: a standalone, automatic, bugfix, or brainstorm proposal skill has enough request or repository evidence to answer a required intake checklist item
+          - WHEN: the skill prepares proposal artifacts or implementation handoff
+          - THEN: the guidance tells the agent to use the evidence instead of asking the human for that item, whether that guidance is stated in the skill or reached through its declared delegation
+        proposal-skills-block-on-open-questions:
+          - GIVEN: a required intake checklist answer remains absent after focused discovery
+          - WHEN: the skill records the missing answer
+          - THEN: the guidance tells the agent to write it to questions.yaml.open with context, impact, and a recommendation or options, and to stop before implementation until it is resolved
+        delegating-skill-reaches-the-gate-through-its-owner:
+          - GIVEN: a proposal-oriented skill states no change-intake gate of its own and declares that the gate is owned by a skill whose guidance states every element
+          - WHEN: an agent follows the delegating skill toward implementation handoff
+          - THEN: the agent reaches the same gate through the named owning skill, and the delegating skill is not required to restate it
+        undelegated-omission-remains-a-defect:
+          - GIVEN: a proposal-oriented skill neither states the change-intake gate nor names an owning skill for it
+          - WHEN: its guidance is inspected against this requirement
+          - THEN: the omission is a violation, because dropping the gate without a delegation removes the obligation rather than relocating it
+  REMOVED: {}

@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: delegate-bugfix-phase-procedures
+  status: proposed
+summary:
+  what:
+    - Rewrite skills/strict-spec-bugfix/SKILL.md as a bugfix-specific spine that declares checked delegations for the lifecycle procedures other skills own, instead of restating them inline.
+    - Delete the three copied sections — Requirement Interrogation, Change Intake Question Gate, and Spec and Technical Artifact Routing — and the Steps 8-13 sentences that restate apply, review, and archive procedure, retaining every bugfix-specific increment verbatim.
+    - Amend the proposal-skills-change-intake-question-gate requirement so a proposal-oriented skill may satisfy it either by stating the gate or by a checked delegation to the skill that owns it, matching the wording the interrogation requirement already carries.
+    - Update the skill content expectation registry and the bundled-skill suite assertions so the delegated content is verified at its owner rather than in bugfix, with no governed element dropping out of enforcement.
+  why:
+    - 'The requester''s stated pain is resident context: strict-spec-bugfix is 393 lines and, like strict-spec-auto before it, its whole body stays resident through the implementation and review phases where the window is needed for reading code.'
+    - strict-spec-bugfix is the largest delegation-capable bundled skill at roughly 22KB and the only one besides auto that spans the full lifecycle from reproduction to archive.
+    - Its Requirement Interrogation, Change Intake Question Gate, and Spec and Technical Artifact Routing sections are copies of strict-spec-propose's, differing by a handful of bugfix-specific lines, so the same procedure now has two uncoordinated statements that have already begun to diverge.
+    - The prior change checked-skill-delegation built and proved the delegation machinery and the delegating-skills-do-not-restate-the-delegated-procedure rule, and explicitly scoped bugfix out; the mechanism is in place and needs no new infrastructure.
+scope:
+  in:
+    - 'skills/strict-spec-bugfix/SKILL.md: add a Delegated Procedures section, delete the restated content, and keep bugfix-specific increments in bugfix.'
+    - A per-item equivalence audit over every deleted sentence, resolving each against the owning skill and against CLI command help before it is deleted, so a sentence stated nowhere else is retained rather than lost.
+    - 'src/skills/model.ts: adjust the strict-spec-bugfix entry in the skill content expectation registry for the snippets a declared delegation now covers.'
+    - A delta spec amending proposal-skills-change-intake-question-gate in contracts-yaml-artifacts to accept a checked delegation, with a scenario for the accepted delegation and one for the missing-delegation rejection.
+    - 'test/suites/entrypoint-and-skills.ts: move the bugfix assertions for delegated content to the delegation-resolution path, and refresh the per-skill line budget comment measurements.'
+  out:
+    - Editing skills/strict-spec-propose, strict-spec-apply, strict-spec-review, or strict-spec-archive; a bugfix increment the owner does not state is retained in bugfix rather than merged into the owner.
+    - Reducing strict-spec-brainstorm, strict-spec-propose, or strict-roadmap-recommend, which carry the same copied sections; this change reduces one skill.
+    - Progressive disclosure through references/*.md files; the skill packaging shape is unchanged.
+    - Adding, removing, renaming, or merging any skill entry point; the bundled skill count stays at 24.
+    - Adding or changing any CLI command, flag, or output key.
+unchanged_behavior:
+  - strict-spec-bugfix's frontmatter description, its applicability boundary, and every stop point it currently declares.
+  - 'The bugfix-specific discipline, stated verbatim in bugfix: reproduce before fixing, the smallest production change, regression evidence that fails before the fix and passes after it, and no opportunistic refactoring of adjacent code.'
+  - 'The enforced force of every requirement touched: a checked delegation replaces inline statement as the enforcement point rather than removing enforcement, and no governed element becomes unchecked.'
+  - The regression-evidence carve-out stays stated inline in bugfix at its own regression step, because that is where the rerun decision is made and no delegable obligation covers it.
+  - Behavior of strict-spec-propose, strict-spec-apply, strict-spec-review, and strict-spec-archive when invoked directly.

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: delegate-bugfix-phase-procedures
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: Determines whether the target is the single largest resident skill or the widest duplication sweep.
+    answer: Resident context. strict-spec-bugfix's whole 393-line body stays in the window for the entire bugfix lifecycle, including the implementation and review phases where the budget is needed for reading code. The requester chose this over the duplication-drift framing when both were offered.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Fixes the depth of the reduction and the packaging shape.
+    answer: skills/strict-spec-bugfix/SKILL.md drops from 393 lines to roughly 280 by converting the three copied sections and the Steps 8-13 restatement of apply, review, and archive procedure into declared delegations, with bugfix-specific increments retained and the packaging shape unchanged. The requester chose this over a shallower three-section-only pass and over progressive disclosure into references/*.md.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: Establishes whether the change is opportunistic or unblocked by prior work.
+    answer: The requester asked to continue reducing skills and to pick the highest-benefit target. The prior change checked-skill-delegation built and proved the delegation machinery and the no-restatement rule, and listed bugfix among the skills it deliberately left for a later change.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Bounds the deletion so the audit has a fixed set of protected content.
+    answer: 'Four items confirmed: the bugfix-specific discipline stays verbatim in bugfix (reproduce before fixing, minimal fix, before/after regression evidence, no adjacent refactoring); the entry point and every existing stop point stay unchanged, the skill count stays 24, and no CLI command changes; the owner skills propose, apply, review, and archive are not edited, so an increment the owner does not state is retained in bugfix rather than merged into the owner.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of continue reducing skills, pick the highest-benefit one is intended?
+    context: The request could mean one skill or a sweep across every skill carrying the copied sections.
+    answer: 'One skill, selected by resident-context cost: strict-spec-bugfix. Reduction means checked delegation to the owning skill, not deletion of behavior. The requester explicitly accepted the cost that running /strict-spec-bugfix standalone now resolves the delegated sections from strict-spec-propose at the step that needs them, which is the same mechanism strict-spec-auto already uses.'
+    status: resolved
+    kind: requirement
+    answered_by: human

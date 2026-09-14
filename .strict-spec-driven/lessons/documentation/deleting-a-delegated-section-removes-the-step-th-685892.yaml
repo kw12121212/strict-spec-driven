@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: deleting-a-delegated-section-removes-the-step-th-685892
+  title: Deleting a delegated section removes the step that invoked it, not just the text
+category: documentation
+status: active
+created_at: '2026-09-14T05:01:18.635Z'
+updated_at: '2026-09-14T05:01:18.635Z'
+context: Rewriting skills/strict-spec-bugfix/SKILL.md to delegate six lifecycle procedures to strict-spec-propose, strict-spec-apply, and strict-spec-review. Every deleted sentence was resolved against the owning skill and the owning command's help before deletion, and validate-skills reported 24 packages with zero diagnostics afterwards.
+observation: Two gaps survived both the content audit and the shipped checks. The Requirement Interrogation section had been the only place in the file that said to run it — it opened with 'Run this before the change-intake checklist below' — so deleting it left a skill whose twelve steps never reached the interrogation, while every check stayed green because the owner states the content and the delegation resolves. A delegation list names who owns a procedure, not when it runs. Separately, the restatement check only fires on a delegation that is declared, and most obligations have no per-skill content check behind them, so deleting the declaration and the text in the same edit passes validation for change-intake-gate, spec-artifact-routing, lesson-outcome and the rest; only requirement-interrogation and review-independence have a content check with a delegation escape in front of it.
+takeaway: When a delegation replaces a section, audit two things the content audit does not cover. First, confirm some remaining step still names the obligation, so a reader walking the steps reaches the delegated procedure rather than only learning who owns it. Second, confirm that dropping the declaration itself fails a shipped check — pin each declaration as required content in the expectation registry, and derive the pinned set from the registry and the declared set by parsing the skill so a declaration added without a pin fails as loudly as a pin whose declaration was removed. A hand-written list of the pinned obligations only catches the second direction.
+applies_when: Converting a section of a skill, prompt, or shared guidance file into a delegation or pointer to another file, especially when the deleted section was also the only place instructing that the procedure be performed, or when the delegated obligation has no per-skill content check of its own.
+occurrences:
+  - origin: delegate-bugfix-phase-procedures
+    date: '2026-09-14'
+    evidence: The deleted Requirement Interrogation section was the only invocation site; the gap was found during review and closed by naming the delegated requirement-interrogation, change-intake-gate, spec-artifact-routing, and delta-artifact-authoring procedures in steps 2 and 5. The unpinned-declaration hole was closed by adding delegationDeclaration() pins for all six obligations to the strict-spec-bugfix entry in CORE_STRICT_SKILL_EXPECTATIONS, verified by removing one declaration and observing skill.core.required_snippet.missing from the shipped validate-skills command.

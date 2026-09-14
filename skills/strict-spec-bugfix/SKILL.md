@@ -10,6 +10,12 @@ metadata:
 
 You are fixing a known bug through the strict workflow.
 
+This skill owns the bugfix-specific discipline — confirming the issue is a known
+bug, reproducing it before touching production code, keeping the fix minimal,
+and proving it with before-and-after regression evidence. The general workflow
+procedures it sits on top of are owned by the skills listed under Delegated
+Procedures below, and this skill does not restate them.
+
 ## This Skill's Commands
 
 If you cannot remember the exact command used by this skill, look it up here
@@ -80,123 +86,27 @@ the user's common human language, not a programming language — for all
 user-facing and generated operator-facing text, unless that file is absent or
 the active user message asks otherwise.
 
-## Requirement Interrogation
+## Delegated Procedures
 
-Run this before the change-intake checklist below. For a bugfix the need is the
-defect's real impact and the outcome the requester expects, not the patch you
-already have in mind. That checklist interrogates
-the proposed solution — scope, files, tests, rules. This one interrogates the
-need, and it comes first because a well-scoped change built against a misread
-need is still the wrong change.
+Each procedure below is owned by the skill named beside it. That skill's
+guidance is authoritative for it, and this skill does not restate it. Follow the
+owning skill's procedure at the step that needs it; how it is loaded is whatever
+the running harness provides.
 
-Requirement answers are **never answered from repository evidence**. Code shows
-what the system does; it cannot show what a person wants. Only the requester's
-own words, or replayed roadmap planned-change and milestone detail, may answer
-these. What the requester already said in the active request counts — never
-re-ask something they have already told you.
+- requirement-interrogation: owned by `strict-spec-propose`
+- change-intake-gate: owned by `strict-spec-propose`
+- spec-artifact-routing: owned by `strict-spec-propose`
+- delta-artifact-authoring: owned by `strict-spec-propose`
+- implementation-order: owned by `strict-spec-apply`
+- lesson-outcome: owned by `strict-spec-review`
 
-Authoring `questions.yaml` seeds these five as open questions, so a fresh change starts blocked:
+Delegation moves where a procedure is stated, never whether it runs. Every gate
+this skill declares below still binds, and a delegated procedure that cannot be
+followed stops the run exactly as an inline one would.
 
-- `requirement-problem` — what is concretely going wrong today, and for whom
-- `requirement-outcome` — what observable difference proves it is solved
-- `requirement-trigger` — why now, what forced this
-- `requirement-non-goals` — what must explicitly not change
-- `requirement-interpretation` — which reading is intended, where more than one exists
-
-Resolve each with:
-
-```bash
-strict-spec-cli generate <change-name> questions --resolve <id> --answer "..." --answered-by human
-```
-
-### How to ask
-
-Asking these badly collects five restated solutions and passes the gate, so the
-technique is part of the requirement:
-
-- **Ask one question at a time**, and let each answer shape the next. A batch of
-  five questions returns five shallow answers.
-- **Carry a concrete guess into every question** rather than posing a blank
-  prompt. People correct a wrong specific statement far more readily than they
-  fill in a blank. Where the harness provides `AskUserQuestion`, use it with two
-  to four concrete options so you must commit to a guess.
-- **Ask about the last concrete occurrence**, not the general case. Episodic
-  memory produces facts; general questions produce theories, and people theorize
-  badly about their own workflows.
-- **Reject an answer that names a solution** instead of a problem. If it names a
-  button, field, page, or endpoint, ask what they would do next once that
-  existed, until the answer is a behavior.
-- **Ask what happens if nothing is done.** This tests whether the trigger is real.
-- **Replay a deliberately imperfect summary** and let them correct it. A
-  correction carries more information than agreement.
-
-### Explain before you ask
-
-Never assume the requester knows how to answer. Before posing a question,
-**explain why the question matters** and what a sufficient answer contains,
-defining any workflow vocabulary — problem versus solution, observable outcome,
-non-goal — in plain terms. The requester is the domain expert; you are the
-workflow expert, so the vocabulary is your job to explain.
-
-When an answer cannot be used yet, **state the reason for the pushback** and
-supply the missing criterion. Never silently re-ask the same question: that
-reads as not having listened, and it pushes the requester into repeating
-themselves rather than adding what is missing.
-
-When interrogation cannot land — the requester will not engage, or the answer
-stays a restated solution — record `--answered-by assumption` rather than
-inventing a plausible answer. An assumption blocks `ready` and forces an
-explicit human decision; a fabricated answer passes silently and is worse.
-
-## Change Intake Question Gate
-
-Before implementation handoff, perform the required plain change-intake
-checklist from the strict workflow contract. First use project evidence to
-answer every recoverable item: `.strict-spec-driven/config.yaml`, relevant
-strict specs, technical standards, existing change artifacts, the
-implementation and test files the change touches, `git status`, and focused code
-search for the affected behavior.
-
-- Do not ask the human for information already recoverable from the request or
-  repository evidence.
-- Do ask when a required answer remains absent after discovery, even if you have
-  a plausible guess.
-- Record missing required answers in `questions.yaml.open` with stable
-  language-neutral ids, `preferred_human_language` question text, concrete
-  context that includes impact analysis and a recommended answer or options.
-  The `questions` generator has no `--impact` or `--recommendation` flags; put
-  those details in the `--context` text.
-- Stop before implementation while `questions.yaml.open` is non-empty.
-- When the user answers, resolve the item into `questions.yaml.resolved` before
-  continuing implementation or automatic workflow execution.
-
-Keep the proposal checkpoint focused on what changes, what stays the same,
-where the work likely lives, how it will be tested, and which technical rules
-apply.
-
-## Spec and Technical Artifact Routing
-
-A bugfix may legitimately have no delta spec when it fixes a purely internal
-defect with no observable spec impact. Do not invent a `delta-spec` just to
-satisfy artifact shape.
-
-- Create `delta-spec` artifacts when the bugfix changes user-observable
-  behavior, corrects behavior covered by a main spec, or clarifies an intended
-  requirement that was missing from the specs.
-- For purely internal defects in scripts, validation flows, archive behavior,
-  tooling, repository maintenance, or skill guidance, leave `specs/` empty when
-  no main spec requirement changes.
-- If the bugfix alters, adds, or retires an engineering rule, create a
-  `delta-tech` artifact for the affected standard. If it only complies with
-  existing standards, leave `tech/` absent too.
-- One requirement can include multiple scenario groups by repeating
-  `--scenario`. A later compatible call for the same
-  operation, requirement id, strength, and statement appends new scenario ids
-  and remains idempotent for equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
-- A technical-only bugfix still needs complete workflow tasks: reproduction
-  evidence, script or tooling edits when applicable, focused tests, validation
-  commands, `ready`/`verify` checks, and archive-readiness or archive-merge
-  checks when the fix affects artifacts consumed by archive.
+What a bugfix adds to those procedures stays here, at the step that needs it.
+The one that shapes every later step: interrogate the defect's real impact and
+the outcome the requester expects, not the patch you already have in mind.
 
 ## Steps
 
@@ -230,8 +140,8 @@ run `init` from this skill.
      against the failing area. Lessons carry no MUST or SHOULD strength; treat
      them as warnings worth checking, and weight a lesson with several
      occurrences because it has bitten this project repeatedly.
-   Use this evidence for the change-intake question gate before asking the
-   human or continuing into implementation.
+   Use this evidence to run the delegated change-intake-gate procedure before
+   asking the human or continuing into implementation.
 
 3. **Reproduce before fixing** — prove the failure before making production
    code changes. Reading code and inferring a likely defect is not enough to
@@ -276,13 +186,16 @@ run `init` from this skill.
      existing pending work is anchored rather than appended, and naming an
      existing task id with an anchor moves it there while preserving its
      `status` and `command`.
-   - `questions.yaml`: leave `open: []` only when reproduction, scope, expected
-     behavior, and regression validation are all clear. Otherwise record the
-     missing decision and stop before implementation.
-   - delta specs: prefer `MODIFIED` operations when the bug corrects an existing
-     requirement; use `ADDED` only when the expected behavior is not already
-     represented. Leave `specs/` empty only for a purely internal defect with no
-     observable spec impact.
+   - `questions.yaml`: resolve the seeded requirement questions through the
+     delegated requirement-interrogation procedure. Leave `open: []` only when
+     reproduction, scope, expected behavior, and regression validation are all
+     clear. Otherwise record the missing decision and stop before
+     implementation.
+   - delta specs: route them with the delegated spec-artifact-routing and
+     delta-artifact-authoring procedures, and prefer `MODIFIED` operations when
+     the bug corrects an existing requirement; use `ADDED` only when the
+     expected behavior is not already represented. Leave `specs/` empty only for
+     a purely internal defect with no observable spec impact.
 
 6. **Run the proposal checkpoint** — before implementation, semantically check
    every generated or edited file under `.strict-spec-driven/changes/<change-name>/`
@@ -305,38 +218,28 @@ run `init` from this skill.
    expected. If `questions.yaml.open` is not empty, explain each blocker,
    recommend concrete answers or options with tradeoffs, and stop.
 
-8. **Implement the minimal fix** — work through `tasks.yaml` in order.
+8. **Implement the minimal fix** — follow the delegated implementation-order
+   procedure, and hold it to the bugfix's narrower bar:
    - Create or confirm the failing regression evidence before production edits.
-   - Read the relevant code before editing it.
    - Make the smallest production change that satisfies the expected behavior.
    - Preserve every `proposal.yaml.unchanged_behavior` item.
-   - Follow applicable technical standards: never violate a MUST rule and
-     follow SHOULD rules unless `design.yaml` records a justified deviation.
    - Do not opportunistically refactor, rename, reformat, or fix adjacent bugs
      unless required for the target bugfix.
 
-9. **Mark tasks only after completion** — after each task is actually complete,
-   run:
-   ```bash
-   strict-spec-cli apply <change-name>
-   ```
-   Confirm the returned task matches the work just completed. Never run
-   `apply` as a read-only status command because it mutates `tasks.yaml`.
-
-10. **Run regression evidence** — complete every Testing task by running its
+9. **Run regression evidence** — complete every Testing task by running its
     `command`. The targeted regression must fail before the fix and pass after
     the fix. If the before/after evidence cannot be produced locally, leave the
     implementation unstarted or unarchived and record the blocker instead of
     claiming the bug is fixed. Then run the configured complete project-level
     regression command from `.strict-spec-driven/config.yaml` before archive.
-    That evidence survives the lesson declaration in step 12: a write the
+    That evidence survives the lesson declaration in step 11: a write the
     configured regression command neither compiles nor reads — currently a
     change-local delta-tech artifact or a lesson — does not invalidate passing
     complete project regression evidence. Any other write after it, including a
     delta-spec, a planning artifact, or a source or test file, forces a rerun
     before archive.
 
-11. **Verify and review before archive** — run:
+10. **Verify and review before archive** — run:
     ```bash
     strict-spec-cli verify <change-name>
     ```
@@ -347,19 +250,15 @@ run `init` from this skill.
     rerun strict verification plus the configured complete regression command
     after review-time changes. Do not call or rely on a `strict-spec-cli review` command.
 
-12. **Declare the lesson outcome (required)** — a defect that reached a fix is
+11. **Declare the lesson outcome (required)** — follow the delegated
+    lesson-outcome procedure before archiving. A defect that reached a fix is
     direct evidence about why the existing tests and technical standards failed
-    to catch it, which is the reusable part of a bugfix. Before archiving,
-    state explicitly either that a lesson was recorded or that none applies,
-    with the reason. Record one when the defect slipped through a gap that will
-    let the next defect through too — a missing test shape, a misleading error
-    message, an invariant nothing enforces. First check
-    `strict-spec-cli lesson-status --category <category>` for an existing lesson with the same
-    `applies_when` condition and append the recurrence with `lesson-edit`
-    instead of creating a near-duplicate. Do not manufacture an entry: a fix for
-    a plain typo teaches nothing and should be declared "no lesson".
+    to catch it, which is the reusable part of a bugfix, so the trigger to
+    record one is a gap that will let the next defect through too — a missing
+    test shape, a misleading error message, an invariant nothing enforces. A fix
+    for a plain typo teaches nothing and is declared "no lesson".
 
-13. **Archive only when clean** — archive only after strict verification,
+12. **Archive only when clean** — archive only after strict verification,
     direct review, targeted regression, and complete regression evidence pass:
     ```bash
     strict-spec-cli archive <change-name>

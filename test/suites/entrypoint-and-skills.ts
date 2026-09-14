@@ -1022,12 +1022,12 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const REGRESSION_EVIDENCE_CARVE_OUT_WORDING =
     "a write the configured regression command neither compiles nor reads — currently a change-local"
     + " delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence";
-// strict-spec-auto is absent from this list because it delegates the change-intake gate rather than
-// stating it. That is asserted where the delegation is resolved, not by omission here: dropping a
-// skill from a governed list without a replacement check is how a contract stops being enforced.
+// strict-spec-auto and strict-spec-bugfix are absent from this list because they delegate the
+// change-intake gate rather than stating it. That is asserted where the delegation is resolved, not
+// by omission here: dropping a skill from a governed list without a replacement check is how a
+// contract stops being enforced.
 const questionGateSkillChecks: Array<[string, string]> = [
   [normalizedProposeSkillContent, "strict-spec-propose"],
-  [normalizedBugfixSkillContent, "strict-spec-bugfix"],
   [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
 ];
 for (const [normalizedSkillContent, skillName] of questionGateSkillChecks) {
@@ -1257,13 +1257,12 @@ context.assert(
     [normalizedProposeSkillContent, "strict-spec-propose"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
   ];
-  // strict-spec-auto is absent here and from the technical-only list below because it delegates
-  // delta-artifact-authoring and spec-artifact-routing rather than stating them; both delegations
-  // are resolved against their owner by the shipped delegation check.
+  // strict-spec-auto and strict-spec-bugfix are absent here and from the technical-only list below
+  // because they delegate delta-artifact-authoring and spec-artifact-routing rather than stating
+  // them; every such delegation is resolved against its owner by the shipped delegation check.
   const incrementalDeltaScenarioGuidanceChecks: Array<[string, string]> = [
     [normalizedProposeSkillContent, "strict-spec-propose"],
     [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
-    [normalizedBugfixSkillContent, "strict-spec-bugfix"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
   ];
   for (const [normalizedSkillContent, skillName] of incrementalDeltaScenarioGuidanceChecks) {
@@ -1289,15 +1288,19 @@ context.assert(
       `${skillName} explains technical-only changes can omit delta specs while still covering scripts, validation, verification, and archive checks`,
     );
   }
+  // bugfix reaches the general routing rule through strict-spec-propose, so what is asserted here is
+  // the part propose does not state: how a bugfix instantiates that rule, and the step that reaches
+  // the delegated procedure. Asserting the general rule again would be asserting the delegation's
+  // own target, which the delegation check already covers.
   context.assert(
-    normalizedBugfixSkillContent.includes("A bugfix may legitimately have no delta spec")
-      && normalizedBugfixSkillContent.includes("Do not invent a `delta-spec` just to satisfy artifact shape")
-      && normalizedBugfixSkillContent.includes("purely internal defects in scripts, validation flows, archive behavior")
+    normalizedBugfixSkillContent.includes("route them with the delegated spec-artifact-routing and delta-artifact-authoring procedures")
+      && normalizedBugfixSkillContent.includes("Leave `specs/` empty only for a purely internal defect with no observable spec impact")
+      && normalizedBugfixSkillContent.includes("prefer `MODIFIED` operations when the bug corrects an existing requirement")
       && normalizedBugfixSkillContent.includes("reproduction evidence")
       && normalizedBugfixSkillContent.includes("validation commands")
       && normalizedBugfixSkillContent.includes("`ready`/`verify`")
       && normalizedBugfixSkillContent.includes("archive or archive-merge checks"),
-    "strict-spec-bugfix explains internal technical bugfixes can omit delta specs while still covering reproduction, validation, verification, and archive checks",
+    "strict-spec-bugfix states how a bugfix instantiates the delegated spec-artifact routing, and still covers reproduction, validation, verification, and archive checks",
   );
   context.assert(
     normalizedBugfixSkillContent.includes("known bug")
@@ -3871,12 +3874,15 @@ context.assert(
 // author could act on it was never named. A per-skill bound fails only the skill that actually
 // grew.
 //
-// Measured across the 24 packages at 5264 lines total, largest strict-spec-auto at 562 and mean
-// 219. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
-// reach, so raising it is a deliberate decision carrying a new measurement rather than a silent
-// drift upward. It was last re-derived when strict-spec-auto gained the review-independence
-// section: 562 measured plus the same 45-line headroom the previous 515-line measurement carried.
-const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 607;
+// Measured across the 24 packages at 4941 lines total, largest strict-spec-propose at 482 and mean
+// 206. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
+// reach, so moving it is a deliberate decision carrying a new measurement rather than a silent
+// drift. It was last re-derived when strict-spec-bugfix delegated its phase procedures: that moved
+// the largest package from strict-spec-auto to strict-spec-propose, and 482 plus the same 45-line
+// headroom every previous measurement carried gives 527. Re-deriving downward matters more than it
+// looks: left at the previous 607 the bound would have carried 125 lines of slack and stopped
+// catching the growth it exists to catch.
+const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 527;
 const bundledSkillLineCounts = strictSkillNames.map((skillName) => ({
   skillName,
   lines: readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8").split("\n").length - 1,
@@ -4441,6 +4447,8 @@ for (const { pkg, code, violation } of GUIDANCE_FIXTURES) {
 type DelegationModelModule = {
   parseDelegations: (content: string) => Array<{ obligation: string; owner: string }>;
   DELEGABLE_OBLIGATIONS: Record<string, { ownerHeading?: string; ownerSnippets: Array<{ snippet: string }> }>;
+  delegationDeclaration: (obligation: string, owner: string) => string;
+  CORE_STRICT_SKILL_EXPECTATIONS: Record<string, { requiredSnippets?: string[] }>;
 };
 type DelegationContentModule = {
   validateDelegations: (
@@ -4459,10 +4467,52 @@ const delegationContent = await loadDistModule<DelegationContentModule>("skills/
 // every downstream check trivially satisfied.
 const autoSkillText = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
 const autoDelegations = delegationModel.parseDelegations(autoSkillText);
+const bugfixSkillText = readFileSync(path.join(ROOT, "skills", "strict-spec-bugfix", "SKILL.md"), "utf8");
+for (const [delegatingSkill, parsed] of [
+  ["strict-spec-auto", autoDelegations],
+  ["strict-spec-bugfix", delegationModel.parseDelegations(bugfixSkillText)],
+] as const) {
+  context.assert(
+    parsed.length > 0 && parsed.every((entry) => entry.owner.startsWith("strict-")),
+    `${delegatingSkill} declares delegations that the shipped parser recognizes`,
+    `parsed ${parsed.length}: ${parsed.map((d) => `${d.obligation}->${d.owner}`).join(", ")}`,
+  );
+}
+
+// Every obligation strict-spec-bugfix stopped stating inline is pinned in both directions: the
+// declaration is a required snippet in the shipped expectation registry, so deleting it fails
+// validate-skills in a consuming project, and the restatement check fails if the text comes back
+// while the declaration stays.
+//
+// Neither side of the comparison is hand-listed. One is parsed from the skill and one is read from
+// the registry, so a delegation added to the skill without a registry pin fails as loudly as a
+// registry pin whose delegation was removed. A literal list here would silently accept the first of
+// those, which is the direction a later edit is most likely to take.
+const bugfixRequiredSnippets = delegationModel.CORE_STRICT_SKILL_EXPECTATIONS["strict-spec-bugfix"]?.requiredSnippets ?? [];
+const bugfixDeclared = delegationModel.parseDelegations(bugfixSkillText)
+  .map(({ obligation, owner }) => delegationModel.delegationDeclaration(obligation, owner));
+const bugfixPinned = bugfixRequiredSnippets.filter((snippet) => / owned by `strict-/.test(snippet));
+// One symmetric comparison serves both directions, so the probe below drives the same code the
+// assertion does rather than restating the predicate beside it.
+const missingFrom = (expected: readonly string[], present: readonly string[]): string[] =>
+  expected.filter((line) => !present.includes(line));
+const unpinnedBugfixDelegations = missingFrom(bugfixDeclared, bugfixPinned);
+const staleBugfixPins = missingFrom(bugfixPinned, bugfixDeclared);
 context.assert(
-  autoDelegations.length > 0 && autoDelegations.every((entry) => entry.owner.startsWith("strict-")),
-  "the orchestrating skill declares delegations that the shipped parser recognizes",
-  `parsed ${autoDelegations.length}: ${autoDelegations.map((d) => `${d.obligation}->${d.owner}`).join(", ")}`,
+  bugfixDeclared.length > 0 && unpinnedBugfixDelegations.length === 0 && staleBugfixPins.length === 0,
+  "validate-skills pins exactly the delegation declarations strict-spec-bugfix relies on instead of stating the procedure",
+  `declared ${bugfixDeclared.length}, unpinned: ${unpinnedBugfixDelegations.join(", ")}, stale pins: ${staleBugfixPins.join(", ")}`,
+);
+// A comparison observed only over agreeing lists has not been observed at all: an inverted filter or
+// a matcher reading the wrong field reports zero mismatches either way. Adding one synthetic
+// declaration to each side in turn must surface it, and only it, from the direction it was added to.
+const probeDeclaration = delegationModel.delegationDeclaration("probe-obligation", "strict-spec-probe");
+context.assert(
+  missingFrom([...bugfixDeclared, probeDeclaration], bugfixPinned).join("|") === probeDeclaration
+    && missingFrom([...bugfixPinned, probeDeclaration], bugfixDeclared).join("|") === probeDeclaration
+    && bugfixPinned.length === bugfixDeclared.length,
+  "the delegation pin comparison reports an unpinned declaration and a stale pin, and nothing else",
+  `pinned ${bugfixPinned.length}, declared ${bugfixDeclared.length}`,
 );
 
 // The committed policy fixtures assert their seeded violation and nothing else, so a new per-skill

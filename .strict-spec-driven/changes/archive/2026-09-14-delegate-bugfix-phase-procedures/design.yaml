@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: delegate-bugfix-phase-procedures
+approach:
+  - Apply the delegation pattern that checked-skill-delegation built, to strict-spec-bugfix. Declare a Delegated Procedures section listing each lifecycle procedure with the skill that owns it, delete the restated text the shipped delegation check will now reject, and retain every bugfix-specific increment. The audit runs per deleted sentence and resolves it against the owning skill and against the owning command's help before the deletion is accepted, because the authoritative statement of a CLI behavior is its command metadata rather than a sibling skill.
+decisions:
+  delegate-only-what-an-owner-states:
+    decision: Delegate an obligation only when the named owning skill already states every element the delegation-target check resolves, and retain everything else in bugfix.
+    rationale: The delegating-skills-do-not-restate-the-delegated-procedure rule makes the owner the single statement of a delegated procedure, and the shipped check fails a delegation whose owner lacks the content. Editing the owner to accept a delegation would move bugfix-specific wording into a general skill, which the same rule names as the wrong disposition for an increment.
+  keep-carve-out-inline:
+    decision: Keep the regression-evidence carve-out wording stated inline in bugfix at its own regression step rather than delegating it.
+    rationale: cli-current-change-tech-sync-before-archive requires every surface directing a lesson or delta-tech write after regression evidence passed to state the rule at the step where the rerun decision is made, and DELEGABLE_OBLIGATIONS deliberately excludes the carve-out from the archive-tech-sync obligation because it governs the rerun decision rather than the sync.
+  amend-intake-gate-requirement:
+    decision: Amend proposal-skills-change-intake-question-gate to accept a checked delegation, using the same two-branch wording cli-validate-skills-requires-interrogation-guidance already carries, rather than exempting bugfix by name.
+    rationale: A named exemption would let any future proposal-oriented skill drop the gate silently. The two-branch wording keeps the obligation universal and makes the delegation-target check the enforcement point, which is how the interrogation requirement was already resolved.
+  audit-before-delete:
+    decision: Record every deleted sentence with its resolution — covered by the named owner, covered by command help, or retained as an increment — before the deletion is made.
+    rationale: The lesson guidance-that-duplicates-cli-help-is-not-lost-wh-f272f8 records that an audit scoped to sibling guidance files alone reports absences that only describe the scope, and that the surface most likely to be outside the search is the command metadata its help renders.
+  audit-result-six-delegations:
+    decision: 'The audit delegates six obligations: requirement-interrogation, change-intake-gate, spec-artifact-routing, and delta-artifact-authoring to strict-spec-propose, implementation-order to strict-spec-apply, and lesson-outcome to strict-spec-review. Every owner snippet each delegation resolves was confirmed present in the named owner before the corresponding text was deleted from bugfix.'
+    rationale: A delegation whose owner lacks an element fails the shipped delegation-target check, and the only repair the rule leaves is editing the owner, which this change scopes out. Confirming coverage first keeps the deletion reversible-free and the owner untouched.
+  retain-task-authoring-inline:
+    decision: Do not delegate task-list-authoring. Keep the task-placement guidance stated inline in bugfix.
+    rationale: The reproduction task coming first in list order is a bugfix increment propose does not state, and the placement mechanics are what make it actionable. validateTaskOrderGuidance also derives its governed set by scanning content rather than from a list and offers no delegation escape, so a skill that still names the task sections stays governed and must carry the placement snippets.
+  retain-review-and-archive-inline:
+    decision: Do not delegate review-independence, code-review-evidence, or archive-execution. Leave bugfix's review and archive steps as they are.
+    rationale: Delegating review-independence would newly bind bugfix to a contract it is not on the governed list for, which widens workflow scope rather than reducing restatement; code-review-evidence waives a snippet bugfix does not state, so it would delete nothing; and archive-execution's owner snippet about an empty specs directory is absent from bugfix, so there is nothing to remove.
+  keep-context-reset-inline:
+    decision: Keep bugfix's targeted context reset step inline.
+    rationale: No delegable obligation covers it and no skill owns it; the equivalent text in strict-spec-auto is itself an auto-only increment rather than an owned procedure.
+alternatives:
+  - option: Delegate only the three copied sections and leave Steps 8-13 restating apply, review, and archive procedure.
+    reason: It leaves resident the diverging restatement that motivated the change, and the deleted-line saving foregone is small relative to the divergence it preserves.
+  - option: Move the phase-specific sections into references/*.md progressive-disclosure files.
+    reason: It changes the skill packaging shape and would require installer, validate-skills, and marketplace changes, which the prior change explicitly deferred.
+  - option: Reduce strict-spec-propose instead, as the largest bundled skill.
+    reason: propose owns these procedures, so it cannot delegate them; the only reduction available there is prose compression of content that is authoritative.
+risks:
+  - A deleted sentence is a genuine increment stated nowhere else. Mitigated by the per-item audit that resolves each deletion against the owning skill and the owning command's help before it is made.
+  - A required snippet drops out of enforcement when it is removed from the bugfix expectation registry without a delegation covering it. Mitigated by keeping the suite assertion that cross-checks the registry against what the suite asserts, and by resolving each removed snippet to the obligation whose waived snippets or owner content covers it.
+  - The intake-gate requirement amendment widens an existing MUST. Mitigated by reusing the exact two-branch shape the interrogation requirement already carries, and by adding the missing-delegation rejection scenario so the negative case stays enforced.

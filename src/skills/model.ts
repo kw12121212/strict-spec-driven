@@ -384,6 +384,19 @@ export const DELEGATION_DECLARATION_PATTERN =
   /^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+`(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)`/gm;
 
 /**
+ * The literal line a skill writes to declare one delegation, so a delegating skill can pin its own
+ * declarations as required content.
+ *
+ * A declared delegation is what replaces an inline statement as the enforcement point, which means
+ * deleting the declaration deletes the obligation rather than relocating it: the restatement check
+ * only fires on a delegation that is declared, and most obligations have no per-skill content check
+ * to fall back on. Requiring the declaration closes that direction, and the restatement check
+ * already closes the other, so the pair leaves no way to end up with the procedure stated nowhere.
+ */
+export const delegationDeclaration = (obligation: string, owner: string): string =>
+  `${obligation}: owned by \`${owner}\``;
+
+/**
  * A procedure a skill may hand to the skill that owns it instead of restating it.
  *
  * `ownerSnippets` is what the *owning* skill must state, written in the owner's own wording rather
@@ -725,6 +738,15 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       BUGFIX_REGRESSION_TEST_SNIPPET,
       BUGFIX_MINIMAL_FIX_SNIPPET,
       BUGFIX_UNCLEAR_ISSUE_HANDOFF_SNIPPET,
+      // The lifecycle procedures bugfix reaches through its owner rather than restating. Requiring
+      // the declarations keeps each obligation enforced at exactly one place: drop a line and this
+      // check fails, restore the text without dropping the line and the restatement check fails.
+      delegationDeclaration("requirement-interrogation", "strict-spec-propose"),
+      delegationDeclaration("change-intake-gate", "strict-spec-propose"),
+      delegationDeclaration("spec-artifact-routing", "strict-spec-propose"),
+      delegationDeclaration("delta-artifact-authoring", "strict-spec-propose"),
+      delegationDeclaration("implementation-order", "strict-spec-apply"),
+      delegationDeclaration("lesson-outcome", "strict-spec-review"),
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",
