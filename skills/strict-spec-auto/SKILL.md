@@ -10,6 +10,10 @@ metadata:
 
 You are running the strict workflow end to end for a single strict YAML change.
 
+This skill is the orchestration spine. It owns the sequence, the gates between
+phases, and the decisions that only the whole run can make; each phase procedure
+is owned by the skill that performs it, listed under Delegated Procedures below.
+
 ## This Skill's Commands
 
 If you cannot remember the exact command used by this skill, look it up here
@@ -30,6 +34,29 @@ next: strict-spec-cli next <change-name>
 archive: strict-spec-cli archive <change-name>
 ```
 
+## Delegated Procedures
+
+Each procedure below is owned by the skill named beside it. That skill's
+guidance is authoritative for it, and this skill does not restate it. Follow the
+owning skill's procedure at the step that needs it; how it is loaded is whatever
+the running harness provides.
+
+- requirement-interrogation: owned by `strict-spec-propose`
+- change-intake-gate: owned by `strict-spec-propose`
+- spec-artifact-routing: owned by `strict-spec-propose`
+- task-list-authoring: owned by `strict-spec-propose`
+- delta-artifact-authoring: owned by `strict-spec-propose`
+- implementation-order: owned by `strict-spec-apply`
+- gitignore-hygiene: owned by `strict-spec-apply`
+- review-independence: owned by `strict-spec-review`
+- lesson-outcome: owned by `strict-spec-review`
+- archive-tech-sync: owned by `strict-spec-archive`
+- archive-execution: owned by `strict-spec-archive`
+
+Delegation moves where a procedure is stated, never whether it runs. Every gate
+this skill declares below still binds, and a delegated procedure that cannot be
+followed stops the run exactly as an inline one would.
+
 ## YAML Writing Rules
 
 - Keep strict artifacts in valid YAML structures at every stage. Do not replace
@@ -38,8 +65,8 @@ archive: strict-spec-cli archive <change-name>
   installed skills do not carry a `templates` directory.
 - Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root to inspect the concrete schema file without relying on a local templates directory.
 - If a valid artifact example would clarify the shape, use
-  `strict-spec-cli sample-show <sample-name>`; installed skills do not rely on a
-  local `examples` directory.
+  `strict-spec-cli sample-show <sample-name>`; installed skills
+  do not rely on a local `examples` directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
   such as longer `summary`, `approach`, `decision`, `rationale`, `question`,
   `context`, `answer`, and spec `statement` values. Use `|` only when literal
@@ -80,162 +107,6 @@ the user's common human language, not a programming language — for all
 user-facing and generated operator-facing text, unless that file is absent or
 the active user message asks otherwise.
 
-## Requirement Interrogation
-
-This is the one checkpoint where the automatic workflow stops: complete it before
-proposing, then continue unattended through archive. It runs before the
-change-intake checklist below. That checklist interrogates
-the proposed solution — scope, files, tests, rules. This one interrogates the
-need, and it comes first because a well-scoped change built against a misread
-need is still the wrong change.
-
-Requirement answers are **never answered from repository evidence**. Code shows
-what the system does; it cannot show what a person wants. Only the requester's
-own words, or replayed roadmap planned-change and milestone detail, may answer
-these. What the requester already said in the active request counts — never
-re-ask something they have already told you.
-
-Authoring `questions.yaml` seeds these five as open questions, so a fresh change starts blocked:
-
-- `requirement-problem` — what is concretely going wrong today, and for whom
-- `requirement-outcome` — what observable difference proves it is solved
-- `requirement-trigger` — why now, what forced this
-- `requirement-non-goals` — what must explicitly not change
-- `requirement-interpretation` — which reading is intended, where more than one exists
-
-Resolve each with:
-
-```bash
-strict-spec-cli generate <change-name> questions --resolve <id> --answer "..." --answered-by human
-```
-
-### How to ask
-
-Asking these badly collects five restated solutions and passes the gate, so the
-technique is part of the requirement:
-
-- **Ask one question at a time**, and let each answer shape the next. A batch of
-  five questions returns five shallow answers.
-- **Carry a concrete guess into every question** rather than posing a blank
-  prompt. People correct a wrong specific statement far more readily than they
-  fill in a blank. Where the harness provides `AskUserQuestion`, use it with two
-  to four concrete options so you must commit to a guess.
-- **Ask about the last concrete occurrence**, not the general case. Episodic
-  memory produces facts; general questions produce theories, and people theorize
-  badly about their own workflows.
-- **Reject an answer that names a solution** instead of a problem. If it names a
-  button, field, page, or endpoint, ask what they would do next once that
-  existed, until the answer is a behavior.
-- **Ask what happens if nothing is done.** This tests whether the trigger is real.
-- **Replay a deliberately imperfect summary** and let them correct it. A
-  correction carries more information than agreement.
-
-### Explain before you ask
-
-Never assume the requester knows how to answer. Before posing a question,
-**explain why the question matters** and what a sufficient answer contains,
-defining any workflow vocabulary — problem versus solution, observable outcome,
-non-goal — in plain terms. The requester is the domain expert; you are the
-workflow expert, so the vocabulary is your job to explain.
-
-When an answer cannot be used yet, **state the reason for the pushback** and
-supply the missing criterion. Never silently re-ask the same question: that
-reads as not having listened, and it pushes the requester into repeating
-themselves rather than adding what is missing.
-
-When interrogation cannot land — the requester will not engage, or the answer
-stays a restated solution — record `--answered-by assumption` rather than
-inventing a plausible answer. An assumption blocks `ready` and forces an
-explicit human decision; a fabricated answer passes silently and is worse.
-
-## Change Intake Question Gate
-
-Before implementation handoff or automatic implementation, perform the required
-plain change-intake checklist from the strict workflow contract. First use
-project evidence to answer every recoverable item: `.strict-spec-driven/config.yaml`,
-relevant strict specs, technical standards, existing change artifacts, the
-implementation and test files the change touches, `git status`, and focused code
-search for the affected behavior.
-
-When resuming a roadmap-backed scaffold, also read the proposal's roadmap links
-and use the selected standalone planned-change `summary`, `details`,
-`depends_on`, labels, and owning milestone `details` as valid intake evidence.
-Carry answers already present in that roadmap evidence forward instead of
-re-asking.
-
-- Do not ask the human for information already recoverable from the request or
-  repository evidence.
-- Do ask when a required answer remains absent after discovery, even if you have
-  a plausible guess.
-- Record missing required answers in `questions.yaml.open` with stable
-  language-neutral ids, `preferred_human_language` question text, concrete
-  context that includes impact analysis and a recommended answer or options.
-  The `questions` generator has no `--impact` or `--recommendation` flags; put
-  those details in the `--context` text.
-- For roadmap-backed scaffolds, make the context say whether the uncertainty
-  affects proposal scope, spec delta, implementation files, tests,
-  dependencies, or technical standards.
-- Stop before implementation while `questions.yaml.open` is non-empty.
-- When the user answers, resolve the item into `questions.yaml.resolved` before
-  continuing implementation or automatic workflow execution.
-
-Keep the proposal checkpoint focused on what changes, what stays the same,
-where the work likely lives, how it will be tested, and which technical rules
-apply.
-
-## Spec and Technical Artifact Routing
-
-A strict change may legitimately have no delta spec. Do not invent a
-`delta-spec` just to satisfy artifact shape.
-
-- Create `delta-spec` artifacts only when the change modifies user-observable
-  behavior or another requirement that belongs in a strict YAML main spec.
-- For purely technical changes such as refactors, build or test tooling,
-  repository maintenance, architecture constraints, scripts, validation flows,
-  archive behavior, or skill guidance, leave `specs/` empty when no main spec
-  requirement changes.
-- If a technical-only change alters, adds, or retires an engineering rule,
-  create a `delta-tech` artifact for the affected standard. If it only complies
-  with existing standards, leave `tech/` absent too.
-- A technical-only change still needs complete workflow tasks: script or
-  tooling edits when applicable, focused tests, validation commands,
-  `ready`/`verify` checks, and archive-readiness or archive-merge checks when
-  the change affects artifacts consumed by archive.
-
-## Review Independence
-
-This workflow implements and reviews the same change, so the review arrives
-already knowing why the code took its shape — the one seat a review must not be
-written from. Split it into two stances with a written boundary between them.
-
-**Reconstruct first.** Read only `proposal.yaml`, `design.yaml`, `questions.yaml`, and the delta specs,
-then write down the problem, the observable outcome, the non-goals and every
-`unchanged_behavior` item, and a numbered list of acceptance items — all of it
-before any implementation file, diff, or test file is read.
-Never derive the requirement from the implementation: one read off the diff is
-satisfied by whatever the diff happens to do. When the change carries no delta
-spec, build the items from `proposal.yaml`'s `summary.what`, `scope.in`, and
-`unchanged_behavior` plus the `design.yaml` decisions, so the list is never
-empty.
-
-**Then verify from outside.** Read the changed files as
-an outside reviewer who did not write them.
-What you remember doing during implementation is not evidence about the
-repository; only what the files show is.
-
-**Verdicts.** Answer every acceptance item with exactly one of
-`satisfied`, `not satisfied`, or `unprovable from evidence`, each carrying
-an implementation reference and a test reference
-— file and line where the evidence exists, or a statement of what is missing
-where it does not. A blanket claim that the implementation matches the proposal
-is not a substitute for per-item verdicts, and an item no test covers is not
-`satisfied`. Report the table before the findings.
-
-On a MUST-strength delta spec requirement, `unprovable from evidence`
-blocks the archive recommendation
-until a test or an explicit human decision resolves it; on any other acceptance
-item it is a SHOULD FIX finding that must be reported but does not block.
-
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -258,143 +129,78 @@ run `init` from this skill.
    strength, so treat them as warnings worth checking rather than constraints to
    satisfy; weight a lesson with several occurrences, because the count means
    this project has hit it repeatedly.
-   Use this evidence for the change-intake question gate before asking the
-   human or continuing into implementation.
+   Use this evidence before asking the human anything or continuing into
+   implementation.
 
 2. **Assess complexity** — proceed automatically only when the change is clearly
    scoped inside this repository with a concrete definition of done. If the
    request is open-ended or cross-repository, stop and suggest
    `strict-spec-brainstorm`.
 
-3. **Propose or resume the change** — if the strict change does not exist yet,
-   scaffold with `propose`. If a prior workflow step such as
-   `/strict-roadmap-recommend` already created a
-   populated change directory containing proposal, design, tasks, questions,
-   and any needed delta spec or delta tech artifacts, resume the existing populated strict change
-   scaffold without regenerating planning artifacts or running `propose` again.
-   For roadmap-backed scaffolds, preserve selected planned-change provenance as
-   intake evidence and inspect `questions.yaml.open` before
-   implementation.
-   Run `ready <change-name>` or `next <change-name>` to surface deterministic
-   blockers before implementation. If the target change directory already
-   exists but only contains empty subdirectories, `propose` may safely reuse it.
-   For new or empty scaffolds, populate artifacts in this exact order. Generate
-   every supported artifact, including `tasks.yaml`, with direct CLI
-   invocations, and do not create JSON payload files.
-    - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
-    - `strict-spec-cli generate <change-name> design --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`,
-      issuing **one invocation per task** so no task list is hand-written:
-      - read `strict-spec-cli generate --help --json` (or `--help`) first.
-        Choose `--implementation`, `--testing`, or `--verification` for the
-        corresponding fixed section. Each takes no value and opens one task group;
-        following task fields belong to that group. Repeat a selector for each task
-        in a multi-task call. Removal and gate flags are global and need no selector.
-      - first task: `strict-spec-cli generate <change-name> tasks --implementation --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the task list starts absent and is created by this first call, so there are no placeholder tasks to remove
-      - each later task: one selector/`--task`/`--text` group per call
-      - restating an existing `(section, task-id)` is a field-level merge — it overwrites only the fields you pass, so a task's `status: complete` and `command` survive a text-only edit; a brand-new task still needs `--text`
-      - delete a task with `--remove <task-id>` (a repeatable global flag); to move a task between sections, `--remove` it and restate it under the new section in the same call
-      - place a task with `--before <task-id>` or `--after <task-id>` instead of
-        letting it append; task order is the order `apply` walks, so a task that must
-        run before existing pending work is anchored rather than appended, and naming
-        an existing task id with an anchor moves it there while preserving its `status`
-        and `command`
-      - values may begin with a dash via `--text=...` or `--command=...` (the `--flag=value` form), needed when a task names a CLI flag
-      - set the testing gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference task ids in the `Testing` section
-      - the command upserts by `(section, task-id)` and is idempotent — re-running an identical call changes nothing
-      - each call returns `{valid, ready, diagnostics}`: `valid` reports write success like every other artifact, and `ready` reports completeness — while the list is still incomplete `ready` is `false` and `diagnostics` names the empty sections or unset gates, so keep adding tasks and run `verify` before handoff (a `ready: false` result is not a failed write and is resolved by adding the missing tasks)
-      - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, and archive-readiness or archive-merge checks when relevant
-    - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."`
-      Include impact analysis and recommendation/options in `--context`; do
-      not pass nonexistent `--impact` or `--recommendation` flags.
-    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
-      One requirement can include multiple scenario groups by repeating
-      `--scenario`. A later compatible call for the same operation, requirement
-      id, strength, and statement appends new scenario ids and remains idempotent
-      for equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
-    - when this change must alter a technical standard (add, modify, or retire a
-      rule, or introduce a new standard), generate strict YAML delta tech
-      artifacts under `.strict-spec-driven/changes/<change-name>/tech/`:
-      `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
-      (use `--title`/`--category` to create a new standard; `REMOVED` rules take
-      only `--reason`). Leave `tech/` absent when the change only complies with
-      existing standards.
-    - for user interface work, split it: capture user-observable UI behavior as
-      delta-spec requirements, capture UI engineering and design rules as a
-      `ui`-category technical standard (delta-tech), and govern visual fidelity
-      with visual-regression snapshots referenced from mappings, not inlined.
-    - if the change has no observable spec impact, leave the `specs/` directory
-      empty rather than inventing a prose-only file
-    Prefer one invocation per supported generated artifact (or per target spec
-    for delta specs, and one per task for tasks). Keep `tasks.yaml` structured
-    with Implementation, Testing, and Verification sections plus valid testing
-    gates. Keep or add a dedicated lint Testing task before full unit or
-    regression test tasks when the project has a runnable lint command.
+3. **Interrogate the need** — this is the one checkpoint where the automatic
+   workflow stops: complete it before proposing, then continue unattended
+   through archive. Follow the delegated requirement-interrogation procedure.
+   Its answers come from the requester, so this skill cannot supply them from
+   repository evidence and cannot proceed past an unanswered one.
+
+4. **Propose or resume the change** — if the strict change does not exist yet,
+   scaffold with `propose` and author its planning artifacts by following the
+   delegated change-intake-gate, spec-artifact-routing, and task-list-authoring
+   procedures. Keep or add a
+   dedicated lint Testing task before full unit or regression test tasks when the project has a runnable lint command. If a prior workflow step such as `/strict-roadmap-recommend`
+   already created a populated change directory containing proposal, design,
+   tasks, questions, and any needed delta spec or delta tech artifacts,
+   resume the existing populated strict change scaffold without regenerating planning artifacts
+   or running `propose` again.
+   For roadmap-backed scaffolds, preserve selected planned-change provenance as intake evidence
+   and inspect `questions.yaml.open` before implementation.
+   When resuming a roadmap-backed scaffold, also read the proposal's roadmap links
+   and use the selected standalone planned-change `summary`, `details`,
+   `depends_on`, labels, and owning milestone `details` as valid intake evidence.
+   Carry answers already present in that roadmap evidence forward instead of
+   re-asking.
+   For roadmap-backed scaffolds, make the context say whether the uncertainty
+   affects proposal scope, spec delta, implementation files, tests,
+   dependencies, or technical standards.
    For newly created or newly populated scaffolds, **run the proposal checkpoint
-   over generated planning artifacts** before running handoff validation. Perform a
+   over generated planning artifacts** before running handoff validation: a
    semantic self-check of every generated or edited file under
    `.strict-spec-driven/changes/<change-name>/` against the user request, the
    relevant main specs, technical standards, and the existing project
-   constraints. Check for decision-ready detail in scope, unchanged behavior,
-   design decisions, task coverage, unresolved-question impact, delta spec
-   scenarios, and delta tech use when applicable.
-   When no delta specs are appropriate, replace delta spec scenario review with
-   a justified absence check for the technical-only change. For technical-only
-   changes, verify that tasks cover scripts or tooling, validation commands,
-   `ready`/`verify`, and archive or archive-merge checks when archive behavior
-   is affected.
+   constraints, looking for decision-ready detail in
+   scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, and delta tech use when applicable.
    The checkpoint should fix safe, in-scope documentation gaps immediately by
-   rerunning the supported `generate` commands for script-owned artifacts,
-   including `generate <change-name> tasks` for task-list structure. Do not
-   expand scope or answer unresolved human questions during this checkpoint;
+   rerunning the supported `generate` commands for script-owned artifacts. Do
+   not expand scope or answer unresolved human questions during this checkpoint;
    record ambiguity in `questions.yaml`.
-   Run `ready <change-name>` at proposal time when deciding whether the change
-   is ready for implementation; it reports deterministic handoff blockers
-   without deciding product scope or requirement content. If you use `verify`
-   at proposal time, treat pending-task diagnostics as expected until
-   implementation is complete. If `questions.yaml.open` is not
-   empty, do not infer answers or continue automatically. For each open
-   question, explain:
+   Run `ready <change-name>` or `next <change-name>` to surface deterministic
+   blockers before implementation. If you use `verify` at proposal time, treat
+   pending-task diagnostics as expected until implementation is complete. If
+   `questions.yaml.open` is not empty, do not infer answers or continue
+   automatically. For each open question, explain:
    - the unresolved decision or missing information
    - the impact on scope, implementation, testing, or spec behavior
    - the recommended answer or options, with the tradeoff for each
    Then stop and wait for an explicit human reply. Record the answers in
    `questions.yaml.resolved` and remove them from `open` before implementation.
 
-4. **Implement tasks in order** — read code, implement the next pending task, and
-   preserve every `unchanged_behavior` item from `proposal.yaml`. Write code that
-   satisfies the applicable technical standards under `.strict-spec-driven/tech/`:
-   never violate a MUST rule and follow SHOULD rules unless `design.yaml` records
-   a justified deviation. If a task can only be completed by breaking a MUST
-   rule, stop and surface it as an open question instead of violating the
-   standard. If the standard itself must change as part of this change, carry it
+5. **Implement and complete each task** — follow the delegated
+   implementation-order procedure, preserving every `unchanged_behavior` item
+   from `proposal.yaml` and honoring the technical standards under
+   `.strict-spec-driven/tech/`. If a task can only be completed by breaking a
+   MUST rule, stop and surface it as an open question instead of breaking the
+   standard; if the standard itself must change as part of this change, carry it
    as a delta tech artifact under `changes/<change-name>/tech/` so it merges on
    archive, never by editing the live standard directly.
    Use `next <change-name>` when you need deterministic state, blockers, or
    script-owned next-step command suggestions; do not use it as a replacement
    for user answers or implementation judgment.
 
-5. **Use strict apply only after completing a task** — after each completed task,
-   run:
-   ```bash
-   strict-spec-cli apply <change-name>
-   ```
-   and confirm the returned task matches the work you just finished. Never run
-   `apply` only to inspect status because it mutates `tasks.yaml`.
-
 6. **Run testing commands from `tasks.yaml`** — complete every Testing task by
    actually running its `command` before marking it complete.
 
-7. **Gitignore hygiene** — once all tasks (including Testing) are complete, check
-   for non-source artifacts that should not be committed:
-   - run `git status --short` to find newly created untracked files
-   - identify non-source artifacts such as build output (`dist/`, `build/`,
-     `out/`), dependency directories (`node_modules/`, `vendor/`), cache
-     directories (`.cache/`, `.tmp/`), log files (`*.log`), and other
-     generated files
-   - add matching entries to `.gitignore` automatically
-   - do not ignore source code, configuration, or files that are part of the
-     deliberate project output
+7. **Clean up generated artifacts** — once all tasks including Testing are
+   complete, follow the delegated gitignore-hygiene procedure.
 
 8. **Verify the finished change** — run:
    ```bash
@@ -402,112 +208,82 @@ run `init` from this skill.
    ```
    Fix safe blockers automatically, then rerun verification.
 
-9. **Review code quality** — run the Review Independence stances in order.
-   Reconstruct the requirement from the change's planning artifacts and delta
-   specs first, writing down the numbered acceptance items before reopening any
-   changed file; then read every changed implementation and test file
-   yourself, including the files named by delta specs, `git status --short`, the
-   relevant tracked diff, and any untracked source, test, documentation, or
-   strict workflow files that belong to the change. Do not call a
-   `strict-spec-cli review` command and do not treat deterministic validation
-   as code review evidence. Record a verdict with its evidence for every
-   acceptance item before writing any finding, and report that table ahead of
-   the findings. Evaluate correctness, spec alignment,
-   `unchanged_behavior`, test coverage and assertions, error handling, edge
-   cases, security, performance, maintainability, user-visible behavior,
-   documentation impact, generated artifacts, packaging impact, and
+9. **Review code quality** — this workflow implements and reviews the same
+   change, so follow the delegated review-independence procedure rather than
+   reviewing from the seat that wrote the code. Read every changed
+   implementation and test file yourself, including the files named by delta
+   specs, `git status --short`, the relevant tracked diff, and any untracked
+   source, test, documentation, or strict workflow files that belong to the
+   change. Do not call a `strict-spec-cli review` command and do not treat
+   deterministic validation as code review evidence. Evaluate correctness, spec
+   alignment, `unchanged_behavior`, test coverage and assertions, error
+   handling, edge cases, security, performance, maintainability, user-visible
+   behavior, documentation impact, generated artifacts, packaging impact, and
    technical-standard compliance against `.strict-spec-driven/tech/` (a MUST
    rule violation is a MUST FIX; an unjustified SHOULD violation is a SHOULD
    FIX; a deviation is acceptable only when `design.yaml` justifies it). When the
    change carries delta tech artifacts under `changes/<change-name>/tech/`,
    confirm each standard change is justified by the proposal and design and that
-   its operations are correct; treat an unjustified or malformed
-   standard change as a MUST FIX. Fix MUST
-   FIX issues automatically when safe and in scope. If review-time code or
-   workflow artifact changes are made, rerun strict verification and the
-   configured complete project regression command before continuing. Unsafe,
-   ambiguous, blocked, or out-of-scope fixes must stop archive rather than being
-   inferred or silently expanded, and an unresolved MUST-strength unprovable
-   verdict stops archive on the same terms.
+   its operations are correct; treat an unjustified or malformed standard change
+   as a MUST FIX. Automatically fix safe in-scope review findings when they are
+   MUST FIX and in scope. If review-time code or workflow artifact changes are
+   made, rerun strict verification and the configured complete project
+   regression command before continuing. Unsafe, ambiguous, blocked, or
+   out-of-scope fixes must stop archive rather than being inferred or silently
+   expanded, and an unresolved MUST-strength unprovable verdict stops archive on
+   the same terms.
    After the review checklist, also reflect — non-blocking — on whether this
    change established a reusable engineering convention not yet captured under
    `.strict-spec-driven/tech/` (a coding, architecture, testing, tooling,
    security, performance, or API rule). When it did, surface two options: carry
    it now as a delta tech artifact under `changes/<change-name>/tech/` so
    archive merges it into the standards, or defer the decision only to the
-   mandatory final current-change tech sync before archive. This early
-   reflection does not by itself block strict verification or review
-   completion, but a convention confirmed as reusable may not be deferred until
-   after the change is archived.
+   mandatory technical-standard checkpoint before archive.
 
-10. **Declare the lesson outcome (required)** — before archive, state
-   explicitly either that a lesson was recorded or that none applies, with the
-   reason. Judge it from the objective proposal-versus-implementation diff, not
-   from a general sense of having learned something: a `design.yaml` decision or
-   approach overturned during implementation, a question the proposal did not
-   foresee, a task added because of a discovery rather than a scope change, or a
-   regression failure exposing a trap this change did not introduce. When one
-   applies, check `strict-spec-cli lesson-status --category <category>` for an existing lesson with the
-   same `applies_when` condition and append the recurrence with
-   `lesson-edit <lesson-id> --origin <change-name> --evidence "..."` rather than
-   creating a near-duplicate; otherwise record a new one with `lesson-create`.
-   Spend the effort on `--applies-when`: it is the retrieval key that decides
-   whether the lesson is ever seen again. When none of the criteria applies, say
-   "no lesson" with a one-line reason — never manufacture an entry, because a
-   store padded with filler stops being read.
+10. **Declare the lesson outcome (required)** — before archive, follow the
+   delegated lesson-outcome procedure and report its result as part of this
+   run's summary.
 
 11. **Re-check complete regression evidence** — inspect project workflow
    context, including `.strict-spec-driven/config.yaml` when available, for the
    complete project-level regression test method. Require evidence that the full
    project regression command has passed during review before archive execution,
    even when all Testing tasks are complete. A previously passed Testing task
-   command may satisfy the archive gate only when it exactly matches the
-   configured complete project regression command and no implementation, test,
+   command may satisfy the archive gate only when it
+   exactly matches the configured complete project regression command and no implementation, test,
    strict artifact, or configuration files relevant to the change have changed
    since that command passed. One class of write is carved out of that list:
-   a write the configured regression command neither compiles nor reads —
-   currently a change-local delta-tech artifact or a lesson — does not
-   invalidate passing complete project regression evidence, because such a file
-   is not compiled, is not imported by the suite, and reaches live workflow
-   state only at archive. Decide an artifact kind neither list names by that
-   same criterion, and rerun when the suite does compile or read it. Every other
-   strict artifact, including a delta-spec and a planning artifact, still
-   invalidates the evidence. When the config declares a coverage contract
-   under `review_evidence.project_regression.coverage`, the regression command
-   is the coverage gate: a non-zero exit because measured coverage fell below
-   the declared threshold blocks archive exactly like failing tests and is
+   a write the configured regression command neither compiles nor reads — currently a change-local delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence,
+   because such a file is not compiled, is not imported by the suite, and
+   reaches live workflow state only at archive. Decide an artifact kind neither
+   list names by that same criterion, and rerun when the suite does compile or
+   read it. Every other strict artifact, including a delta-spec and a planning
+   artifact, still invalidates the evidence. When the config declares a
+   coverage contract under `review_evidence.project_regression.coverage`,
+   the regression command is the coverage gate: a non-zero exit because measured
+   coverage fell below the declared threshold blocks archive exactly like
+   failing tests and is
    never advisory output; you never measure coverage yourself or second-guess
    the declared threshold. If the regression command cannot run because
    dependencies, services, credentials, fixtures, or other test conditions are
    unavailable, stop before archive and give the human actionable setup or
    waiting guidance.
 
-12. **Run the final current-change tech sync** — before invoking archive, apply
-   the active-change procedure from `strict-tech-sync` to the selected change.
-   Bound the scan to its planning artifacts, delta artifacts, attributable
-   tracked and untracked files, and applicable technical standards; exclude unrelated repository drift. Continue immediately when
-   existing standards and current delta tech cover the change. When a possible
-   reusable convention remains, pause for the operator to confirm the target
-   standard, operation, stable rule id, strength, statement, rationale, and
-   enforcement, or to explicitly classify the pattern as not reusable. A convention confirmed as reusable cannot be deferred until after
-   archive and must be generated as current-change delta tech rather than by
-   editing live standards. After any delta-tech edit, review the artifact and
-   rerun strict verification; a write the configured regression command neither
-   compiles nor reads — currently a change-local delta-tech artifact or a lesson
-   — does not invalidate passing complete project regression evidence, so the
-   configured regression command is rerun here only when this step also changed
-   a file outside that carve-out.
+12. **Resolve the technical-standard checkpoint** — before invoking archive,
+   follow the delegated archive-tech-sync procedure for the selected change. It
+   either clears immediately or pauses for an operator decision; this skill does
+   not archive until it has cleared. After any delta-tech edit it directs,
+   review the artifact and rerun strict verification, and rerun the configured
+   regression command only when that step also changed a file outside the
+   carve-out named in step 11.
 
-13. **Archive cleanly** — if the final current-change tech sync is resolved, the
+13. **Archive cleanly** — if the technical-standard checkpoint is resolved, the
    change verifies, reviews cleanly, and has passing complete project-level
-   regression test evidence for the final artifact state, run:
-   ```bash
-   strict-spec-cli archive <change-name>
-   ```
-   Then summarize the result, including any roadmap files or milestone statuses
-   the archive step reconciled, and recommend `/strict-spec-ship <change-name>`
-   as an optional next step for creating a focused git commit. An empty `specs/`
-   directory is allowed and should not block archive.
+   regression test evidence for the final artifact state, follow the delegated
+   archive-execution procedure. Then summarize the result, including any roadmap
+   files or milestone statuses the archive step reconciled, and recommend
+   `/strict-spec-ship <change-name>` as an optional next step for creating a
+   focused git commit.
 
 ## Harness Guidance
 
@@ -538,6 +314,8 @@ implementation or review requires starting declared components:
 - Open questions require a problem explanation, impact analysis, recommendation,
   and explicit human answer before continuing; encode the impact and
   recommendation in `questions.yaml.open[*].context`
+- A delegated procedure is followed, not summarized: read the owning skill's
+  guidance at the step that needs it rather than acting from memory of it
 - Honor applicable technical standards under `.strict-spec-driven/tech/` across
   proposal, implementation, and review: never break a MUST rule, follow SHOULD
   rules by default, and treat unjustified violations as review findings that
@@ -552,11 +330,10 @@ implementation or review requires starting declared components:
   implementation and test files
 - Reconstruct the requirement before reading the implementation, and do not run
   archive while a MUST-strength acceptance item is unprovable from evidence
-- Automatically fix safe in-scope review findings before archive, and rerun
-  strict verification plus the configured complete regression command after
-  review-time changes
+- Automatically fix safe in-scope review findings before archive, and
+  rerun strict verification plus the configured complete regression command after review-time changes
 - Do not run archive without passing complete project-level regression test
   evidence or explicit setup guidance explaining why that evidence is blocked
-- Do not run archive before the final current-change tech sync is resolved, and
-  do not defer a confirmed reusable convention until after archive
+- Do not run archive before the delegated technical-standard checkpoint is
+  resolved
 - Do not commit or push automatically

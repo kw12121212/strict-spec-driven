@@ -48,8 +48,12 @@ requirements:
         - THEN: the command exits non-zero so review and archive evidence fails
   coverage-consistent-generated-surfaces:
     strength: MUST
-    statement: 'Workflow surfaces that generate or prescribe testing commands stay consistent with the project''s declared regression gate: scaffolded change task lists and maintenance-generated task lists carry the project''s configured complete regression command (or an explicit replace-me placeholder when none is configured) instead of hardcoded toolchain commands, the scaffolded workflow config carries toolchain-neutral regression guidance with a coverage declaration example instead of another project''s command, and the review, verify, auto, and init skill contracts state that a declared coverage contract is blocking review evidence enforced through the regression command''s exit code.'
+    statement: 'Workflow surfaces that generate or prescribe testing commands stay consistent with the project''s declared regression gate: scaffolded change task lists and maintenance-generated task lists carry the project''s configured complete regression command (or an explicit replace-me placeholder when none is configured) instead of hardcoded toolchain commands, the scaffolded workflow config carries toolchain-neutral regression guidance with a coverage declaration example instead of another project''s command, and the review, verify, auto, and init skill contracts state that a declared coverage contract is blocking review evidence enforced through the regression command''s exit code, or declare a checked delegation to the skill that states it.'
     scenarios:
+      skills-state-or-delegate-blocking-coverage:
+        - GIVEN: the review, verify, auto, and init skill contracts
+        - WHEN: their guidance is read
+        - THEN: each one either states that a declared coverage contract is blocking review evidence enforced through the regression command exit code and that the CLI never measures coverage itself, or declares a delegation to a skill that states it and that the delegation-target check resolves
       scaffolded-tasks-carry-configured-command:
         - GIVEN: a project whose workflow config declares a complete regression command
         - WHEN: a new change scaffold or maintenance task list is generated
@@ -58,7 +62,3 @@ requirements:
         - GIVEN: a project whose workflow config has no regression command
         - WHEN: a new change scaffold is generated
         - THEN: the generated testing gate task carries an explicit placeholder telling the operator to configure the complete regression command
-      skills-state-blocking-coverage:
-        - GIVEN: the review, verify, auto, and init skill contracts
-        - WHEN: their guidance is read
-        - THEN: they state that a declared coverage contract is blocking review evidence enforced through the regression command exit code and that the CLI never measures coverage itself

@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { validateCommandSection, validateSkillReferences } from "./skills/content.js";
+import { validateCommandSection, validateDelegations, validateSkillReferences } from "./skills/content.js";
 import { sortDiagnostics } from "./skills/diagnostics.js";
 import { validateRequiredSymlink, validateMarketplaceMetadata } from "./skills/fs-checks.js";
 import { parseFrontmatter, validateFrontmatterFields, validateLegacyReferences } from "./skills/frontmatter.js";
@@ -43,6 +43,15 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 
+  // Delegation resolution reads the skill named as owner, so every package's content is loaded
+  // before any package is validated. Reading it lazily inside the loop would make a delegation's
+  // result depend on directory order — a delegation to a later skill would see nothing.
+  const skillContents = new Map<string, string>();
+  for (const skillName of skillNames) {
+    const skillFilePath = path.join(skillsRoot, skillName, "SKILL.md");
+    if (existsSync(skillFilePath)) skillContents.set(skillName, readFileSync(skillFilePath, "utf8"));
+  }
+
   for (const skillName of skillNames) {
     const skillDir = path.join(skillsRoot, skillName);
     const skillPath = path.join("skills", skillName, "SKILL.md");
@@ -81,6 +90,7 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
     }
     validateLegacyReferences(skillName, content, skillPath, diagnostics);
     validateCommandSection(skillName, content, skillPath, diagnostics);
+    validateDelegations(skillName, content, skillContents, skillPath, diagnostics);
     validateSkillReferences(content, skillNames, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
   }

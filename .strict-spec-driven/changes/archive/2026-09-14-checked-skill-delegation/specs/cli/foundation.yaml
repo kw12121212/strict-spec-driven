@@ -1,0 +1,117 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-validate-skills-resolves-declared-delegations:
+      strength: MUST
+      statement: The validate-skills command MUST resolve every delegation a bundled skill declares and fail when the delegation does not conserve the delegated guidance. Resolution MUST confirm that the named owning skill exists under the bundled skill set and that it itself states the delegated content, comparing on whitespace-normalized text so a line-wrapped occurrence in either skill is matched. A delegation naming a skill that is absent, or naming a skill that does not state the delegated content, MUST exit non-zero with a deterministic diagnostic naming the delegating skill, the delegated content, the named owning skill, and the command that repairs it. The check MUST derive the set of delegations it resolves from the skills themselves rather than from a hand-maintained list.
+      scenarios:
+        absent-delegation-target-fails:
+          - GIVEN: a bundled skill declares a delegation naming a skill that is not present under the bundled skill set
+          - WHEN: validate-skills runs
+          - THEN: the command exits non-zero with a diagnostic naming the delegating skill, the missing owning skill, and the command that repairs it
+        line-wrapped-content-in-the-owner-still-matches:
+          - GIVEN: a delegating skill declares a delegation whose content appears in the owning skill wrapped across a line break
+          - WHEN: validate-skills resolves the delegation
+          - THEN: the delegation is accepted, because resolution compares whitespace-normalized text rather than raw lines
+        delegation-scope-is-derived-not-enumerated:
+          - GIVEN: a new bundled skill declares a delegation and no list of delegations is updated
+          - WHEN: validate-skills runs
+          - THEN: the new delegation is resolved and checked, because the check derives its scope from the skills themselves
+  MODIFIED:
+    cli-validate-skills-requires-interrogation-guidance:
+      strength: MUST
+      statement: The validate-skills command MUST reject a strict skill package for brainstorm, propose, bugfix, or auto that neither states the required requirement-interrogation guidance nor declares a checked delegation to the skill that owns it. Stating it means carrying the requirement-interrogation section, the rule that requirement items are never answered from repository evidence, the five canonical requirement ids, the prescribed asking technique of one question at a time each carrying a concrete guess and rejecting answers that name a solution, the duty to explain why a question matters and what a sufficient answer contains before posing it, and the duty to state the reason for pushback instead of silently re-asking. Delegating it means naming the owning skill as authoritative for that guidance, and is accepted only when the delegation-target check confirms the named skill itself states every one of those elements. The command MUST report deterministic path-specific diagnostics for each element that is neither stated nor covered by an accepted delegation.
+      scenarios:
+        delegation-to-a-covering-owner-is-accepted:
+          - GIVEN: the auto skill package declares that the requirement-interrogation guidance is owned by a skill that states every required element
+          - WHEN: validate-skills runs
+          - THEN: the package is accepted without carrying the elements inline, and no interrogation-guidance diagnostic is reported
+        delegation-to-a-non-covering-owner-is-rejected:
+          - GIVEN: the auto skill package declares that the requirement-interrogation guidance is owned by a skill that omits at least one required element
+          - WHEN: validate-skills runs
+          - THEN: the command rejects the package with a deterministic path-specific diagnostic naming the delegating skill, the owning skill, and the element the owning skill does not state
+        neither-stated-nor-delegated-is-rejected:
+          - GIVEN: a brainstorm, propose, bugfix, or auto skill package that omits a required interrogation element and declares no delegation for it
+          - WHEN: validate-skills runs
+          - THEN: the command rejects the package and names the missing element, as it did before delegation was accepted
+        validate-skills-rejects-missing-interrogation-guidance:
+          - GIVEN: a proposal-oriented strict skill package whose guidance omits the requirement-interrogation section and declares no delegation for it
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits non-zero with a diagnostic naming the skill path and the missing guidance element
+        validate-skills-rejects-missing-asking-technique:
+          - GIVEN: a proposal-oriented strict skill package that documents the requirement-interrogation section and canonical ids but omits the one-question-at-a-time rule, the concrete-guess rule, or the reject-solution-shaped-answers rule, and declares no delegation for it
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits non-zero with a diagnostic naming the skill path and the missing asking-technique rule
+        validate-skills-rejects-missing-explanation-duty:
+          - GIVEN: a proposal-oriented strict skill package that documents the asking technique but omits the duty to explain a question before posing it or the duty to state the reason for pushback, and declares no delegation for it
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits non-zero with a diagnostic naming the skill path and the missing explanation duty
+        validate-skills-accepts-complete-interrogation-guidance:
+          - GIVEN: all four proposal-oriented strict skill packages document the requirement-interrogation section, the evidence rule, the five canonical ids, the asking technique, and both explanation duties
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits zero without interrogation-guidance diagnostics
+    cli-review-independence-skill-content-validation:
+      strength: MUST
+      statement: The validate-skills command MUST reject a strict skill package for review or auto that neither states the required review-independence guidance nor declares a checked delegation to the skill that owns it. Stating it means carrying the review-independence section, the planning artifacts and delta specs the requirement is reconstructed from, the rule that the reconstruction completes before any implementation file, diff, or test file is read, the duty to write down a numbered list of acceptance items during that reconstruction, the prohibition on deriving the requirement from the implementation, the outside-reviewer stance rule, the three verdict values satisfied, not satisfied, and unprovable from evidence, the duty to attach an implementation reference and a test reference to each verdict, the rule that a blanket claim of matching the proposal is not a substitute for per-item verdicts, and the rule that an unprovable verdict on a MUST-strength requirement is a MUST FIX finding that blocks the archive recommendation. Delegating it means naming the owning skill as authoritative for that guidance, and is accepted only when the delegation-target check confirms the named skill itself states every one of those elements. The command MUST report deterministic path-specific diagnostics that name the offending skill package and the element that is neither stated nor covered by an accepted delegation.
+      scenarios:
+        review-guidance-delegation-is-accepted-when-the-owner-covers-it:
+          - GIVEN: the auto skill package declares that review-independence guidance is owned by the review skill and that skill states every required element
+          - WHEN: validate-skills runs
+          - THEN: the package is accepted without carrying the elements inline
+        review-guidance-delegation-is-rejected-when-the-owner-omits-an-element:
+          - GIVEN: the auto skill package declares that review-independence guidance is owned by a skill that omits at least one required element
+          - WHEN: validate-skills runs
+          - THEN: the command rejects the package and names the delegating skill, the owning skill, and the uncovered element
+        review-skill-missing-section-is-rejected:
+          - GIVEN: a review-capable strict skill package whose guidance omits the review-independence section and declares no delegation for it
+          - WHEN: strict skill packaging validation runs
+          - THEN: the command exits non-zero and a diagnostic names that skill package path and reports the missing review-independence section
+        review-skill-missing-element-is-rejected:
+          - GIVEN: a review-capable strict skill package that carries the review-independence section but omits the reconstruct-before-reading-implementation rule, the outside-reviewer stance rule, one of the three verdict values, the evidence-reference duty, or the archive-blocking rule for an unprovable MUST-strength requirement, and declares no delegation for it
+          - WHEN: strict skill packaging validation runs
+          - THEN: the command exits non-zero and one diagnostic per omission names the offending skill package path and the missing element
+        aligned-review-skills-pass:
+          - GIVEN: both review-capable strict skill packages document the review-independence section and every required element
+          - WHEN: strict skill packaging validation runs
+          - THEN: no review-independence diagnostic is reported and the existing skill content diagnostics are unchanged
+    cli-archive-runs-current-change-tech-sync:
+      strength: MUST
+      statement: The system MUST require every supported AI-guided strict change archive surface, including strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt, to complete a final current-change-scoped tech sync before invoking the raw archive command; a surface MAY satisfy this by performing the sync itself or by a checked delegation to the skill that owns the archive procedure, and delegation does not remove the obligation that the sync completes. The surface MUST continue immediately when existing standards and delta-tech cover the change; pause unresolved reusable convention findings for confirmed delta-tech capture or explicit non-reusable classification; forbid post-archive deferral of a convention confirmed as reusable; and rerun strict verification and delta-tech review after archive-time delta-tech edits while treating a change-local workflow record that the configured complete regression command neither compiles nor reads, currently a change-local delta-tech artifact or a lesson, as a write that does not invalidate previously passed complete regression evidence, so any other implementation, test, strict artifact, or configuration file written after that evidence passed, including a delta spec and a planning artifact, still requires a regression rerun before archive. Every AI-guided surface that directs a lesson or delta-tech write after complete regression evidence has passed, including strict-spec-review and strict-spec-bugfix, MUST state that evidence rule at the step where the rerun decision is made, or declare a checked delegation to the skill that states it.
+      scenarios:
+        archive-obligation-survives-delegation:
+          - GIVEN: an AI-guided archive surface delegates the archive procedure to the skill that owns it instead of restating it
+          - WHEN: the surface runs to archive
+          - THEN: the final current-change-scoped tech sync still completes before the raw archive command is invoked, and the delegation is resolved by the delegation-target check
+        archive-continues-when-tech-state-is-covered:
+          - GIVEN: a verified active change reaches final AI-guided archive preparation and its bounded scan finds no uncaptured reusable convention or confirms that existing delta-tech already covers each finding
+          - WHEN: the current-change tech sync checkpoint completes
+          - THEN: archive preparation continues without creating unnecessary tech artifacts
+        archive-pauses-for-reusable-convention-gap:
+          - GIVEN: the final bounded scan finds a possible reusable convention absent from the applicable main standards and current delta-tech
+          - WHEN: archive preparation evaluates the finding
+          - THEN: archive does not invoke the strict archive command until the operator confirms delta-tech capture or explicitly classifies the pattern as not reusable, and a convention the operator confirms as reusable cannot be deferred until after archive
+        archive-revalidates-after-delta-tech-capture:
+          - GIVEN: the operator confirms a reusable convention and archive preparation generates or updates current-change delta-tech, with complete regression evidence already passing for the change
+          - WHEN: the delta-tech artifact is the only file written since that evidence passed
+          - THEN: strict verification and delta-tech artifact review are rerun before archive, and the previously passed complete regression evidence stands without a rerun
+        lesson-write-preserves-regression-evidence:
+          - GIVEN: complete regression evidence has passed for a change and the agent then records the lesson for that change through the lesson store
+          - WHEN: the surface evaluates its regression evidence before archive and the lesson is the only file written since that evidence passed
+          - THEN: the previously passed complete regression evidence stands and the configured regression command is not rerun for that write
+        code-edit-still-invalidates-regression-evidence:
+          - GIVEN: archive preparation writes any file outside the carve-out after complete regression evidence passed, such as a source file, a test, a delta spec, a planning artifact, or the workflow config
+          - WHEN: the archive surface evaluates its regression evidence before invoking archive
+          - THEN: the configured complete project regression command is rerun and must pass before archive proceeds
+        lesson-writing-surfaces-state-the-evidence-rule:
+          - GIVEN: a bundled skill package whose steps direct a lesson write after the complete regression evidence step, such as strict-spec-review or strict-spec-bugfix, which omits the evidence rule and declares no delegation for it
+          - WHEN: bundled skill packaging is validated
+          - THEN: validation fails and the diagnostic names the package path and the missing statement
+        raw-archive-remains-deterministic-merge-primitive:
+          - GIVEN: the final sync checkpoint is complete under an AI-guided archive surface
+          - WHEN: that surface invokes the strict archive command for the selected change
+          - THEN: the raw command retains its deterministic verification, delta merge, index regeneration, roadmap reconciliation, and change-move responsibilities without requiring an AI sync receipt
+  REMOVED: {}

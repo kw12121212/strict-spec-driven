@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: checked-skill-delegation
+  status: proposed
+summary:
+  what:
+    - Extend the skill-guidance MUST requirements that currently force strict-spec-auto to state shared workflow procedure inline so they are satisfied either by stating it inline or by a checked delegation to the skill that owns it.
+    - Add a validate-skills check that proves every declared delegation target actually carries the delegated content, so the requirement's force is conserved rather than relaxed.
+    - Rewrite skills/strict-spec-auto/SKILL.md as an orchestration spine that delegates the propose, apply, review, and archive phase procedures to their owning skills while retaining auto-only increments.
+    - Add a technical standard rule that a skill delegating a lifecycle phase must not also restate that phase's procedure, scoped to delegating skills only.
+  why:
+    - strict-spec-auto is the largest bundled skill at roughly 9783 tokens of SKILL.md body, and that body stays resident for the whole lifecycle including the implementation phase where context is needed for reading code.
+    - auto restates procedure owned by propose, apply, review, and archive. Some copies are verbatim and some have silently diverged into independent wordings, so the same instruction now has several uncoordinated statements.
+    - 'The delegation is currently blocked by contract rather than by tooling: twelve MUST requirements bind auto''s guidance content and validate-skills declares 24 required snippets plus three required headings for auto, so only about 279 tokens can be delegated without amending those requirements.'
+scope:
+  in:
+    - 'Amend the MUST requirements that pin auto''s guidance content to accept a checked delegation: cli-validate-skills-requires-interrogation-guidance, cli-review-independence-skill-content-validation, the skills-state-blocking-coverage scenario of coverage-consistent-generated-surfaces, cli-archive-runs-current-change-tech-sync, and strict-review-skills-require-code-review-evidence.'
+    - Add the delegation-target content check to validate-skills so a delegation whose target skill lacks the delegated content fails, with a diagnostic naming the offending skill, the delegated content, and the command that repairs it.
+    - 'Delegate auto''s verbatim-duplicated content: the generate tasks CLI usage block in Steps step 3 and the gitignore hygiene block in step 7, plus the Spec and Technical Artifact Routing section.'
+    - Run a per-item equivalence audit over auto's semantically-diverged Steps (steps 4, 5, 6, 8, 9, 10, 11, 12, 13), which share no lines with their owning skills; delete an item only when the owning skill demonstrably covers it, and retain it in auto otherwise.
+    - Add a delta-tech rule that a skill delegating a lifecycle phase must not also restate that phase's procedure, written to govern delegating skills only.
+    - Enumerate every skill and committed policy fixture the new rule would govern and record each one's disposition before the rule is introduced.
+  out:
+    - Merging, renaming, or removing any skill entry point; the bundled skill count stays at 24.
+    - Editing any owning skill's content. When the equivalence audit finds auto states something its owning skill does not, that item is retained in auto rather than merged into the owner.
+    - Changing the skill packaging layout; no references/*.md progressive-disclosure files are introduced.
+    - Prose compression of propose, bugfix, brainstorm, roadmap-recommend, or roadmap-transition.
+    - Adding a SKILL.md size budget rule or check.
+    - Moving conditional guidance sections into new on-demand CLI commands.
+unchanged_behavior:
+  - 'strict-spec-auto''s stop points stay exactly three: the requirement-interrogation checkpoint, a non-empty questions.yaml.open, and the archive-time reusable-convention confirmation. Delegation introduces no new pause, because propose forbids pausing and apply''s and archive''s gates are the same two auto already declares.'
+  - strict-spec-auto's frontmatter description and its unattended end-to-end contract.
+  - 'auto-only capabilities that no owning skill carries: resetting context from targeted files, resuming an existing populated scaffold without regenerating planning artifacts, and carrying roadmap planned-change provenance forward as intake evidence instead of re-asking.'
+  - Behavior of strict-spec-propose, strict-spec-apply, strict-spec-review, and strict-spec-archive when invoked directly.
+  - 'The enforced force of every amended requirement: the delegation-target check replaces inline statement as the enforcement point rather than removing enforcement.'
+  - The strict CLI command surface; this change adds no CLI command.

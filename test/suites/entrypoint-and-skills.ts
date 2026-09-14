@@ -1022,9 +1022,11 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const REGRESSION_EVIDENCE_CARVE_OUT_WORDING =
     "a write the configured regression command neither compiles nor reads — currently a change-local"
     + " delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence";
+// strict-spec-auto is absent from this list because it delegates the change-intake gate rather than
+// stating it. That is asserted where the delegation is resolved, not by omission here: dropping a
+// skill from a governed list without a replacement check is how a contract stops being enforced.
 const questionGateSkillChecks: Array<[string, string]> = [
   [normalizedProposeSkillContent, "strict-spec-propose"],
-  [normalizedAutoSkillContent, "strict-spec-auto"],
   [normalizedBugfixSkillContent, "strict-spec-bugfix"],
   [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
 ];
@@ -1164,9 +1166,7 @@ context.assert(
       && normalizedReviewSkillContent.includes("mandatory final current-change tech sync")
       && normalizedReviewSkillContent.includes("may not be deferred until after archive")
       && normalizedAutoSkillContent.includes(techConventionReflectionAnchor)
-      && normalizedAutoSkillContent.includes("early reflection does not by itself block")
-      && normalizedAutoSkillContent.includes("mandatory final current-change tech sync")
-      && normalizedAutoSkillContent.includes("may not be deferred until after the change is archived"),
+      && normalizedAutoSkillContent.includes("defer the decision only to the mandatory technical-standard checkpoint before archive"),
     "strict-spec-review and strict-spec-auto keep early convention reflection non-blocking while deferring only to the final pre-archive sync",
   );
   context.assert(
@@ -1184,9 +1184,13 @@ context.assert(
       && normalizedArchiveSkillContent.includes("Never defer a confirmed reusable convention until after archive")
       && normalizedArchiveSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING)
       && normalizedArchiveSkillContent.includes("raw command only as the deterministic")
-      && normalizedAutoSkillContent.includes("Run the final current-change tech sync")
-      && normalizedAutoSkillContent.includes("explicitly classify the pattern as not reusable")
-      && normalizedAutoSkillContent.includes("confirmed as reusable cannot be deferred until after archive")
+      // strict-spec-auto delegates the sync procedure to strict-spec-archive, asserted just above,
+      // so the phrases that state the procedure are checked there rather than twice. What stays
+      // required of the orchestrating skill is the gate it owns — that it does not archive until
+      // the checkpoint clears — and the regression carve-out, which governs its own rerun decision
+      // rather than the sync and is therefore excluded from the delegated obligation.
+      && normalizedAutoSkillContent.includes("follow the delegated archive-tech-sync procedure")
+      && normalizedAutoSkillContent.includes("this skill does not archive until it has cleared")
       && normalizedAutoSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING),
     "tech sync, archive, and automatic workflows enforce bounded current-change delta-tech capture before deterministic archive",
   );
@@ -1251,12 +1255,13 @@ context.assert(
   );
   const technicalOnlyChangeCreationSkillChecks: Array<[string, string]> = [
     [normalizedProposeSkillContent, "strict-spec-propose"],
-    [normalizedAutoSkillContent, "strict-spec-auto"],
-        [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
+    [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
   ];
+  // strict-spec-auto is absent here and from the technical-only list below because it delegates
+  // delta-artifact-authoring and spec-artifact-routing rather than stating them; both delegations
+  // are resolved against their owner by the shipped delegation check.
   const incrementalDeltaScenarioGuidanceChecks: Array<[string, string]> = [
     [normalizedProposeSkillContent, "strict-spec-propose"],
-        [normalizedAutoSkillContent, "strict-spec-auto"],
     [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
     [normalizedBugfixSkillContent, "strict-spec-bugfix"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
@@ -4380,6 +4385,11 @@ const GUIDANCE_FIXTURES: { pkg: string; code: string; violation: string }[] = [
     code: "skill.strict_workflow.precondition.restated",
     violation: "- Restated here on purpose:",
   },
+  {
+    pkg: "strict-spec-fixture-uncovered-delegation",
+    code: "skill.delegation.owner.section.missing",
+    violation: "- review-independence: owned by `strict-spec-apply`",
+  },
 ];
 
 // The manifest is hand-written, so it is checked against the directory rather than trusted: a
@@ -4422,6 +4432,203 @@ for (const { pkg, code, violation } of GUIDANCE_FIXTURES) {
     `status ${compliant.status}; ${describeDiagnostics(compliant.diagnostics)}`,
   );
 }
+
+// --- Delegated procedures ----------------------------------------------------------------------
+// The bundled set validates cleanly with delegations in place, which is evidence about the set and
+// not about the checker. Each category below is therefore fired once on realistic input, and the
+// real orchestrating skill is driven through the shipped command with a restatement added back.
+
+type DelegationModelModule = {
+  parseDelegations: (content: string) => Array<{ obligation: string; owner: string }>;
+  DELEGABLE_OBLIGATIONS: Record<string, { ownerHeading?: string; ownerSnippets: Array<{ snippet: string }> }>;
+};
+type DelegationContentModule = {
+  validateDelegations: (
+    skillName: string,
+    content: string,
+    skillContents: ReadonlyMap<string, string>,
+    skillPath: string,
+    diagnostics: Array<{ code?: string; message?: string }>,
+  ) => void;
+};
+const delegationModel = await loadDistModule<DelegationModelModule>("skills/model.js");
+const delegationContent = await loadDistModule<DelegationContentModule>("skills/content.js");
+
+// A delegation that resolves to nothing would be invisible if the parser simply found none, so the
+// count is asserted rather than the validation result: a section that stopped parsing would leave
+// every downstream check trivially satisfied.
+const autoSkillText = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
+const autoDelegations = delegationModel.parseDelegations(autoSkillText);
+context.assert(
+  autoDelegations.length > 0 && autoDelegations.every((entry) => entry.owner.startsWith("strict-")),
+  "the orchestrating skill declares delegations that the shipped parser recognizes",
+  `parsed ${autoDelegations.length}: ${autoDelegations.map((d) => `${d.obligation}->${d.owner}`).join(", ")}`,
+);
+
+// The committed policy fixtures assert their seeded violation and nothing else, so a new per-skill
+// check that reached them would fail the suite. They delegate nothing, which is why the rule does
+// not govern them — asserted here rather than assumed, because two earlier checks did reach them.
+for (const { pkg } of NEGATIVE_FIXTURES) {
+  const fixtureText = readFileSync(path.join(POLICY_FIXTURE_ROOT, pkg, "SKILL.md"), "utf8");
+  context.assert(
+    delegationModel.parseDelegations(fixtureText).length === 0
+      && !fixtureText.includes("## Delegated Procedures"),
+    `policy fixture ${pkg} declares no delegation, so the delegation rule does not govern it`,
+  );
+}
+
+/** Runs the delegation check over one synthetic package and returns the codes it reported. */
+function delegationCodes(content: string, owners: Record<string, string>): string[] {
+  const diagnostics: Array<{ code?: string }> = [];
+  delegationContent.validateDelegations(
+    "strict-spec-auto",
+    content,
+    new Map(Object.entries(owners)),
+    "skills/strict-spec-auto/SKILL.md",
+    diagnostics,
+  );
+  return diagnostics.map((diagnostic) => diagnostic.code ?? "");
+}
+
+const coveringOwner = `## Review Independence\n${delegationModel.DELEGABLE_OBLIGATIONS["review-independence"]!
+  .ownerSnippets.map((entry) => entry.snippet).join("\n")}\n`;
+const declare = (line: string) => `## Delegated Procedures\n\n${line}\n`;
+
+const DELEGATION_CATEGORIES: { label: string; code: string; content: string; owners: Record<string, string> }[] = [
+  {
+    label: "a delegated-procedures section declaring nothing",
+    code: "skill.delegation.section.empty",
+    content: "## Delegated Procedures\n\nnothing is declared here.\n",
+    owners: {},
+  },
+  {
+    label: "an obligation id that is not delegable",
+    code: "skill.delegation.obligation.unknown",
+    content: declare("- not-a-real-obligation: owned by `strict-spec-review`"),
+    owners: { "strict-spec-review": coveringOwner },
+  },
+  {
+    label: "an owner with no package",
+    code: "skill.delegation.owner.missing",
+    content: declare("- review-independence: owned by `strict-spec-review`"),
+    owners: {},
+  },
+  {
+    label: "an owner carrying no such section",
+    code: "skill.delegation.owner.section.missing",
+    content: declare("- review-independence: owned by `strict-spec-review`"),
+    owners: { "strict-spec-review": "this skill states nothing of the kind" },
+  },
+  {
+    label: "an owner missing one required element",
+    code: "skill.delegation.owner.element.missing",
+    content: declare("- review-independence: owned by `strict-spec-review`"),
+    owners: { "strict-spec-review": "## Review Independence\nan outside reviewer who did not write them\n" },
+  },
+  {
+    label: "a delegating skill that also restates the procedure",
+    code: "skill.delegation.restated",
+    content: declare("- review-independence: owned by `strict-spec-review`")
+      + "\n## Review Independence\n\nrestated here.\n",
+    owners: { "strict-spec-review": coveringOwner },
+  },
+];
+
+for (const { label, code, content, owners } of DELEGATION_CATEGORIES) {
+  const codes = delegationCodes(content, owners);
+  context.assert(
+    codes.includes(code),
+    `the delegation check reports ${code} for ${label}`,
+    `got ${codes.join(", ") || "none"}`,
+  );
+}
+
+// A fully covered delegation must stay silent, or every assertion above would pass on a check that
+// simply always fires. The wrapped variant proves the comparison collapses whitespace on the owner
+// side, which is what lets an owning skill wrap its prose without breaking a delegation to it.
+context.assert(
+  delegationCodes(declare("- review-independence: owned by `strict-spec-review`"), {
+    "strict-spec-review": coveringOwner,
+  }).length === 0,
+  "a delegation whose owner states every required element reports nothing",
+);
+context.assert(
+  delegationCodes(declare("- review-independence: owned by `strict-spec-review`"), {
+    "strict-spec-review": coveringOwner.replace("an outside reviewer", "an outside\nreviewer"),
+  }).length === 0,
+  "a delegation stays accepted when the owner wraps a required element across a line break",
+);
+
+// The negative case over the real skill. The restatement is counted in normalized text rather than
+// raw text, because the shipped check normalizes before matching: a literal count would disagree
+// with the checker wherever the author wrapped the phrase, and the failure would read as a broken
+// expectation rather than a broken probe.
+const restatedAuto = `${autoSkillText}\n## Review Independence\n\nrestated on purpose.\n`;
+const normalizedRestatementCount =
+  restatedAuto.replace(/\s+/g, " ").split("## Review Independence").length - 1;
+context.assert(
+  normalizedRestatementCount === 1,
+  "the restatement probe adds exactly one occurrence to the real orchestrating skill",
+  `normalized occurrences: ${normalizedRestatementCount}`,
+);
+const restatedRun = validateSkillsOverPackage("strict-spec-auto", restatedAuto);
+context.assert(
+  restatedRun.status !== 0
+    && restatedRun.diagnostics.some((diagnostic) => diagnostic.code === "skill.delegation.restated"),
+  "shipped validate-skills rejects the real orchestrating skill when a delegated procedure is restated",
+  describeDiagnostics(restatedRun.diagnostics),
+);
+const unmodifiedRun = validateSkillsOverPackage("strict-spec-auto", autoSkillText);
+context.assert(
+  unmodifiedRun.status === 0 && unmodifiedRun.diagnostics.length === 0,
+  "the same package validates cleanly without the restatement, attributing the failure to it",
+  `status ${unmodifiedRun.status}; ${describeDiagnostics(unmodifiedRun.diagnostics)}`,
+);
+
+// Delegation moves where a procedure is stated; it must not move a gate or drop a capability. The
+// orchestrating skill's three stop points and the increments no owning skill carries are asserted
+// directly, because the delegation check can only prove the owner states the delegated procedure —
+// it is silent about anything the delegating skill stopped saying that nobody else says.
+const normalizedAuto = autoSkillText.replace(/\s+/g, " ");
+const AUTO_STOP_POINTS: Array<[string, string]> = [
+  ["the requirement-interrogation checkpoint", "this is the one checkpoint where the automatic workflow stops"],
+  ["a non-empty open question list", "If `questions.yaml.open` is not empty, do not infer answers or continue automatically"],
+  ["waiting for the human reply that resolves it", "Then stop and wait for an explicit human reply"],
+  ["the archive-time technical-standard confirmation", "this skill does not archive until it has cleared"],
+];
+for (const [label, phrase] of AUTO_STOP_POINTS) {
+  context.assert(
+    normalizedAuto.includes(phrase.replace(/\s+/g, " ")),
+    `the orchestrating skill still stops at ${label} after delegating its phase procedures`,
+    phrase,
+  );
+}
+
+const AUTO_ONLY_INCREMENTS: Array<[string, string]> = [
+  ["resetting context from targeted files", "Reset context from targeted files"],
+  ["resuming a populated scaffold", "resume the existing populated strict change scaffold without regenerating planning artifacts"],
+  ["carrying roadmap planned-change provenance forward", "preserve selected planned-change provenance as intake evidence"],
+  ["reusing regression evidence only on an exact command match", "exactly matches the configured complete project regression command"],
+  ["the lint task ordering", "dedicated lint Testing task before full unit or regression test tasks"],
+  ["the ship handoff", "/strict-spec-ship <change-name>"],
+];
+for (const [label, phrase] of AUTO_ONLY_INCREMENTS) {
+  const statedByAnOwner = autoDelegations
+    .map((entry) => readFileSync(path.join(ROOT, "skills", entry.owner, "SKILL.md"), "utf8"))
+    .some((text) => text.replace(/\s+/g, " ").includes(phrase.replace(/\s+/g, " ")));
+  context.assert(
+    normalizedAuto.includes(phrase.replace(/\s+/g, " ")),
+    `the orchestrating skill retains ${label}, which no owning skill carries`,
+    `${phrase} (stated by an owner: ${statedByAnOwner})`,
+  );
+}
+
+// The contract the change promised to leave alone. A delegation that quietly downgraded the skill
+// from unattended would be a behavior change wearing a refactor's clothes.
+context.assert(
+  autoSkillText.includes("without extra confirmation unless open questions block progress"),
+  "the orchestrating skill's unattended end-to-end description is unchanged by delegation",
+);
 
 // The absent-reference diagnostic has to locate the reference, not just name the file: a skill names
 // many things, and a reader given only the path has to search for the one that no longer resolves.
@@ -4621,7 +4828,40 @@ context.assert(
   unresolvedReviewSkills.join(", "),
 );
 
+// A governed skill satisfies the contract by stating it or by delegating it to the skill that owns
+// it, so the removal probes below run over the skills that state it. The delegating ones are not
+// dropped from the check: each is asserted to declare a delegation the resolver accepts, and the
+// delegation check's own negative cases prove an unresolved delegation fails. Partitioning here
+// rather than shrinking the governed list keeps a skill that silently stops doing either from
+// passing by absence.
+const statingReviewSkills: string[] = [];
 for (const reviewSkill of skillsModel.REVIEW_INDEPENDENCE_SKILLS) {
+  const text = readFileSync(path.join(ROOT, "skills", reviewSkill, "SKILL.md"), "utf8");
+  const delegations = delegationModel.parseDelegations(text)
+    .filter((entry) => entry.obligation === "review-independence");
+  if (delegations.length === 0) {
+    statingReviewSkills.push(reviewSkill);
+    continue;
+  }
+  const owner = delegations[0]!.owner;
+  const ownerText = readFileSync(path.join(ROOT, "skills", owner, "SKILL.md"), "utf8");
+  const normalizedOwner = ownerText.replace(/\s+/g, " ");
+  const uncovered = skillsModel.REVIEW_INDEPENDENCE_SNIPPETS
+    .filter((entry) => !normalizedOwner.includes(entry.snippet.replace(/\s+/g, " ")))
+    .map((entry) => entry.element);
+  context.assert(
+    ownerText.includes(skillsModel.REVIEW_INDEPENDENCE_HEADING) && uncovered.length === 0,
+    `${reviewSkill} delegates review independence to ${owner}, which states the section and every element`,
+    `uncovered: ${uncovered.join("; ") || "none"}`,
+  );
+}
+
+context.assert(
+  statingReviewSkills.length > 0,
+  "at least one governed skill still states the review-independence contract, so the removal probes below are not vacuous",
+);
+
+for (const reviewSkill of statingReviewSkills) {
   const reviewSkillText = readFileSync(path.join(ROOT, "skills", reviewSkill, "SKILL.md"), "utf8");
 
   // The control: without it, a failure below could be attributable to anything else in the file.

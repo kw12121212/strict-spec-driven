@@ -80,3 +80,18 @@ rules:
         - A bundled skill sentence naming strict-roadmap-reorder without a backtick or slash, which reads to an operator as a live slash command while no such package exists.
     exceptions:
       - Source comments that name a deleted skill while stating that it was deleted, test suites that assert a deleted skill's absence, marked retirement sections of operator upgrade notes, and .strict-spec-driven/ workflow state recording which skills existed when a change was archived, all name retired skills as statements of fact rather than routing instructions.
+  delegating-skills-do-not-restate-the-delegated-procedure:
+    strength: MUST
+    statement: 'A bundled skill that delegates a lifecycle phase to the skill that owns it MUST NOT also restate that phase''s procedure. The delegation MUST name the owning skill in a form the packaged-skill reference check already recognizes, and the shipped skill validation command MUST fail, naming the delegating skill, the restated content, and the owning skill, when a declared delegation coexists with a restatement of the same procedure. The rule''s subject is the delegating skill only: a skill that owns and performs a phase itself is outside the rule, and stating a procedure it owns is never a violation. Content the delegating skill states that its owning skill does not state is an increment rather than a restatement, and MUST be retained in the delegating skill rather than merged into the owner.'
+    rationale: strict-spec-auto restated procedure owned by propose, apply, review, and archive. Part of that restatement was verbatim and part had diverged into an independent wording covering the same procedure, so the same instruction acquired several uncoordinated statements with no way to tell a deliberate difference from a missed synchronization. Forbidding restatement only where a delegation is declared leaves each procedure with exactly one statement while keeping every owning skill self-sufficient when invoked directly. Scoping the rule to owners instead would make five existing skills violations at introduction and force either merging entry points or rewriting them, both of which this change excludes.
+    enforcement:
+      method: test
+      detail: The shipped skill validation command resolves each declared delegation and compares whitespace-normalized text, failing when the delegating skill restates content its declared owner also states. The negative case removes the delegation from the real skill file and observes the diagnostic; the positive case observes each matcher category firing on realistic input. The governed set is derived by scanning the bundled skills rather than from a hand-maintained list.
+    examples:
+      good:
+        - 'strict-spec-auto names strict-spec-propose as authoritative for the proposal-phase procedure and states only its own increments: resuming an existing populated scaffold without regenerating planning artifacts, and carrying roadmap planned-change provenance forward as intake evidence.'
+      bad:
+        - strict-spec-auto names strict-spec-propose as authoritative for the proposal phase and still carries its own copy of the generate tasks CLI usage block that strict-spec-propose states.
+    exceptions:
+      - 'A skill that owns and performs a lifecycle phase is not governed: strict-spec-propose, strict-spec-brainstorm, strict-spec-bugfix, strict-spec-review, and strict-roadmap-recommend state procedures they own and declare no delegation, so the rule does not reach them.'
+      - The committed policy fixtures under the validation test fixtures directory declare no delegation and are therefore outside the rule; this change asserts that rather than assuming it.

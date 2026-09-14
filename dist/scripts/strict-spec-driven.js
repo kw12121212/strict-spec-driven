@@ -33948,6 +33948,140 @@ var REVIEW_INDEPENDENCE_SNIPPETS = [
     element: "the rule that an unprovable verdict on a MUST-strength requirement blocks the archive recommendation"
   }
 ];
+var DELEGATED_PROCEDURES_HEADING = "## Delegated Procedures";
+var DELEGATION_DECLARATION_PATTERN = /^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+`(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)`/gm;
+var DELEGABLE_OBLIGATIONS = {
+  "requirement-interrogation": {
+    element: "the requirement-interrogation guidance",
+    ownerHeading: REQUIREMENT_INTERROGATION_HEADING,
+    ownerSnippets: REQUIREMENT_INTERROGATION_SNIPPETS,
+    waivedSnippets: []
+  },
+  "review-independence": {
+    element: "the review-independence contract",
+    ownerHeading: REVIEW_INDEPENDENCE_HEADING,
+    ownerSnippets: REVIEW_INDEPENDENCE_SNIPPETS,
+    waivedSnippets: []
+  },
+  "archive-tech-sync": {
+    element: "the final current-change tech sync performed before archive",
+    ownerSnippets: [
+      { snippet: CURRENT_CHANGE_TECH_SYNC_SNIPPET, element: "the final current-change tech sync" },
+      { snippet: CURRENT_CHANGE_SCOPE_SNIPPET, element: "the scan scope the sync is bounded to" },
+      { snippet: CURRENT_CHANGE_DELTA_TECH_SNIPPET, element: "capturing a confirmed convention as current-change delta tech" },
+      { snippet: "explicitly classifies the pattern as not reusable", element: "the explicit not-reusable classification that closes a finding" },
+      { snippet: NO_POST_ARCHIVE_DEFERRAL_SNIPPET, element: "the ban on deferring a confirmed reusable convention past archive" }
+    ],
+    waivedSnippets: [
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      "explicitly classify the pattern as not reusable",
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET
+    ]
+  },
+  "code-review-evidence": {
+    element: "the requirement for direct code review evidence before archive",
+    ownerSnippets: [
+      { snippet: "direct code review evidence", element: "the requirement for direct code review evidence before archive" }
+    ],
+    waivedSnippets: ["direct code review evidence"]
+  },
+  "blocking-coverage": {
+    element: "the rule that a declared coverage contract is blocking review evidence",
+    ownerSnippets: [
+      { snippet: "is the coverage gate", element: "that the configured regression command is the coverage gate" },
+      { snippet: "never advisory output", element: "that a coverage failure is never advisory output" }
+    ],
+    waivedSnippets: []
+  },
+  "spec-artifact-routing": {
+    element: "the routing that decides whether a change needs a delta spec or delta tech",
+    ownerSnippets: [
+      { snippet: "A strict change may legitimately have no delta spec", element: "that a change may legitimately have no delta spec" },
+      { snippet: "Create `delta-spec` artifacts only when the change modifies user-observable", element: "when a delta spec is created" },
+      { snippet: "If a technical-only change alters, adds, or retires an engineering rule", element: "when a technical-only change needs delta tech" }
+    ],
+    waivedSnippets: []
+  },
+  "change-intake-gate": {
+    element: "the change-intake question gate",
+    ownerSnippets: [
+      { snippet: "change-intake checklist", element: "the change-intake checklist" },
+      { snippet: "Do not ask the human for information already recoverable", element: "the rule against asking for recoverable information" },
+      { snippet: "Stop before implementation while `questions.yaml.open` is non-empty", element: "the rule that an open question stops implementation" }
+    ],
+    waivedSnippets: []
+  },
+  "task-list-authoring": {
+    element: "the task-list authoring procedure",
+    ownerSnippets: [
+      { snippet: "one CLI invocation per task", element: "that each task is authored by its own CLI invocation" },
+      { snippet: "upserts by `(section, task-id)` and is idempotent", element: "the upsert-by-section-and-id semantics" },
+      { snippet: "`--validation-task <task-id>` and `--unit-test-task <task-id>`", element: "setting the testing gates" }
+    ],
+    waivedSnippets: []
+  },
+  "delta-artifact-authoring": {
+    element: "the incremental delta-spec and delta-tech authoring procedure",
+    ownerSnippets: [
+      { snippet: "One requirement can include multiple scenario groups by repeating `--scenario`", element: "repeating a scenario group under one requirement" },
+      { snippet: "Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one", element: "that scenarios append without a rebuild" },
+      { snippet: "Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>`", element: "removing one scenario without touching its siblings" }
+    ],
+    waivedSnippets: []
+  },
+  "gitignore-hygiene": {
+    element: "the gitignore hygiene pass over generated artifacts",
+    ownerSnippets: [
+      { snippet: "run `git status --short` to find newly created untracked files", element: "finding newly created untracked files" },
+      { snippet: "add matching entries to `.gitignore`", element: "adding the matching ignore entries" },
+      { snippet: "do not ignore source code, configuration", element: "the rule that source and configuration are never ignored" }
+    ],
+    waivedSnippets: []
+  },
+  "implementation-order": {
+    element: "the task implementation and completion procedure",
+    ownerSnippets: [
+      { snippet: "read relevant code before editing", element: "reading the relevant code before editing it" },
+      { snippet: "implement the next pending task", element: "implementing tasks in list order" },
+      { snippet: "never violate a MUST rule", element: "the ban on violating a MUST rule to finish a task" },
+      { snippet: "`apply` is positional, not addressed", element: "that apply completes the next task in list order rather than one named by id" }
+    ],
+    waivedSnippets: []
+  },
+  "lesson-outcome": {
+    element: "the required lesson-outcome declaration before archive",
+    ownerSnippets: [
+      { snippet: "state explicitly either that a lesson was recorded or that none applies", element: "the duty to declare the lesson outcome either way" },
+      { snippet: "padded with filler", element: "the reason a manufactured lesson is worse than none" }
+    ],
+    waivedSnippets: []
+  },
+  "archive-execution": {
+    element: "the archive execution procedure",
+    ownerSnippets: [
+      {
+        snippet: "if it is empty, treat the change as having no delta specs to merge",
+        element: "that an empty specs directory is merged as no delta specs rather than blocking"
+      }
+    ],
+    waivedSnippets: []
+  }
+};
+function parseDelegations(content) {
+  const section = content.split(DELEGATED_PROCEDURES_HEADING)[1];
+  if (section === undefined)
+    return [];
+  const body = section.split(/^## /m)[0] ?? "";
+  return [...body.matchAll(DELEGATION_DECLARATION_PATTERN)].map((match) => ({
+    obligation: match[1],
+    owner: match[2]
+  }));
+}
+function delegatesObligation(content, obligation) {
+  return parseDelegations(content).some((entry) => entry.obligation === obligation);
+}
 var CORE_STRICT_SKILL_EXPECTATIONS = {
   "strict-spec-init": {
     requiredCommands: {
@@ -34365,8 +34499,64 @@ function makeDiagnostic5(code, diagPath, message, expected, actual) {
 }
 
 // src/skills/content.ts
+function snippetsWaivedByDelegation(content) {
+  const waived = new Set;
+  for (const { obligation } of parseDelegations(content)) {
+    for (const snippet of DELEGABLE_OBLIGATIONS[obligation]?.waivedSnippets ?? [])
+      waived.add(snippet);
+  }
+  return waived;
+}
+function restatementSignals(obligation) {
+  const declared = DELEGABLE_OBLIGATIONS[obligation];
+  if (!declared)
+    return [];
+  if (declared.ownerHeading)
+    return [declared.ownerHeading];
+  if (declared.waivedSnippets.length > 0)
+    return declared.waivedSnippets;
+  return declared.ownerSnippets.map((entry) => entry.snippet);
+}
+function validateDelegations(skillName, content, skillContents, skillPath, diagnostics) {
+  const delegations = parseDelegations(content);
+  if (delegations.length === 0) {
+    if (content.includes(DELEGATED_PROCEDURES_HEADING)) {
+      diagnostics.push(makeDiagnostic5("skill.delegation.section.empty", skillPath, `'${skillName}' carries a delegated-procedures section that declares no delegation; remove the section or add a line reading '<obligation-id>: owned by \`<skill-name>\`'`, `${DELEGATED_PROCEDURES_HEADING} with at least one declaration`));
+    }
+    return;
+  }
+  for (const { obligation, owner } of delegations) {
+    const declared = DELEGABLE_OBLIGATIONS[obligation];
+    if (!declared) {
+      diagnostics.push(makeDiagnostic5("skill.delegation.obligation.unknown", skillPath, `'${skillName}' delegates '${obligation}', which is not a delegable obligation; declare it in DELEGABLE_OBLIGATIONS in src/skills/model.ts or use one of the recognized ids`, Object.keys(DELEGABLE_OBLIGATIONS).join(", "), obligation));
+      continue;
+    }
+    for (const signal of restatementSignals(obligation)) {
+      if (!normalizeWhitespace3(content).includes(normalizeWhitespace3(signal)))
+        continue;
+      diagnostics.push(makeDiagnostic5("skill.delegation.restated", skillPath, `'${skillName}' delegates ${declared.element} to '${owner}' and still restates it; delete the restated text from skills/${skillName}/SKILL.md, because the delegation makes '${owner}' the single statement of that procedure`, `no restatement of ${declared.element}`, signal));
+    }
+    const ownerContent = skillContents.get(owner);
+    if (ownerContent === undefined) {
+      diagnostics.push(makeDiagnostic5("skill.delegation.owner.missing", skillPath, `'${skillName}' delegates ${declared.element} to '${owner}', which has no package under skills/; name a packaged skill that states it, or state the guidance inline in skills/${skillName}/SKILL.md`, "a skill name with a package under skills/", owner));
+      continue;
+    }
+    const normalizedOwner = normalizeWhitespace3(ownerContent);
+    if (declared.ownerHeading && !ownerContent.includes(declared.ownerHeading)) {
+      diagnostics.push(makeDiagnostic5("skill.delegation.owner.section.missing", skillPath, `'${skillName}' delegates ${declared.element} to '${owner}', which carries no '${declared.ownerHeading}' section; add that section to skills/${owner}/SKILL.md, or state the guidance inline in skills/${skillName}/SKILL.md`, declared.ownerHeading, owner));
+      continue;
+    }
+    for (const { snippet, element } of declared.ownerSnippets) {
+      if (normalizedOwner.includes(normalizeWhitespace3(snippet)))
+        continue;
+      diagnostics.push(makeDiagnostic5("skill.delegation.owner.element.missing", skillPath, `'${skillName}' delegates ${declared.element} to '${owner}', which does not state ${element}; add it to skills/${owner}/SKILL.md, or state the guidance inline in skills/${skillName}/SKILL.md`, snippet, owner));
+    }
+  }
+}
 function validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics) {
   if (!REQUIREMENT_INTERROGATION_SKILLS.includes(skillName))
+    return;
+  if (delegatesObligation(content, "requirement-interrogation"))
     return;
   const normalizedContent = content.replace(/\s+/g, " ");
   if (!content.includes(REQUIREMENT_INTERROGATION_HEADING)) {
@@ -34380,6 +34570,8 @@ function validateRequirementInterrogationGuidance(skillName, content, skillPath,
 }
 function validateReviewIndependenceGuidance(skillName, content, skillPath, diagnostics) {
   if (!REVIEW_INDEPENDENCE_SKILLS.includes(skillName))
+    return;
+  if (delegatesObligation(content, "review-independence"))
     return;
   const section = skillSection(content, REVIEW_INDEPENDENCE_HEADING);
   if (section === undefined) {
@@ -34450,7 +34642,10 @@ function validateSkillContentAgainstExpectation(skillName, content, commands, sk
       diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.required_heading.missing`, skillPath, `${label} is missing required section heading '${heading}'`, heading));
     }
   }
+  const waived = snippetsWaivedByDelegation(content);
   for (const snippet of expectation.requiredSnippets) {
+    if (waived.has(snippet))
+      continue;
     if (!normalizedContent.includes(snippet.replace(/\s+/g, " "))) {
       diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.required_snippet.missing`, skillPath, `${label} must reference '${snippet}'`, snippet));
     }
@@ -34967,6 +35162,12 @@ function validateStrictSkillPackaging(rootDir) {
     };
   }
   const skillNames = readdirSync16(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+  const skillContents = new Map;
+  for (const skillName of skillNames) {
+    const skillFilePath = path48.join(skillsRoot, skillName, "SKILL.md");
+    if (existsSync45(skillFilePath))
+      skillContents.set(skillName, readFileSync31(skillFilePath, "utf8"));
+  }
   for (const skillName of skillNames) {
     const skillDir = path48.join(skillsRoot, skillName);
     const skillPath = path48.join("skills", skillName, "SKILL.md");
@@ -34985,6 +35186,7 @@ function validateStrictSkillPackaging(rootDir) {
     }
     validateLegacyReferences(skillName, content, skillPath, diagnostics);
     validateCommandSection(skillName, content, skillPath, diagnostics);
+    validateDelegations(skillName, content, skillContents, skillPath, diagnostics);
     validateSkillReferences(content, skillNames, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
   }

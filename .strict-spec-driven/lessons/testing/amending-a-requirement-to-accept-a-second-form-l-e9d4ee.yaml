@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: amending-a-requirement-to-accept-a-second-form-l-e9d4ee
+  title: Amending a requirement to accept a second form leaves the test suite asserting the first
+category: testing
+status: active
+created_at: '2026-09-13T16:35:53.035Z'
+updated_at: '2026-09-13T16:35:53.035Z'
+context: 'This change widened five MUST requirements from ''strict-spec-auto must state this guidance inline'' to ''must state it inline or delegate it to the skill that owns it'', then rewrote the skill to delegate. An equivalence audit ran first and was treated as the completeness check: it compared the skill against every spec requirement that names it and against the per-skill required-snippet registry the shipped validate-skills reads, and reported full owner coverage.'
+observation: 'The shipped command passed on the first run and the repository looked clean, but the project regression reported 37 failures. The test suite is a third consumer of the same contract, and it encodes the narrow form directly: a governed-skill list naming the skill as one that must state a section, a removal-probe loop that deletes each required element from that skill and asserts the failure, and several prose assertions checking exact inline phrases. None of those live in a spec or in the registry, so the audit could not see them. Two of the failures were not that class at all: they were increments the rewrite had paraphrased rather than preserved, and only the suite''s exact-phrase assertions caught the paraphrase.'
+takeaway: 'When a requirement is widened to accept a second form, the audit is not complete until it covers every surface that encodes the first form, and the test suite is one of those surfaces rather than a check on them. Grep the suite for the skill, file, or symbol whose contract is changing before estimating the work, because assertions written against the old form fail as a group and read like a broken implementation. Partition the governed list rather than deleting the entry from it: a skill dropped from a governed list without a replacement assertion stops being checked silently, which is the failure the widening was supposed to avoid.'
+applies_when: Amending an existing requirement, standard rule, or validation contract so a second form satisfies it — delegation instead of inline statement, a pointer instead of a copy, a derived value instead of a declared one — and scoping the work from the spec artifacts and the shipped validator alone without grepping the test suite for assertions that hardcode the original form.
+occurrences:
+  - origin: checked-skill-delegation
+    date: '2026-09-13'
+    evidence: 'bun test/run.ts reported 37 failures after skills/strict-spec-auto/SKILL.md began delegating: 28 from the REVIEW_INDEPENDENCE_SKILLS removal-probe loop in test/suites/entrypoint-and-skills.ts, 7 from hardcoded governed-skill lists (questionGateSkillChecks, incrementalDeltaScenarioGuidanceChecks, technicalOnlyChangeCreationSkillChecks), 1 from a tech-sync prose assertion, and 1 from test/suites/coverage-gate.ts. Two were genuine rewrite defects the suite caught: the roadmap-provenance increment and the lint-task-ordering increment had been paraphrased, and no owning skill carried either.'

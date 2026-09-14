@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: guidance-that-duplicates-cli-help-is-not-lost-wh-f272f8
+  title: Guidance that duplicates CLI help is not lost when a skill stops stating it
+category: documentation
+status: active
+created_at: '2026-09-14T03:18:18.203Z'
+updated_at: '2026-09-14T03:18:18.203Z'
+context: After rewriting strict-spec-auto to delegate its phase procedures, an audit compared every behavioral instruction in the old skill against the new skill and against the twenty-four other bundled skills, to find anything the rewrite had silently dropped. One sentence — that propose may reuse a change directory holding only empty subdirectories — appeared in none of them, and was reported as the change's single genuine content loss.
+observation: 'The skill was not the authoritative statement of that behavior. The propose command''s metadata entry already carried it as a note, rendered by propose --help for every caller: it rejects a directory that already holds files, and running it again against a directory that holds no files succeeds as a no-op. The help wording was also more accurate than the skill''s, because it names the predicate the code actually evaluates rather than one special case of it. The skill sentence had been a duplicate of authoritative output all along, and deleting it removed a second statement that could drift, which is what the change existed to do. The audit''s universe had been sibling guidance files only, so the one surface that did state it was outside the search.'
+takeaway: 'Before calling removed guidance a loss, resolve where the behavior is authoritatively stated, not just whether some other prose file repeats it. For anything a CLI does, that authority is the command metadata its help renders, and a skill sentence restating it is a duplicate whose removal is the intended outcome rather than a regression. Build the audit universe from every surface that can state the fact — sibling guidance, command help, schema and example output — because an audit scoped to one surface reports absences that only describe the scope. The inverse is the real finding worth hunting: guidance that exists in exactly one skill and nowhere else is either a genuine increment to retain or an operational semantic that belongs in the metadata registry.'
+applies_when: Auditing what a refactor, consolidation, or delegation removed from a prompt, skill, or documentation file, and deciding whether a sentence that now appears nowhere in the sibling files is a real loss — especially when the sentence describes what a command does, where the command's own help is the surface most likely to be outside the search.
+occurrences:
+  - origin: checked-skill-delegation
+    date: '2026-09-14'
+    evidence: The deleted sentence read 'If the target change directory already exists but only contains empty subdirectories, propose may safely reuse it.' src/cli/command-metadata-entries.ts line 166 already carried the same semantics, and strict-spec-cli propose --help renders it under Notes. The corrected audit result for the change is zero lost instructions out of 180, not one.

@@ -16,6 +16,10 @@ import {
   COMMAND_PREFIX,
   CORE_STRICT_SKILL_EXPECTATIONS,
   CHECK_WORKFLOW_STATE_COMMAND,
+  DELEGABLE_OBLIGATIONS,
+  DELEGATED_PROCEDURES_HEADING,
+  delegatesObligation,
+  parseDelegations,
   GENERIC_COMMAND_PLACEHOLDER,
   PLANNING_STRICT_SKILL_EXPECTATIONS,
   ROADMAP_STRICT_SKILL_EXPECTATIONS,
@@ -41,6 +45,136 @@ import {
   type SkillPackagingDiagnostic,
 } from "./model.js";
 
+/** The delegating skill's own required snippets that its declared delegations cover. */
+function snippetsWaivedByDelegation(content: string): ReadonlySet<string> {
+  const waived = new Set<string>();
+  for (const { obligation } of parseDelegations(content)) {
+    for (const snippet of DELEGABLE_OBLIGATIONS[obligation]?.waivedSnippets ?? []) waived.add(snippet);
+  }
+  return waived;
+}
+
+/**
+ * The text whose presence in a delegating skill means it restated the procedure it delegated.
+ *
+ * A section-shaped obligation is signalled by its heading, because a skill that kept the heading kept
+ * the section under it. Otherwise the signal is the wording the delegating skill used to carry —
+ * distinctive prose rather than a command name, since a command name also occurs wherever the skill
+ * merely invokes that command, which would report a restatement for a skill that only delegates.
+ */
+function restatementSignals(obligation: string): readonly string[] {
+  const declared = DELEGABLE_OBLIGATIONS[obligation];
+  if (!declared) return [];
+  if (declared.ownerHeading) return [declared.ownerHeading];
+  if (declared.waivedSnippets.length > 0) return declared.waivedSnippets;
+  return declared.ownerSnippets.map((entry) => entry.snippet);
+}
+
+/**
+ * Resolves every declared delegation against the skill named as owner.
+ *
+ * The obligation is checked against the owner's own wording rather than the delegating skill's,
+ * because the two legitimately differ: the same archive obligation reads "explicitly classify" where
+ * a skill orchestrates it and "explicitly classifies" where a skill performs it. Comparing literals
+ * would reject a covered delegation and leave editing the owning skill as the only fix.
+ *
+ * Scope comes from the skills themselves — every delegation any package declares is resolved — so a
+ * delegation added later is checked without updating a list. Matching collapses whitespace on both
+ * sides so a line-wrapped occurrence in either skill still counts as stated.
+ */
+export function validateDelegations(
+  skillName: string,
+  content: string,
+  skillContents: ReadonlyMap<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  const delegations = parseDelegations(content);
+  if (delegations.length === 0) {
+    if (content.includes(DELEGATED_PROCEDURES_HEADING)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.delegation.section.empty",
+          skillPath,
+          `'${skillName}' carries a delegated-procedures section that declares no delegation; remove the section or add a line reading '<obligation-id>: owned by \`<skill-name>\`'`,
+          `${DELEGATED_PROCEDURES_HEADING} with at least one declaration`,
+        ),
+      );
+    }
+    return;
+  }
+
+  for (const { obligation, owner } of delegations) {
+    const declared = DELEGABLE_OBLIGATIONS[obligation];
+    if (!declared) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.delegation.obligation.unknown",
+          skillPath,
+          `'${skillName}' delegates '${obligation}', which is not a delegable obligation; declare it in DELEGABLE_OBLIGATIONS in src/skills/model.ts or use one of the recognized ids`,
+          Object.keys(DELEGABLE_OBLIGATIONS).join(", "),
+          obligation,
+        ),
+      );
+      continue;
+    }
+
+    for (const signal of restatementSignals(obligation)) {
+      if (!normalizeWhitespace(content).includes(normalizeWhitespace(signal))) continue;
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.delegation.restated",
+          skillPath,
+          `'${skillName}' delegates ${declared.element} to '${owner}' and still restates it; delete the restated text from skills/${skillName}/SKILL.md, because the delegation makes '${owner}' the single statement of that procedure`,
+          `no restatement of ${declared.element}`,
+          signal,
+        ),
+      );
+    }
+
+    const ownerContent = skillContents.get(owner);
+    if (ownerContent === undefined) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.delegation.owner.missing",
+          skillPath,
+          `'${skillName}' delegates ${declared.element} to '${owner}', which has no package under skills/; name a packaged skill that states it, or state the guidance inline in skills/${skillName}/SKILL.md`,
+          "a skill name with a package under skills/",
+          owner,
+        ),
+      );
+      continue;
+    }
+
+    const normalizedOwner = normalizeWhitespace(ownerContent);
+    if (declared.ownerHeading && !ownerContent.includes(declared.ownerHeading)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.delegation.owner.section.missing",
+          skillPath,
+          `'${skillName}' delegates ${declared.element} to '${owner}', which carries no '${declared.ownerHeading}' section; add that section to skills/${owner}/SKILL.md, or state the guidance inline in skills/${skillName}/SKILL.md`,
+          declared.ownerHeading,
+          owner,
+        ),
+      );
+      continue;
+    }
+
+    for (const { snippet, element } of declared.ownerSnippets) {
+      if (normalizedOwner.includes(normalizeWhitespace(snippet))) continue;
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.delegation.owner.element.missing",
+          skillPath,
+          `'${skillName}' delegates ${declared.element} to '${owner}', which does not state ${element}; add it to skills/${owner}/SKILL.md, or state the guidance inline in skills/${skillName}/SKILL.md`,
+          snippet,
+          owner,
+        ),
+      );
+    }
+  }
+}
+
 function validateRequirementInterrogationGuidance(
   skillName: string,
   content: string,
@@ -48,6 +182,7 @@ function validateRequirementInterrogationGuidance(
   diagnostics: SkillPackagingDiagnostic[],
 ): void {
   if (!(REQUIREMENT_INTERROGATION_SKILLS as readonly string[]).includes(skillName)) return;
+  if (delegatesObligation(content, "requirement-interrogation")) return;
   const normalizedContent = content.replace(/\s+/g, " ");
 
   if (!content.includes(REQUIREMENT_INTERROGATION_HEADING)) {
@@ -91,6 +226,7 @@ function validateReviewIndependenceGuidance(
   diagnostics: SkillPackagingDiagnostic[],
 ): void {
   if (!(REVIEW_INDEPENDENCE_SKILLS as readonly string[]).includes(skillName)) return;
+  if (delegatesObligation(content, "review-independence")) return;
 
   const section = skillSection(content, REVIEW_INDEPENDENCE_HEADING);
   if (section === undefined) {
@@ -273,7 +409,9 @@ function validateSkillContentAgainstExpectation(
     }
   }
 
+  const waived = snippetsWaivedByDelegation(content);
   for (const snippet of expectation.requiredSnippets) {
+    if (waived.has(snippet)) continue;
     if (!normalizedContent.includes(snippet.replace(/\s+/g, " "))) {
       diagnostics.push(
         makeDiagnostic(

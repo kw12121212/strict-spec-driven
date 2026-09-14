@@ -40,6 +40,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/documentation/adding-a-required-section-to-a-skill-can-breach-140cae.yaml
+    guidance-that-duplicates-cli-help-is-not-lost-wh-f272f8:
+      title: Guidance that duplicates CLI help is not lost when a skill stops stating it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/documentation/guidance-that-duplicates-cli-help-is-not-lost-wh-f272f8.yaml
   testing:
     a-self-populating-cache-cannot-be-made-absent-by-49b4d2:
       title: A self-populating cache cannot be made absent by pointing at an empty directory
@@ -106,6 +111,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/markdown-command-fixtures-need-mutation-surface-03e282.yaml
+    amending-a-requirement-to-accept-a-second-form-l-e9d4ee:
+      title: Amending a requirement to accept a second form leaves the test suite asserting the first
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/amending-a-requirement-to-accept-a-second-form-l-e9d4ee.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability
@@ -130,7 +140,7 @@ categories:
     an-empty-search-result-is-evidence-about-the-sea-668a85:
       title: An empty search result is evidence about the search, not the code
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/tooling/an-empty-search-result-is-evidence-about-the-sea-668a85.yaml
     a-technical-only-test-file-still-needs-a-spec-ma-ff2067:
       title: A technical-only test file still needs a spec mapping

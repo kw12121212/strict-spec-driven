@@ -1,0 +1,68 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: checked-skill-delegation
+sections:
+  Implementation:
+    audit-auto-content-ownership:
+      text: Run the per-item equivalence audit over strict-spec-auto's guidance. For every shared section and every Steps item 4, 5, 6, 8, 9, 10, 11, 12, and 13, locate the corresponding statement in the owning skill and record a disposition of delete-and-delegate when the owner covers it or retain-as-increment when it does not. Compare on whitespace-normalized text. Do not edit any owning skill.
+      status: complete
+    define-delegation-declaration-form:
+      text: Define in src/skills/model.ts the form a bundled skill uses to declare that another skill owns a piece of guidance, reusing a reference form the packaged-skill reference check already recognizes rather than inventing an unchecked surface.
+      status: complete
+    implement-delegation-target-check:
+      text: 'Implement the delegation-target check in src/skills/content.ts: resolve each declared delegation, confirm the named owning skill exists and states the delegated content using whitespace-normalized comparison, derive the checked set by scanning the bundled skills rather than from a hand-maintained list, and emit a diagnostic naming the delegating skill, the delegated content, the owning skill, and the command that repairs it.'
+      status: complete
+    accept-stated-or-delegated-content:
+      text: Update the per-skill required-content registry so the interrogation, review-independence, archive tech-sync, code-review-evidence, and blocking-coverage obligations for strict-spec-auto are satisfied by an inline statement or by an accepted delegation, keeping every other skill's requirements unchanged.
+      status: complete
+    rewrite-auto-as-orchestration-spine:
+      text: 'Rewrite skills/strict-spec-auto/SKILL.md as an orchestration spine that delegates the propose, apply, review, and archive phase procedures to their owning skills, deletes the verbatim-duplicated generate tasks CLI block and gitignore hygiene block, applies each disposition from the equivalence audit, and retains the auto-only increments: resetting context from targeted files, resuming a populated scaffold without regenerating planning artifacts, and carrying roadmap planned-change provenance forward as intake evidence.'
+      status: complete
+    keep-required-phrases-unwrapped:
+      text: Ensure every phrase the shipped checks match appears in skills/strict-spec-auto/SKILL.md without a line break inside it, so a literal removal probe can reach each occurrence, and recount occurrences in normalized text after the rewrite.
+      status: complete
+    confirm-policy-fixtures-ungoverned:
+      text: Confirm the four committed fixtures under test/fixtures/policy-skills/ declare no delegation and are therefore outside the new rule, asserting it in the suite rather than assuming it, since two prior changes put those fixtures in violation by introducing a per-skill check.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild compiled output with bun run build so the dist-based test suite and the bundled skill scripts exercise the edited sources.
+      status: complete
+      command: bun run build
+  Testing:
+    test-delegation-check-positive:
+      text: 'Add positive cases proving each matcher category of the delegation-target check fires on realistic input: an accepted delegation whose owner states the content, an accepted delegation whose owner states it across a line break, and a delegation newly added to a skill without updating any list.'
+      status: complete
+    test-delegation-check-negative-fixture:
+      text: Add a committed negative fixture driven through the shipped validate-skills command that declares a delegation to a skill lacking the delegated content, and observe the failure naming the delegating skill, the owning skill, and the uncovered element. Add a second negative case that removes the delegation from the real strict-spec-auto skill file and observes the corresponding diagnostic, counting occurrences in normalized text rather than raw text.
+      status: complete
+    test-auto-stop-points-unchanged:
+      text: 'Assert strict-spec-auto still declares exactly its three stop points after the rewrite: the requirement-interrogation checkpoint, a non-empty open question list, and the archive-time reusable-convention confirmation, and that its auto-only increments for context reset, populated-scaffold resume, and roadmap provenance survive.'
+      status: complete
+    run-validate-skills:
+      text: Run the bundled skill packaging and content validation over skills/.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-unit-tests:
+      text: Run the project test suite against compiled dist output, redirecting output to a file and reading the runner's own exit status rather than a pipeline's.
+      status: complete
+      command: bun test/run.ts
+    run-complete-regression:
+      text: Run the configured complete project regression command with its coverage gate; a non-zero exit below the declared threshold is a blocking archive gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change-artifacts:
+      text: Run strict verification over the change artifacts.
+      status: complete
+      command: strict-spec-cli verify checked-skill-delegation
+    verify-unchanged-behavior:
+      text: Check the result against every unchanged_behavior entry in proposal.yaml, in particular that no owning skill file was edited and that the strict CLI command surface gained no command.
+      status: complete
+    verify-archive-merge-readiness:
+      text: 'Confirm archive readiness: the three delta specs merge into cli-foundation, contracts-yaml-artifacts, and testing-coverage-gate, and the delta tech merges the delegation rule into the cli-command-metadata standard, with the amended requirements replacing their current statements rather than duplicating them.'
+      status: complete
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-unit-tests

@@ -369,6 +369,185 @@ export const REVIEW_INDEPENDENCE_SNIPPETS: ReadonlyArray<RequirementInterrogatio
   },
 ];
 
+export const DELEGATED_PROCEDURES_HEADING = "## Delegated Procedures";
+
+/**
+ * One line of a Delegated Procedures section: an obligation id and the skill that owns it.
+ *
+ * The owning skill is backticked so the packaged-skill reference check already recognizes it and
+ * fails when the named skill has no package, which means a delegation can never point at a skill
+ * that was deleted. The obligation id is matched as a whole segment list rather than one character
+ * class so a typo produces no match — and therefore an unrecognized-obligation diagnostic — instead
+ * of silently resolving to a neighbouring id.
+ */
+export const DELEGATION_DECLARATION_PATTERN =
+  /^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+`(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)`/gm;
+
+/**
+ * A procedure a skill may hand to the skill that owns it instead of restating it.
+ *
+ * `ownerSnippets` is what the *owning* skill must state, written in the owner's own wording rather
+ * than the delegating skill's. The two diverge in practice — the archive obligation reads "explicitly
+ * classify" in an orchestrating skill and "explicitly classifies" in the skill that performs it — so
+ * a check comparing the owner against the delegating skill's literal would reject a delegation whose
+ * obligation is fully covered, and the only way to satisfy it would be to edit the owning skill.
+ *
+ * `waivedSnippets` names the delegating skill's own required snippets that this delegation covers.
+ * Waiving is listed per obligation rather than inferred by string equality for the same reason: the
+ * two wordings are not equal, and inferring the link would drop exactly the snippets that differ.
+ */
+export type DelegableObligation = {
+  /** What the obligation is, named in diagnostics so a failure says which contract went unmet. */
+  element: string;
+  /** A section heading the owning skill must carry, when the obligation is section-shaped. */
+  ownerHeading?: string;
+  /** Content the owning skill must state for a delegation of this obligation to be accepted. */
+  ownerSnippets: ReadonlyArray<{ snippet: string; element: string }>;
+  /** Required snippets the delegating skill no longer states inline once this is delegated. */
+  waivedSnippets: readonly string[];
+};
+
+export const DELEGABLE_OBLIGATIONS: Record<string, DelegableObligation> = {
+  "requirement-interrogation": {
+    element: "the requirement-interrogation guidance",
+    ownerHeading: REQUIREMENT_INTERROGATION_HEADING,
+    ownerSnippets: REQUIREMENT_INTERROGATION_SNIPPETS,
+    waivedSnippets: [],
+  },
+  "review-independence": {
+    element: "the review-independence contract",
+    ownerHeading: REVIEW_INDEPENDENCE_HEADING,
+    ownerSnippets: REVIEW_INDEPENDENCE_SNIPPETS,
+    waivedSnippets: [],
+  },
+  "archive-tech-sync": {
+    element: "the final current-change tech sync performed before archive",
+    ownerSnippets: [
+      { snippet: CURRENT_CHANGE_TECH_SYNC_SNIPPET, element: "the final current-change tech sync" },
+      { snippet: CURRENT_CHANGE_SCOPE_SNIPPET, element: "the scan scope the sync is bounded to" },
+      { snippet: CURRENT_CHANGE_DELTA_TECH_SNIPPET, element: "capturing a confirmed convention as current-change delta tech" },
+      { snippet: "explicitly classifies the pattern as not reusable", element: "the explicit not-reusable classification that closes a finding" },
+      { snippet: NO_POST_ARCHIVE_DEFERRAL_SNIPPET, element: "the ban on deferring a confirmed reusable convention past archive" },
+    ],
+    // The regression-evidence carve-out is deliberately not part of this obligation. It governs the
+    // rerun decision rather than the sync, and the archive requirement separately obliges every
+    // surface that directs a lesson or delta-tech write after regression evidence passed to state it
+    // at the step where that decision is made — which for an orchestrating skill is its own
+    // regression step, not the sync it delegates.
+    waivedSnippets: [
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      "explicitly classify the pattern as not reusable",
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+    ],
+  },
+  "code-review-evidence": {
+    element: "the requirement for direct code review evidence before archive",
+    ownerSnippets: [
+      { snippet: "direct code review evidence", element: "the requirement for direct code review evidence before archive" },
+    ],
+    waivedSnippets: ["direct code review evidence"],
+  },
+  "blocking-coverage": {
+    element: "the rule that a declared coverage contract is blocking review evidence",
+    ownerSnippets: [
+      { snippet: "is the coverage gate", element: "that the configured regression command is the coverage gate" },
+      { snippet: "never advisory output", element: "that a coverage failure is never advisory output" },
+    ],
+    waivedSnippets: [],
+  },
+  "spec-artifact-routing": {
+    element: "the routing that decides whether a change needs a delta spec or delta tech",
+    ownerSnippets: [
+      { snippet: "A strict change may legitimately have no delta spec", element: "that a change may legitimately have no delta spec" },
+      { snippet: "Create `delta-spec` artifacts only when the change modifies user-observable", element: "when a delta spec is created" },
+      { snippet: "If a technical-only change alters, adds, or retires an engineering rule", element: "when a technical-only change needs delta tech" },
+    ],
+    waivedSnippets: [],
+  },
+  "change-intake-gate": {
+    element: "the change-intake question gate",
+    ownerSnippets: [
+      { snippet: "change-intake checklist", element: "the change-intake checklist" },
+      { snippet: "Do not ask the human for information already recoverable", element: "the rule against asking for recoverable information" },
+      { snippet: "Stop before implementation while `questions.yaml.open` is non-empty", element: "the rule that an open question stops implementation" },
+    ],
+    waivedSnippets: [],
+  },
+  "task-list-authoring": {
+    element: "the task-list authoring procedure",
+    ownerSnippets: [
+      { snippet: "one CLI invocation per task", element: "that each task is authored by its own CLI invocation" },
+      { snippet: "upserts by `(section, task-id)` and is idempotent", element: "the upsert-by-section-and-id semantics" },
+      { snippet: "`--validation-task <task-id>` and `--unit-test-task <task-id>`", element: "setting the testing gates" },
+    ],
+    waivedSnippets: [],
+  },
+  "delta-artifact-authoring": {
+    element: "the incremental delta-spec and delta-tech authoring procedure",
+    ownerSnippets: [
+      { snippet: "One requirement can include multiple scenario groups by repeating `--scenario`", element: "repeating a scenario group under one requirement" },
+      { snippet: "Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one", element: "that scenarios append without a rebuild" },
+      { snippet: "Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>`", element: "removing one scenario without touching its siblings" },
+    ],
+    waivedSnippets: [],
+  },
+  "gitignore-hygiene": {
+    element: "the gitignore hygiene pass over generated artifacts",
+    ownerSnippets: [
+      { snippet: "run `git status --short` to find newly created untracked files", element: "finding newly created untracked files" },
+      { snippet: "add matching entries to `.gitignore`", element: "adding the matching ignore entries" },
+      { snippet: "do not ignore source code, configuration", element: "the rule that source and configuration are never ignored" },
+    ],
+    waivedSnippets: [],
+  },
+  "implementation-order": {
+    element: "the task implementation and completion procedure",
+    ownerSnippets: [
+      { snippet: "read relevant code before editing", element: "reading the relevant code before editing it" },
+      { snippet: "implement the next pending task", element: "implementing tasks in list order" },
+      { snippet: "never violate a MUST rule", element: "the ban on violating a MUST rule to finish a task" },
+      { snippet: "`apply` is positional, not addressed", element: "that apply completes the next task in list order rather than one named by id" },
+    ],
+    waivedSnippets: [],
+  },
+  "lesson-outcome": {
+    element: "the required lesson-outcome declaration before archive",
+    ownerSnippets: [
+      { snippet: "state explicitly either that a lesson was recorded or that none applies", element: "the duty to declare the lesson outcome either way" },
+      { snippet: "padded with filler", element: "the reason a manufactured lesson is worse than none" },
+    ],
+    waivedSnippets: [],
+  },
+  "archive-execution": {
+    element: "the archive execution procedure",
+    ownerSnippets: [
+      {
+        snippet: "if it is empty, treat the change as having no delta specs to merge",
+        element: "that an empty specs directory is merged as no delta specs rather than blocking",
+      },
+    ],
+    waivedSnippets: [],
+  },
+};
+
+/** Every delegation `content` declares, as an obligation id with the skill named as its owner. */
+export function parseDelegations(content: string): Array<{ obligation: string; owner: string }> {
+  const section = content.split(DELEGATED_PROCEDURES_HEADING)[1];
+  if (section === undefined) return [];
+  const body = section.split(/^## /m)[0] ?? "";
+  return [...body.matchAll(DELEGATION_DECLARATION_PATTERN)].map((match) => ({
+    obligation: match[1] as string,
+    owner: match[2] as string,
+  }));
+}
+
+/** Whether `content` delegates `obligation` to another skill rather than stating it inline. */
+export function delegatesObligation(content: string, obligation: string): boolean {
+  return parseDelegations(content).some((entry) => entry.obligation === obligation);
+}
+
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
     requiredCommands: {

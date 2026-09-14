@@ -1061,18 +1061,20 @@ requirements:
         - THEN: strict-spec-init is the only exempt package, because the strict-spec-migrate skill that previously required the exemption for a repository without strict workflow state is no longer packaged
   strict-review-skills-require-code-review-evidence:
     strength: MUST
-    statement: The strict review and automatic workflow skills MUST require direct code review evidence before archive recommendation or execution, including changed implementation and test file review plus a concrete review checklist.
+    statement: The strict review and automatic workflow skills MUST require direct code review evidence before archive recommendation or execution, including changed implementation and test file review plus a concrete review checklist. A skill MAY satisfy this by stating the requirement itself or by declaring a checked delegation to the skill that owns the review procedure; the obligation that direct code review evidence is produced before archive is unaffected by which form is used.
     scenarios:
+      auto-delegating-review-still-requires-code-review-evidence:
+        - GIVEN: the automatic workflow skill delegates the review procedure to the skill that owns it rather than restating it
+        - WHEN: the automatic workflow reaches the archive decision
+        - THEN: direct code review evidence is still required before archive, and the delegation is resolved by the delegation-target check
       review-skill-cannot-delegate-code-review-to-cli:
         - GIVEN: a strict change is being reviewed by strict-spec-review or strict-spec-auto
         - WHEN: the review step reaches archive recommendation or execution
         - THEN: the skill has read changed implementation and test files directly
-        - AND: the skill has not called a strict-spec-driven review subcommand as code review evidence
       review-report-includes-evidence-and-categories:
         - GIVEN: a strict review skill reports review results
         - WHEN: the final review report is inspected
         - THEN: the report identifies reviewed files and executed validation or regression commands
-        - AND: findings are evaluated across correctness, spec alignment, tests, error handling, security, performance, maintainability, boundary conditions, user-visible behavior, and documentation impact
       auto-review-blocks-archive-without-code-review:
         - GIVEN: strict-spec-auto is preparing to archive a completed change
         - WHEN: direct code review evidence has not been gathered

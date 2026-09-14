@@ -1,0 +1,47 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: checked-skill-delegation
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today with the bundled skills, and for whom?
+    context: 'Establishes whether the need is per-invocation context cost, cross-file maintenance drift, or entry-point routing confusion. The three point at opposite solutions: deduplication across files helps drift but not context, because only one skill body loads per invocation, while merging entry points reduces file count but increases the size of the skill that does load. A sufficient answer names an occasion and what went wrong on it, not a proposed fix.'
+    answer: 'Skills consume too much context when they run. Measurement confirms the shape: strict-spec-auto is 9783 tokens of SKILL.md body and stays resident through the implementation phase, where context is needed for reading code. The 24 frontmatter descriptions that are always resident total only 2137 tokens, so the always-loaded cost is not the problem.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves this is solved?
+    context: The outcome must be observable so it can be written as a verifiable requirement and checked at review. Options offered were a hard per-skill size cap enforced by a check, shrinking only the largest skills, reducing what is actually read in a typical run, or both size and drift.
+    answer: The largest skills shrink, and duplication is removed by having strict-spec-auto delegate to the related skills rather than restate them, which the requester wants both for size and for keeping the phases functionally consistent.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now? What forced this work?
+    context: Tests whether the trigger is real, which calibrates how much risk the change should absorb. A weak trigger argues for the narrowest viable scope, because there is no deadline justifying pushing through an audit that proves more expensive than estimated.
+    answer: Nothing forced it; the requester reported available time rather than a blocking event. Recorded as a weak trigger. This was stated after the requester had seen the benefit estimate revised downward twice, and the requester chose the full scope anyway.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Non-goals bound the implementation so an in-scope edit cannot quietly widen into an adjacent cleanup. Recorded in the proposal's out-of-scope and unchanged-behavior lists, where review checks the result against them.
+    answer: 'Four non-goals: the skill entry-point count stays at 24; every skill other than auto keeps its behavior; the skill packaging layout is unchanged, so no references files are introduced; and no existing constraint''s strength is reduced. The fourth was amended by the requester during the brainstorm: extending an inline-statement requirement to accept a checked delegation is permitted, but only when a new check proves the delegation target carries the content, so the enforced force is conserved.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the delegation is intended, where more than one exists?
+    context: Three readings differ materially. First, which skill auto delegates its proposal phase to. Second, whether auto keeps advancing automatically or inherits the delegated skills' interactive gates. Third, what happens when the equivalence audit finds auto states something its owning skill does not.
+    answer: auto delegates the proposal phase to strict-spec-propose, not strict-spec-brainstorm, because propose is the non-interactive scaffolder. auto keeps advancing automatically; its stop points remain the requirement-interrogation checkpoint, a non-empty questions.yaml.open, and the archive-time reusable-convention confirmation. When the audit finds an item the owning skill does not cover, the item is retained in auto and the owning skill is never edited.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: roadmap-recommend-disposition
+    question: Does the new delegation rule govern strict-roadmap-recommend, which also scaffolds a strict change?
+    context: 'The lesson promoting-a-repeated-fix-to-a-must-rule-makes-every-existing-instance-a-violation requires enumerating every existing instance a new MUST rule would govern before introducing it, and recording each one''s disposition as either fixed in this change or named as an exception. Six skills carry shared procedure sections: strict-spec-auto with five, strict-spec-brainstorm, strict-spec-propose, and strict-spec-bugfix with three each, strict-spec-review with two, and strict-roadmap-recommend with one. The rule''s subject decides which of them become violations at introduction.'
+    answer: 'No. strict-roadmap-recommend delegates nothing: it scaffolds directly by invoking propose and generate itself at SKILL.md lines 211 to 246, restating the generate tasks CLI block rather than pointing at an owning skill. The rule''s subject is a skill that delegates a lifecycle phase, so a skill that owns and performs the phase is outside it. Disposition: unchanged, not an exception. The same reasoning leaves brainstorm, propose, bugfix, and review outside the rule as owners, and leaves the four committed fixtures under test/fixtures/policy-skills/ outside it because none of them delegate; the fixture conclusion is asserted by a task in this change rather than assumed.'
+    status: resolved
