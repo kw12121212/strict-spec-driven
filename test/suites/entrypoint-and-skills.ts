@@ -4448,6 +4448,7 @@ type DelegationModelModule = {
   parseDelegations: (content: string) => Array<{ obligation: string; owner: string }>;
   DELEGABLE_OBLIGATIONS: Record<string, { ownerHeading?: string; ownerSnippets: Array<{ snippet: string }> }>;
   delegationDeclaration: (obligation: string, owner: string) => string;
+  DELEGATED_PROCEDURES_HEADING: string;
   CORE_STRICT_SKILL_EXPECTATIONS: Record<string, { requiredSnippets?: string[] }>;
 };
 type DelegationContentModule = {
@@ -4478,6 +4479,68 @@ for (const [delegatingSkill, parsed] of [
     `parsed ${parsed.length}: ${parsed.map((d) => `${d.obligation}->${d.owner}`).join(", ")}`,
   );
 }
+
+// A declaration says who owns a procedure, not when it runs, so a skill can carry a delegation that
+// no step ever reaches — the reader learns the owner and is never sent there. The shipped checks do
+// not see it: one resolves the declaration against the owner and one rejects a restatement, and both
+// pass on a declaration the steps never mention. strict-spec-auto shipped in exactly that state for
+// delta-artifact-authoring.
+//
+// The governed set is every skill that declares a delegation, found by scanning, so a skill that
+// starts delegating later inherits the check rather than escaping a list. The question asked is the
+// weakest one with no false positives — does the id appear in Steps at all — because both skills
+// reach several procedures through an enumerated phrase that prefixes "delegated" only to the first
+// id, and a matcher demanding "delegated <id>" per declaration fails on guidance that is correct.
+const { DELEGATED_PROCEDURES_HEADING } = delegationModel;
+// Everything after the declaration list, not the one section following it: strict-spec-auto declares
+// its delegations above three sections that precede Steps, so slicing a single section reads the
+// wrong one and reports every declaration unreached.
+const unreachedDelegations = (skillText: string): string[] => {
+  const sections = skillText.split(DELEGATED_PROCEDURES_HEADING)[1]?.split(/^## /m) ?? [];
+  if (sections.length < 2) return [];
+  const afterDeclarations = sections.slice(1).join("\n## ");
+  return delegationModel.parseDelegations(skillText)
+    .map(({ obligation }) => obligation)
+    .filter((obligation) => !afterDeclarations.includes(obligation));
+};
+const delegatingSkillNames = strictSkillNames.filter((skillName) =>
+  readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8").includes(DELEGATED_PROCEDURES_HEADING));
+const skillsWithUnreachedDelegations = delegatingSkillNames
+  .map((skillName) => ({
+    skillName,
+    unreached: unreachedDelegations(readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8")),
+  }))
+  .filter((entry) => entry.unreached.length > 0)
+  .map((entry) => `${entry.skillName}: ${entry.unreached.join(", ")}`);
+context.assert(
+  delegatingSkillNames.length > 0 && skillsWithUnreachedDelegations.length === 0,
+  "every delegation a bundled skill declares is named somewhere after its declaration list",
+  `scanned ${delegatingSkillNames.length} delegating skills; unreached: ${skillsWithUnreachedDelegations.join("; ")}`,
+);
+// A scan observed only over compliant skills has not been observed at all: a split that read the
+// wrong half, or a filter comparing the wrong field, reports zero unreached either way. The probe
+// adds one synthetic declaration to each real skill in turn rather than building a synthetic skill,
+// because a hand-built probe carries only the structure its author thought of. The first version of
+// this probe placed the declarations directly above Steps and passed while the real scan was broken
+// for strict-spec-auto, which declares its delegations above three sections that precede Steps.
+const probeObligation = "probe-unreached-obligation";
+const withSyntheticDeclaration = (skillText: string): string =>
+  skillText.replace(
+    `${DELEGATED_PROCEDURES_HEADING}\n`,
+    `${DELEGATED_PROCEDURES_HEADING}\n\n- ${probeObligation}: owned by \`strict-spec-review\`\n`,
+  );
+const probeResults = delegatingSkillNames.map((skillName) => ({
+  skillName,
+  reported: unreachedDelegations(
+    withSyntheticDeclaration(readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8")),
+  ).join(","),
+}));
+const probeMisses = probeResults.filter((entry) => entry.reported !== probeObligation);
+context.assert(
+  probeResults.length > 0 && probeMisses.length === 0,
+  "the reachability scan reports a declaration injected into each real skill, and nothing else",
+  probeMisses.map((entry) => `${entry.skillName} -> ${entry.reported || "nothing"}`).join("; "),
+);
 
 // Every obligation strict-spec-bugfix stopped stating inline is pinned in both directions: the
 // declaration is a required snippet in the shipped expectation registry, so deleting it fails

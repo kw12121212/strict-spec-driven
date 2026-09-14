@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-auto-unreached-delegation
+approach:
+  - 'Fix the one skill, then add the check that would have caught it. The check derives its governed set by scanning every bundled skill for a delegated-procedures section rather than naming skills, and asks the weakest question that has no false positives: does the obligation id appear anywhere in the skill''s Steps. A stricter matcher looking for the phrase ''delegated <id>'' reports false misses on the enumerated form both skills already use — ''the delegated change-intake-gate, spec-artifact-routing, and task-list-authoring procedures'' prefixes only the first id — so it would fail on correct guidance.'
+decisions:
+  scan-do-not-list:
+    decision: Derive the governed set by scanning skills for a delegated-procedures section instead of enumerating skill names.
+    rationale: declared-surface-lists-are-checked-against-implementation requires a hand-maintained scope list to be cross-checked in both directions; a scan has no list to go stale, and a skill that starts delegating later inherits the check instead of escaping it.
+  id-presence-not-phrase-match:
+    decision: Require the obligation id to appear somewhere in Steps, rather than requiring the phrase 'delegated <id>'.
+    rationale: Both delegating skills already reach several procedures through an enumerated list that prefixes 'delegated' only to the first id. A phrase matcher reports three false misses on strict-spec-auto and one on strict-spec-bugfix against guidance that is correct, and a check that fails on correct input gets weakened or deleted rather than obeyed.
+  suite-not-shipped:
+    decision: Keep the check in the repository suite rather than adding a validate-skills diagnostic.
+    rationale: Operator decision. A shipped check would bind every consuming project's skills to a constraint this repository has only just started applying, and the closely related declaration-pinning pattern was deliberately not promoted to a standard in the preceding change.
+  no-delta-spec:
+    decision: No delta spec. This change alters guidance wording in one bundled skill and adds a repository suite check; no main spec requirement changes.
+    rationale: The two requirements that govern this area already hold without amendment. cli-validate-skills-requires-interrogation-guidance and proposal-skills-change-intake-question-gate accept a checked delegation and are unaffected by which step names it, and no main spec requirement states that a delegating skill must reach each declaration from a step — the operator chose the repository suite over shipped enforcement precisely so that obligation is not created. Naming the procedure in an existing auto step restores the guidance the declaration always implied rather than changing observable behavior.
+alternatives:
+  - option: Remove the delta-artifact-authoring declaration from strict-spec-auto instead of reaching it from a step.
+    reason: It would delete a delegation whose procedure auto genuinely needs when authoring delta artifacts, turning a documentation gap into a capability loss.
+  - option: Require the phrase 'follow the delegated <id> procedure' for every declaration.
+    reason: It fails on the enumerated wording both skills already use correctly, so adopting it would mean rewriting correct guidance to satisfy a matcher.
+risks:
+  - 'The id-presence matcher accepts an incidental mention that does not actually direct the work, so it is weaker than a human reading. Accepted: it is a floor against a silently dangling declaration, not a substitute for the review that reads the step.'
+  - A future skill could name an obligation id only inside a code block or a command string and pass. Mitigated by the probe, which proves the check fires on a declaration absent from Steps entirely, and by review reading the step that reaches each delegation.

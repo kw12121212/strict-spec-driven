@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-hand-built-probe-carries-only-the-structure-it-430c3a
+  title: A hand-built probe carries only the structure its author thought of
+category: testing
+status: active
+created_at: '2026-09-14T05:30:03.862Z'
+updated_at: '2026-09-14T05:30:03.862Z'
+context: 'Adding a repository suite check that every delegation a bundled skill declares is named somewhere after its declaration list, together with the negative probe the static-content-checks rule requires. The probe was a synthetic skill string built in the test: a delegated-procedures section, two declarations, then a Steps section mentioning one of them.'
+observation: The probe passed and the real scan was broken. The scan sliced the section following the declaration list and read it as the steps, which holds for strict-spec-bugfix, where Delegated Procedures sits directly above Steps. strict-spec-auto declares its delegations above three other sections, so the slice read 'YAML Writing Rules' and reported all eleven of its declarations unreached instead of the one that actually was. The synthetic probe reproduced only the layout its author had in mind, so it confirmed the broken slice rather than exposing it. The repository's own rule already names the fix — the negative case must add synthetic input to the real input — and following that clause would have caught it on the first run, because injecting one declaration into each real skill inherits every layout the repository actually contains.
+takeaway: Build a negative probe by mutating the real inputs the check governs, not by constructing an input that demonstrates the failure. A constructed input encodes the author's model of the data, which is the same model that produced the bug, so the probe and the defect agree and both pass. Injecting a synthetic element into each real file in turn costs the same to write, scales to every case the repository holds without enumerating them, and fails when a later file introduces a shape nobody anticipated.
+applies_when: Writing the negative case for a check that scans a set of real repository files, especially when the check slices a file by structure — a section index, a heading offset, a line position — and the governed files do not all share that structure.
+occurrences:
+  - origin: fix-auto-unreached-delegation
+    date: '2026-09-14'
+    evidence: The first probe built a synthetic skill with Delegated Procedures directly above Steps; it passed while the scan reported strict-spec-auto's eleven declarations unreached, and the real defect was a single unreached delta-artifact-authoring. Replacing it with a probe that injects one declaration into each skill returned by the delegating-skill scan reports exactly the injected id for both strict-spec-auto and strict-spec-bugfix.

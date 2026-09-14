@@ -121,6 +121,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/amending-a-requirement-to-accept-a-second-form-l-e9d4ee.yaml
+    a-hand-built-probe-carries-only-the-structure-it-430c3a:
+      title: A hand-built probe carries only the structure its author thought of
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-hand-built-probe-carries-only-the-structure-it-430c3a.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

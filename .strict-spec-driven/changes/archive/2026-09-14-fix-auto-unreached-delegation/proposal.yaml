@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-auto-unreached-delegation
+  status: proposed
+summary:
+  what:
+    - Name the delegated delta-artifact-authoring procedure in the strict-spec-auto step that authors delta artifacts, so the declaration it already carries has an invocation site.
+    - Add a repository suite check that scans every bundled skill declaring delegations and fails when a declared obligation id is named nowhere in that skill's Steps.
+  why:
+    - strict-spec-auto declares eleven delegations, and delta-artifact-authoring is the one no step mentions. An agent walking the twelve steps learns who owns the procedure but is never told to follow it, so the delegation states ownership without directing the work.
+    - Nothing catches this today. The shipped delegation check resolves a declaration against its owner and rejects a restatement, but neither direction asks whether any step reaches the procedure, so the same omission can recur on the next delegation.
+    - This is the defect class the delegate-bugfix-phase-procedures review found in its own work and closed for strict-spec-bugfix; strict-spec-auto carries the untreated instance, recorded in lesson deleting-a-delegated-section-removes-the-step-th-685892.
+scope:
+  in:
+    - 'skills/strict-spec-auto/SKILL.md: name delta-artifact-authoring in the step that authors delta specs and delta tech.'
+    - 'test/suites/entrypoint-and-skills.ts: a reachability check whose governed set is every bundled skill that declares a delegation, derived by scanning rather than listed, with a probe proving it fires on a synthetic unreached declaration.'
+  out:
+    - Promoting the reachability check to a shipped validate-skills diagnostic; the operator chose the repository suite so no new constraint ships to consuming projects.
+    - Adding, removing, or retargeting any delegation in any skill; the declared sets stay exactly as they are.
+    - Editing strict-spec-bugfix, whose six declarations already reach their steps, or any other skill's wording beyond the one auto step.
+    - Any CLI command, flag, schema, or technical standard change.
+unchanged_behavior:
+  - The set of obligations strict-spec-auto delegates and the owners it names; only the step wording gains the procedure name.
+  - strict-spec-auto's step count, step numbering, stop points, and unattended end-to-end contract.
+  - Every shipped validate-skills diagnostic and the 24-package zero-diagnostic result.

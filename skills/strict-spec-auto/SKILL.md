@@ -145,8 +145,8 @@ run `init` from this skill.
 
 4. **Propose or resume the change** — if the strict change does not exist yet,
    scaffold with `propose` and author its planning artifacts by following the
-   delegated change-intake-gate, spec-artifact-routing, and task-list-authoring
-   procedures. Keep or add a
+   delegated change-intake-gate, spec-artifact-routing, delta-artifact-authoring,
+   and task-list-authoring procedures. Keep or add a
    dedicated lint Testing task before full unit or regression test tasks when the project has a runnable lint command. If a prior workflow step such as `/strict-roadmap-recommend`
    already created a populated change directory containing proposal, design,
    tasks, questions, and any needed delta spec or delta tech artifacts,

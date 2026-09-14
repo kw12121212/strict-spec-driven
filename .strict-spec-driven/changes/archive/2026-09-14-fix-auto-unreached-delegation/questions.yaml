@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-auto-unreached-delegation
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: Bounds whether the defect is auto-specific or a class.
+    answer: strict-spec-auto declares eleven delegations and delta-artifact-authoring is named by none of its twelve steps, so an agent following auto learns who owns the procedure but is never directed to it. Found during the review of delegate-bugfix-phase-procedures and reported to the requester, who directed the fix.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Fixes what counts as done, including whether a guard is required.
+    answer: Every obligation a bundled skill declares is named somewhere in that skill's Steps, and a repository suite check that fails on the current tree passes after the fix. The requester chose the repository suite over a shipped validate-skills diagnostic and over a bare one-line fix with no guard.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: Distinguishes an opportunistic cleanup from a directed fix.
+    answer: The requester read the review's out-of-scope finding and directed it be fixed next, immediately after committing the change that found it.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Bounds the edit so the fix stays minimal.
+    answer: The set of obligations auto delegates and the owners it names stay exactly as they are; step count, numbering, stop points, and the unattended contract are untouched; no shipped diagnostic, CLI surface, schema, or technical standard changes; strict-spec-bugfix is not edited.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of fix the reported finding is intended?
+    context: The finding could mean the one-word auto edit or the defect class.
+    answer: 'Both the instance and its recurrence: correct strict-spec-auto, and add the repository-suite guard that would have caught it, scoped by scanning every skill that declares delegations rather than by naming auto.'
+    status: resolved
+    kind: requirement
+    answered_by: human

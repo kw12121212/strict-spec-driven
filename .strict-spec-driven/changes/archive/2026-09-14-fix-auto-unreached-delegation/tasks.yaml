@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-auto-unreached-delegation
+sections:
+  Implementation:
+    add-reachability-check:
+      text: Add the delegation-reachability check and its probe to test/suites/entrypoint-and-skills.ts, deriving the governed set by scanning every bundled skill for a delegated-procedures section, and observe the suite FAIL on the unfixed tree naming strict-spec-auto and delta-artifact-authoring before the fix is made.
+      status: complete
+    reach-delta-artifact-authoring:
+      text: Name the delegated delta-artifact-authoring procedure in the strict-spec-auto step that generates delta specs and delta tech, leaving the declaration list, step numbering, and every other step unchanged.
+      status: complete
+  Testing:
+    lint:
+      text: Run the project lint command and confirm it exits zero.
+      status: complete
+      command: bun run lint
+    validate-skills:
+      text: Run the shipped skill validation and confirm 24 packages with zero diagnostics, proving the auto edit introduced no restatement or unresolved delegation.
+      status: complete
+      command: bun run validate-skills
+    full-regression:
+      text: Run the complete project regression suite with the coverage gate and confirm it exits zero, with the reachability check now passing.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-verify:
+      text: Run strict verification for this change and confirm no blockers.
+      status: complete
+      command: strict-spec-cli verify fix-auto-unreached-delegation
+    archive-readiness:
+      text: Confirm archive readiness with no delta spec expected, since no main spec requirement changes.
+      status: complete
+      command: strict-spec-cli ready fix-auto-unreached-delegation
+testing_gates:
+  validation_task: validate-skills
+  unit_test_task: full-regression
