@@ -34479,6 +34479,11 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
       ".strict-spec-driven/",
       "proposal.yaml",
       "questions.yaml",
+      delegationDeclaration("requirement-interrogation", "strict-spec-propose"),
+      delegationDeclaration("change-intake-gate", "strict-spec-propose"),
+      delegationDeclaration("spec-artifact-routing", "strict-spec-propose"),
+      delegationDeclaration("delta-artifact-authoring", "strict-spec-propose"),
+      delegationDeclaration("task-list-authoring", "strict-spec-propose"),
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
@@ -34603,6 +34608,8 @@ function validateTaskOrderGuidance(skillName, content, skillPath, diagnostics) {
     return;
   }
   if (!directsTaskListAuthoring(content))
+    return;
+  if (delegatesObligation(content, "task-list-authoring"))
     return;
   for (const expectation of TASK_ORDER_PLACEMENT_SNIPPETS) {
     if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " ")))

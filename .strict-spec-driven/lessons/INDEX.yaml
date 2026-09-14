@@ -48,7 +48,7 @@ categories:
     deleting-a-delegated-section-removes-the-step-th-685892:
       title: Deleting a delegated section removes the step that invoked it, not just the text
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/documentation/deleting-a-delegated-section-removes-the-step-th-685892.yaml
   testing:
     a-self-populating-cache-cannot-be-made-absent-by-49b4d2:

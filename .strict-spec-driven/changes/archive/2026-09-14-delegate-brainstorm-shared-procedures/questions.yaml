@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: delegate-brainstorm-shared-procedures
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: Determines whether the driver is resident context or duplication, which changes what counts as done.
+    answer: Duplication that has begun to drift. 143 of brainstorm's 331 lines restate procedure strict-spec-propose owns; the requirement-interrogation section and the delta-scenario block are byte-identical to propose's while the intake gate and routing sections have already diverged by a few lines. The requester approved a plan that led with this measurement. The resident-context cost applies too but is weaker here than for bugfix, because brainstorm ends at scaffolding rather than spanning implementation.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Fixes the depth and whether the blocking asymmetry is corrected or worked around.
+    answer: brainstorm drops from 331 to roughly 200 lines through five checked delegations, and the task-order guidance check gains the delegation escape every sibling check already has, so the reduction is achieved by correcting the asymmetry rather than by routing around it. The requester chose this over the four-delegation variant that needs no code change.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: Separates an opportunistic cleanup from directed work.
+    answer: The requester directed brainstorm as the next target after the bugfix reduction and its follow-up fix landed, and then chose the full-scope option from the plan.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Bounds the deletion so the audit has a fixed protected set.
+    answer: brainstorm's conversational loop, scope convergence, change-name suggestion, and the explicit user confirmation before any file is scaffolded stay exactly as they are, as do its ten steps and their numbering. The owner skills are not edited. No skill is added, removed, or renamed and no CLI surface changes. The task-order check keeps behaving identically for every skill that declares no task-list-authoring delegation, and the requirement keeps its scan-discovered governed set and its missing-guidance failure.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of continue with strict-spec-brainstorm is intended?
+    context: The plan offered a four-delegation variant with no code change and a five-delegation variant requiring a spec amendment and a check escape.
+    answer: 'The five-delegation variant, option A: amend cli-skills-document-task-order-adjustment to accept a checked delegation, add the escape to the check, and delegate all five. The subordinate decision on escape shape was recommended as an early return matching the two existing escapes and was not contested.'
+    status: resolved
+    kind: requirement
+    answered_by: human

@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED:
+    delegable-obligation-checks-accept-a-delegation:
+      strength: MUST
+      statement: A per-skill content check that governs an obligation the delegation registry declares delegable MUST accept a checked delegation as satisfying it, excusing the delegating skill from stating the guidance inline once the delegation-target check confirms the named owner states every element. The requirement the check enforces MUST carry the same two branches, so the contract and the check agree on what satisfies the obligation. A check that governs a delegable obligation while admitting only inline statement is the defect this rule names, because it forces a delegating skill to restate exactly the procedure the no-restatement rule forbids it from restating.
+      rationale: 'The two rules already in force pull in opposite directions unless every governing check has the escape: a delegating skill must not restate a delegated procedure, yet a check without an escape fails that same skill for not restating it. The task-order guidance check sat in that contradiction and was the only reason strict-spec-brainstorm could not delegate task-list authoring, costing 24 lines of pure restatement until the escape was added. Recording the rule keeps the next per-skill check from reintroducing the same block.'
+      enforcement:
+        method: review
+        detail: Review confirms, for each per-skill content check that governs an obligation listed in the delegable-obligation registry, that the check returns early on a parsed delegation declaration and that the requirement behind it states both the inline and the delegated branch.
+      examples:
+        good:
+          - The requirement-interrogation, review-independence, and task-order guidance checks each return early when the skill declares the matching delegation, and each requirement states that a skill may satisfy it by stating the guidance or by a checked delegation.
+        bad:
+          - A check that fails a skill for omitting placement guidance the skill has delegated to its owner, so the only way to pass is to restate a procedure the delegating-skills rule forbids restating.
+  MODIFIED: {}
+  REMOVED: {}

@@ -50,120 +50,28 @@ the user's common human language, not a programming language — for all
 user-facing and generated operator-facing text, unless that file is absent or
 the active user message asks otherwise.
 
-## Requirement Interrogation
+## Delegated Procedures
 
-Run this before the change-intake checklist below. That checklist interrogates
-the proposed solution — scope, files, tests, rules. This one interrogates the
-need, and it comes first because a well-scoped change built against a misread
-need is still the wrong change.
+Each procedure below is owned by the skill named beside it. That skill's
+guidance is authoritative for it, and this skill does not restate it. Follow the
+owning skill's procedure at the step that needs it; how it is loaded is whatever
+the running harness provides.
 
-Requirement answers are **never answered from repository evidence**. Code shows
-what the system does; it cannot show what a person wants. Only the requester's
-own words, or replayed roadmap planned-change and milestone detail, may answer
-these. What the requester already said in the active request counts — never
-re-ask something they have already told you.
+- requirement-interrogation: owned by `strict-spec-propose`
+- change-intake-gate: owned by `strict-spec-propose`
+- spec-artifact-routing: owned by `strict-spec-propose`
+- delta-artifact-authoring: owned by `strict-spec-propose`
+- task-list-authoring: owned by `strict-spec-propose`
 
-Authoring `questions.yaml` seeds these five as open questions, so a fresh change starts blocked:
+Delegation moves where a procedure is stated, never whether it runs. Every gate
+this skill declares below still binds, and a delegated procedure that cannot be
+followed stops the run exactly as an inline one would.
 
-- `requirement-problem` — what is concretely going wrong today, and for whom
-- `requirement-outcome` — what observable difference proves it is solved
-- `requirement-trigger` — why now, what forced this
-- `requirement-non-goals` — what must explicitly not change
-- `requirement-interpretation` — which reading is intended, where more than one exists
+What brainstorming adds to those procedures stays here: the change-intake gate
+runs before this skill's own proposal confirmation checkpoint, not only before
+implementation handoff, because a summary the user confirms is already a
+commitment.
 
-Resolve each with:
-
-```bash
-strict-spec-cli generate <change-name> questions --resolve <id> --answer "..." --answered-by human
-```
-
-### How to ask
-
-Asking these badly collects five restated solutions and passes the gate, so the
-technique is part of the requirement:
-
-- **Ask one question at a time**, and let each answer shape the next. A batch of
-  five questions returns five shallow answers.
-- **Carry a concrete guess into every question** rather than posing a blank
-  prompt. People correct a wrong specific statement far more readily than they
-  fill in a blank. Where the harness provides `AskUserQuestion`, use it with two
-  to four concrete options so you must commit to a guess.
-- **Ask about the last concrete occurrence**, not the general case. Episodic
-  memory produces facts; general questions produce theories, and people theorize
-  badly about their own workflows.
-- **Reject an answer that names a solution** instead of a problem. If it names a
-  button, field, page, or endpoint, ask what they would do next once that
-  existed, until the answer is a behavior.
-- **Ask what happens if nothing is done.** This tests whether the trigger is real.
-- **Replay a deliberately imperfect summary** and let them correct it. A
-  correction carries more information than agreement.
-
-### Explain before you ask
-
-Never assume the requester knows how to answer. Before posing a question,
-**explain why the question matters** and what a sufficient answer contains,
-defining any workflow vocabulary — problem versus solution, observable outcome,
-non-goal — in plain terms. The requester is the domain expert; you are the
-workflow expert, so the vocabulary is your job to explain.
-
-When an answer cannot be used yet, **state the reason for the pushback** and
-supply the missing criterion. Never silently re-ask the same question: that
-reads as not having listened, and it pushes the requester into repeating
-themselves rather than adding what is missing.
-
-When interrogation cannot land — the requester will not engage, or the answer
-stays a restated solution — record `--answered-by assumption` rather than
-inventing a plausible answer. An assumption blocks `ready` and forces an
-explicit human decision; a fabricated answer passes silently and is worse.
-
-## Change Intake Question Gate
-
-Before proposal confirmation or implementation handoff, perform the required
-plain change-intake checklist from the strict workflow contract. First use
-project evidence to answer every recoverable item: `.strict-spec-driven/config.yaml`,
-relevant strict specs, technical standards, existing change artifacts, the
-implementation and test files the change touches, `git status`, and focused code
-search for the affected behavior.
-
-- Do not ask the human for information already recoverable from the request or
-  repository evidence.
-- Do ask when a required answer remains absent after discovery, even if you have
-  a plausible guess.
-- Record missing required answers in `questions.yaml.open` with stable
-  language-neutral ids, `preferred_human_language` question text, concrete
-  context that includes impact analysis and a recommended answer or options.
-  The `questions` generator has no `--impact` or `--recommendation` flags; put
-  those details in the `--context` text.
-- Stop before implementation while `questions.yaml.open` is non-empty.
-- When the user answers, resolve the item into `questions.yaml.resolved` before
-  continuing implementation or automatic workflow execution.
-
-Keep the proposal checkpoint focused on what changes, what stays the same,
-where the work likely lives, how it will be tested, and which technical rules
-apply.
-
-## Spec and Technical Artifact Routing
-
-A strict change may legitimately have no delta spec. Do not invent a
-`delta-spec` just to satisfy artifact shape.
-
-- Create `delta-spec` artifacts only when the change modifies user-observable
-  behavior or another requirement that belongs in a strict YAML main spec.
-- For purely technical changes such as refactors, build or test tooling,
-  repository maintenance, architecture constraints, or skill guidance, leave
-  `.strict-spec-driven/changes/<change-name>/specs/` empty when no main spec
-  requirement changes.
-- If a technical-only change alters, adds, or retires an engineering rule,
-  create a `delta-tech` artifact for the affected standard. If it only complies
-  with existing standards, leave `tech/` absent too.
-- A technical-only change still needs concrete workflow tasks: script or tooling
-  edits when applicable, focused tests, validation commands, `ready`/`verify`
-  checks, and archive-readiness checks when the change affects merge or archive
-  behavior.
-- In the proposal checkpoint, explicitly say either which strict spec areas
-  will change or that no strict spec area is expected to change, with the reason.
-- Still require `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`,
-  testing tasks, and verification tasks.
 
 ## Steps
 
@@ -195,8 +103,8 @@ run `init` from this skill.
      field states the condition under which the lesson is worth recalling. A
      lesson with several occurrences has bitten this project repeatedly and
      deserves weight even though nothing enforces it.
-   Use this evidence for the change-intake question gate before asking the
-   human for details the repository already answers.
+   Use this evidence to run the delegated change-intake-gate procedure before
+   asking the human for details the repository already answers.
 
 3. **Brainstorm until the change is decision-ready** — use the discussion to
    converge on:
@@ -212,8 +120,11 @@ run `init` from this skill.
      snapshots rather than inlined detail
    - which existing strict YAML spec files will likely be modified, or whether a
      new strict spec area is needed, or why no strict spec area should change
-     because the change is purely technical
-   - any questions that still need a human answer before implementation
+     because the change is purely technical, decided with the delegated
+     spec-artifact-routing procedure
+   - the answers the delegated requirement-interrogation procedure asks for, which
+     only the requester can give and which shape every choice above
+   - any other questions that still need a human answer before implementation
 
 4. **Suggest the change name** — once the idea is coherent enough, propose a
    short kebab-case change name. If the user already provided a valid name, keep
@@ -243,38 +154,14 @@ run `init` from this skill.
    create JSON payload files.
     - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
     - `strict-spec-cli generate <change-name> design --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`,
-      issuing **one invocation per task** so no task list is hand-written:
-      - read `strict-spec-cli generate --help --json` (or `--help`) first.
-        Choose `--implementation`, `--testing`, or `--verification` for the
-        corresponding fixed section. Each takes no value and opens one task group;
-        following task fields belong to that group. Repeat a selector for each task
-        in a multi-task call. Removal and gate flags are global and need no selector.
-      - first task: `strict-spec-cli generate <change-name> tasks --implementation --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the task list starts absent and is created by this first call, so there are no placeholder tasks to remove
-      - each later task: one selector/`--task`/`--text` group per call
-      - restating an existing `(section, task-id)` is a field-level merge — it overwrites only the fields you pass, so a task's `status: complete` and `command` survive a text-only edit; a brand-new task still needs `--text`
-      - delete a task with `--remove <task-id>` (a repeatable global flag); to move a task between sections, `--remove` it and restate it under the new section in the same call
-      - place a task with `--before <task-id>` or `--after <task-id>` instead of
-        letting it append; task order is the order `apply` walks, so a task that must
-        run before existing pending work is anchored rather than appended, and naming
-        an existing task id with an anchor moves it there while preserving its `status`
-        and `command`
-      - values may begin with a dash via `--text=...` or `--command=...` (the `--flag=value` form), needed when a task names a CLI flag
-      - set the testing gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference task ids in the `Testing` section
-      - the command upserts by `(section, task-id)` and is idempotent — re-running an identical call changes nothing
-      - each call returns `{valid, ready, diagnostics}`: `valid` reports write success like every other artifact, and `ready` reports completeness — while the list is still incomplete `ready` is `false` and `diagnostics` names the empty sections or unset gates, so keep adding tasks and run `verify` before handoff (a `ready: false` result is not a failed write and is resolved by adding the missing tasks)
-      - cover Implementation tasks for script, tooling, documentation, or
-        skill-prompt edits in scope; Testing tasks with runnable validation and
-        unit/regression commands; and Verification tasks for `ready`, `verify`,
-        and archive-readiness or archive-merge checks when relevant
+    - populate `tasks.yaml` by following the delegated task-list-authoring
+      procedure
     - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
-    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
-      One requirement can include multiple scenario groups by repeating
-      `--scenario`. A later compatible call for the same operation, requirement
-      id, strength, and statement appends new scenario ids and remains idempotent
-      for equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
+    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
+      once per target strict main spec path, following the delegated
+      delta-artifact-authoring procedure
     - when the change alters a technical standard, `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
     If the change has no observable spec impact, leave the `specs/` directory
     empty rather than inventing a prose-only file. Prefer one invocation per

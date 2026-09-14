@@ -1022,13 +1022,11 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const REGRESSION_EVIDENCE_CARVE_OUT_WORDING =
     "a write the configured regression command neither compiles nor reads — currently a change-local"
     + " delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence";
-// strict-spec-auto and strict-spec-bugfix are absent from this list because they delegate the
-// change-intake gate rather than stating it. That is asserted where the delegation is resolved, not
-// by omission here: dropping a skill from a governed list without a replacement check is how a
-// contract stops being enforced.
+// Only strict-spec-propose states the change-intake gate now; auto, bugfix and brainstorm delegate
+// it to propose. That is asserted where the delegation is resolved, not by omission here: dropping a
+// skill from a governed list without a replacement check is how a contract stops being enforced.
 const questionGateSkillChecks: Array<[string, string]> = [
   [normalizedProposeSkillContent, "strict-spec-propose"],
-  [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
 ];
 for (const [normalizedSkillContent, skillName] of questionGateSkillChecks) {
   context.assert(
@@ -1243,26 +1241,28 @@ context.assert(
       && !normalizedBrainstormSkillContent.includes("proposal review"),
     "strict-spec-brainstorm runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
   );
+  // brainstorm reaches the routing and task-authoring rules through strict-spec-propose, so what is
+  // asserted here is the step that reaches each one plus the part propose does not state: that the
+  // intake gate runs before brainstorm's own confirmation checkpoint, not only before handoff.
   context.assert(
-    normalizedBrainstormSkillContent.includes("A strict change may legitimately have no delta spec")
-      && normalizedBrainstormSkillContent.includes("Do not invent a `delta-spec` just to satisfy artifact shape")
-      && normalizedBrainstormSkillContent.includes("script or tooling edits")
-      && normalizedBrainstormSkillContent.includes("validation commands")
-      && normalizedBrainstormSkillContent.includes("`ready`/`verify` checks")
-      && normalizedBrainstormSkillContent.includes("archive-readiness checks")
-      && normalizedBrainstormSkillContent.includes("archive or archive-merge checks"),
-    "strict-spec-brainstorm explains technical-only changes can omit delta specs while still covering scripts, validation, verification, and archive checks",
+    normalizedBrainstormSkillContent.includes("decided with the delegated spec-artifact-routing procedure")
+      && normalizedBrainstormSkillContent.includes("populate `tasks.yaml` by following the delegated task-list-authoring procedure")
+      && normalizedBrainstormSkillContent.includes("following the delegated delta-artifact-authoring procedure")
+      && normalizedBrainstormSkillContent.includes("run the delegated change-intake-gate procedure")
+      && normalizedBrainstormSkillContent.includes("the delegated requirement-interrogation procedure asks for")
+      && normalizedBrainstormSkillContent.includes("before this skill's own proposal confirmation checkpoint, not only before implementation handoff"),
+    "strict-spec-brainstorm reaches each delegated procedure from a step and keeps the confirmation-gate increment",
   );
   const technicalOnlyChangeCreationSkillChecks: Array<[string, string]> = [
     [normalizedProposeSkillContent, "strict-spec-propose"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
   ];
-  // strict-spec-auto and strict-spec-bugfix are absent here and from the technical-only list below
-  // because they delegate delta-artifact-authoring and spec-artifact-routing rather than stating
-  // them; every such delegation is resolved against its owner by the shipped delegation check.
+  // strict-spec-auto, strict-spec-bugfix and strict-spec-brainstorm are absent here and from the
+  // technical-only list below because they delegate delta-artifact-authoring and spec-artifact-
+  // routing rather than stating them; every such delegation is resolved against its owner by the
+  // shipped delegation check.
   const incrementalDeltaScenarioGuidanceChecks: Array<[string, string]> = [
     [normalizedProposeSkillContent, "strict-spec-propose"],
-    [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
   ];
   for (const [normalizedSkillContent, skillName] of incrementalDeltaScenarioGuidanceChecks) {
@@ -4577,6 +4577,36 @@ context.assert(
   "the delegation pin comparison reports an unpinned declaration and a stale pin, and nothing else",
   `pinned ${bugfixPinned.length}, declared ${bugfixDeclared.length}`,
 );
+
+// The task-order escape, proven through the shipped command on real input. strict-spec-propose owns
+// the placement guidance and delegates nothing, so it is the honest subject: removing one required
+// phrase must fail, and adding a task-list-authoring delegation to that same mutilated content must
+// pass. Mutating a real skill rather than building one keeps the probe honest about layout, which a
+// hand-built probe in this suite already got wrong once.
+const proposeTaskSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
+const withoutPlacement = proposeTaskSkill.replace("task order is the order `apply` walks", "task order matters");
+const strippedPlacement = validateSkillsOverPackage("strict-spec-propose", withoutPlacement);
+context.assert(
+  withoutPlacement !== proposeTaskSkill
+    && strippedPlacement.status !== 0
+    && strippedPlacement.diagnostics.some((diagnostic) =>
+      diagnostic.code === "skill.task_order.placement_guidance.missing"
+        && diagnostic.path === "skills/strict-spec-propose/SKILL.md"),
+  "the task-order check still fails a governed skill that neither documents the placement guidance nor delegates it",
+  describeDiagnostics(strippedPlacement.diagnostics),
+);
+const withDelegation = withoutPlacement.replace(
+  "## Steps",
+  `${delegationModel.DELEGATED_PROCEDURES_HEADING}\n\n- ${delegationModel.delegationDeclaration("task-list-authoring", "strict-spec-propose")}\n\n## Steps`,
+);
+const escapedPlacement = validateSkillsOverPackage("strict-spec-propose", withDelegation);
+context.assert(
+  !escapedPlacement.diagnostics.some((diagnostic) =>
+    diagnostic.code === "skill.task_order.placement_guidance.missing"),
+  "declaring a task-list-authoring delegation excuses the same skill from restating the placement guidance",
+  describeDiagnostics(escapedPlacement.diagnostics),
+);
+
 
 // The committed policy fixtures assert their seeded violation and nothing else, so a new per-skill
 // check that reached them would fail the suite. They delegate nothing, which is why the rule does

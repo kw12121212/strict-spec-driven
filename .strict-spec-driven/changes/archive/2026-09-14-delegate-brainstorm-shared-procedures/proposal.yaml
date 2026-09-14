@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: delegate-brainstorm-shared-procedures
+  status: proposed
+summary:
+  what:
+    - Delete the three copied sections and the two restated sub-blocks inside step 7, retaining every brainstorm-specific increment at the step that needs it.
+    - Amend cli-skills-document-task-order-adjustment so a governed skill may satisfy it either by documenting task-order adjustment itself or by a checked delegation to the skill that owns task-list authoring, preserving the scan-discovered governed set and the missing-guidance failure.
+    - Add the matching delegation escape to the task-order guidance check so the amended requirement is enforced through the delegation-target check rather than through inline statement.
+    - Rewrite skills/strict-spec-brainstorm/SKILL.md to declare checked delegations for five shared procedures strict-spec-propose already owns, keeping only the conversational brainstorm loop and the user confirmation gate that distinguish it.
+  why:
+    - strict-spec-brainstorm carries 143 lines of procedure that strict-spec-propose owns, out of 331 total. Its requirement-interrogation section is byte-identical to propose's and its delta-scenario block is byte-identical too, so the same instruction now has two copies that can drift apart independently.
+    - The task-order guidance check is the only per-skill content check with no delegation escape, while requirement-interrogation and review-independence both have one. That asymmetry, not the guidance itself, is what forces brainstorm to restate the task-list authoring procedure.
+    - The delegation machinery, the no-restatement rule, the declaration pinning pattern, and the step-reachability scan are all in place from the two preceding changes, so this reduction needs no new mechanism.
+scope:
+  in:
+    - 'skills/strict-spec-brainstorm/SKILL.md: add a Delegated Procedures section, delete the restated content, and place each retained increment at the step that needs it, including a step that reaches every declared delegation.'
+    - A per-item audit resolving every deleted sentence against the owning skill and the owning CLI command's help before it is deleted.
+    - A delta spec amending cli-skills-document-task-order-adjustment in cli-foundation with the two-branch wording, an accepted-delegation scenario, and a retained failure scenario for a governed skill that neither documents nor delegates.
+    - 'src/skills/model.ts and src/skills/content.ts: a delegation escape in the task-order guidance check, and delegation declaration pins for strict-spec-brainstorm in the skill content expectation registry.'
+    - 'test/suites/entrypoint-and-skills.ts: move the brainstorm assertions for delegated content to the delegation-resolution path, and add a negative probe for the new escape that injects into real skill content.'
+  out:
+    - Editing strict-spec-propose or strict-spec-apply; an increment either owner does not state is retained in brainstorm rather than merged into the owner.
+    - Changing brainstorm's conversational loop, its scope convergence step, or the explicit user confirmation required before any file is scaffolded.
+    - Reducing strict-spec-propose or strict-roadmap-recommend, which carry the same copied sections.
+    - Progressive disclosure through references/*.md, any change to the bundled skill count, and any CLI command, flag, or output key change.
+unchanged_behavior:
+  - brainstorm's frontmatter description, its ten steps, their numbering, and the rule that no artifact is scaffolded until the user explicitly confirms the brainstorm summary and change name.
+  - The behavior of the task-order guidance check for every skill that does not declare a task-list-authoring delegation; all six currently governed skills declare none, so the escape is inert for them.
+  - The scan-discovered governed set of cli-skills-document-task-order-adjustment and its failure when a governed skill neither documents the guidance nor delegates it.
+  - 'The enforced force of every requirement touched: a checked delegation replaces inline statement as the enforcement point, and no governed element becomes unchecked.'
+  - Behavior of strict-spec-propose, strict-spec-apply, strict-spec-auto, and strict-spec-bugfix when invoked directly.

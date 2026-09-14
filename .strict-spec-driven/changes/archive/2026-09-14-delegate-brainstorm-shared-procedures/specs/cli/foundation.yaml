@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-skills-document-task-order-adjustment:
+      strength: MUST
+      statement: Every bundled skill that directs an agent to author or extend a change task list MUST document how to adjust task order, stating that a task which must run before existing pending work is placed with a positional anchor rather than appended, or MUST declare a checked delegation to the skill that owns task-list authoring; a delegation is accepted only when the delegation-target check confirms the named owning skill itself states that guidance. The apply skill MUST additionally document that work finished out of list order is recorded by addressing the task by id rather than by repeating the positional apply command. The set of skills governed by this requirement MUST be discovered by scanning bundled skill content for task-list authoring usage rather than from an enumerated list, and an automated skill-validation check MUST fail, naming the offending skill file, when a governed skill neither carries the guidance nor declares an accepted delegation for it.
+      scenarios:
+        task-authoring-skills-state-how-to-place-a-task:
+          - GIVEN: a bundled skill directs an agent to populate or extend a change task list and declares no delegation for it
+          - WHEN: an agent reads that skill before writing tasks
+          - THEN: the skill states that a task which must run before existing pending work is placed with a positional anchor rather than appended, and names the arguments that express it
+        apply-skill-states-how-to-record-out-of-order-work:
+          - GIVEN: an agent implementing a change finishes work in a different order than the task list records
+          - WHEN: the agent reads the apply skill for how to record that completion
+          - THEN: the skill states that the completed task is addressed by id rather than by repeating the positional apply command, and explains that repeating apply completes whichever task is next in list order
+        skill-validation-fails-when-guidance-is-missing:
+          - GIVEN: a bundled skill that directs task-list authoring has had its task-ordering guidance removed and declares no delegation for it
+          - WHEN: the skill-validation command runs
+          - THEN: the command exits non-zero with a diagnostic naming that skill file and the missing guidance
+        governed-skill-set-is-discovered-by-scanning:
+          - GIVEN: a bundled skill that directs task-list authoring is added without being listed anywhere in the validation code
+          - WHEN: the skill-validation command runs against it while it carries no task-ordering guidance and no delegation
+          - THEN: the scan discovers the skill as governed and the check fails for it, so no task-authoring skill escapes the requirement by being absent from a hand-maintained list
+        delegating-skill-reaches-task-order-guidance-through-its-owner:
+          - GIVEN: a governed skill declares that task-list authoring is owned by a skill whose guidance states the task-order adjustment
+          - WHEN: the skill-validation command runs
+          - THEN: the delegation is accepted, no task-order diagnostic is reported for the delegating skill, and the delegation-target check separately confirms the named owner states the guidance
+  REMOVED: {}

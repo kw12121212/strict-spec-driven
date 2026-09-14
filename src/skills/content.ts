@@ -261,6 +261,12 @@ function validateReviewIndependenceGuidance(
  *
  * The governed set is discovered by scanning content for task-authoring usage rather than read
  * from a list, so adding a task-authoring skill cannot silently skip the requirement.
+ *
+ * A skill that delegates task-list authoring is excused, on the same terms as the interrogation and
+ * review-independence escapes: the delegation names the owner as the single statement of the
+ * procedure, and the delegation-target check separately confirms that owner states the placement
+ * guidance, so requiring the delegating skill to restate it would contradict the no-restatement
+ * rule. The escape fires only on a parsed declaration, so a skill cannot reach it by wording alone.
  */
 function validateTaskOrderGuidance(
   skillName: string,
@@ -286,6 +292,7 @@ function validateTaskOrderGuidance(
   }
 
   if (!directsTaskListAuthoring(content)) return;
+  if (delegatesObligation(content, "task-list-authoring")) return;
 
   for (const expectation of TASK_ORDER_PLACEMENT_SNIPPETS) {
     if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " "))) continue;

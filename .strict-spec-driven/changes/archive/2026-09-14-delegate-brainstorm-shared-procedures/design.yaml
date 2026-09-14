@@ -1,0 +1,34 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: delegate-brainstorm-shared-procedures
+approach:
+  - Apply the delegation pattern the two preceding changes built, and remove the one obstacle that blocks its widest case. Four of the five delegations resolve against strict-spec-propose today with no code change. The fifth, task-list-authoring, is blocked only because the task-order guidance check has no delegation escape, so amend the requirement behind it and add the escape, then declare all five and delete the restated text the shipped checks will now reject.
+decisions:
+  escape-by-early-return:
+    decision: Implement the task-order escape as an early return when the skill declares a task-list-authoring delegation, rather than waiving the three placement snippets individually.
+    rationale: Both existing per-skill escapes, for requirement-interrogation and review-independence, are early returns on delegatesObligation. Matching them keeps one shape for the reader and avoids a partial state in which a delegating skill is still required to carry part of the procedure it delegated.
+  relaxing-amendment-needs-no-instance-sweep:
+    decision: The requirement amendment adds a second way to satisfy an existing MUST rather than tightening it, so no existing skill becomes a violation and none needs remediation in this change.
+    rationale: 'The lesson promoting-a-repeated-fix-to-a-must-rule-makes-ev requires enumerating governed instances before changing a rule''s force. The enumeration was run: six skills are governed by the scan and none declares a task-list-authoring delegation, so the escape is inert for all of them; strict-spec-apply is governed through the separate out-of-order branch and is untouched.'
+  keep-the-confirmation-gate-inline:
+    decision: Keep brainstorm's conversational convergence, change-name suggestion, and explicit user confirmation gate stated inline and unchanged.
+    rationale: They are what makes brainstorm a different entry point from propose rather than a slower copy of it, and no skill owns them, so there is nothing to delegate them to.
+  reach-every-declaration-from-a-step:
+    decision: Place each retained increment at the step that needs it, and confirm every declared obligation id is named after the declaration list.
+    rationale: The lesson deleting-a-delegated-section-removes-the-step-th records that a declaration states ownership, not invocation, and that deleting a section can silently remove the only instruction to perform the procedure. The step-reachability scan added in fix-auto-unreached-delegation now fails when that happens, so brainstorm inherits the guard automatically.
+  audit-result-one-retained-increment:
+    decision: 'The audit resolved all 143 deletable lines: the interrogation section is byte-identical to propose''s, the delta block is byte-identical, and the routing and task blocks are owner-covered. Exactly one increment is retained — that the change-intake gate runs before brainstorm''s proposal confirmation checkpoint, not only before implementation handoff.'
+    rationale: 'Two candidates that looked like increments are already stated by brainstorm itself: naming the expected spec areas in the checkpoint is step 5''s own content, and requiring the four planning artifacts is step 7''s own list, so keeping them in a routing section would be intra-file duplication. The dash-value clause resolves to the generate command''s help, which the lesson guidance-that-duplicates-cli-help-is-not-lost-wh names as the authoritative surface for a CLI behavior.'
+alternatives:
+  - option: Skip task-list-authoring and delegate only the four that need no code change.
+    reason: It leaves 24 lines of pure restatement resident and works around the missing escape instead of correcting the asymmetry that causes it.
+  - option: Waive only the three placement snippets for a delegating skill instead of returning early.
+    reason: It leaves the delegating skill partially governed by a procedure it delegated, which contradicts the rule that the owner is the single statement.
+  - option: Reduce strict-spec-propose instead, as the largest remaining skill.
+    reason: propose owns four of these five procedures, so it cannot delegate them; only prose compression of authoritative content is available there.
+risks:
+  - A deleted sentence is a genuine increment stated nowhere else. Mitigated by the per-item audit against the owning skill and the owning command's help before deletion.
+  - The new escape could let a future skill drop task-order guidance without a real delegation. Mitigated because the escape fires only on a parsed declaration, which the delegation-target check then resolves against the owner, and because the declaration itself is pinned as required content.
+  - The committed fixture that appends a task example to brainstorm content asserts zero diagnostics on the corrected form; deleting the placement guidance without the escape would break it. Mitigated by landing the escape in the same change and rerunning the full suite.

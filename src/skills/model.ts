@@ -974,6 +974,15 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
       ".strict-spec-driven/",
       "proposal.yaml",
       "questions.yaml",
+      // The shared procedures brainstorm reaches through strict-spec-propose. Pinning the
+      // declarations keeps each obligation enforced at one place: drop a line and this check fails,
+      // restore the text without dropping the line and the restatement check fails. The task-order
+      // pin matters most, because that check excuses a delegating skill entirely.
+      delegationDeclaration("requirement-interrogation", "strict-spec-propose"),
+      delegationDeclaration("change-intake-gate", "strict-spec-propose"),
+      delegationDeclaration("spec-artifact-routing", "strict-spec-propose"),
+      delegationDeclaration("delta-artifact-authoring", "strict-spec-propose"),
+      delegationDeclaration("task-list-authoring", "strict-spec-propose"),
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
