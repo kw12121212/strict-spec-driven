@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-background-suite-run-tests-the-files-as-they-w-750832
+  title: A background suite run tests the files as they were when it started
+category: tooling
+status: active
+created_at: '2026-09-15T17:09:14.653Z'
+updated_at: '2026-09-15T17:09:14.653Z'
+context: The ~5-minute regression suite was launched in the background, and a test-file assertion was edited while it was still running.
+observation: The run exited 1 with a single FAIL on the MCP archive prompt assertion, at a moment when src/mcp/prompts.ts and test/suites/mcp-server.ts already agreed on disk. bun had imported the suite's test modules at startup, before the edit landed, so the run was checking the pre-edit assertion against the post-edit prompt. Read as a real defect the failure would have sent the next step hunting a bug that did not exist; the rerun over the identical tree passed 4479 of 4479.
+takeaway: Finish every source and test edit before launching the long suite, and when an edit does land mid-run, treat that run's whole result as void rather than as evidence about the current tree. A stale PASS is the more dangerous direction than a stale FAIL, because nothing prompts a rerun. Tell the two apart by checking whether the failing assertion's text matches the file on disk rather than by rereading the implementation.
+applies_when: Running bun test/run.ts or bun scripts/coverage-gate.ts in the background and continuing to edit source or test files before it finishes.
+occurrences:
+  - origin: archive-tech-sync-applies-recommendation
+    date: '2026-09-15'
+    evidence: First suite run reported 1/4479 failed naming 'MCP archive prompt preserves final current-change tech sync, the regression-evidence carve-out, and deterministic archive boundaries' after test/suites/mcp-server.ts had already been updated; the unchanged tree passed on rerun.

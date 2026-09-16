@@ -1,0 +1,69 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-archive-runs-current-change-tech-sync:
+      strength: MUST
+      statement: The system MUST require every supported AI-guided strict change archive surface, including strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt, to complete a final current-change-scoped tech sync before invoking the raw archive command; a surface MAY satisfy this by performing the sync itself or by a checked delegation to the skill that owns the archive procedure, and delegation does not remove the obligation that the sync completes. The surface MUST continue immediately when existing standards and delta-tech cover the change; MUST resolve every uncovered reusable convention finding on the recommendation the bounded evidence supports, without pausing for operator confirmation, by capturing the convention as current-change delta tech or by recording the classification that the pattern is not reusable; MUST report each applied decision in the archive summary, naming the target standard, operation, rule id, strength, statement, rationale, and enforcement for a captured convention or the recorded reason for a not-reusable classification; MUST forbid post-archive deferral of a convention confirmed as reusable; and MUST rerun strict verification and delta-tech review after archive-time delta-tech edits while treating a change-local workflow record that the configured complete regression command neither compiles nor reads, currently a change-local delta-tech artifact or a lesson, as a write that does not invalidate previously passed complete regression evidence, so any other implementation, test, strict artifact, or configuration file written after that evidence passed, including a delta spec and a planning artifact, still requires a regression rerun before archive. Every AI-guided surface that directs a lesson or delta-tech write after complete regression evidence has passed, including strict-spec-review and strict-spec-bugfix, MUST state that evidence rule at the step where the rerun decision is made, or declare a checked delegation to the skill that states it.
+      scenarios:
+        archive-obligation-survives-delegation:
+          - GIVEN: an AI-guided archive surface delegates the archive procedure to the skill that owns it instead of restating it
+          - WHEN: the surface runs to archive
+          - THEN: the final current-change-scoped tech sync still completes before the raw archive command is invoked, and the delegation is resolved by the delegation-target check
+        archive-continues-when-tech-state-is-covered:
+          - GIVEN: a verified active change reaches final AI-guided archive preparation and its bounded scan finds no uncaptured reusable convention or confirms that existing delta-tech already covers each finding
+          - WHEN: the current-change tech sync checkpoint completes
+          - THEN: archive preparation continues without creating unnecessary tech artifacts
+        archive-applies-the-recommendation-without-confirmation:
+          - GIVEN: the final bounded scan finds a possible reusable convention absent from the applicable main standards and current delta-tech
+          - WHEN: archive preparation evaluates the finding
+          - THEN: the surface applies the recommendation the bounded evidence supports without asking the operator to confirm it, captures a convention it judges reusable as current-change delta tech before invoking the strict archive command, and reports the applied decision with its target standard, operation, rule id, strength, statement, rationale, and enforcement in the archive summary
+        archive-records-a-not-reusable-classification:
+          - GIVEN: the final bounded scan surfaces a pattern the bounded evidence shows is specific to this change rather than a reusable engineering convention
+          - WHEN: archive preparation evaluates the finding
+          - THEN: the surface records the not-reusable classification with its reason in the archive summary, writes no delta-tech artifact for it, and continues to archive without an operator answer
+        archive-revalidates-after-delta-tech-capture:
+          - GIVEN: archive preparation applies its recommendation and generates or updates current-change delta-tech, with complete regression evidence already passing for the change
+          - WHEN: the delta-tech artifact is the only file written since that evidence passed
+          - THEN: strict verification and delta-tech artifact review are rerun before archive, and the previously passed complete regression evidence stands without a rerun
+        lesson-write-preserves-regression-evidence:
+          - GIVEN: complete regression evidence has passed for a change and the agent then records the lesson for that change through the lesson store
+          - WHEN: the surface evaluates its regression evidence before archive and the lesson is the only file written since that evidence passed
+          - THEN: the previously passed complete regression evidence stands and the configured regression command is not rerun for that write
+        code-edit-still-invalidates-regression-evidence:
+          - GIVEN: archive preparation writes any file outside the carve-out after complete regression evidence passed, such as a source file, a test, a delta spec, a planning artifact, or the workflow config
+          - WHEN: the archive surface evaluates its regression evidence before invoking archive
+          - THEN: the configured complete project regression command is rerun and must pass before archive proceeds
+        lesson-writing-surfaces-state-the-evidence-rule:
+          - GIVEN: a bundled skill package whose steps direct a lesson write after the complete regression evidence step, such as strict-spec-review or strict-spec-bugfix, which omits the evidence rule and declares no delegation for it
+          - WHEN: bundled skill packaging is validated
+          - THEN: validation fails and the diagnostic names the package path and the missing statement
+        raw-archive-remains-deterministic-merge-primitive:
+          - GIVEN: the final sync checkpoint is complete under an AI-guided archive surface
+          - WHEN: that surface invokes the strict archive command for the selected change
+          - THEN: the raw command retains its deterministic verification, delta merge, index regeneration, roadmap reconciliation, and change-move responsibilities without requiring an AI sync receipt
+    cli-review-surfaces-uncaptured-tech-conventions:
+      strength: MUST
+      statement: The system MUST require strict review workflow guidance in both strict-spec-review and strict-spec-auto to perform an early non-blocking reflection on whether the reviewed change established a reusable engineering convention absent from .strict-spec-driven/tech/, to report each finding together with the recommendation the reviewer derived rather than offering the operator a choice between capturing it immediately and deferring it, and to state that an uncaptured finding is carried to the mandatory final current-change tech sync before archive, which applies that recommendation without operator confirmation; a convention confirmed as reusable MUST NOT be deferred until after the change is archived.
+      scenarios:
+        review-prompts-early-tech-convention-reflection:
+          - GIVEN: a completed strict change has passed strict verification and enters standalone or automatic review guidance
+          - WHEN: the AI reviews the changed implementation, tests, strict artifacts, and applicable technical standards
+          - THEN: the guidance requires an early reflection on uncaptured reusable engineering conventions and reports each finding with the recommendation the reviewer derived for it
+        review-reflection-offers-no-operator-choice:
+          - GIVEN: the review reflection surfaces a possible reusable engineering convention absent from the applicable standards
+          - WHEN: the reviewer reports it
+          - THEN: the operator is not asked to choose between immediate delta-tech capture and deferral, and the stated recommendation is what the final pre-archive tech sync applies
+        review-deferral-reaches-final-archive-gate:
+          - GIVEN: the review reflection surfaces a possible reusable convention that is not captured during review
+          - WHEN: review otherwise completes successfully
+          - THEN: review may continue without treating the reflection itself as a correctness blocker, and the finding and its recommendation are carried only to the mandatory final current-change tech sync before archive rather than to a post-archive standalone sync
+        review-no-finding-remains-non-blocking:
+          - GIVEN: the early review reflection finds no uncaptured reusable convention
+          - WHEN: review concludes
+          - THEN: the reflection adds no review blocker and the final archive workflow still performs its bounded current-change sync checkpoint
+  REMOVED: {}

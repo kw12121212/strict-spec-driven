@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: archive-tech-sync-applies-recommendation
+  status: proposed
+summary:
+  what:
+    - Make the mandatory pre-archive technical-standard checkpoint act on its own recommendation instead of pausing for operator confirmation, across every AI-guided archive surface, and turn the review-time reusable-convention reflection into a report rather than a two-option prompt.
+  why:
+    - 'The checkpoint is the last blocking human interaction in an otherwise unattended run: strict-spec-auto stops at archive to ask whether a surfaced convention should become delta tech. The requester wants archive-time tech-document generation to proceed on the recommendation without asking.'
+scope:
+  in:
+    - Modify main spec requirements cli-archive-runs-current-change-tech-sync and cli-review-surfaces-uncaptured-tech-conventions in cli-foundation via a delta spec
+    - Rewrite the archive-time checkpoint in skills/strict-spec-archive so the agent forms a recommendation from bounded evidence and applies it — delta-tech capture or a recorded not-reusable classification — without operator confirmation
+    - Update skills/strict-spec-auto step 9 and step 12 so neither offers the operator a choice, and skills/strict-spec-review step 11 so the reflection reports the finding and its recommendation instead of surfacing two options
+    - Give skills/strict-tech-sync an explicit archive-time branch so its operator-confirmation step does not contradict the archive checkpoint that applies its scan
+    - Update the strict_archive_change MCP prompt to the same non-blocking wording
+    - Update the validate-skills required and delegable-obligation snippets in src/skills/model.ts so the new wording is the enforced contract
+    - Update the skill-content and MCP prompt regression assertions in test/suites/entrypoint-and-skills.ts and test/suites/mcp-server.ts
+  out:
+    - Standalone /strict-tech-sync repository maintenance mode, which keeps its operator-confirmation step
+    - The requirement-interrogation checkpoint, which stays the one place an AI-guided run stops for a human
+    - 'The deterministic archive CLI command behavior: verification, delta merge, index regeneration, roadmap reconciliation, and change move are untouched'
+    - The ban on deferring a convention confirmed as reusable until after archive, and the regression-evidence carve-out, which both stay as they are
+unchanged_behavior:
+  - The archive-time tech sync still runs before the raw archive command on every AI-guided surface, still bounded to the selected change's attributable evidence, and still excludes unrelated repository drift
+  - A convention confirmed as reusable is still captured as current-change delta tech through generate <change-name> delta-tech and never deferred past archive or written into a live main standard
+  - Strict verification and delta-tech review still rerun after an archive-time delta-tech edit, and the regression-evidence carve-out still spares a rerun for a change-local delta-tech artifact or a lesson
+  - strict-spec-auto still delegates archive-tech-sync to strict-spec-archive rather than restating it, and the delegation-target check still resolves it
+  - Standalone /strict-tech-sync still asks the operator to approve each proposed standard mutation before writing it

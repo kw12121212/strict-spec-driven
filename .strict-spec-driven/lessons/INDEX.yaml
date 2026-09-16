@@ -252,3 +252,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-failing-regression-gate-may-be-failing-at-head-38dc77.yaml
+    a-background-suite-run-tests-the-files-as-they-w-750832:
+      title: A background suite run tests the files as they were when it started
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-background-suite-run-tests-the-files-as-they-w-750832.yaml

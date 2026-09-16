@@ -35,7 +35,7 @@ lesson-status: strict-spec-cli lesson-status [--category <category>]
 **Handled by the AI**
 - choose the change to archive
 - perform a final current-change-scoped technical-standard synchronization
-- pause for operator confirmation when a possible reusable convention is not
+- decide and apply the recommendation when a possible reusable convention is not
   covered by applicable standards or current delta tech
 - confirm verification and review readiness
 - interpret archive output and summarize the final result
@@ -83,11 +83,15 @@ run `init` from this skill.
      instead of silently widening the archive scope
    - continue immediately when applicable main standards and current delta tech
      already cover the change and no reusable convention gap remains
-   - when a possible reusable convention is uncovered, present the target or
+   - when a possible reusable convention is uncovered, state the target or
      proposed standard, operation, stable rule id, strength, statement,
-     rationale, and enforcement; do not continue until the operator either
-     confirms delta-tech capture or explicitly classifies the pattern as not
-     reusable
+     rationale, and enforcement, then apply the recommendation the bounded
+     evidence supports without pausing for operator confirmation: capture a
+     convention the evidence shows is reusable as current-change delta tech, or
+     record the classification that the pattern is not reusable together with the
+     reason it is specific to this change
+   - report the applied decision in the archive summary, because removing the
+     confirmation removes the operator's only view of what the checkpoint decided
    - never defer a convention confirmed as reusable until after archive; use
      `generate <change-name> delta-tech ...` so it remains part of the active
      change rather than editing a live main standard directly
@@ -133,6 +137,8 @@ run `init` from this skill.
     - the archive destination
     - the strict main specs that were updated
     - any roadmap files the archive command reconciled
+    - the tech-sync decision applied at step 2, or that the checkpoint found
+      nothing uncovered
 
 ## Rules
 
@@ -141,5 +147,7 @@ run `init` from this skill.
   resolved
 - Never defer a confirmed reusable convention until after archive; capture it as
   current-change delta tech
+- Never put an archive-time tech-sync finding to the operator as a question;
+  decide it from the bounded evidence, apply it, and report what was applied
 - Use the strict archive command rather than manually moving change directories
 - Treat the current YAML artifacts and repository state as authoritative

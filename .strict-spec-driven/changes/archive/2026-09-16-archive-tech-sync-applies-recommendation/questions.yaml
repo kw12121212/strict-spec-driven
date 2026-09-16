@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: archive-tech-sync-applies-recommendation
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Impact: decides whether the change targets the archive checkpoint or the wider workflow.'
+    answer: 'In an otherwise unattended /strict-spec-auto run, the mandatory technical-standard checkpoint before archive stops and asks the operator whether a surfaced reusable convention should be captured as delta tech. The requester named that stop as the problem: archive-time tech-document generation should not need a human.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: 'Impact: defines the acceptance evidence the delta spec scenarios must assert.'
+    answer: 'A run reaching archive with an uncaptured reusable convention no longer waits for an operator answer: the checkpoint states the recommendation it derived, applies it — delta-tech capture or a recorded not-reusable classification — and archive proceeds, with the applied decision reported in the archive summary.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Impact: tests whether the trigger is real and whether the scope should be broader than the checkpoint.'
+    answer: The requester raised it while invoking /strict-spec-auto, as a standing instruction about archive-time tech-document generation rather than a one-off override for this run.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Impact: bounds which confirmation steps are removed and which stay.'
+    answer: The requester scoped the change to archive entries, which leaves standalone /strict-tech-sync repository maintenance keeping its operator-confirmation step, and leaves the requirement-interrogation checkpoint as the one place an AI-guided run stops for a human. The deterministic archive command, the ban on post-archive deferral, and the regression-evidence carve-out are untouched.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: 'Impact: decides how many surfaces change and whether the review-time reflection changes with them.'
+    answer: 'Chosen reading: every archive entry — strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt — applies the recommendation without asking, and the review-stage reusable-convention reflection is changed with it to report the finding and its recommendation instead of offering the operator two options.'
+    status: resolved
+    kind: requirement
+    answered_by: human

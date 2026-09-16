@@ -201,16 +201,18 @@ run `init` from this skill.
    review checklist, consider whether this change established a reusable
    engineering convention not yet captured under `.strict-spec-driven/tech/` (a
    coding, architecture, testing, tooling, security, performance, or API rule).
-   When it did, surface two options to the operator:
-   - carry it now as a delta tech artifact under `changes/<name>/tech/` so
-     archive merges it into the standards, or
-   - defer the decision only to the mandatory final current-change tech sync in
-     `strict-spec-archive` before archive is invoked.
+   When it did, report the finding with the recommendation you derived — the
+   target standard, operation, rule id, strength, statement, rationale, and
+   enforcement you would capture, or the reason the pattern is specific to this
+   change. Do not put that choice to the operator. You may carry it now as a
+   delta tech artifact under `changes/<name>/tech/` so archive merges it into the
+   standards; otherwise the mandatory final current-change tech sync in
+   `strict-spec-archive` applies that recommendation before archive is invoked.
    This early reflection does not by itself block strict verification or review
    completion. However, a convention confirmed as reusable may not be deferred
-   until after archive: the final archive checkpoint must capture it as
-   current-change delta tech or obtain an explicit operator classification that
-   the surfaced pattern is not reusable.
+   until after archive: the final archive checkpoint captures it as
+   current-change delta tech or records that the surfaced pattern is not
+   reusable.
 
 12. **Declare the lesson outcome (required)** — before reporting, state
    explicitly either that a lesson was recorded or that none applies, with the

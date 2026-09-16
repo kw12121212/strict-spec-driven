@@ -235,10 +235,12 @@ run `init` from this skill.
    After the review checklist, also reflect — non-blocking — on whether this
    change established a reusable engineering convention not yet captured under
    `.strict-spec-driven/tech/` (a coding, architecture, testing, tooling,
-   security, performance, or API rule). When it did, surface two options: carry
-   it now as a delta tech artifact under `changes/<change-name>/tech/` so
-   archive merges it into the standards, or defer the decision only to the
-   mandatory technical-standard checkpoint before archive.
+   security, performance, or API rule). When it did, report the finding with the
+   recommendation you derived rather than putting the choice to the operator:
+   carry it now as a delta tech artifact under `changes/<change-name>/tech/` so
+   archive merges it into the standards, or leave it to the mandatory
+   technical-standard checkpoint before archive, which applies that
+   recommendation.
 
 10. **Declare the lesson outcome (required)** — before archive, follow the
    delegated lesson-outcome procedure and report its result as part of this
@@ -271,7 +273,8 @@ run `init` from this skill.
 
 12. **Resolve the technical-standard checkpoint** — before invoking archive,
    follow the delegated archive-tech-sync procedure for the selected change. It
-   either clears immediately or pauses for an operator decision; this skill does
+   either clears immediately or resolves itself on its own recommendation
+   without an operator answer; this skill does
    not archive until it has cleared. After any delta-tech edit it directs,
    review the artifact and rerun strict verification, and rerun the configured
    regression command only when that step also changed a file outside the

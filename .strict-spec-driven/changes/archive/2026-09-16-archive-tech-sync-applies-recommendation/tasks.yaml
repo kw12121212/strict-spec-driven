@@ -1,0 +1,57 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: archive-tech-sync-applies-recommendation
+sections:
+  Implementation:
+    archive-skill-applies-recommendation:
+      text: Rewrite the archive-time checkpoint in skills/strict-spec-archive/SKILL.md so the agent states the recommendation the bounded evidence supports and applies it — current-change delta-tech capture or a recorded not-reusable classification — without operator confirmation, reports the applied decision in the archive summary, and keeps the bounded scope, the no-post-archive-deferral ban, and the regression-evidence carve-out
+      status: complete
+    tech-sync-archive-branch:
+      text: Give the operator-confirmation step in skills/strict-tech-sync/SKILL.md an explicit archive-time branch so applying its active-change procedure as the pre-archive checkpoint does not contradict the confirmation standalone maintenance mode keeps
+      status: complete
+    review-skill-reports-recommendation:
+      text: Change the uncaptured-convention reflection in skills/strict-spec-review/SKILL.md from surfacing two operator options to reporting the finding with the reviewer's recommendation, which the final pre-archive tech sync applies
+      status: complete
+    auto-skill-no-operator-choice:
+      text: Update skills/strict-spec-auto/SKILL.md so the review-stage reflection reports the recommendation instead of surfacing two options and the technical-standard checkpoint step no longer describes a pause for an operator decision, while keeping the archive-tech-sync delegation to strict-spec-archive intact
+      status: complete
+    mcp-archive-prompt-wording:
+      text: Update the strict_archive_change prompt in src/mcp/prompts.ts so it directs the same non-blocking recommendation-applying checkpoint
+      status: complete
+    validate-skills-snippets:
+      text: Update the required and delegable-obligation snippets in src/skills/model.ts so validate-skills enforces the new archive-checkpoint wording for strict-spec-archive, strict-spec-auto, strict-spec-review, and strict-tech-sync
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild compiled output after the TypeScript edits so dist/ reflects src/ before the dist-based suite, the shipped CLI, and the coverage gate are relied on
+      status: complete
+      command: bun run build
+  Testing:
+    run-lint:
+      text: Run the project type check over the edited TypeScript sources
+      status: complete
+      command: bun run lint
+    update-skill-content-assertions:
+      text: Update the skill-content regression assertions in test/suites/entrypoint-and-skills.ts to the new archive, review, auto, and tech-sync wording and confirm the suite passes
+      status: complete
+      command: bun test/run.ts
+    update-mcp-prompt-assertions:
+      text: Update the strict_archive_change prompt assertions in test/suites/mcp-server.ts to the new wording and confirm the suite passes
+      status: complete
+      command: bun test/run.ts
+    run-validate-skills:
+      text: Run the shipped skill packaging validation so every edited skill package is checked through the command an operator runs
+      status: complete
+      command: bun run validate-skills
+    run-project-regression:
+      text: Run the configured complete project regression command with its coverage gate as archive evidence
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready-and-verify:
+      text: Run ready and verify for this change and resolve any reported blocker; no command is recorded here because verify reports the task list containing this task as pending and so cannot exit zero at its own runtime
+      status: complete
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-project-regression

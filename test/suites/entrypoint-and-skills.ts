@@ -1163,22 +1163,42 @@ context.assert(
       && normalizedReviewSkillContent.includes("(non-blocking)")
       && normalizedReviewSkillContent.includes("mandatory final current-change tech sync")
       && normalizedReviewSkillContent.includes("may not be deferred until after archive")
+      // The reflection reports a recommendation rather than handing the operator a choice, because
+      // the checkpoint it feeds no longer needs an answer. Asserting the absence of the old
+      // two-option wording is what keeps a later edit from reintroducing the prompt beside the
+      // recommendation and leaving both readings shipped at once.
+      && normalizedReviewSkillContent.includes("report the finding with the recommendation you derived")
+      && normalizedReviewSkillContent.includes("Do not put that choice to the operator")
+      && !normalizedReviewSkillContent.includes("surface two options")
       && normalizedAutoSkillContent.includes(techConventionReflectionAnchor)
-      && normalizedAutoSkillContent.includes("defer the decision only to the mandatory technical-standard checkpoint before archive"),
-    "strict-spec-review and strict-spec-auto keep early convention reflection non-blocking while deferring only to the final pre-archive sync",
+      && normalizedAutoSkillContent.includes("report the finding with the recommendation you derived")
+      && normalizedAutoSkillContent.includes("which applies that recommendation")
+      && !normalizedAutoSkillContent.includes("surface two options"),
+    "strict-spec-review and strict-spec-auto keep early convention reflection non-blocking and report a recommendation instead of an operator choice",
   );
   context.assert(
     normalizedTechSyncSkillContent.includes("active-change sync")
       && normalizedTechSyncSkillContent.includes("selected change's proposal, design, tasks, questions, delta specs, delta tech")
       && normalizedTechSyncSkillContent.includes("attributable tracked and untracked files")
       && normalizedTechSyncSkillContent.includes("explicitly approves both the normative content and its strength")
+      // Standalone maintenance keeps the confirmation; the pre-archive checkpoint that applies these
+      // same steps does not. Both halves are asserted so neither mode can absorb the other.
+      && normalizedTechSyncSkillContent.includes("Get operator confirmation, except at archive time")
+      && normalizedTechSyncSkillContent.includes("reported rather than put to the operator")
       && normalizedTechSyncSkillContent.includes("generate <change-name> delta-tech")
       && normalizedTechSyncSkillContent.includes("never edit a live main standard directly")
       && normalizedTechSyncSkillContent.includes("use `tech-edit` for live standards only in standalone mode")
       && normalizedTechSyncSkillContent.includes("Never hand-edit main-tech or tech-index YAML")
       && normalizedTechSyncSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING)
       && normalizedArchiveSkillContent.includes("final current-change tech sync")
-      && normalizedArchiveSkillContent.includes("explicitly classifies the pattern as not reusable")
+      // Both branches of the checkpoint decision are pinned, plus the report that replaces the
+      // confirmation. Asserting only the capture branch would let a skill ship with no sanctioned
+      // way to close a finding it judged change-local, and asserting neither report nor branches
+      // would let the checkpoint decide invisibly.
+      && normalizedArchiveSkillContent.includes("apply the recommendation the bounded evidence supports without pausing for operator confirmation")
+      && normalizedArchiveSkillContent.includes("record the classification that the pattern is not reusable")
+      && normalizedArchiveSkillContent.includes("report the applied decision in the archive summary")
+      && !normalizedArchiveSkillContent.includes("do not continue until the operator")
       && normalizedArchiveSkillContent.includes("Never defer a confirmed reusable convention until after archive")
       && normalizedArchiveSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING)
       && normalizedArchiveSkillContent.includes("raw command only as the deterministic")
@@ -1189,6 +1209,12 @@ context.assert(
       // rather than the sync and is therefore excluded from the delegated obligation.
       && normalizedAutoSkillContent.includes("follow the delegated archive-tech-sync procedure")
       && normalizedAutoSkillContent.includes("this skill does not archive until it has cleared")
+      // The delegation makes strict-spec-archive the statement of the procedure, so nothing in the
+      // shipped checks would notice auto describing that procedure as a pause: the phrase is not a
+      // required snippet it would be missing, and it is not one of the waived snippets the
+      // restatement check forbids. Pinning its absence is what keeps the orchestrating skill's own
+      // prose from contradicting the owner it delegates to.
+      && !normalizedAutoSkillContent.includes("pauses for an operator decision")
       && normalizedAutoSkillContent.includes(REGRESSION_EVIDENCE_CARVE_OUT_WORDING),
     "tech sync, archive, and automatic workflows enforce bounded current-change delta-tech capture before deterministic archive",
   );
@@ -4629,6 +4655,35 @@ context.assert(
     "Use to scaffold proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and optional delta artifacts",
   ),
   "the propose description still names the same artifacts after the actor was dropped",
+);
+
+// The archive checkpoint's decide-rather-than-ask rule, proven through the shipped command rather
+// than by reading the skill text back. Asserting the phrase is present shows only that this change
+// typed it; driving a mutilated copy of the real skill through validate-skills shows that a later
+// edit restoring the operator pause is actually blocked in a consuming project. The mutation is one
+// phrase, so exactly one required snippet goes missing and the diagnostic is attributable to it.
+const archiveCheckpointSkillText = readFileSync(path.join(ROOT, "skills", "strict-spec-archive", "SKILL.md"), "utf8");
+// The phrase is line-wrapped in the skill, so the matcher spans whitespace the same way the shipped
+// check's own normalization does. A literal replace would silently match nothing and leave a probe
+// that passes because it never mutated anything, which the equality assertion below also rules out.
+const wrappedPhrase = (phrase: string): RegExp => new RegExp(phrase.split(" ").join("\\s+"));
+const archiveWithOperatorPause = archiveCheckpointSkillText.replace(
+  wrappedPhrase("apply the recommendation the bounded evidence supports without pausing for operator confirmation"),
+  "do not continue until the operator confirms the finding",
+);
+const archivePauseRun = validateSkillsOverPackage("strict-spec-archive", archiveWithOperatorPause);
+context.assert(
+  archiveWithOperatorPause !== archiveCheckpointSkillText
+    && archivePauseRun.status !== 0
+    && archivePauseRun.diagnostics.some((diagnostic) => (diagnostic.path ?? "").startsWith("skills/strict-spec-archive/SKILL.md")),
+  "shipped validate-skills rejects an archive skill that pauses for operator confirmation instead of applying its recommendation",
+  describeDiagnostics(archivePauseRun.diagnostics),
+);
+const archiveUnmodifiedRun = validateSkillsOverPackage("strict-spec-archive", archiveCheckpointSkillText);
+context.assert(
+  archiveUnmodifiedRun.status === 0 && archiveUnmodifiedRun.diagnostics.length === 0,
+  "the same fixture root accepts the shipped archive skill, so the rejection above is about the removed rule",
+  describeDiagnostics(archiveUnmodifiedRun.diagnostics),
 );
 
 // --- Delegated procedures ----------------------------------------------------------------------

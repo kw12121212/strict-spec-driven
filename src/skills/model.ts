@@ -147,6 +147,25 @@ const CURRENT_CHANGE_SCOPE_SNIPPET = "attributable tracked and untracked files";
 const CURRENT_CHANGE_DELTA_TECH_SNIPPET = "current-change delta tech";
 const NO_POST_ARCHIVE_DEFERRAL_SNIPPET = "confirmed as reusable";
 /**
+ * The archive-time checkpoint decides rather than asks. Both branches are pinned, not just the
+ * capture one: a skill that stated only "apply the recommendation" would satisfy a check while
+ * leaving an agent no sanctioned way to close a finding it judged change-local, and the pressure
+ * would be to manufacture a standard out of it. The reporting duty is pinned for the opposite
+ * reason — dropping the confirmation drops the operator's only view of what was decided, so the
+ * summary line is what replaces it rather than an optional courtesy.
+ */
+const ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET =
+  "apply the recommendation the bounded evidence supports without pausing for operator confirmation";
+const NOT_REUSABLE_CLASSIFICATION_SNIPPET = "record the classification that the pattern is not reusable";
+const ARCHIVE_DECISION_REPORT_SNIPPET = "report the applied decision in the archive summary";
+/**
+ * Review's reflection is where a convention is first seen, and it used to hand the operator a
+ * two-option choice that the archive checkpoint no longer needs answered. The snippet pins the
+ * replacement — state the recommendation — in the skill that reviews and in the skill that
+ * orchestrates review, neither of which delegates this reflection to the other.
+ */
+const REVIEW_REFLECTION_RECOMMENDATION_SNIPPET = "report the finding with the recommendation you derived";
+/**
  * The carve-out is stated as a criterion with the artifact kinds that currently satisfy it, rather
  * than as a bare list. A list alone leaves an agent no way to judge an artifact kind nobody
  * enumerated, and a criterion alone gives it no anchor in a project whose suite does read one of
@@ -439,7 +458,9 @@ export const DELEGABLE_OBLIGATIONS: Record<string, DelegableObligation> = {
       { snippet: CURRENT_CHANGE_TECH_SYNC_SNIPPET, element: "the final current-change tech sync" },
       { snippet: CURRENT_CHANGE_SCOPE_SNIPPET, element: "the scan scope the sync is bounded to" },
       { snippet: CURRENT_CHANGE_DELTA_TECH_SNIPPET, element: "capturing a confirmed convention as current-change delta tech" },
-      { snippet: "explicitly classifies the pattern as not reusable", element: "the explicit not-reusable classification that closes a finding" },
+      { snippet: ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET, element: "applying the recommendation instead of pausing for an operator answer" },
+      { snippet: NOT_REUSABLE_CLASSIFICATION_SNIPPET, element: "the recorded not-reusable classification that closes a finding" },
+      { snippet: ARCHIVE_DECISION_REPORT_SNIPPET, element: "reporting the applied decision in the archive summary" },
       { snippet: NO_POST_ARCHIVE_DEFERRAL_SNIPPET, element: "the ban on deferring a confirmed reusable convention past archive" },
     ],
     // The regression-evidence carve-out is deliberately not part of this obligation. It governs the
@@ -451,7 +472,9 @@ export const DELEGABLE_OBLIGATIONS: Record<string, DelegableObligation> = {
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_SCOPE_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
-      "explicitly classify the pattern as not reusable",
+      ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET,
+      NOT_REUSABLE_CLASSIFICATION_SNIPPET,
+      ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
     ],
   },
@@ -648,6 +671,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      REVIEW_REFLECTION_RECOMMENDATION_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
     ],
@@ -667,7 +691,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_SCOPE_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
-      "explicitly classifies the pattern as not reusable",
+      ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET,
+      NOT_REUSABLE_CLASSIFICATION_SNIPPET,
+      ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
     ],
@@ -704,8 +730,11 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_SCOPE_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
-      "explicitly classify the pattern as not reusable",
+      ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET,
+      NOT_REUSABLE_CLASSIFICATION_SNIPPET,
+      ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      REVIEW_REFLECTION_RECOMMENDATION_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
@@ -777,6 +806,11 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "selected change's proposal, design, tasks, questions, delta specs, delta tech",
       CURRENT_CHANGE_SCOPE_SNIPPET,
       "explicitly approves both the normative content and its strength",
+      // The confirmation step is kept for standalone maintenance and waived for the pre-archive
+      // checkpoint that applies these same steps. Pinning the qualified heading keeps the two modes
+      // from collapsing back into one unqualified "do not proceed until the operator approves",
+      // which would contradict the archive skill that owns that checkpoint.
+      "Get operator confirmation, except at archive time",
       "explicitly classified as not reusable",
       "may not be deferred until after its active change is archived",
       "never edit a live main standard directly",

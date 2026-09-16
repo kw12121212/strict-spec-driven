@@ -273,7 +273,10 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(
     archivePrompt.includes("mandatory current-change tech-sync checkpoint")
       && archivePrompt.includes("without absorbing unrelated repository drift")
-      && archivePrompt.includes("operator-confirmed current-change delta-tech capture")
+      && archivePrompt.includes("apply the recommendation the bounded evidence supports without pausing for operator confirmation")
+      && archivePrompt.includes("recording the classification that the pattern is not reusable")
+      && archivePrompt.includes("report the applied decision in the archive summary")
+      && !archivePrompt.includes("operator-confirmed")
       && archivePrompt.includes("never defer a confirmed reusable convention until after archive")
       && archivePrompt.includes(
         "a write the configured regression command neither compiles nor reads — currently a change-local"

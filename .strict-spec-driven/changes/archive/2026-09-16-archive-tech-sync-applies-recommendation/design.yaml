@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: archive-tech-sync-applies-recommendation
+approach:
+  - 'Change the contract first, then the guidance, then the checks that enforce the guidance. The delta spec restates both affected requirements in full — cli-archive-runs-current-change-tech-sync and cli-review-surfaces-uncaptured-tech-conventions — because a main spec that both requires and forbids the pause would merge silently. The archive checkpoint keeps its bounded scan and its classification step and replaces only its terminal step: instead of presenting a finding and waiting, the agent states the recommendation it derived from the bounded evidence, applies it, and reports the applied decision in the archive summary. strict-spec-archive owns that procedure; strict-spec-auto and the MCP prompt reach it unchanged through delegation and prompt text. validate-skills snippets move with the guidance so the enforced contract and the shipped text stay one statement.'
+decisions:
+  contract-before-guidance:
+    decision: Author the delta spec restating both requirements before editing any skill, prompt, or check
+    rationale: workflow-scope-discipline MUST rule contract-first-scope-changes requires the strict artifact to change first, and the recorded lesson an-existing-must-requirement-may-forbid-the-beha-381ce3 shows a MUST requirement that still mandates the old behavior merges without conflict and is only discovered by a reader trusting the wrong half
+  keep-delegation-intact:
+    decision: Leave archive-tech-sync delegated from strict-spec-auto to strict-spec-archive and state the new behavior only in the owning skill
+    rationale: The cli-command-metadata MUST rule delegating-skills-do-not-restate-the-delegated-procedure forbids the delegating skill from restating the procedure, so per-surface divergence would have to be bought with a restatement; stating the new behavior once in the owner gives every surface the same behavior with no new enforcement seam
+  recommendation-is-reported-not-silent:
+    decision: The applied decision — target standard, operation, rule id, strength, statement, rationale, enforcement, or the recorded not-reusable classification — is reported in the archive summary
+    rationale: Removing the confirmation removes the operator's only view of what the checkpoint decided, so reporting the applied decision keeps the record auditable without making it a gate
+  tech-sync-gets-an-archive-branch:
+    decision: Give strict-tech-sync's confirmation step an explicit archive-time branch instead of deleting the confirmation
+    rationale: strict-spec-archive applies strict-tech-sync's active-change procedure, so an unqualified do-not-proceed-until-approved step would contradict the checkpoint that applies it, while deleting it would strip standalone maintenance mode of a confirmation the requester kept out of scope
+alternatives:
+  - option: Change only strict-spec-auto and leave interactive strict-spec-archive pausing
+    reason: auto delegates the procedure rather than stating it, so the divergence could only be bought by restating it in auto, which the no-restatement MUST rule forbids
+  - option: Pause only when the recommendation modifies an existing MUST rule
+    reason: the requester chose covering every archive entry with no residual prompt over a narrowed exception
+  - option: Delete the not-reusable classification and capture every finding as delta tech
+    reason: it would manufacture standards out of change-local patterns, which is exactly what the bounded scan exists to filter out
+risks:
+  - An agent that misjudges a change-local pattern as reusable now writes a standard with no human veto before archive; mitigated by keeping the classification step, keeping the scan bounded to attributable evidence, and reporting the applied decision in the archive summary
+  - Shipped skill text and the validate-skills snippet list are two statements of one contract, so a partial edit fails the suite rather than the reader; mitigated by moving both in the same change and running validate-skills
+  - The MODIFIED delta spec restates long requirement statements, where a dropped scenario silently narrows the contract; mitigated by carrying every existing scenario of both requirements forward in the restatement

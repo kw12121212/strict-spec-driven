@@ -125,8 +125,9 @@ run `init` from this skill.
    - inconsistencies that need a human decision before becoming a rule
    - areas in scope where no meaningful drift was found
 
-6. **Get operator confirmation** — before writing any standard or delta-tech
-   artifact, ask the operator to confirm each proposed change. For every finding,
+6. **Get operator confirmation, except at archive time** — before writing any
+   standard or delta-tech artifact when this skill is invoked on its own, ask the
+   operator to confirm each proposed change. For every finding,
    provide the target standard (or proposed new standard), operation, stable rule
    id, strength, normative statement, rationale, and enforcement method. Do not
    proceed until the operator explicitly approves both the normative content and
@@ -135,6 +136,10 @@ run `init` from this skill.
    pattern may instead be explicitly classified as not reusable; a convention
    confirmed as reusable may not be deferred until after its active change is
    archived.
+   When these steps are applied as the pre-archive checkpoint that
+   `strict-spec-archive` owns, that skill's rule replaces this confirmation: the
+   same finding detail is stated, the decision is taken from the bounded
+   evidence, and it is reported rather than put to the operator.
 
 7. **Write confirmed findings through the selected mode** — for each confirmed
    finding:
@@ -191,5 +196,7 @@ run `init` from this skill.
   only as delta tech inside the already selected change; use `tech-edit` for
   live standards only in standalone mode.
 - Do not write a standalone report file; the summary belongs in chat
-- Get explicit user confirmation before editing any strict YAML standard file
+- Get explicit user confirmation before editing any strict YAML standard file,
+  except when these steps run as the pre-archive checkpoint `strict-spec-archive`
+  owns, which decides from the bounded evidence and reports what it applied
 - Never hand-edit main-tech or tech-index YAML

@@ -33885,6 +33885,10 @@ var CURRENT_CHANGE_TECH_SYNC_SNIPPET = "final current-change tech sync";
 var CURRENT_CHANGE_SCOPE_SNIPPET = "attributable tracked and untracked files";
 var CURRENT_CHANGE_DELTA_TECH_SNIPPET = "current-change delta tech";
 var NO_POST_ARCHIVE_DEFERRAL_SNIPPET = "confirmed as reusable";
+var ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET = "apply the recommendation the bounded evidence supports without pausing for operator confirmation";
+var NOT_REUSABLE_CLASSIFICATION_SNIPPET = "record the classification that the pattern is not reusable";
+var ARCHIVE_DECISION_REPORT_SNIPPET = "report the applied decision in the archive summary";
+var REVIEW_REFLECTION_RECOMMENDATION_SNIPPET = "report the finding with the recommendation you derived";
 var REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET = "a write the configured regression command neither compiles nor reads — currently a change-local" + " delta-tech artifact or a lesson — does not invalidate passing complete project regression evidence";
 var SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 var SHARED_SCHEMA_FILE_LOOKUP_SNIPPET = "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
@@ -34034,14 +34038,18 @@ var DELEGABLE_OBLIGATIONS = {
       { snippet: CURRENT_CHANGE_TECH_SYNC_SNIPPET, element: "the final current-change tech sync" },
       { snippet: CURRENT_CHANGE_SCOPE_SNIPPET, element: "the scan scope the sync is bounded to" },
       { snippet: CURRENT_CHANGE_DELTA_TECH_SNIPPET, element: "capturing a confirmed convention as current-change delta tech" },
-      { snippet: "explicitly classifies the pattern as not reusable", element: "the explicit not-reusable classification that closes a finding" },
+      { snippet: ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET, element: "applying the recommendation instead of pausing for an operator answer" },
+      { snippet: NOT_REUSABLE_CLASSIFICATION_SNIPPET, element: "the recorded not-reusable classification that closes a finding" },
+      { snippet: ARCHIVE_DECISION_REPORT_SNIPPET, element: "reporting the applied decision in the archive summary" },
       { snippet: NO_POST_ARCHIVE_DEFERRAL_SNIPPET, element: "the ban on deferring a confirmed reusable convention past archive" }
     ],
     waivedSnippets: [
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_SCOPE_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
-      "explicitly classify the pattern as not reusable",
+      ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET,
+      NOT_REUSABLE_CLASSIFICATION_SNIPPET,
+      ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET
     ]
   },
@@ -34234,6 +34242,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      REVIEW_REFLECTION_RECOMMENDATION_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`
     ],
@@ -34253,7 +34262,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_SCOPE_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
-      "explicitly classifies the pattern as not reusable",
+      ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET,
+      NOT_REUSABLE_CLASSIFICATION_SNIPPET,
+      ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET
     ],
@@ -34290,8 +34301,11 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
       CURRENT_CHANGE_SCOPE_SNIPPET,
       CURRENT_CHANGE_DELTA_TECH_SNIPPET,
-      "explicitly classify the pattern as not reusable",
+      ARCHIVE_APPLIES_RECOMMENDATION_SNIPPET,
+      NOT_REUSABLE_CLASSIFICATION_SNIPPET,
+      ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      REVIEW_REFLECTION_RECOMMENDATION_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
@@ -34360,6 +34374,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "selected change's proposal, design, tasks, questions, delta specs, delta tech",
       CURRENT_CHANGE_SCOPE_SNIPPET,
       "explicitly approves both the normative content and its strength",
+      "Get operator confirmation, except at archive time",
       "explicitly classified as not reusable",
       "may not be deferred until after its active change is archived",
       "never edit a live main standard directly",
