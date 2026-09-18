@@ -20,7 +20,7 @@ import { runMcpServerSuite } from "./suites/mcp-server.js";
 import { runOperationsSuite } from "./suites/operations.js";
 import { runRoadmapAndMigrationSuite } from "./suites/roadmap-and-migration.js";
 import { runLessonsSuite } from "./suites/lessons.js";
-import { runScenesSuite } from "./suites/scenes.js";
+import { runSceneMergeAndCoverageSuite, runSceneMergeValiditySuite, runScenesSuite } from "./suites/scenes.js";
 import { runSopsSuite } from "./suites/sops.js";
 import { runMappingReferenceSweepSuite, runMappingRemovalSuite, runSpecTechAuthoringSuite } from "./suites/spec-tech-authoring.js";
 import { runYamlAuthoringProtocolSuite } from "./suites/yaml-authoring-protocol.js";
@@ -43,6 +43,8 @@ async function main(): Promise<void> {
   await runSopsSuite(context);
   await runLessonsSuite(context);
   await runScenesSuite(context);
+  await runSceneMergeAndCoverageSuite(context);
+  await runSceneMergeValiditySuite(context);
   await runOperationsSuite(context);
   await runArchitectureDocumentSuite(context);
   await runArchitectureAuthoringSuite(context);

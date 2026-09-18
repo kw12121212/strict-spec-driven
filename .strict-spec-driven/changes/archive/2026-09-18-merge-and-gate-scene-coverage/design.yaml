@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: merge-and-gate-scene-coverage
+approach:
+  - 'Extend src/archive.ts with a delta-scene merge stage that mirrors the existing delta-spec and delta-tech stages: collect main scene paths by scene id, apply each delta scene''s operations under the contract''s conflict rules, write the merged scene at its canonical area-nested path, then regenerate .strict-spec-driven/scenes/INDEX.yaml deterministically from the files on disk. Add a shared coverage-gap evaluator in src/scenes.ts that walks main-flow and exception-flow steps of the scenes in scope and returns one diagnostic per uncovered or unresolvable step, and call it from both the ready path and src/verify.ts so the two gates report identical diagnostics. Scope the evaluator to the scenes that exist: a change''s delta scenes plus the main scenes they target during a change, and the recorded main scenes otherwise, so a repository holding no scene produces no diagnostic at all.'
+decisions:
+  merge-mirrors-delta-spec-stage:
+    decision: Implement scene merge as a sibling stage inside archiveChange alongside mergeDeltaTechStandards and applyDeltaToMainSpec, with its own collect-paths, apply-operations, and regenerate-index helpers, rather than generalizing the three families into one merge abstraction.
+    rationale: The three families differ in keyed shape, index grouping, and conflict rules; a shared abstraction would have to be parameterized on all three and would earn no reuse today, which the repository's YAGNI rule rejects.
+  coverage-evaluator-shared-by-ready-and-verify:
+    decision: Compute coverage gaps in one exported function in src/scenes.ts and have ready and verify both consume it, instead of implementing the check separately in each gate.
+    rationale: The planned change requires the identical diagnostic to fail both ready and verify; two implementations would drift, and the milestone risk note calls out silent divergence on a new artifact family as the expensive failure mode.
+  presence-triggered-gating:
+    decision: Trigger coverage checking on the presence of a scene artifact, never on the presence of a spec, and emit no diagnostic and no new required field when the repository holds no scene.
+    rationale: 'Recorded directly in the milestone notes and done criteria: external adoption must stay incremental and the CLI upgrade must not be breaking for a project that has authored no scene.'
+  remedy-command-in-diagnostic:
+    decision: Each coverage-gap diagnostic carries the runnable scene authoring command with the scene id, step id, and area already substituted, and names the spec index as the source to consult for the requirement id the author must still choose.
+    rationale: The repository's blocking-diagnostics rule requires a blocking diagnostic to name its runnable remedy; the covering requirement id is an authoring judgment the CLI cannot infer, so the diagnostic names where to look instead of guessing.
+  merge-before-index-regeneration:
+    decision: Run the scene merge and scene index regeneration inside archiveChange before the change directory is moved into the archive area, in the same ordering the delta-spec and delta-tech stages already use.
+    rationale: The delta scene files must still be readable at their active change paths when the merge runs, and an index regenerated from post-move state would omit them.
+alternatives:
+  - option: Gate coverage only in verify and leave ready advisory
+    reason: The milestone done criteria state that ready and verify both exit non-zero on a coverage gap; leaving ready advisory lets an uncovered scene reach implementation.
+  - option: Store coverage back-references inside main specs so a spec knows which scene steps cover it
+    reason: 'Explicitly out of milestone scope: coverage references are declared on the scene side only so main-spec artifacts and every existing spec stay untouched.'
+risks:
+  - The scene merge adds a substantial block of new src code at once, and bun scripts/coverage-gate.ts --threshold 78 measures src line coverage, so thin tests fail as a coverage number rather than as a located test failure.
+  - Cross-spec coverage means one merged scene step can take covering requirements from several delta specs in the same change; if the merge keys on anything but the spec-id and requirement-id pair, one delta silently drops another's reference.
+  - A blocking coverage gate can push an author to write a hollow requirement to silence a gap, which is why the explicit no-coverage reason path must stay a first-class, tested exemption rather than an escape hatch discovered by accident.

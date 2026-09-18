@@ -83,6 +83,16 @@ function createSceneArgs(sceneId: string, area: string, extra: string[] = []): s
   ];
 }
 
+/**
+ * A complete new-scene block. The block carries the sections no flow step references, because a
+ * scene the archive merge assembles without them could not validate against the main scene schema.
+ */
+const NEW_ONBOARDING_SCENE_BLOCK = [
+  "--title", "Onboarding", "--area", "accounts",
+  "--actor", "Visitor", "--role", "Signs up",
+  "--precondition", "The visitor has an email address",
+];
+
 function parseJson(result: CommandResult): Record<string, unknown> {
   return JSON.parse(result.stdout) as Record<string, unknown>;
 }
@@ -449,7 +459,7 @@ export async function runScenesSuite(context: TestContext): Promise<void> {
     try {
       const created = cli([
         "generate", "sample-change", "delta-scene",
-        "--target-scene", "onboarding", "--title", "Onboarding", "--area", "accounts",
+        "--target-scene", "onboarding", ...NEW_ONBOARDING_SCENE_BLOCK,
         "--operation", "ADDED",
         "--step", "sign-up", "--action", "The visitor signs up", "--covered-by", "accounts-spec:sign-up-is-accepted",
         "--exception-flow", "email-taken", "--trigger", "The email is registered",
@@ -491,7 +501,7 @@ export async function runScenesSuite(context: TestContext): Promise<void> {
       const before = readFileSync(deltaPath, "utf8");
       const repeated = cli([
         "generate", "sample-change", "delta-scene",
-        "--target-scene", "onboarding", "--title", "Onboarding", "--area", "accounts",
+        "--target-scene", "onboarding", ...NEW_ONBOARDING_SCENE_BLOCK,
         "--operation", "ADDED",
         "--step", "sign-up", "--action", "The visitor signs up", "--covered-by", "accounts-spec:sign-up-is-accepted",
       ], { cwd: root });
@@ -544,8 +554,12 @@ export async function runScenesSuite(context: TestContext): Promise<void> {
     try {
       cli([
         "generate", "verified-change", "delta-scene",
-        "--target-scene", "onboarding", "--title", "Onboarding", "--area", "accounts",
+        "--target-scene", "onboarding", ...NEW_ONBOARDING_SCENE_BLOCK,
         "--operation", "ADDED", "--step", "sign-up", "--action", "Signs up", "--no-coverage-reason", "Not specified yet",
+        // A new-scene delta must supply an exception flow, because the scene it creates is checked
+        // against the main scene contract, which requires at least one.
+        "--exception-flow", "email-taken", "--trigger", "The email is registered",
+        "--exception-step", "email-taken:explain", "--action", "The visitor is told", "--no-coverage-reason", "Copy is owned elsewhere",
       ], { cwd: root });
       const deltaPath = path.join(root, ".strict-spec-driven", "changes", "verified-change", "scenes", "accounts", "onboarding.yaml");
 
@@ -587,13 +601,15 @@ export async function runScenesSuite(context: TestContext): Promise<void> {
   {
     const root = makeWorkspace();
     try {
-      // The inventory declares an archived delta scene path, so archive must actually carry the
-      // artifact there. Merging it into a main scene is a later change's scope, and the absence of
-      // a main scene here is what keeps that boundary honest rather than assumed.
+      // The inventory declares an archived delta scene path, so archive must carry the artifact
+      // there as well as merging it, and the archived copy is what keeps the merged scene traceable
+      // back to the change that produced it.
       cli([
         "generate", "archived-change", "delta-scene",
-        "--target-scene", "onboarding", "--title", "Onboarding", "--area", "accounts",
+        "--target-scene", "onboarding", ...NEW_ONBOARDING_SCENE_BLOCK,
         "--operation", "ADDED", "--step", "sign-up", "--action", "Signs up", "--no-coverage-reason", "Not specified yet",
+        "--exception-flow", "email-taken", "--trigger", "The email is registered",
+        "--exception-step", "email-taken:explain", "--action", "The visitor is told", "--no-coverage-reason", "Copy is owned elsewhere",
       ], { cwd: root });
       cli(["generate", "archived-change", "proposal", "--what", "w", "--why", "y"], { cwd: root });
       cli(["generate", "archived-change", "design", "--approach", "a"], { cwd: root });
@@ -630,8 +646,8 @@ export async function runScenesSuite(context: TestContext): Promise<void> {
         destination,
       );
       context.assert(
-        !existsSync(path.join(root, ".strict-spec-driven", "scenes")),
-        "archive does not merge a delta scene into a main scene, which is a later change's scope",
+        existsSync(path.join(root, ".strict-spec-driven", "scenes", "accounts", "onboarding.yaml")),
+        "archive also merges the delta scene into the recorded scene store",
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -664,7 +680,7 @@ export async function runScenesSuite(context: TestContext): Promise<void> {
       ] as Array<[string, string[]]>) {
         const refusal = cli([
           "generate", "refusal-change", "delta-scene",
-          "--target-scene", "onboarding", "--title", "Onboarding", "--area", "accounts",
+          "--target-scene", "onboarding", ...NEW_ONBOARDING_SCENE_BLOCK,
           ...args,
         ], { cwd: root });
         context.assert(refusal.status !== 0, `${label} is refused`, refusal.stdout.trim());
@@ -672,5 +688,551 @@ export async function runScenesSuite(context: TestContext): Promise<void> {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  }
+}
+
+/**
+ * Authors the planning artifacts a change needs to reach verify and archive. The artifacts go in
+ * through the shipped commands rather than as hand-written YAML, so a suite built on them exercises
+ * the same authoring path an operator uses.
+ */
+function writeArchivableChange(root: string, changeName: string): void {
+  cli(["propose", changeName], { cwd: root });
+  cli(["generate", changeName, "proposal",
+    "--what", "Exercise the scene merge", "--why", "Cover archive behavior",
+    "--in", "Scene merge", "--out", "Everything else", "--unchanged", "Existing specs"], { cwd: root });
+  cli(["generate", changeName, "design", "--approach", "Merge the delta scenes",
+    "--decision", "merge", "--decision-text", "Merge on archive", "--rationale", "The contract says so"], { cwd: root });
+  cli(["generate", changeName, "tasks",
+    "--implementation", "--task", "impl", "--text", "Do the work", "--status", "complete",
+    "--testing", "--task", "tests", "--text", "Run the tests", "--status", "complete",
+    "--verification", "--task", "check", "--text", "Verify the result", "--status", "complete",
+    "--validation-task", "tests", "--unit-test-task", "tests"], { cwd: root });
+  cli(["generate", changeName, "questions",
+    "--resolved", "seed", "--question", "Is the scope settled?", "--context", "Suite fixture",
+    "--answer", "Yes", "--answered-by", "human"], { cwd: root });
+  for (const questionId of [
+    "requirement-problem", "requirement-trigger", "requirement-outcome",
+    "requirement-non-goals", "requirement-interpretation",
+  ]) {
+    cli(["generate", changeName, "questions", "--resolve", questionId, "--answer", "Settled by the fixture", "--answered-by", "human"], { cwd: root });
+  }
+}
+
+/** The arguments that author one complete new scene through a delta, ready for the archive merge. */
+function newCheckoutSceneArgs(changeName: string, extra: string[] = []): string[] {
+  return [
+    "generate", changeName, "delta-scene", "--target-scene", "checkout",
+    "--title", "Checkout", "--area", "commerce",
+    "--actor", "Shopper", "--role", "Drives checkout",
+    "--precondition", "A cart holds at least one item",
+    "--operation", "ADDED",
+    "--step", "begin", "--action", "The shopper begins", "--covered-by", "commerce-spec:payment-is-taken",
+    "--exception-flow", "declined", "--trigger", "The payment is declined",
+    "--exception-step", "declined:retry", "--action", "The shopper retries", "--no-coverage-reason", "Retry copy is provider-owned",
+    ...extra,
+  ];
+}
+
+type MergedScene = {
+  actors: Array<{ name: string; role: string }>;
+  preconditions: string[];
+  main_flow: Record<string, { action: string; covered_by?: Array<{ spec_id: string; requirement_id: string }>; no_coverage_reason?: string }>;
+  exception_flows: Record<string, { trigger: string; steps: Record<string, { action: string }> }>;
+};
+
+export async function runSceneMergeAndCoverageSuite(context: TestContext): Promise<void> {
+  const yaml = await loadDistModule<YamlModule>("yaml.js");
+  const readYaml = <T>(filePath: string): T => yaml.parseYamlDocument<T>(readFileSync(filePath, "utf8"));
+  const scenePath = (root: string): string =>
+    path.join(root, ".strict-spec-driven", "scenes", "commerce", "checkout.yaml");
+  const indexPath = (root: string): string => path.join(root, ".strict-spec-driven", "scenes", "INDEX.yaml");
+
+  context.section("Archive merge of delta scenes");
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken", "refund-is-issued"]);
+      writeArchivableChange(root, "creates-scene");
+      const generated = cli(newCheckoutSceneArgs("creates-scene"), { cwd: root });
+      context.assert(generated.status === 0, "a complete new-scene delta generates", generated.stderr);
+
+      const archived = cli(["archive", "creates-scene"], { cwd: root });
+      context.assert(archived.status === 0, "archive exits zero with a delta scene to merge", archived.stderr);
+      const result = JSON.parse(archived.stdout) as {
+        sceneMergeSummary: Record<string, number>;
+        mergedScenes: Array<{ targetScene: string; scenePath: string; created: boolean; added: number }>;
+      };
+      context.assert(result.sceneMergeSummary.scenesCreated === 1, "the merge summary reports one created scene");
+      context.assert(result.sceneMergeSummary.added === 2, "the merge summary counts every added step", String(result.sceneMergeSummary.added));
+      context.assert(
+        result.mergedScenes[0]?.scenePath === ".strict-spec-driven/scenes/commerce/checkout.yaml",
+        "the merge report names the canonical scene path",
+        result.mergedScenes[0]?.scenePath,
+      );
+
+      context.assert(existsSync(scenePath(root)), "the merged scene is written at its canonical nested path");
+      const scene = readYaml<MergedScene>(scenePath(root));
+      context.assert(scene.actors[0]?.name === "Shopper", "the new-scene block's actors reach the created scene");
+      context.assert(
+        scene.preconditions[0] === "A cart holds at least one item",
+        "the new-scene block's preconditions reach the created scene",
+      );
+      context.assert(scene.main_flow.begin?.action === "The shopper begins", "an added main-flow step reaches the created scene");
+      context.assert(
+        scene.exception_flows.declined?.steps?.retry !== undefined,
+        "an added exception-flow step reaches the created scene under its flow",
+      );
+
+      const index = readYaml<{ areas: Record<string, Record<string, { title: string; status: string; path: string }>> }>(indexPath(root));
+      context.assert(
+        index.areas?.commerce?.checkout?.path === ".strict-spec-driven/scenes/commerce/checkout.yaml",
+        "the merge regenerates the scene index with the created scene's canonical path",
+      );
+
+      // A second change over the same state must rebuild the index to byte-identical content, which
+      // is the whole claim behind calling the regeneration deterministic.
+      const indexBefore = readFileSync(indexPath(root), "utf8");
+      writeArchivableChange(root, "second-change");
+      cli(["generate", "second-change", "delta-scene", "--target-scene", "checkout",
+        "--operation", "MODIFIED", "--step", "begin", "--action", "The shopper begins",
+        "--covered-by", "commerce-spec:payment-is-taken"], { cwd: root });
+      const second = cli(["archive", "second-change"], { cwd: root });
+      context.assert(second.status === 0, "archiving a second change over merged scene state exits zero", second.stderr);
+      context.assert(
+        readFileSync(indexPath(root), "utf8") === indexBefore,
+        "regenerating the scene index over unchanged scene identity produces byte-identical content",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken", "refund-is-issued"]);
+      writeArchivableChange(root, "creates-scene");
+      cli(newCheckoutSceneArgs("creates-scene"), { cwd: root });
+      cli(["archive", "creates-scene"], { cwd: root });
+
+      writeArchivableChange(root, "edits-scene");
+      cli(["generate", "edits-scene", "delta-scene", "--target-scene", "checkout",
+        "--operation", "ADDED",
+        "--step", "pay", "--action", "The shopper pays", "--covered-by", "commerce-spec:payment-is-taken",
+        "--operation", "MODIFIED",
+        "--step", "begin", "--action", "The shopper opens the cart", "--covered-by", "commerce-spec:refund-is-issued"], { cwd: root });
+      const archived = cli(["archive", "edits-scene"], { cwd: root });
+      context.assert(archived.status === 0, "archiving a delta against a recorded scene exits zero", archived.stderr);
+
+      const scene = readYaml<MergedScene>(scenePath(root));
+      context.assert(
+        scene.main_flow.begin?.action === "The shopper opens the cart",
+        "a step present in both takes the delta's content",
+        scene.main_flow.begin?.action,
+      );
+      context.assert(
+        Object.keys(scene.main_flow).join(",") === "begin,pay",
+        "a modified step keeps its main-scene position and an added step appends in delta order",
+        Object.keys(scene.main_flow).join(","),
+      );
+      const coverage = (scene.main_flow.begin?.covered_by ?? []).map((entry) => `${entry.spec_id}:${entry.requirement_id}`).sort();
+      context.assert(
+        coverage.join(",") === "commerce-spec:payment-is-taken,commerce-spec:refund-is-issued",
+        "covering requirements merge as a set across the main scene and the delta",
+        coverage.join(","),
+      );
+      context.assert(
+        scene.exception_flows.declined?.steps?.retry !== undefined,
+        "a step the delta never mentions survives the merge unchanged",
+      );
+
+      const result = JSON.parse(archived.stdout) as { sceneMergeSummary: Record<string, number> };
+      context.assert(result.sceneMergeSummary.scenesUpdated === 1, "the merge summary reports an updated rather than created scene");
+      context.assert(result.sceneMergeSummary.modified === 1, "the merge summary counts the modified step");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken", "refund-is-issued"]);
+      writeArchivableChange(root, "creates-scene");
+      cli(newCheckoutSceneArgs("creates-scene"), { cwd: root });
+      cli(["archive", "creates-scene"], { cwd: root });
+
+      writeArchivableChange(root, "declared-rules");
+      cli(["generate", "declared-rules", "delta-scene", "--target-scene", "checkout",
+        "--operation", "MODIFIED",
+        "--step", "absent-step", "--action", "A step the main scene never held", "--covered-by", "commerce-spec:payment-is-taken",
+        "--operation", "REMOVED",
+        "--step", "never-recorded", "--reason", "It was never there"], { cwd: root });
+      const archived = cli(["archive", "declared-rules"], { cwd: root });
+      context.assert(archived.status === 0, "the declared missing-target rules do not fail archive", archived.stderr);
+      const result = JSON.parse(archived.stdout) as {
+        mergedScenes: Array<{ modifiedMissingTargetAsAdded: string[]; removedMissingTargetSkipped: string[] }>;
+      };
+      context.assert(
+        result.mergedScenes[0]?.modifiedMissingTargetAsAdded.includes("absent-step"),
+        "a MODIFIED step whose target is absent is recorded as added",
+      );
+      context.assert(
+        result.mergedScenes[0]?.removedMissingTargetSkipped.includes("never-recorded"),
+        "a REMOVED step whose target is absent is recorded as a skipped removal",
+      );
+
+      writeArchivableChange(root, "adds-existing");
+      cli(["generate", "adds-existing", "delta-scene", "--target-scene", "checkout",
+        "--operation", "ADDED",
+        "--step", "begin", "--action", "A colliding add", "--covered-by", "commerce-spec:payment-is-taken"], { cwd: root });
+      const collision = cli(["archive", "adds-existing"], { cwd: root });
+      context.assert(collision.status !== 0, "an ADDED step colliding with a recorded step id is refused");
+      context.assert(
+        collision.stderr.includes("already exists") && collision.stderr.includes("MODIFIED"),
+        "the collision refusal names the runnable MODIFIED remedy",
+        collision.stderr.trim(),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "missing-target");
+      // The generator refuses a scene block it cannot complete, so the merge's own missing-target
+      // error is reached by writing the incomplete delta the generator would never produce.
+      const deltaDir = path.join(root, ".strict-spec-driven", "changes", "missing-target", "scenes", "commerce");
+      mkdirSync(deltaDir, { recursive: true });
+      writeFileSync(
+        path.join(deltaDir, "checkout.yaml"),
+        [
+          "schema: strict-spec-driven/delta-scene/v1",
+          "schema_version: 1",
+          "artifact_type: delta_scene",
+          "schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml",
+          "target_scene: checkout",
+          "operations:",
+          "  ADDED:",
+          "    main_flow:",
+          "      begin:",
+          "        action: The shopper begins",
+          "        covered_by:",
+          "          - spec_id: commerce-spec",
+          "            requirement_id: payment-is-taken",
+          "  MODIFIED: {}",
+          "  REMOVED: {}",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+      const archived = cli(["archive", "missing-target"], { cwd: root });
+      context.assert(archived.status !== 0, "a delta targeting an unrecorded scene with no scene block is refused");
+      context.assert(
+        archived.stderr.includes("does not exist") && archived.stderr.includes("scene block"),
+        "the missing-target refusal explains that a scene block creates the scene",
+        archived.stderr.trim(),
+      );
+      context.assert(!existsSync(indexPath(root)), "the refused merge leaves no scene index behind");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "conflicting-deltas");
+      cli(newCheckoutSceneArgs("conflicting-deltas"), { cwd: root });
+      // A second delta file for a different scene that restates one of the first scene's steps with
+      // a different action is the delta-versus-delta collision the merge refuses rather than resolves.
+      const deltaDir = path.join(root, ".strict-spec-driven", "changes", "conflicting-deltas", "scenes", "commerce");
+      writeFileSync(
+        path.join(deltaDir, "zz-also-checkout.yaml"),
+        [
+          "schema: strict-spec-driven/delta-scene/v1",
+          "schema_version: 1",
+          "artifact_type: delta_scene",
+          "schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml",
+          "target_scene: checkout",
+          "operations:",
+          "  ADDED: {}",
+          "  MODIFIED:",
+          "    main_flow:",
+          "      begin:",
+          "        action: A conflicting action for the same step",
+          "        covered_by:",
+          "          - spec_id: commerce-spec",
+          "            requirement_id: payment-is-taken",
+          "  REMOVED: {}",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+      const archived = cli(["archive", "conflicting-deltas"], { cwd: root });
+      context.assert(archived.status !== 0, "two delta scenes stating conflicting content for one step are refused");
+      for (const expected of ["checkout.yaml", "zz-also-checkout.yaml", "begin", "checkout"]) {
+        context.assert(
+          archived.stderr.includes(expected),
+          `the conflict refusal names ${expected}`,
+          archived.stderr.trim(),
+        );
+      }
+      context.assert(!existsSync(scenePath(root)), "the refused merge writes no main scene");
+      context.assert(!existsSync(indexPath(root)), "the refused merge writes no scene index");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  context.section("Scene coverage gating in ready and verify");
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "unresolvable-reference");
+      cli(newCheckoutSceneArgs("unresolvable-reference", [
+        "--step", "pay", "--action", "The shopper pays", "--covered-by", "commerce-spec:no-such-requirement",
+      ]), { cwd: root });
+
+      const verified = cli(["verify", "unresolvable-reference"], { cwd: root });
+      context.assert(verified.status !== 0, "verify exits non-zero on an unresolvable covering reference");
+      const verifyDiagnostics = (JSON.parse(verified.stdout) as { diagnostics: Array<Record<string, string>> }).diagnostics;
+      const gap = verifyDiagnostics.find((entry) => entry.fieldPath === "$.main_flow.pay");
+      context.assert(gap !== undefined, "verify reports the gap against the step's field path");
+      context.assert(
+        gap?.artifactPath === ".strict-spec-driven/scenes/commerce/checkout.yaml",
+        "the gap names the scene it belongs to",
+        gap?.artifactPath,
+      );
+      context.assert(
+        gap?.message.includes("commerce-spec:no-such-requirement") === true,
+        "the gap names the reference that failed to resolve",
+        gap?.message,
+      );
+      context.assert(
+        gap?.message.includes("strict-spec-cli generate unresolvable-reference delta-scene --target-scene checkout") === true
+        && gap?.message.includes("--step pay") === true,
+        "the gap names its runnable remedy with the change, scene, and step already substituted",
+        gap?.message,
+      );
+      context.assert(
+        gap?.message.includes(".strict-spec-driven/specs/INDEX.yaml") === true,
+        "the gap names the source to consult for the requirement id the author must still supply",
+        gap?.message,
+      );
+
+      const readied = cli(["ready", "unresolvable-reference"], { cwd: root });
+      context.assert(readied.status !== 0, "ready exits non-zero on the same coverage gap");
+      const readyDiagnostics = (JSON.parse(readied.stdout) as { diagnostics: Array<Record<string, string>> }).diagnostics;
+      context.assert(
+        readyDiagnostics.some((entry) => entry.message === gap?.message),
+        "ready and verify report the identical coverage-gap diagnostic",
+      );
+
+      const archived = cli(["archive", "unresolvable-reference"], { cwd: root });
+      context.assert(archived.status !== 0, "archive refuses while a coverage gap blocks verification");
+      context.assert(!existsSync(scenePath(root)), "the blocked archive merges no scene");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "waived-step");
+      cli(newCheckoutSceneArgs("waived-step", [
+        "--step", "browse", "--action", "The shopper browses", "--no-coverage-reason", "Browsing is covered by the catalog scene",
+      ]), { cwd: root });
+      const verified = cli(["verify", "waived-step"], { cwd: root });
+      context.assert(verified.status === 0, "an explicit no-coverage reason passes verify", verified.stdout.trim());
+      const readied = cli(["ready", "waived-step"], { cwd: root });
+      const readyResult = JSON.parse(readied.stdout) as { diagnostics: Array<Record<string, string>> };
+      context.assert(
+        !readyResult.diagnostics.some((entry) => entry.message.includes("no-coverage reason")),
+        "an explicit no-coverage reason raises no gap in ready either",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "creates-scene");
+      cli(newCheckoutSceneArgs("creates-scene"), { cwd: root });
+      cli(["archive", "creates-scene"], { cwd: root });
+
+      // A recorded scene may be edited by hand, and an edit that drops a step's coverage leaves a
+      // step declaring neither a requirement nor a waiver. The gate reads the merged scene state, so
+      // the next change touching that scene inherits the gap rather than merging past it.
+      const recorded = readFileSync(scenePath(root), "utf8")
+        .replace(/    covered_by:\n      - spec_id: commerce-spec\n        requirement_id: payment-is-taken\n/, "");
+      writeFileSync(scenePath(root), recorded, "utf8");
+
+      writeArchivableChange(root, "inherits-gap");
+      cli(["generate", "inherits-gap", "delta-scene", "--target-scene", "checkout",
+        "--operation", "ADDED",
+        "--step", "pay", "--action", "The shopper pays", "--covered-by", "commerce-spec:payment-is-taken"], { cwd: root });
+      const verified = cli(["verify", "inherits-gap"], { cwd: root });
+      context.assert(verified.status !== 0, "a step inherited uncovered from a targeted main scene blocks verify");
+      const inherited = (JSON.parse(verified.stdout) as { diagnostics: Array<Record<string, string>> })
+        .diagnostics.find((entry) => entry.fieldPath === "$.main_flow.begin");
+      context.assert(
+        inherited?.message.includes("names no covering requirement and no no-coverage reason") === true,
+        "the inherited gap reports the step declaring neither",
+        inherited?.message,
+      );
+      context.assert(
+        inherited?.message.includes("--no-coverage-reason") === true,
+        "the inherited gap names the deliberate-waiver remedy alongside the coverage remedy",
+        inherited?.message,
+      );
+
+      // The same uncovered scene must not block a change that never touches it.
+      writeArchivableChange(root, "untouched-scene");
+      const untouched = cli(["verify", "untouched-scene"], { cwd: root });
+      context.assert(
+        untouched.status === 0,
+        "an uncovered main scene the change never touches does not block it",
+        untouched.stdout.trim(),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "plain-change");
+      const verified = cli(["verify", "plain-change"], { cwd: root });
+      context.assert(
+        verified.status === 0,
+        "a repository holding no scene observes no new diagnostic from verify",
+        verified.stdout.trim(),
+      );
+      const readied = cli(["ready", "plain-change"], { cwd: root });
+      const diagnostics = (JSON.parse(readied.stdout) as { diagnostics: Array<Record<string, string>> }).diagnostics;
+      context.assert(
+        !diagnostics.some((entry) => entry.message.includes("scene")),
+        "a repository holding no scene observes no new diagnostic from ready either",
+        JSON.stringify(diagnostics),
+      );
+      context.assert(!existsSync(path.join(root, ".strict-spec-driven", "scenes")), "no scene directory is created");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  context.section("New-scene delta block completeness");
+
+  {
+    const root = makeWorkspace();
+    try {
+      for (const [label, extra, expected] of [
+        ["a scene block with no actor", ["--title", "Checkout", "--area", "commerce", "--precondition", "A cart exists"], "--actor"],
+        ["a scene block with no precondition", ["--title", "Checkout", "--area", "commerce", "--actor", "Shopper", "--role", "Buys"], "--precondition"],
+        ["an actor with no role", ["--title", "Checkout", "--area", "commerce", "--actor", "Shopper", "--precondition", "A cart exists"], "role"],
+      ] as Array<[string, string[], string]>) {
+        const refused = cli([
+          "generate", "incomplete-block", "delta-scene", "--target-scene", "checkout", ...extra,
+          "--operation", "ADDED", "--step", "begin", "--action", "a", "--no-coverage-reason", "n",
+        ], { cwd: root });
+        context.assert(refused.status !== 0, `${label} is refused`, refused.stdout.trim());
+        context.assert(
+          refused.stderr.includes(expected),
+          `${label} names ${expected} in its refusal`,
+          refused.stderr.trim(),
+        );
+      }
+      context.assert(
+        !existsSync(path.join(root, ".strict-spec-driven", "changes", "incomplete-block", "scenes")),
+        "a refused new-scene delta leaves no delta scene behind",
+      );
+
+      // Actors and preconditions belong to the scene, not to any flow step, so a delta may supply
+      // them only for a scene it creates; a recorded scene's own edit path owns them instead.
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "creates-scene");
+      cli(newCheckoutSceneArgs("creates-scene"), { cwd: root });
+      cli(["archive", "creates-scene"], { cwd: root });
+      const refusedRestatement = cli([
+        "generate", "later-change", "delta-scene", "--target-scene", "checkout",
+        "--actor", "Courier", "--role", "Delivers",
+        "--operation", "MODIFIED", "--step", "begin", "--action", "a", "--no-coverage-reason", "n",
+      ], { cwd: root });
+      context.assert(refusedRestatement.status !== 0, "a delta restating a recorded scene's actors is refused");
+      context.assert(
+        refusedRestatement.stderr.includes("strict-spec-cli scene-edit checkout"),
+        "the refusal names the command that owns a recorded scene's actors and preconditions",
+        refusedRestatement.stderr.trim(),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+}
+
+/**
+ * A merged scene that cannot validate must be reported by verify, not discovered inside archive.
+ * Archive merges specs and standards before scenes, so a refusal raised there would leave the
+ * repository holding merged specs with the change still active.
+ */
+export async function runSceneMergeValiditySuite(context: TestContext): Promise<void> {
+  context.section("Merged scene validity is a verify diagnostic");
+
+  const root = makeWorkspace();
+  try {
+    writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+    writeArchivableChange(root, "creates-scene");
+    cli(newCheckoutSceneArgs("creates-scene"), { cwd: root });
+    cli(["archive", "creates-scene"], { cwd: root });
+
+    const specBefore = readFileSync(path.join(root, ".strict-spec-driven", "specs", "commerce-spec.yaml"), "utf8");
+    writeArchivableChange(root, "empties-flow");
+    cli(["generate", "empties-flow", "delta-spec", "--target-spec", "commerce-spec",
+      "--operation", "ADDED", "--requirement", "cart-is-restored", "--strength", "MUST",
+      "--statement", "The system MUST restore the cart after a decline.",
+      "--scenario", "only", "--given", "a decline", "--when", "the shopper returns", "--then", "the cart is intact"], { cwd: root });
+    // Removing the exception flow's only step empties a container the scene contract requires.
+    cli(["generate", "empties-flow", "delta-scene", "--target-scene", "checkout",
+      "--operation", "REMOVED", "--exception-step", "declined:retry", "--reason", "Retry moved to the cart"], { cwd: root });
+
+    const verified = cli(["verify", "empties-flow"], { cwd: root });
+    context.assert(verified.status !== 0, "verify reports a merge that would leave the scene invalid");
+    const diagnostics = (JSON.parse(verified.stdout) as { diagnostics: Array<Record<string, string>> }).diagnostics;
+    const invalid = diagnostics.find((entry) => entry.message.includes("would leave scene 'checkout' invalid"));
+    context.assert(invalid !== undefined, "the diagnostic names the scene the merge would invalidate", JSON.stringify(diagnostics));
+    context.assert(
+      invalid?.message.includes("strict-spec-cli generate empties-flow delta-scene --target-scene checkout") === true,
+      "the diagnostic names the runnable remedy with the change and scene already substituted",
+      invalid?.message,
+    );
+
+    const archived = cli(["archive", "empties-flow"], { cwd: root });
+    context.assert(archived.status !== 0, "archive refuses the change rather than merging it halfway");
+    context.assert(
+      readFileSync(path.join(root, ".strict-spec-driven", "specs", "commerce-spec.yaml"), "utf8") === specBefore,
+      "the refused archive leaves the main specs untouched rather than half-merged",
+    );
+    context.assert(
+      existsSync(path.join(root, ".strict-spec-driven", "changes", "empties-flow")),
+      "the refused archive leaves the change active",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 }

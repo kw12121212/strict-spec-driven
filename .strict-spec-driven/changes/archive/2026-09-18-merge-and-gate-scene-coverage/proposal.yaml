@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: merge-and-gate-scene-coverage
+  status: proposed
+summary:
+  what:
+    - Merge a change's delta scenes into .strict-spec-driven/scenes/ during archive, regenerate the scene index, and block ready and verify when a scene flow step names no covering requirement and no explicit no-coverage reason, or names a requirement id that does not resolve.
+  why:
+    - 'The scene family already has a registered contract and a CLI authoring and status surface, but nothing consumes a delta scene: archive merges only delta specs and delta tech, and verify only schema-validates a change''s delta scenes. Without archive merge a delta scene never reaches main scene state, and without a blocking coverage diagnostic an uncovered scene step stays advisory, so the milestone goal of turning skipped actors, preconditions, and exception flows into deterministic failures is not met.'
+scope:
+  in:
+    - Archive merge of change delta scenes into main scenes with the contract's deterministic conflict rules, including the case where a step's covering requirements arrive from more than one delta spec in the same change; deterministic scene index regeneration after merge; a coverage-gap diagnostic that fails ready and verify for an uncovered step and for an unresolvable covering requirement reference; the diagnostic naming its runnable remedy command with known identifiers filled in and naming the source to consult for identifiers the caller must supply; presence-triggered checking so a repository with no scene sees no new diagnostic; a delta spec against operations-domain-behavior; tests for merge, index regeneration, conflict rules, the gap diagnostic in both ready and verify, the unresolvable-reference failure, the explicit exemption path, and the no-scene no-op.
+    - Restating yaml-scene-merge-conflict-rules in contracts-yaml-artifacts so the contract states that a modified step keeps its main-scene position while added steps append in the delta's declared order, matching what the merge implements.
+    - Enforcing the delta-scene schema's declared merge rules during the merge and in verify, including refusing an ADDED step that already exists at the same flow address, treating a MODIFIED step whose target is absent as ADDED, and skipping a REMOVED step whose target is absent, each recorded in the archive merge report.
+    - Extending the delta-scene schema's new-scene block to carry actors and preconditions, with matching --actor/--role/--precondition arguments on generate delta-scene, so a delta that creates a scene can produce one the main scene schema accepts.
+    - 'Recording the convention this change established as a delta tech rule on workflow-scope-discipline: a merge archive performs across more than one artifact family should be fully evaluated by verify, so archive never writes one family and then refuses in the next.'
+  out:
+    - Changing the scene or scene index schema shape; changing the main spec schema or any existing main spec requirement; a workflow config switch that enables or disables scene coverage checking; a human-readable rendered scene document; scene-first routing in bundled skills and operator documentation, which is the later route-requirements-through-scenes planned change; requiring any existing spec or project to author scenes.
+unchanged_behavior:
+  - The scene and scene index schemas, their registry entries, and their examples; the scene authoring command and the scene status command, including scene status continuing to exit zero when a covering reference does not resolve; delta spec and delta tech archive merge behavior; main spec artifacts, which stay untouched because coverage references are declared on the scene side only; ready and verify behavior for a repository holding no scene artifact.
+roadmap:
+  milestone: scene-driven-requirements
+  planned_change: merge-and-gate-scene-coverage

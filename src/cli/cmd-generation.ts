@@ -5,6 +5,7 @@ import {
   type GeneratableArtifact,
   type GenerationInputRecord,
   isGeneratableArtifact,
+  readSceneAreaForTarget,
   TASK_SECTION_SELECTORS,
 } from "../propose-generation.js";
 import { buildSeededRequirementQuestions } from "../requirement-questions.js";
@@ -1589,6 +1590,8 @@ type DeltaSceneCommandInput = {
   targetScene?: string;
   title?: string;
   area?: string;
+  actors: Array<{ name: string; role: string }>;
+  preconditions: string[];
   steps: SceneStepGroup[];
   triggers: Array<{ operation: string; flowId: string; trigger: string }>;
   removedSteps: string[];
@@ -1610,8 +1613,16 @@ function parseFlowStepReference(value: string, flagName: string): { flowId: stri
   return { flowId: value.slice(0, separator), stepId: value.slice(separator + 1) };
 }
 
+/** Every field a new-scene block must carry, paired with the arguments that supply it. */
+const NEW_SCENE_BLOCK_FIELDS = [
+  { key: "title", flags: "--title <text>" },
+  { key: "area", flags: "--area <area>" },
+  { key: "actors", flags: "--actor <name> --role <text>" },
+  { key: "preconditions", flags: "--precondition <text>" },
+] as const;
+
 function parseDeltaSceneCommandInput(argv: string[], rootDir: string): DeltaSceneCommandInput {
-  const input: DeltaSceneCommandInput = { steps: [], triggers: [], removedSteps: [] };
+  const input: DeltaSceneCommandInput = { actors: [], preconditions: [], steps: [], triggers: [], removedSteps: [] };
   let currentOperation: string | undefined;
   let currentStep: SceneStepGroup | undefined;
   let pendingExceptionFlow: string | undefined;
@@ -1666,6 +1677,20 @@ function parseDeltaSceneCommandInput(argv: string[], rootDir: string): DeltaScen
       case "area":
         if (input.area !== undefined) throw new Error("--area may only be supplied once");
         input.area = take();
+        break;
+      case "actor":
+        input.actors.push({ name: take(), role: "" });
+        break;
+      case "role": {
+        const actor = input.actors[input.actors.length - 1];
+        if (actor === undefined || actor.role !== "") {
+          throw new Error("--role requires a preceding --actor naming the actor it describes");
+        }
+        actor.role = take();
+        break;
+      }
+      case "precondition":
+        input.preconditions.push(take());
         break;
       case "operation":
         currentOperation = take();
@@ -1767,6 +1792,20 @@ function buildDeltaSceneInputFromArgs(rootDir: string, changeName: string, argv:
   if ((commandInput.title === undefined) !== (commandInput.area === undefined)) {
     throw new Error("--title and --area must be supplied together to define a new scene");
   }
+  const namelessActor = commandInput.actors.find((actor) => actor.role === "");
+  if (namelessActor !== undefined) {
+    throw new Error(`actor '${namelessActor.name}' has no role; follow each --actor with --role <text>`);
+  }
+
+  // Actors and preconditions belong to the scene rather than to any flow step, so a delta may only
+  // supply them for a scene it creates; a recorded scene's own edit path is the scene command.
+  if ((commandInput.actors.length > 0 || commandInput.preconditions.length > 0)
+    && readSceneAreaForTarget(rootDir, targetScene) !== undefined) {
+    throw new Error(
+      `scene '${targetScene}' is already recorded, so a delta may not restate its actors or preconditions; `
+      + `edit them directly with 'strict-spec-cli scene-edit ${targetScene} --actor <name> --role <text> --precondition <text>'`,
+    );
+  }
 
   const relativePath = resolveDeltaSceneRelativePath(rootDir, changeName, targetScene, commandInput.area);
   const existing = relativePath === undefined
@@ -1782,9 +1821,39 @@ function buildDeltaSceneInputFromArgs(rootDir: string, changeName: string, argv:
       ? existing.operations
       : { ADDED: {}, MODIFIED: {}, REMOVED: {} },
   };
-  if (existing && isRecord(existing.scene)) input.scene = existing.scene;
-  if (commandInput.title !== undefined && commandInput.area !== undefined) {
-    input.scene = { title: commandInput.title, area: commandInput.area };
+  // The new-scene block carries the sections no flow step references. It is assembled across calls
+  // the way every other generated artifact is, so an author may name the scene in one invocation and
+  // add an actor in the next, and it is only checked for completeness once something declares it.
+  const sceneBlock: GenerationInputRecord = existing && isRecord(existing.scene) ? { ...existing.scene } : {};
+  if (commandInput.title !== undefined) sceneBlock.title = commandInput.title;
+  if (commandInput.area !== undefined) sceneBlock.area = commandInput.area;
+  if (commandInput.actors.length > 0) {
+    const actors = Array.isArray(sceneBlock.actors)
+      ? [...sceneBlock.actors] as Array<{ name: string; role: string }>
+      : [];
+    for (const actor of commandInput.actors) {
+      const recorded = actors.find((entry) => entry.name === actor.name);
+      if (recorded === undefined) actors.push({ ...actor });
+      else recorded.role = actor.role;
+    }
+    sceneBlock.actors = actors;
+  }
+  if (commandInput.preconditions.length > 0) {
+    const preconditions = Array.isArray(sceneBlock.preconditions) ? [...sceneBlock.preconditions] as string[] : [];
+    for (const value of commandInput.preconditions) {
+      if (!preconditions.includes(value)) preconditions.push(value);
+    }
+    sceneBlock.preconditions = preconditions;
+  }
+  if (Object.keys(sceneBlock).length > 0) {
+    const missing = NEW_SCENE_BLOCK_FIELDS.filter((field) => sceneBlock[field.key] === undefined);
+    if (missing.length > 0) {
+      throw new Error(
+        `the new-scene block for '${targetScene}' is incomplete; supply ${missing.map((field) => field.flags).join(" and ")}, `
+        + "because the main scene contract requires a title, an area, at least one actor, and at least one precondition",
+      );
+    }
+    input.scene = sceneBlock;
   }
 
   const operations = isRecord(input.operations) ? input.operations : {};

@@ -24,6 +24,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/architecture/an-existing-must-requirement-may-forbid-the-beha-381ce3.yaml
+    a-contract-first-schema-can-declare-a-merge-rule-3b1ad1:
+      title: A contract-first schema can declare a merge rule its own shape cannot satisfy
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/architecture/a-contract-first-schema-can-declare-a-merge-rule-3b1ad1.yaml
   documentation:
     adding-cli-mutation-guidance-to-a-document-enrol-18d554:
       title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
@@ -220,7 +225,7 @@ categories:
     a-set-field-path-that-does-not-exist-creates-a-n-02ec26:
       title: A --set field path that does not exist creates a new branch instead of failing
       status: active
-      occurrences: 4
+      occurrences: 5
       path: .strict-spec-driven/lessons/tooling/a-set-field-path-that-does-not-exist-creates-a-n-02ec26.yaml
     piping-a-test-runner-into-tail-or-head-discards-15d651:
       title: Piping a test runner into tail or head discards its exit status

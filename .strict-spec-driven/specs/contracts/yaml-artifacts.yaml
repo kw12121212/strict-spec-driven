@@ -1434,7 +1434,7 @@ requirements:
         - THEN: validation succeeds and both covering requirements are retained with their own spec ids
   yaml-scene-merge-conflict-rules:
     strength: MUST
-    statement: 'The system MUST define how a delta scene merges into a main scene: covering requirements merge as a set keyed by the spec-id and requirement-id pair, a step id present in both replaces the main scene step''s content and position, and a step id present only in the main scene is left untouched.'
+    statement: 'The system MUST define how a delta scene merges into a main scene: covering requirements merge as a set keyed by the spec-id and requirement-id pair, a step id present in both takes the delta scene step''s content while keeping the position it holds in the main scene, a step the delta adds is appended in the delta''s own declared order, and a step id present only in the main scene is left untouched.'
     scenarios:
       cross-area-covering-requirements-merge-as-a-set:
         - GIVEN: a main scene step already naming a covering requirement in one spec and a delta scene step naming a covering requirement in a different spec for the same step id
@@ -1444,6 +1444,14 @@ requirements:
         - GIVEN: a main scene holding a step id the delta scene does not mention
         - WHEN: the merge rule stated by the contract is applied
         - THEN: that step remains in the merged scene unchanged
+      modified-step-keeps-its-main-scene-position:
+        - GIVEN: a main scene whose main flow holds three ordered steps and a delta scene modifying the first of them
+        - WHEN: the merge rule stated by the contract is applied
+        - THEN: the merged step carries the delta's content and still appears first, because the flow key order is the scenario's step sequence
+      added-step-is-appended-in-delta-order:
+        - GIVEN: a main scene holding ordered steps and a delta scene adding two new steps in its own declared order
+        - WHEN: the merge rule stated by the contract is applied
+        - THEN: both added steps appear after every retained main step, in the order the delta declared them
   yaml-scene-family-nesting-and-index:
     strength: MUST
     statement: The system MUST declare scene file locations that admit subdirectory nesting and MUST require the scene index to group scenes by an area key that is also their subdirectory name and to record each scene's title, status, and canonical path, so one group of scenes is discoverable without reading unrelated scene files.
@@ -1475,7 +1483,7 @@ requirements:
         - THEN: no scenes directory and no scene index are present
   delta-scene-artifact-contract:
     strength: MUST
-    statement: The system MUST register a delta scene artifact schema that addresses flow steps by operation, flow, and stable step id, so a strict change can state only the steps it changes and can retire a step, neither of which the main scene contract can express.
+    statement: The system MUST register a delta scene artifact schema that addresses flow steps by operation, flow, and stable step id, so a strict change can state only the steps it changes and can retire a step, neither of which the main scene contract can express. Its new-scene block MUST carry every scene section no flow step references — title, area, actors, and preconditions — because the main scene contract requires all of them and a scene the merge assembles without them could not validate.
     scenarios:
       delta-scene-schema-is-registered-with-an-example:
         - GIVEN: the bundled strict YAML schema registry
@@ -1491,13 +1499,17 @@ requirements:
         - THEN: the entry requires a reason and accepts no other field, so a retirement is distinguishable from a lost step
       delta-scene-step-declares-coverage-or-a-waiver:
         - GIVEN: a delta scene adding or modifying a flow step
-        - WHEN: the step is validated
-        - THEN: the step is accepted only when it declares either covering requirement references or an explicit no-coverage reason, and never both
+        - WHEN: the step entry is validated
+        - THEN: the step declares either at least one covering requirement or an explicit no-coverage reason, and declaring both or neither is refused
       delta-scene-covered-by-merges-as-a-set:
         - GIVEN: a delta scene step whose covering references overlap those already recorded on the main scene step
-        - WHEN: the declared merge rule for that step is read
-        - THEN: the references combine as a set keyed by the spec id and requirement id pair, so a reference repeated across changes does not duplicate
+        - WHEN: the declared merge rule is read
+        - THEN: the references combine as a set keyed by the spec-id and requirement-id pair, so a reference repeated across changes does not duplicate
       delta-scene-may-create-a-scene:
         - GIVEN: a delta scene whose target scene id matches no recorded scene
         - WHEN: the declared new-scene rule is read
-        - THEN: the delta creates the scene only when it supplies a new-scene block naming the title and area, and otherwise fails with a missing-target error
+        - THEN: the delta creates the scene only when it supplies a new-scene block naming the title, the area, at least one actor with its role, and at least one precondition, and otherwise fails with a missing-target error
+      new-scene-block-produces-a-valid-scene:
+        - GIVEN: a delta scene carrying a complete new-scene block and at least one added main-flow step and exception flow
+        - WHEN: the merge assembles the created scene
+        - THEN: the created scene validates against the main scene schema, because the block supplied every required section no flow step carries

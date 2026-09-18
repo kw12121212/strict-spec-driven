@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-contract-first-schema-can-declare-a-merge-rule-3b1ad1
+  title: A contract-first schema can declare a merge rule its own shape cannot satisfy
+category: architecture
+status: active
+created_at: '2026-09-18T06:17:37.954Z'
+updated_at: '2026-09-18T06:17:37.954Z'
+context: 'The delta-scene schema shipped in an earlier change with a new_scene_creation merge rule stating that archive creates a main scene from a delta supplying a scene block of title and area. The change that implemented that merge found the rule unsatisfiable: the main scene schema requires at least one actor and one precondition, and the delta-scene schema deliberately carried neither, so every scene the rule described would fail validation the moment it was written.'
+observation: Nothing caught it, because no code consumed the rule. The schema validated, its example validated, the registry check passed, and the rule was prose inside a schema asset that no validator executes. The contradiction only surfaced when the first merge ran and the created scene was rejected by the sibling schema it had to satisfy.
+takeaway: 'When a family lands contract-first, treat every prose merge or lifecycle rule in its schema as an unverified claim until the command that performs it exists. Before implementing such a rule, check it against the schema of the artifact it produces: a rule whose output must validate against a second schema is only real if the input carries every field that second schema requires.'
+applies_when: Implementing the command that first consumes a merge rule, lifecycle rule, or creation rule declared as prose in a registered schema, especially when the rule's output must validate against a different registered schema than its input
+occurrences:
+  - origin: merge-and-gate-scene-coverage
+    date: '2026-09-18'
+    evidence: 'templates/strict-spec-driven/schemas/delta-scene.yaml merge_rules.new_scene_creation versus templates/strict-spec-driven/schemas/scene.yaml required actors and preconditions; the merge failed with ''$.actors: must NOT have fewer than 1 items'' on the first smoke test'

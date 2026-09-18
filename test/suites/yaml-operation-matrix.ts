@@ -393,9 +393,10 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
     },
   },
   // The command surface now drives every mutation dimension of the scene family. scene-edit owns the
-  // live scene store and generate owns the change-level delta scene.
+  // live scene store, generate owns the change-level delta scene, and archive merges that delta into
+  // the live store and regenerates the scene index.
   "scene-state": {
-    owners: ["generate", "scene-edit"],
+    owners: ["archive", "generate", "scene-edit"],
     cells: {
       "create": coveredBy("scenes.ts", "creating a scene exits zero"),
       "scalar-update": coveredBy("scenes.ts", "the named step action is replaced"),
@@ -463,7 +464,7 @@ const MCP_FAMILY_TOOLS: Record<string, string[]> = {
   ],
   "change-delta-state": ["generate_change_artifact", "archive_change"],
   "roadmap-state": ["roadmap_sync"],
-  "scene-state": ["scene_edit", "generate_change_artifact"],
+  "scene-state": ["scene_edit", "generate_change_artifact", "archive_change"],
 };
 
 function suiteContainsAssertion(suite: string, assertion: string): boolean {
@@ -562,7 +563,7 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
       };
     };
     context.assert(
-      JSON.stringify([...shown.family.cliOwners].sort()) === JSON.stringify(["generate", "scene-edit"])
+      JSON.stringify([...shown.family.cliOwners].sort()) === JSON.stringify(["archive", "generate", "scene-edit"])
         && shown.family.pathPatterns.includes(".strict-spec-driven/scenes/*/*.yaml")
         && shown.family.pathPatterns.includes(".strict-spec-driven/changes/*/scenes/*/*.yaml"),
       "yaml-surface-show reports the scene family with nested live and change-level path patterns and its CLI owners",

@@ -7143,14 +7143,14 @@ schema_version: 1
 schema_id: strict-spec-driven/delta-scene/v1
 artifact_type: delta_scene
 artifact_name: delta-scene
-description: Strict YAML delta scene artifact carrying one strict change's scene operations, addressed by flow and stable step id so a delta states only the steps it changes rather than restating a whole scene. A delta scene exists because the main scene contract makes every scene section required and its recorded merge rule leaves a step present only in the main scene untouched, so a main-scene document can express neither a partial edit nor a step retirement. Operations are grouped ADDED, MODIFIED, and REMOVED, and within each group steps are addressed under main_flow or under one named exception flow. Actor and precondition edits are not delta operations because no flow step references them; they are authored directly on the main scene through the scene authoring command.
+description: 'Strict YAML delta scene artifact carrying one strict change''s scene operations, addressed by flow and stable step id so a delta states only the steps it changes rather than restating a whole scene. A delta scene exists because the main scene contract makes every scene section required and its recorded merge rule leaves a step present only in the main scene untouched, so a main-scene document can express neither a partial edit nor a step retirement. Operations are grouped ADDED, MODIFIED, and REMOVED, and within each group steps are addressed under main_flow or under one named exception flow. Actors and preconditions are not delta operations because no flow step references them: a delta supplies them only in the scene block when it creates the scene, and edits them on a recorded scene through the scene authoring command.'
 example_ref: ../../../examples/strict-spec-driven/delta-scene.yaml
 merge_rules:
   added_existing_step: A step id that appears as an ADDED entry MUST NOT already exist at the same flow address in the target main scene at archive time. Verify must enforce this constraint and report it as a deterministic validation failure.
   modified_missing_step: If a MODIFIED entry addresses a step id absent from its flow in the main scene at archive time, the entry is treated as ADDED and recorded in the archive merge report.
   removed_missing_step: If a REMOVED entry addresses a step id absent from its flow in the main scene at archive time, the entry is silently skipped and recorded as a skipped removal in the archive merge report.
   covered_by_set_merge: Merging a step's covered_by entries combines them as a set keyed by the spec_id and requirement_id pair, so the merged coverage of a step does not depend on which delta spec its requirements arrived from and a reference repeated across changes does not duplicate. This restates the rule the main scene contract declares, because the delta is the artifact that produces the merge.
-  new_scene_creation: If target_scene matches no existing scene id at archive time, the delta is a new-scene creation only when it provides a scene block with title and area. Archive creates the main scene at the canonical path derived from the area and target_scene, from the ADDED operations, then regenerates the scene index. A new-scene delta MUST supply at least one ADDED main_flow step and at least one ADDED exception flow, because the main scene contract requires both, and MUST keep MODIFIED and REMOVED empty. When target_scene matches no scene and no scene block is present, archive fails with a missing-target error rather than creating a scene.
+  new_scene_creation: If target_scene matches no existing scene id at archive time, the delta is a new-scene creation only when it provides a scene block with title, area, actors, and preconditions. Archive creates the main scene at the canonical path derived from the area and target_scene, from the scene block and the ADDED operations, then regenerates the scene index. A new-scene delta MUST supply at least one ADDED main_flow step and at least one ADDED exception flow, because the main scene contract requires both, and MUST keep MODIFIED and REMOVED empty. When target_scene matches no scene and no scene block is present, archive fails with a missing-target error rather than creating a scene.
 json_schema:
   $schema: http://json-schema.org/draft-07/schema#
   definitions:
@@ -7287,7 +7287,7 @@ json_schema:
     scene:
       type: object
       additionalProperties: false
-      description: Optional new-scene block, present only when this delta creates a scene whose id does not yet exist. Archive materializes the main scene at the canonical path derived from area and target_scene.
+      description: Optional new-scene block, present only when this delta creates a scene whose id does not yet exist. It carries the scene identity and the sections no flow step references — title, area, actors, and preconditions — because the main scene contract requires all of them and a created scene assembled without them could not validate. Archive materializes the main scene at the canonical path derived from area and target_scene.
       properties:
         title:
           type: string
@@ -7296,9 +7296,35 @@ json_schema:
           type: string
           pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
           description: Kebab-case grouping key that is also the scene subdirectory name, so the created scene's index group and canonical path stay derivable from each other.
+        actors:
+          type: array
+          minItems: 1
+          description: Everyone and everything that acts in the created scene. Required because the main scene contract requires at least one actor, so a delta that creates a scene without them could not produce a valid scene.
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              name:
+                type: string
+                minLength: 1
+              role:
+                type: string
+                minLength: 1
+            required:
+              - name
+              - role
+        preconditions:
+          type: array
+          minItems: 1
+          description: What must already hold before the created scene's main flow begins. Required for the same reason as actors.
+          items:
+            type: string
+            minLength: 1
       required:
         - title
         - area
+        - actors
+        - preconditions
     operations:
       type: object
       additionalProperties: false
@@ -12512,9 +12538,11 @@ artifact_families:
       - The scenes-index/v1 area groups and canonical paths must match the scene artifacts stored beneath those areas.
       - Every flow step covered_by entry names a spec id and a requirement id that must resolve against the recorded main specs.
       - A delta scene merges into a main scene by step id under its flow, so its target_scene and area must resolve to the canonical main scene path the merge will write.
+      - Archive merges a change's delta scenes into the recorded scenes and regenerates the scene index in the same transaction, and ready and verify block on a covering reference that does not resolve, so a scene and the main specs it references must stay consistent.
     cli_owners:
       - scene-edit
       - generate
+      - archive
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/scene.yaml
@@ -12523,6 +12551,7 @@ artifact_families:
       - templates/strict-spec-driven/schemas/delta-scene.yaml
       - examples/strict-spec-driven/delta-scene.yaml
       - src/scenes.ts
+      - src/archive.ts
     validation_command: bun test/run.ts
 exclusions:
   external-dependency-yaml:
@@ -16974,6 +17003,18 @@ function asOptionalStringArray(value, fieldPath) {
     return;
   return asStringArray2(value, fieldPath);
 }
+function asSceneActors(value, fieldPath) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`input field '${fieldPath}' must contain at least one actor with a name and a role`);
+  }
+  return value.map((item, index) => {
+    const actor = asRecord2(item, `${fieldPath}[${index}]`);
+    return {
+      name: asString2(actor.name, `${fieldPath}[${index}].name`),
+      role: asString2(actor.role, `${fieldPath}[${index}].role`)
+    };
+  });
+}
 function validateGeneratedArtifact(artifactType, artifact, artifactPath) {
   const schema = loadBundledSchemaByArtifactType(artifactType);
   const result = validateArtifact(schema, artifact, artifactPath);
@@ -17429,7 +17470,9 @@ function buildDeltaSceneArtifact(rootDir, input) {
   if (sceneBlock) {
     artifact.scene = {
       title: asString2(sceneBlock.title, "$.scene.title"),
-      area: asString2(sceneBlock.area, "$.scene.area")
+      area: asString2(sceneBlock.area, "$.scene.area"),
+      actors: asSceneActors(sceneBlock.actors, "$.scene.actors"),
+      preconditions: asStringArray2(sceneBlock.preconditions ?? [], "$.scene.preconditions", { minItems: 1 })
     };
   }
   artifact.operations = {
@@ -17771,7 +17814,7 @@ var COMMAND_METADATA_ENTRIES = {
       `  strict-spec-cli generate <change-name> tasks [(${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(" | ")}) --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete`,
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
-      "  strict-spec-cli generate <change-name> delta-scene --target-scene <id> [--title <text> --area <area>] [--operation <ADDED|MODIFIED|REMOVED> [--exception-flow <flow-id> --trigger <text>] (--step <id> | --exception-step <flow-id>:<step-id>) (--action <text> (--covered-by <spec-id>:<requirement-id> | --no-coverage-reason <text>) | --reason <text>)]... [--remove-step <step-id|flow-id:step-id>]...",
+      "  strict-spec-cli generate <change-name> delta-scene --target-scene <id> [--title <text> --area <area> (--actor <name> --role <text>)... (--precondition <text>)...] [--operation <ADDED|MODIFIED|REMOVED> [--exception-flow <flow-id> --trigger <text>] (--step <id> | --exception-step <flow-id>:<step-id>) (--action <text> (--covered-by <spec-id>:<requirement-id> | --no-coverage-reason <text>) | --reason <text>)]... [--remove-step <step-id|flow-id:step-id>]...",
       "",
       "Task examples (run in order in a project with strict workflow state; recorded --command values are not executed by generate):",
       '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the scoped behavior."',
@@ -18178,13 +18221,36 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--target-scene",
         arity: "value",
         valueLabel: "<id>",
-        description: "Delta-scene artifact only: the scene id this delta targets, which also resolves the delta's area-and-id path beneath the change. Required for delta-scene and accepted at most once. A target no scene index records is a new-scene creation and additionally requires --title and --area."
+        description: "Delta-scene artifact only: the scene id this delta targets, which also resolves the delta's area-and-id path beneath the change. Required for delta-scene and accepted at most once. A target no scene index records is a new-scene creation and additionally requires --title, --area, --actor with --role, and --precondition."
       },
       {
         name: "--area",
         arity: "value",
         valueLabel: "<area>",
         description: "Delta-scene artifact only: the area of a scene this delta creates, paired with --title. Accepted at most once, and refused when it disagrees with the area the scene is already recorded under."
+      },
+      {
+        name: "--actor",
+        arity: "value",
+        valueLabel: "<name>",
+        description: "Delta-scene artifact only: names one actor of a scene this delta creates, and must be followed by its --role. Accepted only in the new-scene block, because no flow step references an actor; edit a recorded scene's actors with scene-edit instead.",
+        repeatable: true,
+        repeatSemantics: "Each value declares one actor; restating a recorded name replaces only that actor's role."
+      },
+      {
+        name: "--role",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-scene artifact only: what the preceding --actor does in the scene this delta creates. Required after each --actor, because a bare label is the answer the scene contract exists to stop an author from skipping.",
+        repeatable: true
+      },
+      {
+        name: "--precondition",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-scene artifact only: one condition that must already hold before the created scene's main flow begins. Accepted only in the new-scene block, and appends without duplicating a recorded condition.",
+        repeatable: true,
+        repeatSemantics: "Each value appends one precondition, skipping a value already recorded."
       },
       {
         name: "--exception-flow",
@@ -20371,7 +20437,7 @@ var COMMAND_METADATA_ENTRIES = {
   archive: {
     name: "archive",
     group: "change",
-    summary: "Archive a verified change, merging delta artifacts into the main specs and standards.",
+    summary: "Archive a verified change, merging delta artifacts into the main specs, standards, and scenes.",
     mcpDescription: "Performs a release-class mutation by archiving a verified strict change.",
     usage: `Usage: strict-spec-cli archive <change-name>
 `,
@@ -20379,13 +20445,14 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics", "rerenderedDocuments"],
+      keys: ["valid", "diagnostics", "rerenderedDocuments", "sceneMergeSummary", "mergedScenes"],
       description: "A JSON archive result describing merged artifacts and reconciled roadmap state."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "An empty specs/ directory is allowed and does not block archive.",
-      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent."
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
+      "A change carrying delta scenes merges them into .strict-spec-driven/scenes/ and regenerates the scene index in one transaction; two delta scenes stating conflicting content for one step are refused rather than resolved."
     ]
   },
   list: {
@@ -23098,8 +23165,14 @@ function parseFlowStepReference(value, flagName) {
   }
   return { flowId: value.slice(0, separator), stepId: value.slice(separator + 1) };
 }
+var NEW_SCENE_BLOCK_FIELDS = [
+  { key: "title", flags: "--title <text>" },
+  { key: "area", flags: "--area <area>" },
+  { key: "actors", flags: "--actor <name> --role <text>" },
+  { key: "preconditions", flags: "--precondition <text>" }
+];
 function parseDeltaSceneCommandInput(argv, rootDir) {
-  const input = { steps: [], triggers: [], removedSteps: [] };
+  const input = { actors: [], preconditions: [], steps: [], triggers: [], removedSteps: [] };
   let currentOperation;
   let currentStep;
   let pendingExceptionFlow;
@@ -23154,6 +23227,20 @@ function parseDeltaSceneCommandInput(argv, rootDir) {
         if (input.area !== undefined)
           throw new Error("--area may only be supplied once");
         input.area = take();
+        break;
+      case "actor":
+        input.actors.push({ name: take(), role: "" });
+        break;
+      case "role": {
+        const actor = input.actors[input.actors.length - 1];
+        if (actor === undefined || actor.role !== "") {
+          throw new Error("--role requires a preceding --actor naming the actor it describes");
+        }
+        actor.role = take();
+        break;
+      }
+      case "precondition":
+        input.preconditions.push(take());
         break;
       case "operation":
         currentOperation = take();
@@ -23245,16 +23332,49 @@ function buildDeltaSceneInputFromArgs(rootDir, changeName, argv) {
   if (commandInput.title === undefined !== (commandInput.area === undefined)) {
     throw new Error("--title and --area must be supplied together to define a new scene");
   }
+  const namelessActor = commandInput.actors.find((actor) => actor.role === "");
+  if (namelessActor !== undefined) {
+    throw new Error(`actor '${namelessActor.name}' has no role; follow each --actor with --role <text>`);
+  }
+  if ((commandInput.actors.length > 0 || commandInput.preconditions.length > 0) && readSceneAreaForTarget(rootDir, targetScene) !== undefined) {
+    throw new Error(`scene '${targetScene}' is already recorded, so a delta may not restate its actors or preconditions; ` + `edit them directly with 'strict-spec-cli scene-edit ${targetScene} --actor <name> --role <text> --precondition <text>'`);
+  }
   const relativePath = resolveDeltaSceneRelativePath(rootDir, changeName, targetScene, commandInput.area);
   const existing = relativePath === undefined ? undefined : readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/scenes/${relativePath}`);
   const input = {
     target_scene: targetScene,
     operations: existing && isRecord2(existing.operations) ? existing.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
   };
-  if (existing && isRecord2(existing.scene))
-    input.scene = existing.scene;
-  if (commandInput.title !== undefined && commandInput.area !== undefined) {
-    input.scene = { title: commandInput.title, area: commandInput.area };
+  const sceneBlock = existing && isRecord2(existing.scene) ? { ...existing.scene } : {};
+  if (commandInput.title !== undefined)
+    sceneBlock.title = commandInput.title;
+  if (commandInput.area !== undefined)
+    sceneBlock.area = commandInput.area;
+  if (commandInput.actors.length > 0) {
+    const actors = Array.isArray(sceneBlock.actors) ? [...sceneBlock.actors] : [];
+    for (const actor of commandInput.actors) {
+      const recorded = actors.find((entry) => entry.name === actor.name);
+      if (recorded === undefined)
+        actors.push({ ...actor });
+      else
+        recorded.role = actor.role;
+    }
+    sceneBlock.actors = actors;
+  }
+  if (commandInput.preconditions.length > 0) {
+    const preconditions = Array.isArray(sceneBlock.preconditions) ? [...sceneBlock.preconditions] : [];
+    for (const value of commandInput.preconditions) {
+      if (!preconditions.includes(value))
+        preconditions.push(value);
+    }
+    sceneBlock.preconditions = preconditions;
+  }
+  if (Object.keys(sceneBlock).length > 0) {
+    const missing = NEW_SCENE_BLOCK_FIELDS.filter((field) => sceneBlock[field.key] === undefined);
+    if (missing.length > 0) {
+      throw new Error(`the new-scene block for '${targetScene}' is incomplete; supply ${missing.map((field) => field.flags).join(" and ")}, ` + "because the main scene contract requires a title, an area, at least one actor, and at least one precondition");
+    }
+    input.scene = sceneBlock;
   }
   const operations = isRecord2(input.operations) ? input.operations : {};
   const session = newWriteSession();
@@ -23484,8 +23604,8 @@ function runGenerate(argv) {
 }
 
 // src/cli/cmd-change.ts
-import { existsSync as existsSync22, rmSync as rmSync4, statSync as statSync12 } from "fs";
-import path23 from "path";
+import { existsSync as existsSync23, rmSync as rmSync4, statSync as statSync13 } from "fs";
+import path24 from "path";
 
 // src/apply.ts
 import { existsSync as existsSync13, readFileSync as readFileSync12 } from "fs";
@@ -23565,14 +23685,14 @@ function writeChangeTasks(rootDir, changeName, content) {
 
 // src/archive.ts
 import {
-  existsSync as existsSync20,
+  existsSync as existsSync21,
   mkdirSync as mkdirSync5,
-  readdirSync as readdirSync7,
+  readdirSync as readdirSync8,
   readFileSync as readFileSync17,
   renameSync as renameSync3,
   writeFileSync as writeFileSync5
 } from "fs";
-import path21 from "path";
+import path22 from "path";
 
 // src/roadmap.ts
 import { existsSync as existsSync18, statSync as statSync10 } from "fs";
@@ -25565,9 +25685,729 @@ function syncRoadmap(rootDir, options = {}) {
 }
 
 // src/verify.ts
-import { existsSync as existsSync19, readdirSync as readdirSync6, readFileSync as readFileSync16, statSync as statSync11 } from "fs";
+import { existsSync as existsSync20, readdirSync as readdirSync7, readFileSync as readFileSync16, statSync as statSync12 } from "fs";
+import path21 from "path";
+
+// src/scenes.ts
+import { existsSync as existsSync19, readdirSync as readdirSync6, rmdirSync as rmdirSync2, statSync as statSync11 } from "fs";
 import path20 from "path";
 var STRICT_WORKFLOW_DIR6 = ".strict-spec-driven";
+var SCENES_ROOT = `${STRICT_WORKFLOW_DIR6}/scenes`;
+var SCENES_INDEX_PATH = `${SCENES_ROOT}/INDEX.yaml`;
+var SPEC_INDEX_PATH2 = `${STRICT_WORKFLOW_DIR6}/specs/INDEX.yaml`;
+var SCENE_SCHEMA_ID = "strict-spec-driven/scene/v1";
+var SCENES_INDEX_SCHEMA_ID = "strict-spec-driven/scenes-index/v1";
+var SCENE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/scene.yaml";
+var SCENES_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/scenes-index.yaml";
+var KEBAB_CASE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+function scenesDir(rootDir) {
+  return path20.join(rootDir, SCENES_ROOT);
+}
+function sceneFileRepoPath(area, sceneId) {
+  return `${SCENES_ROOT}/${area}/${sceneId}.yaml`;
+}
+function repoRelative(rootDir, absolutePath) {
+  return path20.relative(rootDir, absolutePath).split(path20.sep).join("/");
+}
+function assertKebabCase(value, label) {
+  if (!KEBAB_CASE.test(value))
+    throw new Error(`${label} must be kebab-case: '${value}'`);
+}
+function schemaIssues(artifactType, candidate, artifactPath) {
+  return validateArtifact(loadBundledSchemaByArtifactType(artifactType), candidate, artifactPath).diagnostics.map((entry) => ({
+    code: entry.source,
+    fieldPath: entry.fieldPath,
+    message: entry.message,
+    expected: entry.expected,
+    actual: entry.actual
+  }));
+}
+function listSceneFiles(rootDir) {
+  const dir = scenesDir(rootDir);
+  if (!existsSync19(dir) || !statSync11(dir).isDirectory())
+    return [];
+  const files = [];
+  for (const areaName of readdirSync6(dir).sort()) {
+    const areaDir = path20.join(dir, areaName);
+    if (!existsSync19(areaDir) || !statSync11(areaDir).isDirectory())
+      continue;
+    files.push(...readdirSync6(areaDir).filter((name) => name.endsWith(".yaml")).map((name) => path20.join(areaDir, name)).sort());
+  }
+  return files;
+}
+function loadScenes(rootDir) {
+  const scenes = [];
+  const diagnostics = [];
+  for (const absolutePath of listSceneFiles(rootDir)) {
+    const repoPath = repoRelative(rootDir, absolutePath);
+    let artifact;
+    try {
+      artifact = parseYamlFile(absolutePath);
+    } catch (error) {
+      diagnostics.push({
+        source: "schema",
+        artifactPath: repoPath,
+        fieldPath: "$",
+        message: `failed to parse scene: ${error instanceof Error ? error.message : String(error)}`
+      });
+      continue;
+    }
+    const sceneId = artifact?.scene?.id;
+    if (typeof sceneId !== "string" || sceneId.length === 0) {
+      diagnostics.push({ source: "schema", artifactPath: repoPath, fieldPath: "$.scene.id", message: "scene id is missing" });
+      continue;
+    }
+    const directoryArea = path20.basename(path20.dirname(absolutePath));
+    if (artifact.area !== directoryArea) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath: repoPath,
+        fieldPath: "$.area",
+        message: `scene '${sceneId}' records area '${String(artifact.area)}' but is stored under '${directoryArea}'; ` + "the area is the scene's subdirectory name, so move the file to " + `${SCENES_ROOT}/${String(artifact.area)}/${sceneId}.yaml or correct the recorded area`,
+        expected: directoryArea,
+        actual: String(artifact.area)
+      });
+      continue;
+    }
+    const fileName = path20.basename(absolutePath, ".yaml");
+    if (fileName !== sceneId) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath: repoPath,
+        fieldPath: "$.scene.id",
+        message: `scene '${sceneId}' is stored as '${fileName}.yaml'; the file name is the scene id, so the index entry ` + "and the canonical path would disagree",
+        expected: `${sceneId}.yaml`,
+        actual: `${fileName}.yaml`
+      });
+      continue;
+    }
+    scenes.push({ id: sceneId, area: artifact.area, absolutePath, repoPath, artifact });
+  }
+  return { scenes, diagnostics };
+}
+function buildScenesIndex(scenes) {
+  const areas = {};
+  const sorted = [...scenes].sort((left, right) => left.id.localeCompare(right.id));
+  for (const area of [...new Set(sorted.map((entry) => entry.area))].sort()) {
+    const entries = {};
+    for (const scene of sorted.filter((candidate) => candidate.area === area)) {
+      entries[scene.id] = {
+        title: scene.artifact.scene.title,
+        status: scene.artifact.status,
+        path: sceneFileRepoPath(scene.area, scene.id)
+      };
+    }
+    areas[area] = entries;
+  }
+  return {
+    schema: SCENES_INDEX_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "scenes_index",
+    schema_file: SCENES_INDEX_SCHEMA_FILE,
+    areas
+  };
+}
+function buildBaseScene(input) {
+  if (input.title === undefined)
+    throw new Error("creating a scene requires --title");
+  if (input.area === undefined)
+    throw new Error("creating a scene requires --area");
+  return {
+    schema: SCENE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "scene",
+    schema_file: SCENE_SCHEMA_FILE,
+    scene: { id: input.id, title: input.title },
+    area: input.area,
+    status: input.status ?? "draft",
+    actors: [],
+    preconditions: [],
+    main_flow: {},
+    exception_flows: {}
+  };
+}
+function sameCoverage(left, right) {
+  return left.spec_id === right.spec_id && left.requirement_id === right.requirement_id;
+}
+function applyStepInput(flow, step, flowLabel) {
+  assertKebabCase(step.id, "step id");
+  const existing = flow[step.id];
+  if (existing === undefined && step.action === undefined) {
+    throw new Error(`new step '${step.id}' in ${flowLabel} requires --action`);
+  }
+  const target = existing ?? { action: step.action };
+  if (step.action !== undefined)
+    target.action = step.action;
+  for (const removed of step.removeCoverage) {
+    target.covered_by = (target.covered_by ?? []).filter((entry) => !sameCoverage(entry, removed));
+    if (target.covered_by.length === 0)
+      delete target.covered_by;
+  }
+  if (step.coveredBy.length > 0) {
+    const merged = [...target.covered_by ?? []];
+    for (const reference of step.coveredBy) {
+      if (!merged.some((entry) => sameCoverage(entry, reference)))
+        merged.push(reference);
+    }
+    target.covered_by = merged;
+    delete target.no_coverage_reason;
+  }
+  if (step.noCoverageReason !== undefined) {
+    target.no_coverage_reason = step.noCoverageReason;
+    delete target.covered_by;
+  }
+  flow[step.id] = target;
+}
+function applySceneInput(candidate, input) {
+  if (input.title !== undefined)
+    candidate.scene.title = input.title;
+  if (input.status !== undefined)
+    candidate.status = input.status;
+  if (input.area !== undefined && input.area !== candidate.area) {
+    throw new Error(`scene '${input.id}' is recorded in area '${candidate.area}'; the area is the scene's directory and is not changed by an edit`);
+  }
+  for (const name of input.removeActors) {
+    candidate.actors = (candidate.actors ?? []).filter((actor) => actor.name !== name);
+  }
+  for (const value of input.removePreconditions) {
+    candidate.preconditions = (candidate.preconditions ?? []).filter((entry) => entry !== value);
+  }
+  for (const flowId of input.removeExceptionFlows)
+    delete candidate.exception_flows?.[flowId];
+  for (const reference of input.removeSteps) {
+    const separator = reference.indexOf(":");
+    if (separator === -1) {
+      delete candidate.main_flow?.[reference];
+      continue;
+    }
+    const flowId = reference.slice(0, separator);
+    const stepId = reference.slice(separator + 1);
+    const flow = candidate.exception_flows?.[flowId];
+    if (flow !== undefined)
+      delete flow.steps?.[stepId];
+  }
+  for (const actor of input.actors) {
+    const existing = (candidate.actors ??= []).find((entry) => entry.name === actor.name);
+    if (existing === undefined)
+      candidate.actors.push({ ...actor });
+    else
+      existing.role = actor.role;
+  }
+  for (const value of input.preconditions) {
+    candidate.preconditions ??= [];
+    if (!candidate.preconditions.includes(value))
+      candidate.preconditions.push(value);
+  }
+  for (const flow of input.exceptionFlows) {
+    assertKebabCase(flow.id, "exception flow id");
+    const existing = (candidate.exception_flows ??= {})[flow.id];
+    if (existing === undefined)
+      candidate.exception_flows[flow.id] = { trigger: flow.trigger, steps: {} };
+    else
+      existing.trigger = flow.trigger;
+  }
+  for (const step of input.steps) {
+    if (step.exceptionFlow === undefined) {
+      applyStepInput(candidate.main_flow ??= {}, step, "the main flow");
+      continue;
+    }
+    const flow = (candidate.exception_flows ??= {})[step.exceptionFlow];
+    if (flow === undefined) {
+      throw new Error(`exception flow '${step.exceptionFlow}' does not exist; declare it with --exception-flow ${step.exceptionFlow} --trigger <text> first`);
+    }
+    applyStepInput(flow.steps ??= {}, step, `exception flow '${step.exceptionFlow}'`);
+  }
+}
+function hasSceneEditIntent(input) {
+  return input.title !== undefined || input.area !== undefined || input.status !== undefined || input.actors.length > 0 || input.preconditions.length > 0 || input.exceptionFlows.length > 0 || input.steps.length > 0 || input.removeActors.length > 0 || input.removePreconditions.length > 0 || input.removeExceptionFlows.length > 0 || input.removeSteps.length > 0;
+}
+function authorScene(rootDir, input) {
+  assertKebabCase(input.id, "scene id");
+  if (!input.delete && !hasSceneEditIntent(input)) {
+    throw new Error("scene-edit requires semantic fields, named removals, or --delete");
+  }
+  if (input.delete && hasSceneEditIntent(input)) {
+    throw new Error("--delete is a delete-only operation and is rejected alongside editing flags");
+  }
+  if (input.area !== undefined)
+    assertKebabCase(input.area, "scene area");
+  const loaded = loadScenes(rootDir);
+  if (loaded.diagnostics.length > 0) {
+    throw new Error("the recorded scene store cannot be read, so the scene index cannot be rebuilt: " + loaded.diagnostics.map((entry) => `${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; "));
+  }
+  const existing = loaded.scenes.find((entry) => entry.id === input.id);
+  if (input.delete && existing === undefined)
+    throw new Error(`scene '${input.id}' does not exist`);
+  const area = existing?.area ?? input.area;
+  if (area === undefined)
+    throw new Error("creating a scene requires --area");
+  const targetPath = existing?.repoPath ?? sceneFileRepoPath(area, input.id);
+  const absolutePath = path20.join(rootDir, targetPath);
+  const operation = input.delete ? "delete" : existing === undefined ? "create" : "update";
+  let candidate;
+  if (!input.delete) {
+    candidate = existing === undefined ? buildBaseScene({ ...input, area }) : parseYamlFile(existing.absolutePath);
+    applySceneInput(candidate, input);
+  }
+  const remaining = loaded.scenes.filter((entry) => entry.id !== input.id);
+  const indexScenes = candidate === undefined ? remaining : [...remaining, { id: input.id, area, absolutePath, repoPath: targetPath, artifact: candidate }];
+  const indexAbsolutePath = path20.join(rootDir, SCENES_INDEX_PATH);
+  const indexExists = existsSync19(indexAbsolutePath);
+  const indexOperation = indexScenes.length === 0 ? indexExists ? "delete" : "update" : indexExists ? "update" : "create";
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [
+      {
+        artifactFamily: "scene-state",
+        artifactId: input.id,
+        schemaId: SCENE_SCHEMA_ID,
+        familyRoot: scenesDir(rootDir),
+        absolutePath,
+        operation,
+        ...candidate === undefined ? {} : { candidate, validateCandidate: (value, context) => schemaIssues("scene", value, context.artifactPath) }
+      },
+      ...indexScenes.length === 0 && !indexExists ? [] : [{
+        artifactFamily: "scene-state",
+        artifactId: "scenes-index",
+        schemaId: SCENES_INDEX_SCHEMA_ID,
+        familyRoot: scenesDir(rootDir),
+        absolutePath: indexAbsolutePath,
+        operation: indexOperation,
+        role: "reference",
+        ...indexScenes.length === 0 ? {} : {
+          candidate: buildScenesIndex(indexScenes),
+          validateCandidate: (value, context) => schemaIssues("scenes_index", value, context.artifactPath)
+        }
+      }]
+    ]
+  });
+  if (mutation.committed && input.delete)
+    pruneEmptySceneDirectories(rootDir, area);
+  return {
+    ...mutation,
+    sceneId: input.id,
+    artifactPath: input.delete ? null : targetPath,
+    indexPath: SCENES_INDEX_PATH,
+    operation
+  };
+}
+function pruneEmptySceneDirectories(rootDir, area) {
+  for (const directoryPath of [path20.join(scenesDir(rootDir), area), scenesDir(rootDir)]) {
+    try {
+      if (existsSync19(directoryPath) && readdirSync6(directoryPath).length === 0)
+        rmdirSync2(directoryPath);
+    } catch {}
+  }
+}
+function mergeDeltaScenes(rootDir, changeDir) {
+  if (listDeltaScenePaths(changeDir).length === 0)
+    return [];
+  const plan = planDeltaSceneMerge(rootDir, changeDir);
+  const indexAbsolutePath = path20.join(rootDir, SCENES_INDEX_PATH);
+  const indexExists = existsSync19(indexAbsolutePath);
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [
+      ...plan.targeted.map((scene) => ({
+        artifactFamily: "scene-state",
+        artifactId: scene.id,
+        schemaId: SCENE_SCHEMA_ID,
+        familyRoot: scenesDir(rootDir),
+        absolutePath: scene.absolutePath,
+        operation: existsSync19(scene.absolutePath) ? "update" : "create",
+        candidate: scene.artifact,
+        validateCandidate: (value, context) => schemaIssues("scene", value, context.artifactPath)
+      })),
+      {
+        artifactFamily: "scene-state",
+        artifactId: "scenes-index",
+        schemaId: SCENES_INDEX_SCHEMA_ID,
+        familyRoot: scenesDir(rootDir),
+        absolutePath: indexAbsolutePath,
+        operation: indexExists ? "update" : "create",
+        role: "reference",
+        candidate: buildScenesIndex(plan.scenes),
+        validateCandidate: (value, context) => schemaIssues("scenes_index", value, context.artifactPath)
+      }
+    ]
+  });
+  if (!mutation.committed) {
+    throw new Error(`merging the change's delta scenes into ${SCENES_ROOT} was refused: ` + mutation.diagnostics.map((entry) => `${entry.fieldPath}: ${entry.message}`).join("; "));
+  }
+  return plan.reports;
+}
+var MAIN_FLOW = "main";
+function flowLabel(flowId) {
+  return flowId === MAIN_FLOW ? "the main flow" : `exception flow '${flowId}'`;
+}
+function mergeStepInto(flow, stepId, incoming) {
+  const existing = flow[stepId];
+  const merged = { action: incoming.action };
+  if (incoming.covered_by !== undefined) {
+    const union = [...existing?.covered_by ?? []];
+    for (const reference of incoming.covered_by) {
+      if (!union.some((entry) => sameCoverage(entry, reference)))
+        union.push(reference);
+    }
+    merged.covered_by = union;
+  } else if (incoming.no_coverage_reason !== undefined) {
+    merged.no_coverage_reason = incoming.no_coverage_reason;
+  }
+  flow[stepId] = merged;
+}
+function resolveFlow(scene, flowId, trigger, deltaPath) {
+  if (flowId === MAIN_FLOW)
+    return scene.main_flow ??= {};
+  const flows = scene.exception_flows ??= {};
+  const existing = flows[flowId];
+  if (existing === undefined) {
+    if (trigger === undefined) {
+      throw new Error(`delta scene '${deltaPath}' introduces exception flow '${flowId}' on scene '${scene.scene.id}' without a trigger; ` + "a flow this delta introduces must state the trigger that causes it");
+    }
+    flows[flowId] = { trigger, steps: {} };
+    return flows[flowId].steps;
+  }
+  if (trigger !== undefined)
+    existing.trigger = trigger;
+  return existing.steps ??= {};
+}
+function* walkFlowEntries(group) {
+  for (const [stepId, value] of Object.entries(group?.main_flow ?? {})) {
+    yield { flowId: MAIN_FLOW, trigger: undefined, stepId, value };
+  }
+  for (const [flowId, flow] of Object.entries(group?.exception_flows ?? {})) {
+    for (const [stepId, value] of Object.entries(flow?.steps ?? {})) {
+      yield { flowId, trigger: flow?.trigger, stepId, value };
+    }
+  }
+}
+function pruneEmptyExceptionFlows(scene) {
+  for (const [flowId, flow] of Object.entries(scene.exception_flows ?? {})) {
+    if (Object.keys(flow?.steps ?? {}).length === 0)
+      delete scene.exception_flows[flowId];
+  }
+}
+function buildSceneFromDelta(delta, deltaPath) {
+  if (delta.scene === undefined) {
+    throw new Error(`delta scene '${deltaPath}' targets scene '${delta.target_scene}', which does not exist; ` + "create it with a scene block naming title and area, or correct target_scene to name a recorded scene " + "(list them with 'strict-spec-cli scene-status')");
+  }
+  return {
+    schema: SCENE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "scene",
+    schema_file: SCENE_SCHEMA_FILE,
+    scene: { id: delta.target_scene, title: delta.scene.title },
+    area: delta.scene.area,
+    status: "draft",
+    actors: delta.scene.actors.map((actor) => ({ ...actor })),
+    preconditions: [...delta.scene.preconditions],
+    main_flow: {},
+    exception_flows: {}
+  };
+}
+function stepAddress(sceneId, flowId, stepId) {
+  return `${sceneId}\x00${flowId}\x00${stepId}`;
+}
+function listDeltaScenePaths(changeDir) {
+  const deltaDir = path20.join(changeDir, "scenes");
+  if (!existsSync19(deltaDir) || !statSync11(deltaDir).isDirectory())
+    return [];
+  const files = [];
+  const walk = (current) => {
+    for (const name of readdirSync6(current).sort()) {
+      const full = path20.join(current, name);
+      if (statSync11(full).isDirectory())
+        walk(full);
+      else if (name.endsWith(".yaml") || name.endsWith(".yml"))
+        files.push(full);
+    }
+  };
+  walk(deltaDir);
+  return files;
+}
+function planDeltaSceneMerge(rootDir, changeDir) {
+  const loaded = loadScenes(rootDir);
+  if (loaded.diagnostics.length > 0) {
+    throw new Error("the recorded scene store cannot be read, so a delta scene cannot be merged into it: " + loaded.diagnostics.map((entry) => `${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; "));
+  }
+  const working = new Map(loaded.scenes.map((scene) => [scene.id, scene]));
+  const reports = new Map;
+  const targeted = [];
+  const actionOwners = new Map;
+  for (const deltaPath of listDeltaScenePaths(changeDir)) {
+    const repoDeltaPath = repoRelative(rootDir, deltaPath);
+    const delta = parseYamlFile(deltaPath);
+    if (typeof delta.target_scene !== "string" || delta.target_scene.length === 0) {
+      throw new Error(`delta scene '${repoDeltaPath}' is missing target_scene`);
+    }
+    let scene = working.get(delta.target_scene);
+    let report = reports.get(delta.target_scene);
+    if (scene === undefined) {
+      const artifact = buildSceneFromDelta(delta, repoDeltaPath);
+      const repoPath = sceneFileRepoPath(artifact.area, delta.target_scene);
+      scene = {
+        id: delta.target_scene,
+        area: artifact.area,
+        absolutePath: path20.join(rootDir, repoPath),
+        repoPath,
+        artifact
+      };
+      working.set(scene.id, scene);
+    }
+    if (report === undefined) {
+      report = {
+        targetScene: delta.target_scene,
+        scenePath: scene.repoPath,
+        created: !loaded.scenes.some((entry) => entry.id === delta.target_scene),
+        added: 0,
+        modified: 0,
+        removed: 0,
+        modifiedMissingTargetAsAdded: [],
+        removedMissingTargetSkipped: []
+      };
+      reports.set(delta.target_scene, report);
+      targeted.push(delta.target_scene);
+    }
+    const target = scene;
+    const entry = report;
+    const operations = delta.operations ?? {};
+    const claimAction = (flowId, stepId, action, addedOperation) => {
+      const address = stepAddress(target.id, flowId, stepId);
+      const owner = actionOwners.get(address);
+      if (owner !== undefined && (addedOperation || owner.action !== action)) {
+        const source = owner.deltaPath === repoDeltaPath ? `delta scene '${repoDeltaPath}' states two conflicting operations for` : `delta scenes '${owner.deltaPath}' and '${repoDeltaPath}' both operate on`;
+        throw new Error(`${source} step '${stepId}' in ${flowLabel(flowId)} of scene '${target.id}'; keep one of the two operations ` + "and restate it with 'strict-spec-cli generate <change-name> delta-scene --target-scene " + `${target.id} --operation MODIFIED --step ${stepId} --action <text>', dropping the other with ` + `'strict-spec-cli generate <change-name> delta-scene --target-scene ${target.id} --remove-step ${stepId}'`);
+      }
+      actionOwners.set(address, { action, deltaPath: repoDeltaPath });
+    };
+    for (const { flowId, trigger, stepId, value } of walkFlowEntries(operations.ADDED)) {
+      claimAction(flowId, stepId, value.action, true);
+      const flow = resolveFlow(target.artifact, flowId, trigger, repoDeltaPath);
+      if (stepId in flow) {
+        throw new Error(`delta scene '${repoDeltaPath}' adds step '${stepId}' to ${flowLabel(flowId)} of scene '${target.id}', ` + "but that step already exists; state the edit as a MODIFIED operation with " + `'strict-spec-cli generate <change-name> delta-scene --target-scene ${target.id} --operation MODIFIED --step ${stepId} --action <text>'`);
+      }
+      mergeStepInto(flow, stepId, value);
+      entry.added += 1;
+    }
+    for (const { flowId, trigger, stepId, value } of walkFlowEntries(operations.MODIFIED)) {
+      claimAction(flowId, stepId, value.action, false);
+      const flow = resolveFlow(target.artifact, flowId, trigger, repoDeltaPath);
+      const present = stepId in flow;
+      mergeStepInto(flow, stepId, value);
+      if (present)
+        entry.modified += 1;
+      else
+        entry.modifiedMissingTargetAsAdded.push(stepId);
+    }
+    for (const { flowId, stepId } of walkFlowEntries(operations.REMOVED)) {
+      const flow = flowId === MAIN_FLOW ? target.artifact.main_flow : target.artifact.exception_flows?.[flowId]?.steps;
+      if (flow === undefined || !(stepId in flow)) {
+        entry.removedMissingTargetSkipped.push(stepId);
+        continue;
+      }
+      delete flow[stepId];
+      entry.removed += 1;
+    }
+    pruneEmptyExceptionFlows(target.artifact);
+  }
+  const scenes = [...working.values()].sort((left, right) => left.area.localeCompare(right.area) || left.id.localeCompare(right.id));
+  return {
+    scenes,
+    targeted: targeted.map((id) => working.get(id)),
+    reports: [...reports.values()].sort((left, right) => left.scenePath.localeCompare(right.scenePath) || left.targetScene.localeCompare(right.targetScene))
+  };
+}
+function loadSpecRequirements(rootDir) {
+  const universe = new Map;
+  const indexPath = path20.join(rootDir, SPEC_INDEX_PATH2);
+  if (!existsSync19(indexPath))
+    return universe;
+  let index;
+  try {
+    index = parseYamlFile(indexPath);
+  } catch {
+    return universe;
+  }
+  for (const entry of index.specs ?? []) {
+    if (typeof entry?.id !== "string" || typeof entry.path !== "string")
+      continue;
+    const specPath = path20.join(rootDir, entry.path);
+    if (!existsSync19(specPath))
+      continue;
+    try {
+      const spec = parseYamlFile(specPath);
+      universe.set(entry.id, new Set(Object.keys(spec.requirements ?? {})));
+    } catch {
+      universe.set(entry.id, new Set);
+    }
+  }
+  return universe;
+}
+function describeStep(flow, stepId, step, universe) {
+  const coveredBy = (step.covered_by ?? []).map((reference) => ({
+    ...reference,
+    resolved: universe.get(reference.spec_id)?.has(reference.requirement_id) ?? false
+  }));
+  const state = coveredBy.length === 0 ? "waived" : coveredBy.every((reference) => reference.resolved) ? "covered" : "unresolved";
+  return {
+    flow,
+    stepId,
+    action: step.action,
+    state,
+    coveredBy,
+    ...step.no_coverage_reason === undefined ? {} : { noCoverageReason: step.no_coverage_reason }
+  };
+}
+function describeScene(scene, universe) {
+  const steps = [];
+  for (const [stepId, step] of Object.entries(scene.artifact.main_flow ?? {})) {
+    steps.push(describeStep("main", stepId, step, universe));
+  }
+  for (const [flowId, flow] of Object.entries(scene.artifact.exception_flows ?? {})) {
+    for (const [stepId, step] of Object.entries(flow.steps ?? {})) {
+      steps.push(describeStep(flowId, stepId, step, universe));
+    }
+  }
+  const coverageCounts = { covered: 0, waived: 0, unresolved: 0 };
+  for (const step of steps)
+    coverageCounts[step.state] += 1;
+  return {
+    id: scene.id,
+    title: scene.artifact.scene.title,
+    area: scene.area,
+    status: scene.artifact.status,
+    path: scene.repoPath,
+    steps,
+    coverageCounts
+  };
+}
+function coverageRemedyCommand(changeName, sceneId, flowId, stepId, action) {
+  const flowArgument = flowId === MAIN_FLOW ? "" : ` --exception-flow ${flowId}`;
+  return `strict-spec-cli generate ${changeName} delta-scene --target-scene ${sceneId} --operation MODIFIED${flowArgument}` + ` --step ${stepId} --action ${JSON.stringify(action)} --covered-by <spec-id>:<requirement-id>`;
+}
+function collectSceneCoverageDiagnostics(rootDir, changeDir, changeName) {
+  if (listDeltaScenePaths(changeDir).length === 0)
+    return [];
+  let plan;
+  try {
+    plan = planDeltaSceneMerge(rootDir, changeDir);
+  } catch (error) {
+    return [{
+      source: "reference",
+      artifactPath: repoRelative(rootDir, path20.join(changeDir, "scenes")),
+      fieldPath: "$",
+      message: `the change's delta scenes cannot be merged, so scene coverage cannot be checked: ${error instanceof Error ? error.message : String(error)}`
+    }];
+  }
+  const universe = loadSpecRequirements(rootDir);
+  const diagnostics = [];
+  for (const scene of plan.targeted) {
+    const sceneDiagnostics = [];
+    const flows = [
+      [MAIN_FLOW, scene.artifact.main_flow ?? {}],
+      ...Object.entries(scene.artifact.exception_flows ?? {}).map(([flowId, flow]) => [flowId, flow?.steps ?? {}])
+    ];
+    for (const [flowId, flow] of flows) {
+      for (const [stepId, step] of Object.entries(flow)) {
+        const fieldPath = flowId === MAIN_FLOW ? `$.main_flow.${stepId}` : `$.exception_flows.${flowId}.steps.${stepId}`;
+        const remedy = coverageRemedyCommand(changeName, scene.id, flowId, stepId, step.action);
+        const covering = step.covered_by ?? [];
+        if (covering.length === 0 && step.no_coverage_reason === undefined) {
+          sceneDiagnostics.push({
+            source: "reference",
+            artifactPath: scene.repoPath,
+            fieldPath,
+            message: `step '${stepId}' in ${flowLabel(flowId)} of scene '${scene.id}' names no covering requirement and no ` + `no-coverage reason; record its coverage with '${remedy}', reading the covering spec id and requirement id ` + `from ${SPEC_INDEX_PATH2} and the spec file it names, or waive it deliberately by replacing --covered-by with ` + "--no-coverage-reason <text>",
+            expected: "a covering requirement or an explicit no-coverage reason",
+            actual: "neither"
+          });
+          continue;
+        }
+        const unresolved = covering.filter((reference) => !(universe.get(reference.spec_id)?.has(reference.requirement_id) ?? false));
+        if (unresolved.length === 0)
+          continue;
+        sceneDiagnostics.push({
+          source: "reference",
+          artifactPath: scene.repoPath,
+          fieldPath,
+          message: `step '${stepId}' in ${flowLabel(flowId)} of scene '${scene.id}' names covering requirement(s) that do not ` + `resolve: ${unresolved.map((reference) => `${reference.spec_id}:${reference.requirement_id}`).join(", ")}; ` + `correct the reference with '${remedy}', reading the recorded spec ids and requirement ids from ` + `${SPEC_INDEX_PATH2} and the spec file it names, or add the missing requirement to this change with ` + `'strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement <text>'`,
+          expected: "covering requirements that resolve against the recorded main specs",
+          actual: unresolved.map((reference) => `${reference.spec_id}:${reference.requirement_id}`).join(", ")
+        });
+      }
+    }
+    diagnostics.push(...sceneDiagnostics);
+    if (sceneDiagnostics.length > 0)
+      continue;
+    for (const issue of schemaIssues("scene", scene.artifact, scene.repoPath)) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath: scene.repoPath,
+        fieldPath: issue.fieldPath,
+        message: `merging this change's delta scenes would leave scene '${scene.id}' invalid: ${issue.message}; ` + `inspect the merged result with 'strict-spec-cli scene-status --scene ${scene.id}' and correct the delta with ` + `'strict-spec-cli generate ${changeName} delta-scene --target-scene ${scene.id} --<named-args>'`,
+        ...issue.expected === undefined ? {} : { expected: issue.expected },
+        ...issue.actual === undefined ? {} : { actual: issue.actual }
+      });
+    }
+  }
+  return diagnostics;
+}
+function getSceneStatus(rootDir, options = {}) {
+  const loaded = loadScenes(rootDir);
+  const universe = loadSpecRequirements(rootDir);
+  const allAreas = [...new Set(loaded.scenes.map((scene) => scene.area))].sort();
+  const diagnostics = [...loaded.diagnostics];
+  let selected = loaded.scenes;
+  if (options.area !== undefined) {
+    selected = selected.filter((scene) => scene.area === options.area);
+    if (selected.length === 0) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath: SCENES_INDEX_PATH,
+        fieldPath: "$.areas",
+        message: allAreas.length === 0 ? `no scene area matches '${options.area}'; this project records no scene yet, so author one with 'strict-spec-cli scene-edit <scene-id> --area <area> --title <text>'` : `no scene area matches '${options.area}'; recorded areas are ${allAreas.join(", ")} (list them with 'strict-spec-cli scene-status')`,
+        expected: allAreas.join(", "),
+        actual: options.area
+      });
+    }
+  }
+  if (options.sceneId !== undefined) {
+    const before = selected;
+    selected = selected.filter((scene) => scene.id === options.sceneId);
+    if (selected.length === 0 && before.length > 0) {
+      const recorded = before.map((scene) => scene.id).sort();
+      diagnostics.push({
+        source: "reference",
+        artifactPath: SCENES_INDEX_PATH,
+        fieldPath: "$.areas",
+        message: `no scene matches '${options.sceneId}'; recorded scenes are ${recorded.join(", ")} (list them with 'strict-spec-cli scene-status')`,
+        expected: recorded.join(", "),
+        actual: options.sceneId
+      });
+    }
+  }
+  const scenes = selected.map((scene) => describeScene(scene, universe)).sort((left, right) => left.area.localeCompare(right.area) || left.id.localeCompare(right.id));
+  const statusCounts = { draft: 0, active: 0, obsolete: 0 };
+  const coverageCounts = { covered: 0, waived: 0, unresolved: 0 };
+  for (const scene of scenes) {
+    statusCounts[scene.status] += 1;
+    for (const state of ["covered", "waived", "unresolved"]) {
+      coverageCounts[state] += scene.coverageCounts[state];
+    }
+  }
+  return {
+    valid: diagnostics.length === 0,
+    sceneCount: scenes.length,
+    statusCounts,
+    coverageCounts,
+    areas: allAreas,
+    scenes,
+    diagnostics
+  };
+}
+
+// src/verify.ts
+var STRICT_WORKFLOW_DIR7 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
 function collectDiagnostics(results) {
   return results.map((d) => ({
@@ -25703,17 +26543,17 @@ function checkTaskListCompleteness(artifact, artifactPath) {
   return diagnostics;
 }
 function validateDeltaSpecs(changeDir, artifactPathPrefix) {
-  const specsDir = path20.join(changeDir, "specs");
-  if (!existsSync19(specsDir))
+  const specsDir = path21.join(changeDir, "specs");
+  if (!existsSync20(specsDir))
     return [];
   const diagnostics = [];
   function scanDir(dir) {
-    for (const entry of readdirSync6(dir, { withFileTypes: true })) {
-      const fullPath = path20.join(dir, entry.name);
+    for (const entry of readdirSync7(dir, { withFileTypes: true })) {
+      const fullPath = path21.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path20.relative(specsDir, fullPath).split(path20.sep).join("/");
+        const relativePath = path21.relative(specsDir, fullPath).split(path21.sep).join("/");
         const content = readFileSync16(fullPath, "utf8");
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
         let artifact;
@@ -25731,20 +26571,20 @@ function validateDeltaSpecs(changeDir, artifactPathPrefix) {
   return diagnostics;
 }
 function validateDeltaScenes(changeDir, artifactPathPrefix) {
-  const scenesDir = path20.join(changeDir, "scenes");
-  if (!existsSync19(scenesDir))
+  const scenesDir = path21.join(changeDir, "scenes");
+  if (!existsSync20(scenesDir))
     return [];
   const diagnostics = [];
   function scanDir(dir) {
-    for (const entry of readdirSync6(dir, { withFileTypes: true })) {
-      const fullPath = path20.join(dir, entry.name);
+    for (const entry of readdirSync7(dir, { withFileTypes: true })) {
+      const fullPath = path21.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
         continue;
       }
       if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")))
         continue;
-      const relativePath = path20.relative(scenesDir, fullPath).split(path20.sep).join("/");
+      const relativePath = path21.relative(scenesDir, fullPath).split(path21.sep).join("/");
       const artifactPath = `${artifactPathPrefix}/${relativePath}`;
       let artifact;
       try {
@@ -25760,17 +26600,17 @@ function validateDeltaScenes(changeDir, artifactPathPrefix) {
   return diagnostics;
 }
 function validateDeltaTech(changeDir, artifactPathPrefix) {
-  const techDir = path20.join(changeDir, "tech");
-  if (!existsSync19(techDir))
+  const techDir = path21.join(changeDir, "tech");
+  if (!existsSync20(techDir))
     return [];
   const diagnostics = [];
   function scanDir(dir) {
-    for (const entry of readdirSync6(dir, { withFileTypes: true })) {
-      const fullPath = path20.join(dir, entry.name);
+    for (const entry of readdirSync7(dir, { withFileTypes: true })) {
+      const fullPath = path21.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path20.relative(techDir, fullPath).split(path20.sep).join("/");
+        const relativePath = path21.relative(techDir, fullPath).split(path21.sep).join("/");
         const content = readFileSync16(fullPath, "utf8");
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
         let artifact;
@@ -25788,14 +26628,14 @@ function validateDeltaTech(changeDir, artifactPathPrefix) {
   return diagnostics;
 }
 function listYamlFiles3(directoryPath) {
-  if (!existsSync19(directoryPath)) {
+  if (!existsSync20(directoryPath)) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync7(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path20.join(currentPath, entry.name);
+      const fullPath = path21.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -25809,14 +26649,14 @@ function listYamlFiles3(directoryPath) {
   return files;
 }
 function buildMainSpecRequirementIndex(rootDir) {
-  const specsRoot = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
+  const specsRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "specs");
   const diagnostics = [];
   const specsById = new Map;
   for (const specPath of listYamlFiles3(specsRoot)) {
-    if (path20.basename(specPath) === "INDEX.yaml") {
+    if (path21.basename(specPath) === "INDEX.yaml") {
       continue;
     }
-    const artifactPath = path20.relative(rootDir, specPath).split(path20.sep).join("/");
+    const artifactPath = path21.relative(rootDir, specPath).split(path21.sep).join("/");
     const content = readFileSync16(specPath, "utf8");
     let artifact;
     try {
@@ -25855,9 +26695,9 @@ function checkAddedRequirementCollisions(rootDir, changeDir) {
   const diagnostics = [];
   const { diagnostics: mainSpecDiagnostics, specsById } = buildMainSpecRequirementIndex(rootDir);
   diagnostics.push(...mainSpecDiagnostics);
-  const specsDir = path20.join(changeDir, "specs");
+  const specsDir = path21.join(changeDir, "specs");
   for (const deltaSpecPath of listYamlFiles3(specsDir)) {
-    const artifactPath = path20.relative(rootDir, deltaSpecPath).split(path20.sep).join("/");
+    const artifactPath = path21.relative(rootDir, deltaSpecPath).split(path21.sep).join("/");
     const content = readFileSync16(deltaSpecPath, "utf8");
     let artifact;
     try {
@@ -25899,9 +26739,9 @@ function checkNewSpecDeltaRules(rootDir, changeDir) {
   for (const entry of specsById.values()) {
     existingPaths.add(entry.artifactPath);
   }
-  const specsDir = path20.join(changeDir, "specs");
+  const specsDir = path21.join(changeDir, "specs");
   for (const deltaSpecPath of listYamlFiles3(specsDir)) {
-    const artifactPath = path20.relative(rootDir, deltaSpecPath).split(path20.sep).join("/");
+    const artifactPath = path21.relative(rootDir, deltaSpecPath).split(path21.sep).join("/");
     const content = readFileSync16(deltaSpecPath, "utf8");
     let artifact;
     try {
@@ -25943,12 +26783,12 @@ function checkNewSpecDeltaRules(rootDir, changeDir) {
       });
     }
     if (typeof targetPath === "string" && targetPath.length > 0) {
-      const normalized = targetPath.split(path20.sep).join("/");
-      const specsPrefix = `${STRICT_WORKFLOW_DIR6}/specs/`;
+      const normalized = targetPath.split(path21.sep).join("/");
+      const specsPrefix = `${STRICT_WORKFLOW_DIR7}/specs/`;
       const isUnderSpecs = normalized.startsWith(specsPrefix);
       const isYaml = normalized.endsWith(".yaml");
       const hasTraversal = normalized.split("/").includes("..");
-      const isIndex = path20.basename(normalized) === "INDEX.yaml";
+      const isIndex = path21.basename(normalized) === "INDEX.yaml";
       if (!isUnderSpecs || !isYaml || hasTraversal || isIndex) {
         diagnostics.push({
           source: "new_spec_path",
@@ -26004,12 +26844,12 @@ function formatUnresolvableDeltaTargetMessage(changeName, deltaArtifactPath, tar
 function checkUnresolvableDeltaTargets(rootDir, changeDir) {
   const diagnostics = [];
   const { specsById } = buildMainSpecRequirementIndex(rootDir);
-  const changeName = path20.basename(changeDir);
-  const specsDir = path20.join(changeDir, "specs");
+  const changeName = path21.basename(changeDir);
+  const specsDir = path21.join(changeDir, "specs");
   const deltas = [];
   const introducedIds = new Set;
   for (const deltaSpecPath of listYamlFiles3(specsDir)) {
-    const artifactPath = path20.relative(rootDir, deltaSpecPath).split(path20.sep).join("/");
+    const artifactPath = path21.relative(rootDir, deltaSpecPath).split(path21.sep).join("/");
     const content = readFileSync16(deltaSpecPath, "utf8");
     let artifact;
     try {
@@ -26055,14 +26895,14 @@ function checkUnresolvableDeltaTargets(rootDir, changeDir) {
   return diagnostics;
 }
 function buildMainTechRuleIndex(rootDir) {
-  const techRoot = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  const techRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "tech");
   const diagnostics = [];
   const standardsById = new Map;
   for (const techPath of listYamlFiles3(techRoot)) {
-    if (path20.basename(techPath) === "INDEX.yaml") {
+    if (path21.basename(techPath) === "INDEX.yaml") {
       continue;
     }
-    const artifactPath = path20.relative(rootDir, techPath).split(path20.sep).join("/");
+    const artifactPath = path21.relative(rootDir, techPath).split(path21.sep).join("/");
     const content = readFileSync16(techPath, "utf8");
     let artifact;
     try {
@@ -26101,9 +26941,9 @@ function checkTechDeltaTargets(rootDir, changeDir) {
   const diagnostics = [];
   const { diagnostics: mainTechDiagnostics, standardsById } = buildMainTechRuleIndex(rootDir);
   diagnostics.push(...mainTechDiagnostics);
-  const techDir = path20.join(changeDir, "tech");
+  const techDir = path21.join(changeDir, "tech");
   for (const deltaTechPath of listYamlFiles3(techDir)) {
-    const artifactPath = path20.relative(rootDir, deltaTechPath).split(path20.sep).join("/");
+    const artifactPath = path21.relative(rootDir, deltaTechPath).split(path21.sep).join("/");
     const content = readFileSync16(deltaTechPath, "utf8");
     let artifact;
     try {
@@ -26153,18 +26993,18 @@ function checkTechDeltaTargets(rootDir, changeDir) {
   return diagnostics;
 }
 function checkExclusiveActiveTechTargets(rootDir, changeName) {
-  const changesDir = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "changes");
-  if (!existsSync19(changesDir))
+  const changesDir = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "changes");
+  if (!existsSync20(changesDir))
     return [];
   const diagnostics = [];
   const targetMap = new Map;
-  const activeDirs = readdirSync6(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  const activeDirs = readdirSync7(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
   for (const activeChange of activeDirs) {
-    const techDir = path20.join(changesDir, activeChange, "tech");
-    if (!existsSync19(techDir))
+    const techDir = path21.join(changesDir, activeChange, "tech");
+    if (!existsSync20(techDir))
       continue;
     for (const deltaTechPath of listYamlFiles3(techDir)) {
-      const artifactPath = path20.relative(rootDir, deltaTechPath).split(path20.sep).join("/");
+      const artifactPath = path21.relative(rootDir, deltaTechPath).split(path21.sep).join("/");
       const content = readFileSync16(deltaTechPath, "utf8");
       let artifact;
       try {
@@ -26219,20 +27059,20 @@ function checkExclusiveActiveTechTargets(rootDir, changeName) {
   return diagnostics;
 }
 function checkExclusiveActiveTargets(rootDir, changeName) {
-  const changesDir = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "changes");
-  if (!existsSync19(changesDir))
+  const changesDir = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "changes");
+  if (!existsSync20(changesDir))
     return [];
   const diagnostics = [];
   const targetMap = new Map;
-  const activeDirs = readdirSync6(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  const activeDirs = readdirSync7(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
   for (const activeChange of activeDirs) {
     let scanDir = function(dir) {
-      for (const entry of readdirSync6(dir, { withFileTypes: true })) {
-        const fullPath = path20.join(dir, entry.name);
+      for (const entry of readdirSync7(dir, { withFileTypes: true })) {
+        const fullPath = path21.join(dir, entry.name);
         if (entry.isDirectory()) {
           scanDir(fullPath);
         } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-          const artifactPath = path20.relative(rootDir, fullPath).split(path20.sep).join("/");
+          const artifactPath = path21.relative(rootDir, fullPath).split(path21.sep).join("/");
           const content = readFileSync16(fullPath, "utf8");
           let artifact;
           try {
@@ -26261,8 +27101,8 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
         }
       }
     };
-    const specsDir = path20.join(changesDir, activeChange, "specs");
-    if (!existsSync19(specsDir))
+    const specsDir = path21.join(changesDir, activeChange, "specs");
+    if (!existsSync20(specsDir))
       continue;
     scanDir(specsDir);
   }
@@ -26286,17 +27126,17 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
   return diagnostics;
 }
 function verifyChange(rootDir, changeName) {
-  const changeDir = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", changeName);
-  if (!existsSync19(changeDir)) {
+  const changeDir = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "changes", changeName);
+  if (!existsSync20(changeDir)) {
     throw new Error(`change '${changeName}' not found`);
   }
   const allDiagnostics = [];
   let totalTasks = 0;
   let completeTasks = 0;
   let openQuestionCount = 0;
-  const specsRoot = path20.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
-  if (existsSync19(specsRoot) && statSync11(specsRoot).isDirectory()) {
-    for (const entry of readdirSync6(specsRoot, { withFileTypes: true })) {
+  const specsRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "specs");
+  if (existsSync20(specsRoot) && statSync12(specsRoot).isDirectory()) {
+    for (const entry of readdirSync7(specsRoot, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
         allDiagnostics.push({
           source: "directory_structure",
@@ -26316,9 +27156,9 @@ function verifyChange(rootDir, changeName) {
     ["question_list", "questions.yaml", "questions"]
   ];
   for (const [artifactType, fileName, generateArtifactName] of artifactConfigs) {
-    const filePath = path20.join(changeDir, fileName);
+    const filePath = path21.join(changeDir, fileName);
     const artifactPath = `.strict-spec-driven/changes/${changeName}/${fileName}`;
-    if (!existsSync19(filePath)) {
+    if (!existsSync20(filePath)) {
       allDiagnostics.push({
         source: "missing_artifact",
         artifactPath,
@@ -26361,7 +27201,11 @@ function verifyChange(rootDir, changeName) {
   allDiagnostics.push(...checkUnresolvableDeltaTargets(rootDir, changeDir));
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
   const scenesPrefix = `.strict-spec-driven/changes/${changeName}/scenes`;
-  allDiagnostics.push(...validateDeltaScenes(changeDir, scenesPrefix));
+  const sceneSchemaDiagnostics = validateDeltaScenes(changeDir, scenesPrefix);
+  allDiagnostics.push(...sceneSchemaDiagnostics);
+  if (sceneSchemaDiagnostics.length === 0) {
+    allDiagnostics.push(...collectSceneCoverageDiagnostics(rootDir, changeDir, changeName));
+  }
   const techPrefix = `.strict-spec-driven/changes/${changeName}/tech`;
   allDiagnostics.push(...validateDeltaTech(changeDir, techPrefix));
   allDiagnostics.push(...checkTechDeltaTargets(rootDir, changeDir));
@@ -26383,9 +27227,9 @@ function verifyChange(rootDir, changeName) {
 }
 
 // src/archive.ts
-var STRICT_WORKFLOW_DIR7 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR8 = ".strict-spec-driven";
 function normalizeRepoRelativePath4(rootDir, absolutePath) {
-  return path21.relative(rootDir, absolutePath).split(path21.sep).join("/");
+  return path22.relative(rootDir, absolutePath).split(path22.sep).join("/");
 }
 function formatLocalDate(date = new Date) {
   const year = String(date.getFullYear());
@@ -26400,14 +27244,14 @@ function asObject2(value, description) {
   return value;
 }
 function listYamlFiles4(directoryPath) {
-  if (!existsSync20(directoryPath)) {
+  if (!existsSync21(directoryPath)) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync7(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync8(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path21.join(currentPath, entry.name);
+      const fullPath = path22.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -26453,10 +27297,10 @@ function buildNewMainSpec(deltaSpec) {
   };
 }
 function collectMainSpecPathsById(rootDir) {
-  const specsRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "specs");
+  const specsRoot = path22.join(rootDir, STRICT_WORKFLOW_DIR8, "specs");
   const byId = new Map;
   for (const specPath of listYamlFiles4(specsRoot)) {
-    if (path21.basename(specPath) === "INDEX.yaml") {
+    if (path22.basename(specPath) === "INDEX.yaml") {
       continue;
     }
     const parsed = readYamlFile2(specPath);
@@ -26508,22 +27352,22 @@ function applyDeltaToMainSpec(mainSpec, deltaSpec, report, specPath) {
   assertUniqueRequirementIds(mainSpec.requirements, specPath);
 }
 function buildArchiveDestination(rootDir, changeName) {
-  const archiveRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "changes", "archive");
+  const archiveRoot = path22.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", "archive");
   mkdirSync5(archiveRoot, { recursive: true });
   const datePrefix = formatLocalDate();
   const baseName = `${datePrefix}-${changeName}`;
-  let candidate = path21.join(archiveRoot, baseName);
+  let candidate = path22.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync20(candidate)) {
-    candidate = path21.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync21(candidate)) {
+    candidate = path22.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function regenerateSpecIndex(rootDir) {
-  const specsRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "specs");
-  const indexPath = path21.join(specsRoot, "INDEX.yaml");
-  const specs = listYamlFiles4(specsRoot).filter((filePath) => path21.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+  const specsRoot = path22.join(rootDir, STRICT_WORKFLOW_DIR8, "specs");
+  const indexPath = path22.join(specsRoot, "INDEX.yaml");
+  const specs = listYamlFiles4(specsRoot).filter((filePath) => path22.basename(filePath) !== "INDEX.yaml").map((filePath) => {
     const parsed = readYamlFile2(filePath);
     const artifact = asObject2(parsed, `spec '${filePath}'`);
     if (artifact.artifact_type !== "main_spec") {
@@ -26557,7 +27401,7 @@ function regenerateSpecIndex(rootDir) {
     schema_file: "templates/strict-spec-driven/schemas/spec-index.yaml",
     specs: []
   };
-  if (existsSync20(indexPath)) {
+  if (existsSync21(indexPath)) {
     const parsed = readYamlFile2(indexPath);
     const artifact = asObject2(parsed, `spec index '${indexPath}'`);
     indexArtifact = {
@@ -26565,16 +27409,16 @@ function regenerateSpecIndex(rootDir) {
       specs: []
     };
   } else {
-    mkdirSync5(path21.dirname(indexPath), { recursive: true });
+    mkdirSync5(path22.dirname(indexPath), { recursive: true });
   }
   indexArtifact.specs = specs;
   writeYamlFile(indexPath, indexArtifact);
 }
 function collectMainTechPathsById(rootDir) {
-  const techRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "tech");
+  const techRoot = path22.join(rootDir, STRICT_WORKFLOW_DIR8, "tech");
   const byId = new Map;
   for (const techPath of listYamlFiles4(techRoot)) {
-    if (path21.basename(techPath) === "INDEX.yaml") {
+    if (path22.basename(techPath) === "INDEX.yaml") {
       continue;
     }
     const parsed = readYamlFile2(techPath);
@@ -26652,12 +27496,12 @@ function buildNewMainTech(deltaTech) {
   };
 }
 function regenerateTechIndex(rootDir) {
-  const techRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "tech");
-  if (!existsSync20(techRoot)) {
+  const techRoot = path22.join(rootDir, STRICT_WORKFLOW_DIR8, "tech");
+  if (!existsSync21(techRoot)) {
     return;
   }
-  const indexPath = path21.join(techRoot, "INDEX.yaml");
-  const standards = listYamlFiles4(techRoot).filter((filePath) => path21.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+  const indexPath = path22.join(techRoot, "INDEX.yaml");
+  const standards = listYamlFiles4(techRoot).filter((filePath) => path22.basename(filePath) !== "INDEX.yaml").map((filePath) => {
     const parsed = readYamlFile2(filePath);
     const artifact = asObject2(parsed, `tech '${filePath}'`);
     if (artifact.artifact_type !== "main_tech") {
@@ -26696,7 +27540,7 @@ function regenerateTechIndex(rootDir) {
     schema_file: "templates/strict-spec-driven/schemas/tech-index.yaml",
     standards: []
   };
-  if (existsSync20(indexPath)) {
+  if (existsSync21(indexPath)) {
     const parsed = readYamlFile2(indexPath);
     const artifact = asObject2(parsed, `tech index '${indexPath}'`);
     indexArtifact = {
@@ -26704,18 +27548,18 @@ function regenerateTechIndex(rootDir) {
       standards: []
     };
   } else {
-    mkdirSync5(path21.dirname(indexPath), { recursive: true });
+    mkdirSync5(path22.dirname(indexPath), { recursive: true });
   }
   indexArtifact.standards = standards;
   writeYamlFile(indexPath, indexArtifact);
 }
 function mergeDeltaTechStandards(rootDir, changeDir) {
-  const deltaTechDir = path21.join(changeDir, "tech");
+  const deltaTechDir = path22.join(changeDir, "tech");
   const deltaTechPaths = listYamlFiles4(deltaTechDir);
   if (deltaTechPaths.length === 0) {
     return [];
   }
-  const techRoot = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "tech");
+  const techRoot = path22.join(rootDir, STRICT_WORKFLOW_DIR8, "tech");
   const mainTechPathsById = collectMainTechPathsById(rootDir);
   const newStandardPaths = new Map;
   const mainTechCache = new Map;
@@ -26754,7 +27598,7 @@ function mergeDeltaTechStandards(rootDir, changeDir) {
     } else if (newStandardPaths.has(deltaTech.target_standard)) {
       cacheKey = newStandardPaths.get(deltaTech.target_standard);
     } else {
-      cacheKey = path21.join(techRoot, `${deltaTech.target_standard}.yaml`);
+      cacheKey = path22.join(techRoot, `${deltaTech.target_standard}.yaml`);
       mainTechCache.set(cacheKey, buildNewMainTech(deltaTech));
       newStandardPaths.set(deltaTech.target_standard, cacheKey);
       report.created = true;
@@ -26779,15 +27623,15 @@ function mergeDeltaTechStandards(rootDir, changeDir) {
   });
 }
 function syncRoadmapAfterArchive(rootDir) {
-  const roadmapDir = path21.join(rootDir, ROADMAP_DIR);
-  if (!existsSync20(roadmapDir)) {
+  const roadmapDir = path22.join(rootDir, ROADMAP_DIR);
+  if (!existsSync21(roadmapDir)) {
     return null;
   }
   return syncRoadmap(rootDir);
 }
 function archiveChange(rootDir, changeName) {
-  const changeDir = path21.join(rootDir, STRICT_WORKFLOW_DIR7, "changes", changeName);
-  if (!existsSync20(changeDir)) {
+  const changeDir = path22.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", changeName);
+  if (!existsSync21(changeDir)) {
     throw new Error(`change '${changeName}' not found`);
   }
   const verifyResult = verifyChange(rootDir, changeName);
@@ -26796,14 +27640,14 @@ function archiveChange(rootDir, changeName) {
   }
   const requiredArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];
   for (const artifactName of requiredArtifacts) {
-    const artifactPath = path21.join(changeDir, artifactName);
-    if (!existsSync20(artifactPath)) {
+    const artifactPath = path22.join(changeDir, artifactName);
+    if (!existsSync21(artifactPath)) {
       throw new Error(`required artifact '${artifactName}' is missing`);
     }
     readYamlFile2(artifactPath);
   }
   const mainSpecPathsById = collectMainSpecPathsById(rootDir);
-  const deltaSpecsDir = path21.join(changeDir, "specs");
+  const deltaSpecsDir = path22.join(changeDir, "specs");
   const deltaSpecPaths = listYamlFiles4(deltaSpecsDir);
   const mainSpecCache = new Map;
   const newSpecPaths = new Map;
@@ -26829,7 +27673,7 @@ function archiveChange(rootDir, changeName) {
       cacheKey = newSpecPaths.get(deltaSpec.target_spec);
       created = true;
     } else if (deltaSpec.spec) {
-      cacheKey = path21.join(rootDir, deltaSpec.spec.path);
+      cacheKey = path22.join(rootDir, deltaSpec.spec.path);
       mainSpecCache.set(cacheKey, buildNewMainSpec(deltaSpec));
       newSpecPaths.set(deltaSpec.target_spec, cacheKey);
       created = true;
@@ -26854,11 +27698,12 @@ function archiveChange(rootDir, changeName) {
     applyDeltaToMainSpec(mainSpec, deltaSpec, report, cacheKey);
   }
   for (const [mainSpecPath, mainSpecArtifact] of mainSpecCache) {
-    mkdirSync5(path21.dirname(mainSpecPath), { recursive: true });
+    mkdirSync5(path22.dirname(mainSpecPath), { recursive: true });
     writeYamlFile(mainSpecPath, mainSpecArtifact);
   }
   regenerateSpecIndex(rootDir);
   const mergedStandards = mergeDeltaTechStandards(rootDir, changeDir);
+  const mergedScenes = mergeDeltaScenes(rootDir, changeDir);
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
   renameSync3(changeDir, archiveDestination);
   const roadmapSync = syncRoadmapAfterArchive(rootDir);
@@ -26911,6 +27756,27 @@ function archiveChange(rootDir, changeName) {
     modifiedMissingTargetAsAdded: 0,
     removedMissingTargetSkipped: 0
   });
+  const sceneMergeSummary = mergedScenes.reduce((summary, report) => {
+    if (report.created) {
+      summary.scenesCreated += 1;
+    } else {
+      summary.scenesUpdated += 1;
+    }
+    summary.added += report.added;
+    summary.modified += report.modified;
+    summary.removed += report.removed;
+    summary.modifiedMissingTargetAsAdded += report.modifiedMissingTargetAsAdded.length;
+    summary.removedMissingTargetSkipped += report.removedMissingTargetSkipped.length;
+    return summary;
+  }, {
+    scenesUpdated: 0,
+    scenesCreated: 0,
+    added: 0,
+    modified: 0,
+    removed: 0,
+    modifiedMissingTargetAsAdded: 0,
+    removedMissingTargetSkipped: 0
+  });
   return {
     valid: true,
     changeName,
@@ -26919,32 +27785,34 @@ function archiveChange(rootDir, changeName) {
     mergedSpecs,
     techMergeSummary,
     mergedStandards,
+    sceneMergeSummary,
+    mergedScenes,
     roadmapSync
   };
 }
 
 // src/cli/changes.ts
-import { existsSync as existsSync21, readFileSync as readFileSync18 } from "fs";
-import path22 from "path";
-var STRICT_WORKFLOW_DIR8 = ".strict-spec-driven";
+import { existsSync as existsSync22, readFileSync as readFileSync18 } from "fs";
+import path23 from "path";
+var STRICT_WORKFLOW_DIR9 = ".strict-spec-driven";
 function getChangesDir(rootDir) {
-  return path22.join(rootDir, STRICT_WORKFLOW_DIR8, "changes");
+  return path23.join(rootDir, STRICT_WORKFLOW_DIR9, "changes");
 }
 function getArchiveDir(rootDir) {
-  return path22.join(getChangesDir(rootDir), "archive");
+  return path23.join(getChangesDir(rootDir), "archive");
 }
 function readActiveChangeStatus(rootDir, changeName) {
-  const changeDir = path22.join(getChangesDir(rootDir), changeName);
-  const questionsPath = path22.join(changeDir, "questions.yaml");
-  const tasksPath = path22.join(changeDir, "tasks.yaml");
+  const changeDir = path23.join(getChangesDir(rootDir), changeName);
+  const questionsPath = path23.join(changeDir, "questions.yaml");
+  const tasksPath = path23.join(changeDir, "tasks.yaml");
   try {
-    if (existsSync21(questionsPath)) {
+    if (existsSync22(questionsPath)) {
       const questionsArtifact = parseYamlDocument(readFileSync18(questionsPath, "utf8"));
       if (Array.isArray(questionsArtifact.open) && questionsArtifact.open.length > 0) {
         return "blocked";
       }
     }
-    if (!existsSync21(tasksPath)) {
+    if (!existsSync22(tasksPath)) {
       return "proposed";
     }
     const tasksArtifact = parseYamlDocument(readFileSync18(tasksPath, "utf8"));
@@ -26999,12 +27867,12 @@ function printChangeArtifacts(rootDir, name, changeDir) {
   writeOut(`Artifacts for '${name}':
 `);
   for (const artifact of ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"]) {
-    const artifactPath = path23.join(changeDir, artifact);
+    const artifactPath = path24.join(changeDir, artifact);
     const displayPath = normalizeRepoRelativePath2(rootDir, artifactPath);
-    writeOut(`  ${displayPath}${existsSync22(artifactPath) ? "" : " (missing)"}
+    writeOut(`  ${displayPath}${existsSync23(artifactPath) ? "" : " (missing)"}
 `);
   }
-  const specsDir = path23.join(changeDir, "specs");
+  const specsDir = path24.join(changeDir, "specs");
   const specFiles = listYamlFiles(specsDir);
   if (specFiles.length === 0) {
     writeOut(`  ${normalizeRepoRelativePath2(rootDir, specsDir)}/ (empty)
@@ -27097,7 +27965,7 @@ function runList(argv) {
   }
   const rootDir = process.cwd();
   const changesDir = getChangesDir(rootDir);
-  if (!existsSync22(changesDir) || !statSync12(changesDir).isDirectory()) {
+  if (!existsSync23(changesDir) || !statSync13(changesDir).isDirectory()) {
     writeOut(`No .strict-spec-driven/changes/ directory found.
 `);
     return 0;
@@ -27151,14 +28019,14 @@ function runModify(argv) {
     }
     return 0;
   }
-  const activeTargetDir = path23.join(getChangesDir(rootDir), target);
-  if (existsSync22(activeTargetDir) && statSync12(activeTargetDir).isDirectory()) {
+  const activeTargetDir = path24.join(getChangesDir(rootDir), target);
+  if (existsSync23(activeTargetDir) && statSync13(activeTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, activeTargetDir);
     return 0;
   }
   const archiveRoot = getArchiveDir(rootDir);
-  const archivedTargetDir = path23.join(archiveRoot, target);
-  if (existsSync22(archivedTargetDir) && statSync12(archivedTargetDir).isDirectory()) {
+  const archivedTargetDir = path24.join(archiveRoot, target);
+  if (existsSync23(archivedTargetDir) && statSync13(archivedTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, archivedTargetDir);
     return 0;
   }
@@ -27185,13 +28053,13 @@ function runCancel(argv) {
   }
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
-  const archivedTargetDir = path23.join(archiveRoot, target);
-  if (existsSync22(archivedTargetDir) && statSync12(archivedTargetDir).isDirectory()) {
+  const archivedTargetDir = path24.join(archiveRoot, target);
+  if (existsSync23(archivedTargetDir) && statSync13(archivedTargetDir).isDirectory()) {
     writeError(`cancel is limited to active changes; archived target '${target}' cannot be cancelled`);
     return 1;
   }
-  const activeTargetDir = path23.join(getChangesDir(rootDir), target);
-  if (existsSync22(activeTargetDir) && statSync12(activeTargetDir).isDirectory()) {
+  const activeTargetDir = path24.join(getChangesDir(rootDir), target);
+  if (existsSync23(activeTargetDir) && statSync13(activeTargetDir).isDirectory()) {
     rmSync4(activeTargetDir, { recursive: true, force: true });
     writeOut(`Cancelled: ${normalizeRepoRelativePath2(rootDir, activeTargetDir)}
 `);
@@ -27207,12 +28075,12 @@ function runCancel(argv) {
 }
 
 // src/cli/cmd-workflow.ts
-import { existsSync as existsSync25, statSync as statSync13 } from "node:fs";
-import path26 from "node:path";
+import { existsSync as existsSync26, statSync as statSync14 } from "node:fs";
+import path27 from "node:path";
 
 // src/workflow-config-author.ts
-import { existsSync as existsSync23 } from "node:fs";
-import path24 from "node:path";
+import { existsSync as existsSync24 } from "node:fs";
+import path25 from "node:path";
 var CONFIG_SCHEMA_ID = "strict-spec-driven/config/v1";
 var CONFIG_ARTIFACT_PATH = ".strict-spec-driven/config.yaml";
 function asRecord5(value) {
@@ -27342,8 +28210,8 @@ function mutateMaintenance(candidate, input) {
 function authorWorkflowConfig(rootDir, input) {
   if (!hasIntent(input))
     throw new Error("config-edit requires named semantic fields or removals");
-  const absolutePath = path24.join(rootDir, CONFIG_ARTIFACT_PATH);
-  if (!existsSync23(absolutePath)) {
+  const absolutePath = path25.join(rootDir, CONFIG_ARTIFACT_PATH);
+  if (!existsSync24(absolutePath)) {
     throw new Error(`workflow config is missing: ${CONFIG_ARTIFACT_PATH}; run strict-spec-cli init first`);
   }
   const candidate = parseYamlFile(absolutePath);
@@ -27364,7 +28232,7 @@ function authorWorkflowConfig(rootDir, input) {
       artifactFamily: "workflow-config",
       artifactId: "config",
       schemaId: CONFIG_SCHEMA_ID,
-      familyRoot: path24.join(rootDir, ".strict-spec-driven"),
+      familyRoot: path25.join(rootDir, ".strict-spec-driven"),
       absolutePath,
       operation: "update",
       candidate,
@@ -27384,8 +28252,8 @@ function authorWorkflowConfig(rootDir, input) {
 }
 
 // src/workflow-state.ts
-import { existsSync as existsSync24, readdirSync as readdirSync8, readFileSync as readFileSync19 } from "fs";
-import path25 from "path";
+import { existsSync as existsSync25, readdirSync as readdirSync9, readFileSync as readFileSync19 } from "fs";
+import path26 from "path";
 
 // src/task-list.ts
 function flattenTasks(artifact) {
@@ -27402,7 +28270,7 @@ function flattenTasks(artifact) {
 }
 
 // src/workflow-state.ts
-var STRICT_WORKFLOW_DIR9 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
 var EMPTY_SPEC_DECISION_IDS = new Set([
   "no-delta-spec",
   "no-spec-impact",
@@ -27410,19 +28278,19 @@ var EMPTY_SPEC_DECISION_IDS = new Set([
   "empty-spec-decision"
 ]);
 function changeDir(rootDir, changeName) {
-  return path25.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", changeName);
+  return path26.join(rootDir, STRICT_WORKFLOW_DIR10, "changes", changeName);
 }
 function toRepoPath(rootDir, absolutePath) {
-  return path25.relative(rootDir, absolutePath).split(path25.sep).join("/");
+  return path26.relative(rootDir, absolutePath).split(path26.sep).join("/");
 }
 function listDeltaSpecFiles(rootDir, changeName) {
-  const specsDir = path25.join(changeDir(rootDir, changeName), "specs");
-  if (!existsSync24(specsDir))
+  const specsDir = path26.join(changeDir(rootDir, changeName), "specs");
+  if (!existsSync25(specsDir))
     return [];
   const files = [];
   function walk(currentPath) {
-    for (const entry of readdirSync8(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const fullPath = path25.join(currentPath, entry.name);
+    for (const entry of readdirSync9(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const fullPath = path26.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -27442,8 +28310,8 @@ function hasExplicitEmptySpecDecision(rootDir, changeName) {
   return Object.keys(design.decisions).some((decisionId) => EMPTY_SPEC_DECISION_IDS.has(decisionId.toLowerCase()));
 }
 function readChangeArtifact(rootDir, changeName, artifactName) {
-  const artifactPath = path25.join(changeDir(rootDir, changeName), artifactName);
-  if (!existsSync24(artifactPath))
+  const artifactPath = path26.join(changeDir(rootDir, changeName), artifactName);
+  if (!existsSync25(artifactPath))
     return;
   try {
     return parseYamlDocument(readFileSync19(artifactPath, "utf8"), {
@@ -27454,8 +28322,8 @@ function readChangeArtifact(rootDir, changeName, artifactName) {
   }
 }
 function readOpenQuestionIds(rootDir, changeName) {
-  const questionsPath = path25.join(changeDir(rootDir, changeName), "questions.yaml");
-  if (!existsSync24(questionsPath))
+  const questionsPath = path26.join(changeDir(rootDir, changeName), "questions.yaml");
+  if (!existsSync25(questionsPath))
     return [];
   const artifact = parseYamlDocument(readFileSync19(questionsPath, "utf8"), {
     source: toRepoPath(rootDir, questionsPath)
@@ -27463,8 +28331,8 @@ function readOpenQuestionIds(rootDir, changeName) {
   return (artifact.open ?? []).map((question) => question.id).filter((id) => typeof id === "string" && id.length > 0).sort();
 }
 function readFirstPendingTask(rootDir, changeName) {
-  const tasksPath = path25.join(changeDir(rootDir, changeName), "tasks.yaml");
-  if (!existsSync24(tasksPath))
+  const tasksPath = path26.join(changeDir(rootDir, changeName), "tasks.yaml");
+  if (!existsSync25(tasksPath))
     return;
   const artifact = parseYamlDocument(readFileSync19(tasksPath, "utf8"), { source: toRepoPath(rootDir, tasksPath) });
   return flattenTasks(artifact).find((task) => task.status !== "complete");
@@ -27589,9 +28457,9 @@ function getWorkflowState(rootDir, changeName) {
 }
 function formatMissingDeltaSpecMessage(changeName) {
   const acceptedIds = [...EMPTY_SPEC_DECISION_IDS];
-  const specsDir = `${STRICT_WORKFLOW_DIR9}/changes/${changeName}/specs/`;
+  const specsDir = `${STRICT_WORKFLOW_DIR10}/changes/${changeName}/specs/`;
   const emptySpecDecisionCommand = formatEmptySpecDecisionCommand(changeName);
-  return `change '${changeName}' has no delta spec files in '${specsDir}' and records no design decision that ` + `counts as an explicit empty-spec decision, so proposal handoff is blocked. Fix one of the following: ` + `(A) If this change has strict spec impact, author a delta spec by running: ` + `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED ` + `--requirement <requirement-id> --strength MUST --statement "<observable behavior>", where <spec-id> is ` + `an existing spec id listed in ${STRICT_WORKFLOW_DIR9}/specs/INDEX.yaml. ` + `(B) If this change is technical-only and no main spec requirement changes, record that decision ` + `explicitly by running: ${emptySpecDecisionCommand}. ` + `The decision ids accepted as an explicit empty-spec decision are: ${acceptedIds.join(", ")}.`;
+  return `change '${changeName}' has no delta spec files in '${specsDir}' and records no design decision that ` + `counts as an explicit empty-spec decision, so proposal handoff is blocked. Fix one of the following: ` + `(A) If this change has strict spec impact, author a delta spec by running: ` + `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED ` + `--requirement <requirement-id> --strength MUST --statement "<observable behavior>", where <spec-id> is ` + `an existing spec id listed in ${STRICT_WORKFLOW_DIR10}/specs/INDEX.yaml. ` + `(B) If this change is technical-only and no main spec requirement changes, record that decision ` + `explicitly by running: ${emptySpecDecisionCommand}. ` + `The decision ids accepted as an explicit empty-spec decision are: ${acceptedIds.join(", ")}.`;
 }
 function formatEmptySpecDecisionCommand(changeName) {
   const [firstAcceptedId] = [...EMPTY_SPEC_DECISION_IDS];
@@ -27741,8 +28609,8 @@ function runConfigEdit(argv) {
   }
 }
 function checkWorkflowConfig(workflowStatePath) {
-  const configPath = path26.join(workflowStatePath, "config.yaml");
-  if (!existsSync25(configPath)) {
+  const configPath = path27.join(workflowStatePath, "config.yaml");
+  if (!existsSync26(configPath)) {
     return 0;
   }
   let artifact;
@@ -27781,8 +28649,8 @@ function runCheckWorkflowState(argv) {
     writeUsage(getCommandUsage("check-workflow-state"));
     return 1;
   }
-  const workflowStatePath = path26.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
-  if (existsSync25(workflowStatePath) && statSync13(workflowStatePath).isDirectory()) {
+  const workflowStatePath = path27.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
+  if (existsSync26(workflowStatePath) && statSync14(workflowStatePath).isDirectory()) {
     if (checkWorkflowConfig(workflowStatePath) !== 0) {
       return 1;
     }
@@ -27842,14 +28710,14 @@ function runNext(argv) {
 }
 
 // src/roadmap/archive.ts
-import { existsSync as existsSync26 } from "fs";
-import path27 from "path";
+import { existsSync as existsSync27 } from "fs";
+import path28 from "path";
 function archivePlannedChangePath(rootDir, plannedChange) {
   const relative = plannedChange.relativeRoadmapPath.startsWith("planned-changes/") ? plannedChange.relativeRoadmapPath.slice("planned-changes/".length) : plannedChange.relativeRoadmapPath;
-  return path27.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, relative);
+  return path28.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, relative);
 }
 function archiveMilestonePath(rootDir, milestone) {
-  return path27.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
+  return path28.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
 }
 function buildSkippedMilestone(status) {
   return {
@@ -27868,11 +28736,11 @@ function buildSkippedMilestone(status) {
 }
 function appendCollisionDiagnostics(targets, diagnostics, rootDir) {
   for (const target of targets) {
-    if (existsSync26(target.milestoneArchivePath)) {
+    if (existsSync27(target.milestoneArchivePath)) {
       diagnostics.push(makeDiagnostic("semantic", target.milestone.repoRelativePath, "$", "roadmap milestone archive destination already exists", "available archive destination", normalizeRepoRelativePath3(rootDir, target.milestoneArchivePath)));
     }
     for (const plannedChange of target.plannedChanges) {
-      if (!existsSync26(plannedChange.archivePath))
+      if (!existsSync27(plannedChange.archivePath))
         continue;
       diagnostics.push(makeDiagnostic("semantic", plannedChange.plannedChange.repoRelativePath, "$", "roadmap planned-change archive destination already exists", "available archive destination", normalizeRepoRelativePath3(rootDir, plannedChange.archivePath)));
     }
@@ -27983,7 +28851,7 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
       });
       archivedPlannedChanges.push({
         id: plannedChangeTarget.plannedChange.artifact.planned_change.id,
-        sourcePath: toPosix3(path27.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
+        sourcePath: toPosix3(path28.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
         archivePath: normalizeRepoRelativePath3(rootDir, plannedChangeTarget.archivePath).replace(/^\.strict-spec-driven\//, "")
       });
     }
@@ -27999,7 +28867,7 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
     const archivedMilestonePaths = new Set(targets.map((target) => target.milestone.absolutePath));
     const remainingMilestones = roadmap.milestones.filter((milestone) => !archivedMilestonePaths.has(milestone.absolutePath));
     mutations.push({
-      absolutePath: path27.join(rootDir, ROADMAP_INDEX_PATH),
+      absolutePath: path28.join(rootDir, ROADMAP_INDEX_PATH),
       artifactId: "roadmap-index",
       schemaId: ROADMAP_INDEX_SCHEMA_ID,
       role: "reference",
@@ -28032,8 +28900,8 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
 }
 
 // src/roadmap/author.ts
-import { existsSync as existsSync27 } from "fs";
-import path28 from "path";
+import { existsSync as existsSync28 } from "fs";
+import path29 from "path";
 var MILESTONE_ID_PATTERN2 = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
 function uniqueStrings2(values) {
   const seen = new Set;
@@ -28218,9 +29086,9 @@ function generateRoadmapMilestone(rootDir, input) {
     };
   }
   const existing = findExistingMilestone(roadmap.milestones, input.id);
-  const milestonePath = existing?.absolutePath ?? path28.join(rootDir, ROADMAP_MILESTONES_DIR, `${input.id}.yaml`);
+  const milestonePath = existing?.absolutePath ?? path29.join(rootDir, ROADMAP_MILESTONES_DIR, `${input.id}.yaml`);
   const artifactPath = normalizeRepoRelativePath3(rootDir, milestonePath);
-  if (!existing && existsSync27(milestonePath)) {
+  if (!existing && existsSync28(milestonePath)) {
     diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.milestone", "milestone destination already exists for a different or invalid milestone", "unused milestone file path", artifactPath));
   }
   const nextArtifact = buildArtifact(input, existing, nextAppendedMilestoneOrder(roadmap.milestones), artifactPath, diagnostics);
@@ -28408,9 +29276,9 @@ function generateRoadmapPlannedChange(rootDir, input) {
       milestones: []
     };
   }
-  const plannedChangePath = existing?.absolutePath ?? path28.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
+  const plannedChangePath = existing?.absolutePath ?? path29.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
   const artifactPath = normalizeRepoRelativePath3(rootDir, plannedChangePath);
-  if (!existing && existsSync27(plannedChangePath)) {
+  if (!existing && existsSync28(plannedChangePath)) {
     diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_change", "planned change destination already exists for a different or invalid planned change", "unused planned change file path", artifactPath));
   }
   const nextArtifact = buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics);
@@ -28558,8 +29426,8 @@ function deletePlannedChange(rootDir, input) {
 }
 
 // src/roadmap/move.ts
-import { existsSync as existsSync28 } from "fs";
-import path29 from "path";
+import { existsSync as existsSync29 } from "fs";
+import path30 from "path";
 function invalidMoveResult(warnings, diagnostics) {
   return {
     valid: false,
@@ -28571,7 +29439,7 @@ function invalidMoveResult(warnings, diagnostics) {
 }
 function archivedMilestoneExists(rootDir, milestoneId) {
   const diagnostics = [];
-  const archiveDir = path29.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
+  const archiveDir = path30.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
   for (const filePath of listYamlFiles2(archiveDir)) {
     const artifact = validateMilestoneArtifact(readYamlFile(filePath), filePath, diagnostics);
     if (artifact?.milestone.id === milestoneId)
@@ -28667,10 +29535,10 @@ function movePlannedChangeToMilestone(rootDir, input) {
       makeDiagnostic("semantic", plannedChange.repoRelativePath, "$.planned_change.milestone", "roadmap-move-planned-change refuses to move a completed planned change because it can flip the source milestone from complete back to proposed and make the target milestone report work it never contained; rerun with --allow-complete to move it deliberately", "planned change with unstarted or in-progress strict change state", "archived strict change state")
     ]);
   }
-  const destinationAbsolutePath = path29.join(path29.dirname(plannedChange.absolutePath), canonicalPlannedChangeFileName(input.targetMilestoneId, input.plannedChangeId));
+  const destinationAbsolutePath = path30.join(path30.dirname(plannedChange.absolutePath), canonicalPlannedChangeFileName(input.targetMilestoneId, input.plannedChangeId));
   const destinationPath = normalizeRepoRelativePath3(rootDir, destinationAbsolutePath);
   const renames = destinationAbsolutePath !== plannedChange.absolutePath;
-  if (renames && existsSync28(destinationAbsolutePath)) {
+  if (renames && existsSync29(destinationAbsolutePath)) {
     return invalidMoveResult(roadmap.warnings, [
       makeDiagnostic("semantic", destinationPath, "$.planned_change", "roadmap-move-planned-change destination filename is already occupied", "unused canonical planned change file path", destinationPath)
     ]);
@@ -28736,7 +29604,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
 }
 
 // src/roadmap/pause.ts
-import path30 from "path";
+import path31 from "path";
 var DEFAULT_PAUSE_REASON = "operator applied a deliberate hold";
 var DEFAULT_RESUME_REASON = "operator cleared a deliberate hold";
 var PAUSED_NOT_SET = "milestone is not paused";
@@ -28813,7 +29681,7 @@ function pauseMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path30.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path31.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const pausedOn = buildPauseDate();
   const nextPaused = {
@@ -28897,7 +29765,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path30.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path31.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const previousPaused = milestone.artifact.paused ?? null;
   if (!previousPaused) {
@@ -28972,7 +29840,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
 }
 
 // src/roadmap/refinement.ts
-import path31 from "path";
+import path32 from "path";
 var DEFAULT_DEFER_REASON = "a precondition has not matured yet";
 var DEFAULT_REFINE_REASON = "operator declared the milestone refined";
 var NOT_AWAITING_REFINEMENT = "milestone is not awaiting refinement";
@@ -29047,7 +29915,7 @@ function deferMilestoneRefinement(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path31.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path32.join("roadmap", "milestones", milestone.relativeMilestonePath));
   if (status.derivedStatus === "complete") {
     return {
       ...emptyDeferResult(milestoneId),
@@ -29139,7 +30007,7 @@ function refineMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path31.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path32.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousAwaitingRefinement = milestone.artifact.awaiting_refinement ?? null;
   if (!previousAwaitingRefinement) {
     return {
@@ -29213,8 +30081,8 @@ function refineMilestone(rootDir, milestoneId, options = {}) {
 }
 
 // src/roadmap/reopen.ts
-import { existsSync as existsSync29 } from "fs";
-import path32 from "path";
+import { existsSync as existsSync30 } from "fs";
+import path33 from "path";
 var DEFAULT_REOPEN_REASON = "gaps discovered after completion";
 var PLANNED_CHANGES_DIRNAME2 = "planned-changes";
 var FOLLOWUP_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
@@ -29233,14 +30101,14 @@ function findMilestoneById3(roadmap, milestoneId) {
   return roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === milestoneId);
 }
 function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedChanges, reason) {
-  const plannedChangesDir = path32.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME2);
+  const plannedChangesDir = path33.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME2);
   const milestoneId = milestone.artifact.milestone.id;
   const existingIds = new Set(roadmap.plannedChanges.map((plannedChange) => plannedChange.artifact.planned_change.id));
   const baseId = `${milestoneId}-followup`;
   let id = baseId;
   let suffix = 2;
   let fileName = canonicalPlannedChangeFileName(milestoneId, id);
-  while (existingIds.has(id) || existsSync29(path32.join(plannedChangesDir, fileName))) {
+  while (existingIds.has(id) || existsSync30(path33.join(plannedChangesDir, fileName))) {
     id = `${baseId}-${suffix}`;
     suffix += 1;
     fileName = canonicalPlannedChangeFileName(milestoneId, id);
@@ -29260,8 +30128,8 @@ function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedCha
     details: `Scope and plan the follow-up work discovered when reopening milestone ${milestoneId}. Reason: ${reason}. Refine this placeholder into concrete planned-change detail.`,
     depends_on: latestArchived ? [latestArchived.id] : []
   };
-  const absolutePath = path32.join(plannedChangesDir, fileName);
-  return { id, path: toPosix3(path32.join("roadmap", PLANNED_CHANGES_DIRNAME2, fileName)), absolutePath, artifact };
+  const absolutePath = path33.join(plannedChangesDir, fileName);
+  return { id, path: toPosix3(path33.join("roadmap", PLANNED_CHANGES_DIRNAME2, fileName)), absolutePath, artifact };
 }
 function reopenMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_REOPEN_REASON;
@@ -29290,7 +30158,7 @@ function reopenMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, archivedPlannedChangeIds, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix3(path32.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path33.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const priorCanonical = normalizeMilestoneStatus(previousStatus);
   const diagnostics = [];
@@ -29375,11 +30243,11 @@ function emptyReopened(milestoneId) {
 }
 
 // src/roadmap/order.ts
-import { existsSync as existsSync30 } from "fs";
-import path33 from "path";
+import { existsSync as existsSync31 } from "fs";
+import path34 from "path";
 function archivedMilestoneExists2(rootDir, milestoneId) {
   const diagnostics = [];
-  const archiveDir = path33.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
+  const archiveDir = path34.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
   for (const filePath of listYamlFiles2(archiveDir)) {
     const artifact = validateMilestoneArtifact(readYamlFile(filePath), filePath, diagnostics);
     if (artifact?.milestone.id === milestoneId)
@@ -29507,7 +30375,7 @@ function renumberRoadmapMilestones(rootDir) {
   if (!status.valid)
     return invalidOrderResult(status.warnings, status.diagnostics);
   const roadmap = loadRoadmap(rootDir);
-  if (!existsSync30(path33.join(rootDir, ROADMAP_INDEX_PATH))) {
+  if (!existsSync31(path34.join(rootDir, ROADMAP_INDEX_PATH))) {
     return invalidOrderResult(roadmap.warnings, [
       makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "roadmap index is missing", ROADMAP_INDEX_PATH, "missing")
     ]);
@@ -30174,21 +31042,21 @@ function runRoadmapRefine(argv) {
 }
 
 // src/sops.ts
-import { existsSync as existsSync32, readdirSync as readdirSync10, statSync as statSync15 } from "fs";
-import path35 from "path";
+import { existsSync as existsSync33, readdirSync as readdirSync11, statSync as statSync16 } from "fs";
+import path36 from "path";
 import { createHash as createHash2 } from "crypto";
 
 // src/sop-categories.ts
-import { existsSync as existsSync31, readFileSync as readFileSync20, readdirSync as readdirSync9, statSync as statSync14 } from "fs";
-import path34 from "path";
+import { existsSync as existsSync32, readFileSync as readFileSync20, readdirSync as readdirSync10, statSync as statSync15 } from "fs";
+import path35 from "path";
 import { fileURLToPath as fileURLToPath4 } from "url";
 var CATEGORY_TEMPLATE_PREFIX = "strict-spec-driven/sop-categories/";
 function getBundledCategoryDir() {
-  const thisDir = path34.dirname(fileURLToPath4(import.meta.url));
-  const distPath = path34.join(thisDir, "templates", "strict-spec-driven", "sop-categories");
-  if (existsSync31(distPath))
+  const thisDir = path35.dirname(fileURLToPath4(import.meta.url));
+  const distPath = path35.join(thisDir, "templates", "strict-spec-driven", "sop-categories");
+  if (existsSync32(distPath))
     return distPath;
-  return path34.join(thisDir, "..", "templates", "strict-spec-driven", "sop-categories");
+  return path35.join(thisDir, "..", "templates", "strict-spec-driven", "sop-categories");
 }
 function categoryDiagnostic(message, fieldPath = "$") {
   return { source: "schema", artifactPath: CATEGORY_TEMPLATE_PREFIX, fieldPath, message };
@@ -30201,8 +31069,8 @@ function listSopCategoryIds() {
     }
   }
   const dir = getBundledCategoryDir();
-  if (existsSync31(dir) && statSync14(dir).isDirectory()) {
-    for (const name of readdirSync9(dir)) {
+  if (existsSync32(dir) && statSync15(dir).isDirectory()) {
+    for (const name of readdirSync10(dir)) {
       if (name.endsWith(".yaml")) {
         ids.add(name.slice(0, -".yaml".length));
       }
@@ -30214,8 +31082,8 @@ function loadSopCategoryDefinition(categoryId) {
   const embedded = readEmbeddedTemplate(`${CATEGORY_TEMPLATE_PREFIX}${categoryId}.yaml`);
   let content = embedded;
   if (content === undefined) {
-    const diskPath = path34.join(getBundledCategoryDir(), `${categoryId}.yaml`);
-    if (!existsSync31(diskPath)) {
+    const diskPath = path35.join(getBundledCategoryDir(), `${categoryId}.yaml`);
+    if (!existsSync32(diskPath)) {
       return null;
     }
     content = readFileSync20(diskPath, "utf8");
@@ -30252,8 +31120,8 @@ function showSopCategory(categoryId) {
 }
 
 // src/sops.ts
-var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
-var SOPS_DIR = `${STRICT_WORKFLOW_DIR10}/sops`;
+var STRICT_WORKFLOW_DIR11 = ".strict-spec-driven";
+var SOPS_DIR = `${STRICT_WORKFLOW_DIR11}/sops`;
 var SOPS_INDEX_PATH = `${SOPS_DIR}/INDEX.yaml`;
 var SOP_SCHEMA_ID = "strict-spec-driven/sop/v1";
 var SOPS_INDEX_SCHEMA_ID = "strict-spec-driven/sops-index/v1";
@@ -30267,16 +31135,16 @@ var SECTION_FIELDS = {
   references: "references"
 };
 function sopsDir(rootDir) {
-  return path35.join(rootDir, SOPS_DIR);
+  return path36.join(rootDir, SOPS_DIR);
 }
 function sopsIndexPath(rootDir) {
-  return path35.join(rootDir, SOPS_INDEX_PATH);
+  return path36.join(rootDir, SOPS_INDEX_PATH);
 }
 function sopFilePath(rootDir, sopId) {
-  return path35.join(sopsDir(rootDir), `${sopId}.yaml`);
+  return path36.join(sopsDir(rootDir), `${sopId}.yaml`);
 }
-function repoRelative(rootDir, absolutePath) {
-  return path35.relative(rootDir, absolutePath).split(path35.sep).join("/");
+function repoRelative2(rootDir, absolutePath) {
+  return path36.relative(rootDir, absolutePath).split(path36.sep).join("/");
 }
 function slugify(value) {
   const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48).replace(/^-+|-+$/g, "");
@@ -30291,17 +31159,17 @@ function deriveSopId(input) {
 function makeDiagnostic2(rootDir, message, fieldPath = "$", absolutePath) {
   return {
     source: "schema",
-    artifactPath: absolutePath ? repoRelative(rootDir, absolutePath) : SOPS_DIR,
+    artifactPath: absolutePath ? repoRelative2(rootDir, absolutePath) : SOPS_DIR,
     fieldPath,
     message
   };
 }
 function listSopFiles(rootDir) {
   const dir = sopsDir(rootDir);
-  if (!existsSync32(dir) || !statSync15(dir).isDirectory()) {
+  if (!existsSync33(dir) || !statSync16(dir).isDirectory()) {
     return [];
   }
-  return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path35.join(dir, name)).sort();
+  return readdirSync11(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path36.join(dir, name)).sort();
 }
 function compareSops(left, right) {
   const order = left.createdAt.localeCompare(right.createdAt);
@@ -30373,7 +31241,7 @@ function buildSopsIndexArtifact(rootDir, override) {
         title: artifact.sop.title,
         category: artifact.category,
         status: artifact.status,
-        path: repoRelative(rootDir, filePath)
+        path: repoRelative2(rootDir, filePath)
       }
     });
   }
@@ -30385,7 +31253,7 @@ function buildSopsIndexArtifact(rootDir, override) {
         title: override.sop.title,
         category: override.category,
         status: override.status,
-        path: repoRelative(rootDir, sopFilePath(rootDir, override.sop.id))
+        path: repoRelative2(rootDir, sopFilePath(rootDir, override.sop.id))
       }
     });
   }
@@ -30423,7 +31291,7 @@ function commitSopAndIndex(rootDir, filePath, artifact) {
         schemaId: SOP_SCHEMA_ID,
         familyRoot: sopsDir(rootDir),
         absolutePath: filePath,
-        operation: existsSync32(filePath) ? "update" : "create",
+        operation: existsSync33(filePath) ? "update" : "create",
         candidate: artifact,
         validateCandidate: (candidate) => validationIssues(validateSopArtifact(rootDir, candidate, filePath))
       },
@@ -30433,10 +31301,10 @@ function commitSopAndIndex(rootDir, filePath, artifact) {
         schemaId: SOPS_INDEX_SCHEMA_ID,
         familyRoot: sopsDir(rootDir),
         absolutePath: indexPath,
-        operation: existsSync32(indexPath) ? "update" : "create",
+        operation: existsSync33(indexPath) ? "update" : "create",
         role: "reference",
         candidate: indexArtifact,
-        validateCandidate: (candidate) => validationIssues(validateArtifact(loadBundledSchemaBySchemaId(SOPS_INDEX_SCHEMA_ID), candidate, repoRelative(rootDir, indexPath)).diagnostics)
+        validateCandidate: (candidate) => validationIssues(validateArtifact(loadBundledSchemaBySchemaId(SOPS_INDEX_SCHEMA_ID), candidate, repoRelative2(rootDir, indexPath)).diagnostics)
       }
     ]
   });
@@ -30445,28 +31313,28 @@ function nonEmptyArray(value) {
   return Array.isArray(value) && value.length > 0;
 }
 function resolveSpecLink(rootDir, target) {
-  if (existsSync32(path35.join(rootDir, target))) {
+  if (existsSync33(path36.join(rootDir, target))) {
     return true;
   }
-  const indexPath = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "specs", "INDEX.yaml");
-  if (!existsSync32(indexPath)) {
+  const indexPath = path36.join(rootDir, STRICT_WORKFLOW_DIR11, "specs", "INDEX.yaml");
+  if (!existsSync33(indexPath)) {
     return false;
   }
   const index = parseYamlFile(indexPath);
   return Array.isArray(index?.specs) && index.specs.some((spec) => spec?.id === target);
 }
 function resolveChangeLink(rootDir, target) {
-  const active = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "changes", target);
-  const archived = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "changes", "archive", target);
-  return existsSync32(active) || existsSync32(archived);
+  const active = path36.join(rootDir, STRICT_WORKFLOW_DIR11, "changes", target);
+  const archived = path36.join(rootDir, STRICT_WORKFLOW_DIR11, "changes", "archive", target);
+  return existsSync33(active) || existsSync33(archived);
 }
 function resolveRoadmapLink(rootDir, target) {
-  const milestoneFile = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "roadmap", "milestones", `${target}.yaml`);
-  if (existsSync32(milestoneFile)) {
+  const milestoneFile = path36.join(rootDir, STRICT_WORKFLOW_DIR11, "roadmap", "milestones", `${target}.yaml`);
+  if (existsSync33(milestoneFile)) {
     return true;
   }
-  const indexPath = path35.join(rootDir, STRICT_WORKFLOW_DIR10, "roadmap", "INDEX.yaml");
-  if (!existsSync32(indexPath)) {
+  const indexPath = path36.join(rootDir, STRICT_WORKFLOW_DIR11, "roadmap", "INDEX.yaml");
+  if (!existsSync33(indexPath)) {
     return false;
   }
   const index = parseYamlFile(indexPath);
@@ -30482,7 +31350,7 @@ function linkResolves(rootDir, link) {
   return false;
 }
 function validateSopArtifact(rootDir, artifact, absolutePath) {
-  const artifactPath = repoRelative(rootDir, absolutePath);
+  const artifactPath = repoRelative2(rootDir, absolutePath);
   const schema = loadBundledSchemaBySchemaId(SOP_SCHEMA_ID);
   const base = validateArtifact(schema, artifact, artifactPath);
   if (!base.valid) {
@@ -30571,8 +31439,8 @@ function createSop(rootDir, input) {
   }
   const sopId = deriveSopId(input);
   const filePath = sopFilePath(rootDir, sopId);
-  if (existsSync32(filePath)) {
-    return { valid: true, created: false, sopId, path: repoRelative(rootDir, filePath), diagnostics: [] };
+  if (existsSync33(filePath)) {
+    return { valid: true, created: false, sopId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
   }
   const artifact = buildSopArtifact(input, sopId);
   const validationDiagnostics = validateSopArtifact(rootDir, artifact, filePath);
@@ -30590,7 +31458,7 @@ function createSop(rootDir, input) {
       actual: entry.actual
     })) };
   }
-  return { valid: true, created: true, sopId, path: repoRelative(rootDir, filePath), diagnostics: [] };
+  return { valid: true, created: true, sopId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
 }
 function listSops(rootDir) {
   const entries = [];
@@ -30605,7 +31473,7 @@ function listSops(rootDir) {
       title: artifact.sop.title,
       category: artifact.category,
       status: artifact.status,
-      path: repoRelative(rootDir, filePath),
+      path: repoRelative2(rootDir, filePath),
       createdAt: String(artifact.created_at ?? "")
     });
   }
@@ -30614,18 +31482,18 @@ function listSops(rootDir) {
 }
 function showSop(rootDir, sopId) {
   const filePath = sopFilePath(rootDir, sopId);
-  if (!existsSync32(filePath)) {
+  if (!existsSync33(filePath)) {
     return { valid: false, sopId, path: null, sop: null, diagnostics: [makeDiagnostic2(rootDir, `sop '${sopId}' not found`, "$.sop.id")] };
   }
   const sop = parseYamlFile(filePath);
-  return { valid: true, sopId, path: repoRelative(rootDir, filePath), sop, diagnostics: [] };
+  return { valid: true, sopId, path: repoRelative2(rootDir, filePath), sop, diagnostics: [] };
 }
 function validateSops(rootDir, sopId) {
   const diagnostics = [];
   let checkedCount = 0;
   const targetFiles = sopId ? [sopFilePath(rootDir, sopId)] : listSopFiles(rootDir);
   for (const filePath of targetFiles) {
-    if (!existsSync32(filePath)) {
+    if (!existsSync33(filePath)) {
       diagnostics.push(makeDiagnostic2(rootDir, `sop '${sopId}' not found`, "$.sop.id"));
       continue;
     }
@@ -30635,17 +31503,17 @@ function validateSops(rootDir, sopId) {
   }
   if (!sopId) {
     const indexPath = sopsIndexPath(rootDir);
-    if (existsSync32(indexPath)) {
+    if (existsSync33(indexPath)) {
       const indexSchema = loadBundledSchemaBySchemaId(SOPS_INDEX_SCHEMA_ID);
       const indexArtifact = parseYamlFile(indexPath);
-      diagnostics.push(...validateArtifact(indexSchema, indexArtifact, repoRelative(rootDir, indexPath)).diagnostics);
+      diagnostics.push(...validateArtifact(indexSchema, indexArtifact, repoRelative2(rootDir, indexPath)).diagnostics);
     }
   }
   return { valid: diagnostics.length === 0, checkedCount, diagnostics };
 }
 function editSop(rootDir, input) {
   const filePath = sopFilePath(rootDir, input.sopId);
-  if (!existsSync32(filePath)) {
+  if (!existsSync33(filePath)) {
     return { valid: false, edited: false, sopId: input.sopId, path: null, sop: null, diagnostics: [makeDiagnostic2(rootDir, `sop '${input.sopId}' not found`, "$.sop.id")] };
   }
   const artifact = parseYamlFile(filePath);
@@ -30792,7 +31660,7 @@ function editSop(rootDir, input) {
       actual: entry.actual
     })) };
   }
-  return { valid: true, edited: true, sopId: input.sopId, path: repoRelative(rootDir, filePath), sop: artifact, diagnostics: [] };
+  return { valid: true, edited: true, sopId: input.sopId, path: repoRelative2(rootDir, filePath), sop: artifact, diagnostics: [] };
 }
 
 // src/cli/cmd-sops.ts
@@ -31198,28 +32066,28 @@ function runSopCategoryShow(argv) {
 
 // src/lessons.ts
 import {
-  existsSync as existsSync33,
-  readdirSync as readdirSync11,
-  statSync as statSync16
+  existsSync as existsSync34,
+  readdirSync as readdirSync12,
+  statSync as statSync17
 } from "fs";
-import path36 from "path";
+import path37 from "path";
 import { createHash as createHash3 } from "crypto";
-var STRICT_WORKFLOW_DIR11 = ".strict-spec-driven";
-var LESSONS_DIR = `${STRICT_WORKFLOW_DIR11}/lessons`;
+var STRICT_WORKFLOW_DIR12 = ".strict-spec-driven";
+var LESSONS_DIR = `${STRICT_WORKFLOW_DIR12}/lessons`;
 var LESSONS_INDEX_PATH = `${LESSONS_DIR}/INDEX.yaml`;
 var LESSON_SCHEMA_ID = "strict-spec-driven/lesson/v1";
 var LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v2";
 function lessonsDir(rootDir) {
-  return path36.join(rootDir, LESSONS_DIR);
+  return path37.join(rootDir, LESSONS_DIR);
 }
 function lessonsIndexPath(rootDir) {
-  return path36.join(rootDir, LESSONS_INDEX_PATH);
+  return path37.join(rootDir, LESSONS_INDEX_PATH);
 }
 function categoryLessonFilePath(rootDir, category, lessonId) {
-  return path36.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
+  return path37.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
 }
-function repoRelative2(rootDir, absolutePath) {
-  return path36.relative(rootDir, absolutePath).split(path36.sep).join("/");
+function repoRelative3(rootDir, absolutePath) {
+  return path37.relative(rootDir, absolutePath).split(path37.sep).join("/");
 }
 function slugify2(value) {
   const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48).replace(/^-+|-+$/g, "");
@@ -31239,28 +32107,28 @@ function getLessonCategories() {
 function makeDiagnostic3(rootDir, message, fieldPath = "$", absolutePath) {
   return {
     source: "schema",
-    artifactPath: absolutePath ? repoRelative2(rootDir, absolutePath) : LESSONS_DIR,
+    artifactPath: absolutePath ? repoRelative3(rootDir, absolutePath) : LESSONS_DIR,
     fieldPath,
     message
   };
 }
 function listLegacyLessonFilesInDir(dir) {
-  if (!existsSync33(dir) || !statSync16(dir).isDirectory()) {
+  if (!existsSync34(dir) || !statSync17(dir).isDirectory()) {
     return [];
   }
-  return readdirSync11(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path36.join(dir, name)).sort();
+  return readdirSync12(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path37.join(dir, name)).sort();
 }
 function listCategorizedLessonFilesInDir(dir, category) {
-  if (!existsSync33(dir) || !statSync16(dir).isDirectory()) {
+  if (!existsSync34(dir) || !statSync17(dir).isDirectory()) {
     return [];
   }
   const categories = category === undefined ? getLessonCategories().sort() : [category];
   const files = [];
   for (const candidateCategory of categories) {
-    const categoryDir = path36.join(dir, candidateCategory);
-    if (!existsSync33(categoryDir) || !statSync16(categoryDir).isDirectory())
+    const categoryDir = path37.join(dir, candidateCategory);
+    if (!existsSync34(categoryDir) || !statSync17(categoryDir).isDirectory())
       continue;
-    files.push(...readdirSync11(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path36.join(categoryDir, name)).sort());
+    files.push(...readdirSync12(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path37.join(categoryDir, name)).sort());
   }
   return files;
 }
@@ -31375,13 +32243,13 @@ function validateMigrationSources(rootDir, legacyFiles) {
     const lessonId = artifact.lesson.id;
     const earlierPath = seenIds.get(lessonId);
     if (earlierPath !== undefined) {
-      diagnostics.push(makeDiagnostic3(rootDir, `duplicate lesson id '${lessonId}' also appears at ${repoRelative2(rootDir, earlierPath)}`, "$.lesson.id", filePath));
+      diagnostics.push(makeDiagnostic3(rootDir, `duplicate lesson id '${lessonId}' also appears at ${repoRelative3(rootDir, earlierPath)}`, "$.lesson.id", filePath));
       continue;
     }
     seenIds.set(lessonId, filePath);
     const expectedPath = categoryLessonFilePath(rootDir, artifact.category, lessonId);
-    if (existingFiles.includes(filePath) && path36.resolve(filePath) !== path36.resolve(expectedPath)) {
-      diagnostics.push(makeDiagnostic3(rootDir, `categorized lesson path must be ${repoRelative2(rootDir, expectedPath)}`, "$.lesson.id", filePath));
+    if (existingFiles.includes(filePath) && path37.resolve(filePath) !== path37.resolve(expectedPath)) {
+      diagnostics.push(makeDiagnostic3(rootDir, `categorized lesson path must be ${repoRelative3(rootDir, expectedPath)}`, "$.lesson.id", filePath));
       continue;
     }
     if (legacyFiles.includes(filePath)) {
@@ -31436,10 +32304,10 @@ function prepareLessonStore(rootDir) {
     schemaId: LESSONS_INDEX_SCHEMA_ID,
     familyRoot: storeDir,
     absolutePath: indexPath,
-    operation: existsSync33(indexPath) ? "update" : "create",
+    operation: existsSync34(indexPath) ? "update" : "create",
     role: "reference",
     candidate: indexArtifact,
-    validateCandidate: (value) => validateArtifact(loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative2(rootDir, indexPath)).diagnostics.map((entry) => ({
+    validateCandidate: (value) => validateArtifact(loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative3(rootDir, indexPath)).diagnostics.map((entry) => ({
       code: entry.source,
       fieldPath: entry.fieldPath,
       message: entry.message,
@@ -31466,13 +32334,13 @@ function prepareLessonStore(rootDir) {
 }
 function findLessonFilePath(rootDir, lessonId) {
   const indexPath = lessonsIndexPath(rootDir);
-  if (existsSync33(indexPath)) {
+  if (existsSync34(indexPath)) {
     try {
       const index = parseYamlFile(indexPath);
       for (const category of Object.keys(index.categories ?? {}).sort()) {
         if (index.categories[category]?.[lessonId] !== undefined) {
           const candidate = categoryLessonFilePath(rootDir, category, lessonId);
-          if (existsSync33(candidate))
+          if (existsSync34(candidate))
             return candidate;
         }
       }
@@ -31487,7 +32355,7 @@ function findLessonFilePath(rootDir, lessonId) {
   return null;
 }
 function validateLessonArtifact(rootDir, artifact, absolutePath) {
-  const artifactPath = repoRelative2(rootDir, absolutePath);
+  const artifactPath = repoRelative3(rootDir, absolutePath);
   const schema = loadBundledSchemaBySchemaId(LESSON_SCHEMA_ID);
   const base = validateArtifact(schema, artifact, artifactPath);
   if (!base.valid) {
@@ -31549,10 +32417,10 @@ function writeValidatedLessonArtifact(rootDir, filePath, artifact, operation) {
         schemaId: LESSONS_INDEX_SCHEMA_ID,
         familyRoot: lessonsDir(rootDir),
         absolutePath: indexPath,
-        operation: existsSync33(indexPath) ? "update" : "create",
+        operation: existsSync34(indexPath) ? "update" : "create",
         role: "reference",
         candidate: indexArtifact,
-        validateCandidate: (value) => validateArtifact(loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative2(rootDir, indexPath)).diagnostics.map((entry) => ({
+        validateCandidate: (value) => validateArtifact(loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative3(rootDir, indexPath)).diagnostics.map((entry) => ({
           code: entry.source,
           fieldPath: entry.fieldPath,
           message: entry.message,
@@ -31595,8 +32463,8 @@ function createLesson(rootDir, input) {
   }
   const lessonId = deriveLessonId(input);
   const filePath = categoryLessonFilePath(rootDir, input.category, lessonId);
-  if (existsSync33(filePath)) {
-    return { valid: true, created: false, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
+  if (existsSync34(filePath)) {
+    return { valid: true, created: false, lessonId, path: repoRelative3(rootDir, filePath), diagnostics: [] };
   }
   const artifact = buildLessonArtifact(input, lessonId);
   const validationDiagnostics = validateLessonArtifact(rootDir, artifact, filePath);
@@ -31604,7 +32472,7 @@ function createLesson(rootDir, input) {
     return { valid: false, created: false, lessonId, path: null, diagnostics: validationDiagnostics };
   }
   writeValidatedLessonArtifact(rootDir, filePath, artifact, "create");
-  return { valid: true, created: true, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
+  return { valid: true, created: true, lessonId, path: repoRelative3(rootDir, filePath), diagnostics: [] };
 }
 function readLessonEntries(rootDir, category) {
   const entries = [];
@@ -31620,7 +32488,7 @@ function readLessonEntries(rootDir, category) {
       category: artifact.category,
       status: artifact.status,
       occurrences: Array.isArray(artifact.occurrences) ? artifact.occurrences.length : 0,
-      path: repoRelative2(rootDir, filePath),
+      path: repoRelative3(rootDir, filePath),
       createdAt: String(artifact.created_at ?? "")
     });
   }
@@ -31672,7 +32540,7 @@ function showLesson(rootDir, lessonId) {
     };
   }
   const lesson = parseYamlFile(filePath);
-  return { valid: true, lessonId, path: repoRelative2(rootDir, filePath), lesson, diagnostics: [] };
+  return { valid: true, lessonId, path: repoRelative3(rootDir, filePath), lesson, diagnostics: [] };
 }
 function getLessonStatus(rootDir, options = {}) {
   const categoryDiagnostics = validateCategoryOption(rootDir, options.category);
@@ -31791,7 +32659,7 @@ function editLesson(rootDir, input) {
     return { valid: false, edited: false, lessonId: input.lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
   writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
-  return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
+  return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative3(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }
 function obsoleteLesson(rootDir, lessonId, reason) {
   if (!reason || reason.trim().length === 0) {
@@ -31828,7 +32696,7 @@ function obsoleteLesson(rootDir, lessonId, reason) {
   }
   const artifact = parseYamlFile(filePath);
   if (artifact.status === "obsolete") {
-    return { valid: true, obsoleted: false, lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
+    return { valid: true, obsoleted: false, lessonId, path: repoRelative3(rootDir, filePath), lesson: artifact, diagnostics: [] };
   }
   artifact.status = "obsolete";
   artifact.obsoleted_reason = reason;
@@ -31840,7 +32708,7 @@ function obsoleteLesson(rootDir, lessonId, reason) {
     return { valid: false, obsoleted: false, lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
   writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
-  return { valid: true, obsoleted: true, lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
+  return { valid: true, obsoleted: true, lessonId, path: repoRelative3(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }
 
 // src/cli/cmd-lessons.ts
@@ -32094,12 +32962,12 @@ function runLessonObsolete(argv) {
 }
 
 // src/maintenance.ts
-import { existsSync as existsSync35, readFileSync as readFileSync22, readdirSync as readdirSync13, statSync as statSync18, writeFileSync as writeFileSync6 } from "fs";
-import path38 from "path";
+import { existsSync as existsSync36, readFileSync as readFileSync22, readdirSync as readdirSync14, statSync as statSync19, writeFileSync as writeFileSync6 } from "fs";
+import path39 from "path";
 
 // src/cli-only-yaml-policy.ts
-import { existsSync as existsSync34, readFileSync as readFileSync21, readdirSync as readdirSync12, statSync as statSync17 } from "fs";
-import path37 from "path";
+import { existsSync as existsSync35, readFileSync as readFileSync21, readdirSync as readdirSync13, statSync as statSync18 } from "fs";
+import path38 from "path";
 var MAX_EXCERPT_LENGTH = 120;
 function excerptOf(text) {
   const collapsed = text.replace(/\s+/g, " ").trim();
@@ -32296,7 +33164,7 @@ function scanSourceForUnregisteredWriters(rootDir, relativeDir) {
   const suppressions = [];
   const { registeredWriterPaths } = loadPolicyRegistry();
   for (const relativeFile of listTypeScriptSources(rootDir, relativeDir)) {
-    const absolute = path37.join(rootDir, relativeFile);
+    const absolute = path38.join(rootDir, relativeFile);
     let text;
     try {
       text = readFileSync21(absolute, "utf8");
@@ -32324,12 +33192,12 @@ function scanSourceForUnregisteredWriters(rootDir, relativeDir) {
   return { matches, suppressions };
 }
 function listTypeScriptSources(rootDir, relativeDir) {
-  const absolute = path37.join(rootDir, relativeDir);
-  if (!existsSync34(absolute) || !statSync17(absolute).isDirectory())
+  const absolute = path38.join(rootDir, relativeDir);
+  if (!existsSync35(absolute) || !statSync18(absolute).isDirectory())
     return [];
   const files = [];
-  for (const entry of readdirSync12(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const relativeEntry = path37.posix.join(relativeDir, entry.name);
+  for (const entry of readdirSync13(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const relativeEntry = path38.posix.join(relativeDir, entry.name);
     if (entry.isDirectory()) {
       files.push(...listTypeScriptSources(rootDir, relativeEntry));
       continue;
@@ -32346,7 +33214,7 @@ var EXEMPT_PATH_PREFIXES = [
   { prefix: ".strict-spec-driven/changes/archive/", reason: "archived change, kept as historical record" }
 ];
 function exemptPathReason(relativeFile) {
-  const posixPath = relativeFile.split(path37.sep).join("/");
+  const posixPath = relativeFile.split(path38.sep).join("/");
   return EXEMPT_PATH_PREFIXES.find((entry) => posixPath.startsWith(entry.prefix))?.reason;
 }
 var GENERATED_DOCUMENT_BANNER = "Generated file — do not edit by hand.";
@@ -32355,7 +33223,7 @@ function isGeneratedDocument(text) {
 }
 
 // src/maintenance.ts
-var STRICT_WORKFLOW_DIR12 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR13 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS2 = new Set([".strict-spec-driven", "changes", "archive"]);
 var REGRESSION_COMMAND_FALLBACK = "REPLACE WITH the complete project regression command (build plus full test run)";
 function configuredRegressionCommand(config) {
@@ -32363,16 +33231,16 @@ function configuredRegressionCommand(config) {
   return typeof command === "string" && command.trim().length > 0 ? command : REGRESSION_COMMAND_FALLBACK;
 }
 function getChangesDir2(rootDir) {
-  return path38.join(rootDir, STRICT_WORKFLOW_DIR12, "changes");
+  return path39.join(rootDir, STRICT_WORKFLOW_DIR13, "changes");
 }
 function generateChangeName(rootDir, date) {
   const changesDir = getChangesDir2(rootDir);
   let candidate = `maintenance-${date}`;
-  if (!existsSync35(path38.join(changesDir, candidate)))
+  if (!existsSync36(path39.join(changesDir, candidate)))
     return candidate;
   for (let i = 2;i <= 99; i++) {
     candidate = `maintenance-${date}-${i}`;
-    if (!existsSync35(path38.join(changesDir, candidate)))
+    if (!existsSync36(path39.join(changesDir, candidate)))
       return candidate;
   }
   throw new Error(`Could not generate a unique maintenance change name for date ${date}`);
@@ -32385,11 +33253,11 @@ function runRoadmapSyncCheck(rootDir) {
   }));
 }
 function runSpecsDirectoryStructureCheck(rootDir) {
-  const specsDir = path38.join(rootDir, STRICT_WORKFLOW_DIR12, "specs");
-  if (!existsSync35(specsDir) || !statSync18(specsDir).isDirectory())
+  const specsDir = path39.join(rootDir, STRICT_WORKFLOW_DIR13, "specs");
+  if (!existsSync36(specsDir) || !statSync19(specsDir).isDirectory())
     return [];
   const findings = [];
-  for (const entry of readdirSync13(specsDir, { withFileTypes: true })) {
+  for (const entry of readdirSync14(specsDir, { withFileTypes: true })) {
     if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS2.has(entry.name)) {
       findings.push({
         check: "specs-directory-structure-check",
@@ -32426,7 +33294,7 @@ function referencedPathsThatVanished(rootDir, text) {
   for (const token of text.match(PATH_TOKEN_PATTERN) ?? []) {
     if (token.includes("://") || token.startsWith(".."))
       continue;
-    if (existsSync35(path38.join(rootDir, token)))
+    if (existsSync36(path39.join(rootDir, token)))
       continue;
     if (!missing.includes(token))
       missing.push(token);
@@ -32434,7 +33302,7 @@ function referencedPathsThatVanished(rootDir, text) {
   return missing;
 }
 function changeIsArchived(rootDir, changeName) {
-  return existsSync35(path38.join(getChangesDir2(rootDir), "archive", changeName));
+  return existsSync36(path39.join(getChangesDir2(rootDir), "archive", changeName));
 }
 function daysSince(isoDate) {
   const parsed = Date.parse(isoDate);
@@ -32478,23 +33346,23 @@ function runLessonStalenessCheck(rootDir) {
   return findings;
 }
 var POLICY_TEXT_SURFACES = [
-  { dir: `${STRICT_WORKFLOW_DIR12}/specs`, extensions: [".yaml"] },
-  { dir: `${STRICT_WORKFLOW_DIR12}/tech`, extensions: [".yaml"] },
+  { dir: `${STRICT_WORKFLOW_DIR13}/specs`, extensions: [".yaml"] },
+  { dir: `${STRICT_WORKFLOW_DIR13}/tech`, extensions: [".yaml"] },
   { dir: "src/mcp", extensions: [".ts"] },
   { dir: "docs", extensions: [".md"] }
 ];
 function listRootDocuments(rootDir) {
-  if (!existsSync35(rootDir) || !statSync18(rootDir).isDirectory())
+  if (!existsSync36(rootDir) || !statSync19(rootDir).isDirectory())
     return [];
-  return readdirSync13(rootDir, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".md")).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+  return readdirSync14(rootDir, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".md")).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
 }
 function listFilesWithExtensions(rootDir, relativeDir, extensions) {
-  const absolute = path38.join(rootDir, relativeDir);
-  if (!existsSync35(absolute) || !statSync18(absolute).isDirectory())
+  const absolute = path39.join(rootDir, relativeDir);
+  if (!existsSync36(absolute) || !statSync19(absolute).isDirectory())
     return [];
   const files = [];
-  for (const entry of readdirSync13(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const relativeEntry = path38.posix.join(relativeDir, entry.name);
+  for (const entry of readdirSync14(absolute, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const relativeEntry = path39.posix.join(relativeDir, entry.name);
     if (exemptPathReason(relativeEntry) !== undefined)
       continue;
     if (entry.isDirectory()) {
@@ -32515,7 +33383,7 @@ function runCliOnlyYamlPolicyCheck(rootDir) {
   for (const relativeFile of textFiles) {
     let text;
     try {
-      text = readFileSync22(path38.join(rootDir, relativeFile), "utf8");
+      text = readFileSync22(path39.join(rootDir, relativeFile), "utf8");
     } catch {
       continue;
     }
@@ -32609,8 +33477,8 @@ var MAINTENANCE_CHECK_RUNNERS = {
 var SEEDING_NOT_REQUESTED_REASON = "seeding skipped because it was not requested; rerun with --seed to create a maintenance change from these findings";
 function runMaintenance(rootDir, options = {}) {
   const seed = options.seed === true;
-  const configPath = path38.join(rootDir, STRICT_WORKFLOW_DIR12, "config.yaml");
-  if (!existsSync35(configPath)) {
+  const configPath = path39.join(rootDir, STRICT_WORKFLOW_DIR13, "config.yaml");
+  if (!existsSync36(configPath)) {
     return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
   }
   let config;
@@ -32658,29 +33526,29 @@ function runMaintenance(rootDir, options = {}) {
   const date = new Date().toISOString().slice(0, 10);
   const changeName = generateChangeName(rootDir, date);
   initializeStrictChangeScaffold(rootDir, changeName);
-  const changeDir = path38.join(getChangesDir2(rootDir), changeName);
-  writeFileSync6(path38.join(changeDir, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
-  writeFileSync6(path38.join(changeDir, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
-  writeFileSync6(path38.join(changeDir, "questions.yaml"), stringifyYamlDocument(buildQuestionsYaml(changeName)), "utf8");
+  const changeDir = path39.join(getChangesDir2(rootDir), changeName);
+  writeFileSync6(path39.join(changeDir, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
+  writeFileSync6(path39.join(changeDir, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
+  writeFileSync6(path39.join(changeDir, "questions.yaml"), stringifyYamlDocument(buildQuestionsYaml(changeName)), "utf8");
   return { valid: true, checksRun, findingsCount: findings.length, generatedChange: changeName, seedingSkippedReason: null };
 }
 
 // src/migrate.ts
 import {
-  existsSync as existsSync41,
-  readdirSync as readdirSync15,
-  statSync as statSync24,
+  existsSync as existsSync42,
+  readdirSync as readdirSync16,
+  statSync as statSync25,
   writeFileSync as writeFileSync8
 } from "fs";
-import path44 from "path";
+import path45 from "path";
 
 // src/migrate/converters/changes.ts
 import {
-  existsSync as existsSync37,
+  existsSync as existsSync38,
   readFileSync as readFileSync24,
-  statSync as statSync20
+  statSync as statSync21
 } from "fs";
-import path40 from "path";
+import path41 from "path";
 
 // src/migrate/parsers/shared.ts
 function isRecord4(value) {
@@ -33462,28 +34330,28 @@ function parseLegacyDeltaSpec(sourcePath, content) {
 
 // src/migrate/shared.ts
 import {
-  existsSync as existsSync36,
+  existsSync as existsSync37,
   mkdirSync as mkdirSync6,
-  readdirSync as readdirSync14,
+  readdirSync as readdirSync15,
   readFileSync as readFileSync23,
-  statSync as statSync19,
+  statSync as statSync20,
   writeFileSync as writeFileSync7
 } from "fs";
-import path39 from "path";
+import path40 from "path";
 var LEGACY_WORKFLOW_DIR2 = ".spec-driven";
-var STRICT_WORKFLOW_DIR13 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR14 = ".strict-spec-driven";
 function toRepoRelativePath2(rootDir, absolutePath) {
-  return toPosix3(path39.relative(rootDir, absolutePath));
+  return toPosix3(path40.relative(rootDir, absolutePath));
 }
 function listFilesRecursive2(directoryPath) {
-  if (!existsSync36(directoryPath) || !statSync19(directoryPath).isDirectory()) {
+  if (!existsSync37(directoryPath) || !statSync20(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync14(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync15(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path39.join(currentPath, entry.name);
+      const fullPath = path40.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -33503,40 +34371,40 @@ function readYamlFile3(filePath) {
   return parseYamlDocument(readFileSync23(filePath, "utf8"));
 }
 function writeYamlFile2(filePath, value) {
-  mkdirSync6(path39.dirname(filePath), { recursive: true });
+  mkdirSync6(path40.dirname(filePath), { recursive: true });
   writeFileSync7(filePath, stringifyYamlDocument(value), "utf8");
 }
 function replaceMarkdownExtension(repoRelativePath) {
   return repoRelativePath.replace(/\.md$/i, ".yaml");
 }
 function buildStrictMarkdownTargetPath(rootDir, repoRelativeTargetPath) {
-  return path39.join(rootDir, ...repoRelativeTargetPath.split("/"));
+  return path40.join(rootDir, ...repoRelativeTargetPath.split("/"));
 }
 function listLegacyChangeDirectories(rootDir) {
-  const changesRoot = path39.join(rootDir, LEGACY_WORKFLOW_DIR2, "changes");
-  if (!existsSync36(changesRoot) || !statSync19(changesRoot).isDirectory()) {
+  const changesRoot = path40.join(rootDir, LEGACY_WORKFLOW_DIR2, "changes");
+  if (!existsSync37(changesRoot) || !statSync20(changesRoot).isDirectory()) {
     return [];
   }
   const directories = [];
-  const changeEntries = readdirSync14(changesRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+  const changeEntries = readdirSync15(changesRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of changeEntries) {
     if (!entry.isDirectory()) {
       continue;
     }
     if (entry.name === "archive") {
-      const archiveRoot = path39.join(changesRoot, "archive");
-      if (!existsSync36(archiveRoot) || !statSync19(archiveRoot).isDirectory()) {
+      const archiveRoot = path40.join(changesRoot, "archive");
+      if (!existsSync37(archiveRoot) || !statSync20(archiveRoot).isDirectory()) {
         continue;
       }
-      const archiveEntries = readdirSync14(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+      const archiveEntries = readdirSync15(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
       for (const archiveEntry of archiveEntries) {
         if (!archiveEntry.isDirectory()) {
           continue;
         }
         directories.push({
-          legacyDirectoryPath: path39.join(archiveRoot, archiveEntry.name),
+          legacyDirectoryPath: path40.join(archiveRoot, archiveEntry.name),
           repoRelativeDirectory: `${LEGACY_WORKFLOW_DIR2}/changes/archive/${archiveEntry.name}`,
-          strictDirectoryPath: path39.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", "archive", archiveEntry.name),
+          strictDirectoryPath: path40.join(rootDir, STRICT_WORKFLOW_DIR14, "changes", "archive", archiveEntry.name),
           directoryName: archiveEntry.name,
           archived: true
         });
@@ -33544,9 +34412,9 @@ function listLegacyChangeDirectories(rootDir) {
       continue;
     }
     directories.push({
-      legacyDirectoryPath: path39.join(changesRoot, entry.name),
+      legacyDirectoryPath: path40.join(changesRoot, entry.name),
       repoRelativeDirectory: `${LEGACY_WORKFLOW_DIR2}/changes/${entry.name}`,
-      strictDirectoryPath: path39.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", entry.name),
+      strictDirectoryPath: path40.join(rootDir, STRICT_WORKFLOW_DIR14, "changes", entry.name),
       directoryName: entry.name,
       archived: false
     });
@@ -33580,15 +34448,15 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
   for (const changeDirectory of listLegacyChangeDirectories(rootDir)) {
     const fallbackChangeId = changeDirectory.archived ? toKebabCase(changeDirectory.directoryName.replace(/^\d{4}-\d{2}-\d{2}-/, "")) : toKebabCase(changeDirectory.directoryName);
     let changeId = fallbackChangeId;
-    const legacyProposalPath = path40.join(changeDirectory.legacyDirectoryPath, "proposal.md");
+    const legacyProposalPath = path41.join(changeDirectory.legacyDirectoryPath, "proposal.md");
     const repoRelativeProposalPath = `${changeDirectory.repoRelativeDirectory}/proposal.md`;
-    if (existsSync37(legacyProposalPath) && statSync20(legacyProposalPath).isFile()) {
+    if (existsSync38(legacyProposalPath) && statSync21(legacyProposalPath).isFile()) {
       handledLegacyFiles.add(repoRelativeProposalPath);
       try {
         const proposalArtifact = parseLegacyProposal(repoRelativeProposalPath, readFileSync24(legacyProposalPath, "utf8"), fallbackChangeId, changeDirectory.archived);
         changeId = proposalArtifact.change.id;
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/proposal.yaml`;
-        writeYamlFile2(path40.join(changeDirectory.strictDirectoryPath, "proposal.yaml"), proposalArtifact);
+        writeYamlFile2(path41.join(changeDirectory.strictDirectoryPath, "proposal.yaml"), proposalArtifact);
         result.converted.push({
           kind: "change_proposal",
           sourcePath: repoRelativeProposalPath,
@@ -33624,16 +34492,16 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
       }
     ];
     for (const artifactFile of changeArtifactFiles) {
-      const legacyFilePath = path40.join(changeDirectory.legacyDirectoryPath, artifactFile.legacyName);
+      const legacyFilePath = path41.join(changeDirectory.legacyDirectoryPath, artifactFile.legacyName);
       const repoRelativeLegacyFilePath = `${changeDirectory.repoRelativeDirectory}/${artifactFile.legacyName}`;
-      if (!existsSync37(legacyFilePath) || !statSync20(legacyFilePath).isFile()) {
+      if (!existsSync38(legacyFilePath) || !statSync21(legacyFilePath).isFile()) {
         continue;
       }
       handledLegacyFiles.add(repoRelativeLegacyFilePath);
       try {
         const artifact = artifactFile.convert(repoRelativeLegacyFilePath, readFileSync24(legacyFilePath, "utf8"), changeId);
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/${artifactFile.targetName}`;
-        writeYamlFile2(path40.join(changeDirectory.strictDirectoryPath, artifactFile.targetName), artifact);
+        writeYamlFile2(path41.join(changeDirectory.strictDirectoryPath, artifactFile.targetName), artifact);
         result.converted.push({
           kind: artifactFile.kind,
           sourcePath: repoRelativeLegacyFilePath,
@@ -33645,14 +34513,14 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
         recordDeferredArtifact(result, repoRelativeLegacyFilePath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
       }
     }
-    const legacyDeltaSpecsRoot = path40.join(changeDirectory.legacyDirectoryPath, "specs");
-    if (existsSync37(legacyDeltaSpecsRoot) && statSync20(legacyDeltaSpecsRoot).isDirectory()) {
-      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path40.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+    const legacyDeltaSpecsRoot = path41.join(changeDirectory.legacyDirectoryPath, "specs");
+    if (existsSync38(legacyDeltaSpecsRoot) && statSync21(legacyDeltaSpecsRoot).isDirectory()) {
+      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path41.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
       for (const legacyDeltaSpecPath of deltaSpecFiles) {
         handledLegacyFiles.add(legacyDeltaSpecPath);
         try {
-          const deltaArtifact = parseLegacyDeltaSpec(legacyDeltaSpecPath, readFileSync24(path40.join(rootDir, legacyDeltaSpecPath), "utf8"));
-          const strictTargetPath = replaceMarkdownExtension(legacyDeltaSpecPath.replace(`${LEGACY_WORKFLOW_DIR2}/changes/`, `${STRICT_WORKFLOW_DIR13}/changes/`).replace("/specs/", "/specs/"));
+          const deltaArtifact = parseLegacyDeltaSpec(legacyDeltaSpecPath, readFileSync24(path41.join(rootDir, legacyDeltaSpecPath), "utf8"));
+          const strictTargetPath = replaceMarkdownExtension(legacyDeltaSpecPath.replace(`${LEGACY_WORKFLOW_DIR2}/changes/`, `${STRICT_WORKFLOW_DIR14}/changes/`).replace("/specs/", "/specs/"));
           writeYamlFile2(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), deltaArtifact);
           result.converted.push({
             kind: "delta_spec",
@@ -33671,17 +34539,17 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
 
 // src/migrate/converters/roadmap.ts
 import {
-  existsSync as existsSync38,
+  existsSync as existsSync39,
   readFileSync as readFileSync25,
-  statSync as statSync21
+  statSync as statSync22
 } from "fs";
-import path41 from "path";
+import path42 from "path";
 
 // src/converters/roadmap.ts
 var ROADMAP_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-index.yaml";
 var ROADMAP_MILESTONE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-milestone.yaml";
 var SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
-var STRICT_WORKFLOW_DIR14 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR15 = ".strict-spec-driven";
 var DECLARED_ROADMAP_STATUSES2 = ["proposed", "planned", "blocked", "complete"];
 function normalizeWhitespace2(value) {
   return value.trim().replace(/\s+/g, " ");
@@ -33955,7 +34823,7 @@ function convertSpecsIndex(markdown) {
       const [, , href, title] = match;
       const hrefNorm = href.trim();
       const id = toKebabCase2(hrefNorm.replace(/\.md$/i, "").replace(/\//g, "-"));
-      const strictPath = `${STRICT_WORKFLOW_DIR14}/specs/${hrefNorm.replace(/\.md$/i, ".yaml")}`;
+      const strictPath = `${STRICT_WORKFLOW_DIR15}/specs/${hrefNorm.replace(/\.md$/i, ".yaml")}`;
       specs.push({ id, title: normalizeWhitespace2(title), path: strictPath });
     }
     return {
@@ -33980,15 +34848,15 @@ function convertSpecsIndex(markdown) {
 
 // src/migrate/converters/roadmap.ts
 var LEGACY_ROADMAP_DIR = `${LEGACY_WORKFLOW_DIR2}/roadmap`;
-var STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR13}/roadmap`;
+var STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR14}/roadmap`;
 function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
-  const legacyRoadmapRoot = path41.join(rootDir, LEGACY_ROADMAP_DIR);
-  if (!existsSync38(legacyRoadmapRoot) || !statSync21(legacyRoadmapRoot).isDirectory()) {
+  const legacyRoadmapRoot = path42.join(rootDir, LEGACY_ROADMAP_DIR);
+  if (!existsSync39(legacyRoadmapRoot) || !statSync22(legacyRoadmapRoot).isDirectory()) {
     return;
   }
   const legacyIndexPath = `${LEGACY_ROADMAP_DIR}/INDEX.md`;
-  const legacyIndexAbsPath = path41.join(legacyRoadmapRoot, "INDEX.md");
-  if (existsSync38(legacyIndexAbsPath) && statSync21(legacyIndexAbsPath).isFile()) {
+  const legacyIndexAbsPath = path42.join(legacyRoadmapRoot, "INDEX.md");
+  if (existsSync39(legacyIndexAbsPath) && statSync22(legacyIndexAbsPath).isFile()) {
     handledLegacyFiles.add(legacyIndexPath);
     try {
       const content = readFileSync25(legacyIndexAbsPath, "utf8");
@@ -34010,16 +34878,16 @@ function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
       recordDeferredArtifact(result, legacyIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
-  const legacyMilestonesRoot = path41.join(legacyRoadmapRoot, "milestones");
-  if (!existsSync38(legacyMilestonesRoot) || !statSync21(legacyMilestonesRoot).isDirectory()) {
+  const legacyMilestonesRoot = path42.join(legacyRoadmapRoot, "milestones");
+  if (!existsSync39(legacyMilestonesRoot) || !statSync22(legacyMilestonesRoot).isDirectory()) {
     return;
   }
-  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path41.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path42.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
   for (const legacyMilestoneFile of milestoneFiles) {
     handledLegacyFiles.add(legacyMilestoneFile);
     try {
-      const content = readFileSync25(path41.join(rootDir, legacyMilestoneFile), "utf8");
-      const filename = path41.basename(legacyMilestoneFile);
+      const content = readFileSync25(path42.join(rootDir, legacyMilestoneFile), "utf8");
+      const filename = path42.basename(legacyMilestoneFile);
       const conversionResult = convertRoadmapMilestone(content, filename);
       if (!conversionResult.ok) {
         recordDeferredArtifact(result, legacyMilestoneFile, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
@@ -34041,14 +34909,14 @@ function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
 }
 function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
   const legacySpecsIndexPath = `${LEGACY_WORKFLOW_DIR2}/specs/INDEX.md`;
-  const legacySpecsIndexAbsPath = path41.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
-  if (!existsSync38(legacySpecsIndexAbsPath) || !statSync21(legacySpecsIndexAbsPath).isFile()) {
+  const legacySpecsIndexAbsPath = path42.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
+  if (!existsSync39(legacySpecsIndexAbsPath) || !statSync22(legacySpecsIndexAbsPath).isFile()) {
     return;
   }
   handledLegacyFiles.add(legacySpecsIndexPath);
-  const strictSpecsIndexPath = `${STRICT_WORKFLOW_DIR13}/specs/INDEX.yaml`;
-  const strictSpecsIndexAbsPath = path41.join(rootDir, STRICT_WORKFLOW_DIR13, "specs", "INDEX.yaml");
-  if (existsSync38(strictSpecsIndexAbsPath)) {
+  const strictSpecsIndexPath = `${STRICT_WORKFLOW_DIR14}/specs/INDEX.yaml`;
+  const strictSpecsIndexAbsPath = path42.join(rootDir, STRICT_WORKFLOW_DIR14, "specs", "INDEX.yaml");
+  if (existsSync39(strictSpecsIndexAbsPath)) {
     result.converted.push({
       kind: "spec_index",
       sourcePath: legacySpecsIndexPath,
@@ -34079,19 +34947,19 @@ function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
 
 // src/migrate/converters/specs.ts
 import {
-  existsSync as existsSync39,
+  existsSync as existsSync40,
   readFileSync as readFileSync26,
-  statSync as statSync22
+  statSync as statSync23
 } from "fs";
-import path42 from "path";
+import path43 from "path";
 var SPEC_INDEX_SCHEMA_FILE2 = "templates/strict-spec-driven/schemas/spec-index.yaml";
 function regenerateStrictSpecIndex(rootDir) {
-  const specsRoot = path42.join(rootDir, STRICT_WORKFLOW_DIR13, "specs");
-  const indexPath = path42.join(specsRoot, "INDEX.yaml");
+  const specsRoot = path43.join(rootDir, STRICT_WORKFLOW_DIR14, "specs");
+  const indexPath = path43.join(specsRoot, "INDEX.yaml");
   const specs = listFilesRecursive2(specsRoot).map((absolutePath) => ({
     absolutePath,
     repoRelativePath: toRepoRelativePath2(rootDir, absolutePath)
-  })).filter(({ absolutePath }) => absolutePath.endsWith(".yaml") || absolutePath.endsWith(".yml")).filter(({ absolutePath }) => path42.basename(absolutePath) !== "INDEX.yaml").map(({ absolutePath, repoRelativePath }) => {
+  })).filter(({ absolutePath }) => absolutePath.endsWith(".yaml") || absolutePath.endsWith(".yml")).filter(({ absolutePath }) => path43.basename(absolutePath) !== "INDEX.yaml").map(({ absolutePath, repoRelativePath }) => {
     const artifact = readYamlFile3(absolutePath);
     if (!isRecord4(artifact) || artifact.artifact_type !== "main_spec") {
       return null;
@@ -34112,7 +34980,7 @@ function regenerateStrictSpecIndex(rootDir) {
     }
     return left.id.localeCompare(right.id);
   });
-  const indexArtifact = existsSync39(indexPath) ? {
+  const indexArtifact = existsSync40(indexPath) ? {
     ...readYamlFile3(indexPath),
     schema: "strict-spec-driven/spec-index/v1",
     schema_version: 1,
@@ -34129,17 +34997,17 @@ function regenerateStrictSpecIndex(rootDir) {
   writeYamlFile2(indexPath, indexArtifact);
 }
 function convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles) {
-  const legacySpecsRoot = path42.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
-  if (!existsSync39(legacySpecsRoot) || !statSync22(legacySpecsRoot).isDirectory()) {
+  const legacySpecsRoot = path43.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
+  if (!existsSync40(legacySpecsRoot) || !statSync23(legacySpecsRoot).isDirectory()) {
     return false;
   }
   let convertedAny = false;
-  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path42.basename(repoRelativePath) !== "INDEX.md").filter((repoRelativePath) => path42.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
+  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path43.basename(repoRelativePath) !== "INDEX.md").filter((repoRelativePath) => path43.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
   for (const legacySpecFile of legacySpecFiles) {
     handledLegacyFiles.add(legacySpecFile);
     try {
-      const strictArtifact = parseLegacyMainSpec(legacySpecFile, readFileSync26(path42.join(rootDir, legacySpecFile), "utf8"));
-      const strictTargetPath = replaceMarkdownExtension(legacySpecFile.replace(`${LEGACY_WORKFLOW_DIR2}/specs/`, `${STRICT_WORKFLOW_DIR13}/specs/`));
+      const strictArtifact = parseLegacyMainSpec(legacySpecFile, readFileSync26(path43.join(rootDir, legacySpecFile), "utf8"));
+      const strictTargetPath = replaceMarkdownExtension(legacySpecFile.replace(`${LEGACY_WORKFLOW_DIR2}/specs/`, `${STRICT_WORKFLOW_DIR14}/specs/`));
       writeYamlFile2(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), strictArtifact);
       result.converted.push({
         kind: "main_spec",
@@ -34206,13 +35074,13 @@ function sortMigrationResult(result) {
 
 // src/migrate/preflight.ts
 import {
-  existsSync as existsSync40,
+  existsSync as existsSync41,
   readFileSync as readFileSync27,
-  statSync as statSync23
+  statSync as statSync24
 } from "fs";
-import path43 from "path";
+import path44 from "path";
 var LEGACY_CONFIG_PATH = `${LEGACY_WORKFLOW_DIR2}/config.yaml`;
-var STRICT_CONFIG_PATH = `${STRICT_WORKFLOW_DIR13}/config.yaml`;
+var STRICT_CONFIG_PATH = `${STRICT_WORKFLOW_DIR14}/config.yaml`;
 var LEGACY_CONFIG_TEXT_REPLACEMENTS = [
   [/\bproposal\.md\b/g, "proposal.yaml"],
   [/\bdesign\.md\b/g, "design.yaml"],
@@ -34242,8 +35110,8 @@ function normalizeLegacyConfigValue(value) {
   return value;
 }
 function loadStrictConfigFromLegacy(rootDir, errors) {
-  const legacyConfigAbsolutePath = path43.join(rootDir, LEGACY_CONFIG_PATH);
-  if (!existsSync40(legacyConfigAbsolutePath) || !statSync23(legacyConfigAbsolutePath).isFile()) {
+  const legacyConfigAbsolutePath = path44.join(rootDir, LEGACY_CONFIG_PATH);
+  if (!existsSync41(legacyConfigAbsolutePath) || !statSync24(legacyConfigAbsolutePath).isFile()) {
     errors.push(makeDiagnostic4("legacy_config_missing", "Bootstrap migration requires .spec-driven/config.yaml to exist before migrate can initialize strict workflow state.", LEGACY_CONFIG_PATH));
     return null;
   }
@@ -34281,29 +35149,29 @@ function getReportedStrictScaffoldAssets() {
 
 // src/migrate.ts
 function migrateLegacyWorkflow(rootDir, options) {
-  const legacyRootAbsolutePath = path44.join(rootDir, LEGACY_WORKFLOW_DIR2);
-  const strictRootAbsolutePath = path44.join(rootDir, STRICT_WORKFLOW_DIR13);
+  const legacyRootAbsolutePath = path45.join(rootDir, LEGACY_WORKFLOW_DIR2);
+  const strictRootAbsolutePath = path45.join(rootDir, STRICT_WORKFLOW_DIR14);
   const result = {
     valid: false,
-    targetRoot: STRICT_WORKFLOW_DIR13,
+    targetRoot: STRICT_WORKFLOW_DIR14,
     converted: [],
     skipped: [],
     warnings: [],
     errors: [],
     manualFollowUp: []
   };
-  if (!existsSync41(legacyRootAbsolutePath) || !statSync24(legacyRootAbsolutePath).isDirectory()) {
+  if (!existsSync42(legacyRootAbsolutePath) || !statSync25(legacyRootAbsolutePath).isDirectory()) {
     result.errors.push(makeDiagnostic4("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
     return sortMigrationResult(result);
   }
-  if (existsSync41(strictRootAbsolutePath)) {
-    const strictRootStat = statSync24(strictRootAbsolutePath);
+  if (existsSync42(strictRootAbsolutePath)) {
+    const strictRootStat = statSync25(strictRootAbsolutePath);
     if (!strictRootStat.isDirectory()) {
-      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR13));
+      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR14));
       return sortMigrationResult(result);
     }
-    if (readdirSync15(strictRootAbsolutePath).length > 0) {
-      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR13));
+    if (readdirSync16(strictRootAbsolutePath).length > 0) {
+      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR14));
       return sortMigrationResult(result);
     }
   }
@@ -34314,7 +35182,7 @@ function migrateLegacyWorkflow(rootDir, options) {
   const legacyFiles = listFilesRecursive2(legacyRootAbsolutePath).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).sort((left, right) => left.localeCompare(right));
   options?.onProgress?.(`scanning: found ${legacyFiles.length} legacy files`);
   initializeStrictScaffold(rootDir);
-  const strictConfigAbsolutePath = path44.join(rootDir, STRICT_CONFIG_PATH);
+  const strictConfigAbsolutePath = path45.join(rootDir, STRICT_CONFIG_PATH);
   writeFileSync8(strictConfigAbsolutePath, stringifyYamlDocument(strictConfig), "utf8");
   result.converted.push({
     kind: "workflow_config",
@@ -34326,7 +35194,7 @@ function migrateLegacyWorkflow(rootDir, options) {
   for (const scaffoldAsset of getReportedStrictScaffoldAssets()) {
     result.converted.push({
       kind: "strict_scaffold_asset",
-      targetPath: `${STRICT_WORKFLOW_DIR13}/${scaffoldAsset}`,
+      targetPath: `${STRICT_WORKFLOW_DIR14}/${scaffoldAsset}`,
       note: "Ensured required strict scaffold asset is available for migration output."
     });
   }
@@ -34337,7 +35205,7 @@ function migrateLegacyWorkflow(rootDir, options) {
   options?.onProgress?.("converting: roadmap");
   convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
   convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
-  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path44.basename(f) !== "README.md");
+  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path45.basename(f) !== "README.md");
   if (unhandled.length > 0) {
     options?.onProgress?.(`deferring: ${unhandled.length} unhandled files`);
   }
@@ -34345,11 +35213,11 @@ function migrateLegacyWorkflow(rootDir, options) {
     const deferredArtifact = describeDeferredLegacyArtifact(legacyFile);
     recordDeferredArtifact(result, legacyFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "converter_unavailable");
   }
-  const strictChangesAbsolutePath = path44.join(strictRootAbsolutePath, "changes");
-  const convertedActiveChangeNames = existsSync41(strictChangesAbsolutePath) ? readdirSync15(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
+  const strictChangesAbsolutePath = path45.join(strictRootAbsolutePath, "changes");
+  const convertedActiveChangeNames = existsSync42(strictChangesAbsolutePath) ? readdirSync16(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
   if (convertedActiveChangeNames.length > MAX_ACTIVE_CHANGE_COUNT) {
     const activeChangeList = convertedActiveChangeNames.map((name) => `'${name}'`).join(", ");
-    result.warnings.push(makeDiagnostic4("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR13}/changes`));
+    result.warnings.push(makeDiagnostic4("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR14}/changes`));
     result.manualFollowUp.push({
       sourcePath: `${LEGACY_WORKFLOW_DIR2}/changes`,
       reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but at most two active changes are allowed at a time.`,
@@ -34399,9 +35267,9 @@ function runMaintenanceCommand(argv) {
 
 // src/cli/cmd-mcp-install.ts
 import { execFileSync, execSync } from "child_process";
-import { existsSync as existsSync42, mkdirSync as mkdirSync7, readFileSync as readFileSync28, statSync as statSync25, writeFileSync as writeFileSync9 } from "fs";
+import { existsSync as existsSync43, mkdirSync as mkdirSync7, readFileSync as readFileSync28, statSync as statSync26, writeFileSync as writeFileSync9 } from "fs";
 import os2 from "os";
-import path45 from "path";
+import path46 from "path";
 import { fileURLToPath as fileURLToPath5 } from "url";
 var MCP_INSTALL_CLIENTS = ["claude-code", "codex", "opencode", "copilot", "json"];
 var MCP_INSTALL_ALL_CLIENTS = MCP_INSTALL_CLIENTS.filter((client) => client !== "json");
@@ -34488,17 +35356,17 @@ function parseMcpInstallArgs(argv) {
   return { ok: true, value: { clients: selected, scope, entryName, projectRoot, configPath } };
 }
 function resolvePackageRoot() {
-  const moduleDir = path45.dirname(fileURLToPath5(import.meta.url));
-  return path45.resolve(moduleDir, "..", "..");
+  const moduleDir = path46.dirname(fileURLToPath5(import.meta.url));
+  return path46.resolve(moduleDir, "..", "..");
 }
 function resolveMcpEntrypointPath(packageRoot) {
-  return path45.join(packageRoot, "dist", "scripts", "strict-spec-driven-mcp.js");
+  return path46.join(packageRoot, "dist", "scripts", "strict-spec-driven-mcp.js");
 }
 function buildServerInvocation(entrypointPath, projectRoot) {
   return { command: "node", args: [entrypointPath, "--project", projectRoot] };
 }
 function parseExistingJsonObject(filePath) {
-  if (!existsSync42(filePath)) {
+  if (!existsSync43(filePath)) {
     return { ok: true, value: {} };
   }
   try {
@@ -34541,24 +35409,24 @@ function mergeCopilotConfig(existing, name, invocation) {
 }
 function userConfigHome() {
   const xdg = process.env.XDG_CONFIG_HOME;
-  return xdg && xdg.length > 0 ? xdg : path45.join(os2.homedir(), ".config");
+  return xdg && xdg.length > 0 ? xdg : path46.join(os2.homedir(), ".config");
 }
 function resolveFileClientTarget(client, scope, projectRoot, configPath) {
   if (client === "json") {
     if (!configPath) {
       return { ok: false, error: "client 'json' requires --config <path>" };
     }
-    return { ok: true, path: path45.resolve(configPath) };
+    return { ok: true, path: path46.resolve(configPath) };
   }
   if (client === "opencode") {
     return {
       ok: true,
-      path: scope === "user" ? path45.join(userConfigHome(), "opencode", "opencode.json") : path45.join(projectRoot, "opencode.json")
+      path: scope === "user" ? path46.join(userConfigHome(), "opencode", "opencode.json") : path46.join(projectRoot, "opencode.json")
     };
   }
   return {
     ok: true,
-    path: scope === "user" ? path45.join(userConfigHome(), "Code", "User", "mcp.json") : path45.join(projectRoot, ".vscode", "mcp.json")
+    path: scope === "user" ? path46.join(userConfigHome(), "Code", "User", "mcp.json") : path46.join(projectRoot, ".vscode", "mcp.json")
   };
 }
 function registerFileClient(client, targetPath, name, invocation) {
@@ -34575,7 +35443,7 @@ function registerFileClient(client, targetPath, name, invocation) {
     content = mergeMcpServersConfig(existing.value, name, invocation);
   }
   try {
-    mkdirSync7(path45.dirname(targetPath), { recursive: true });
+    mkdirSync7(path46.dirname(targetPath), { recursive: true });
     writeFileSync9(targetPath, content);
   } catch (error) {
     return { client, status: "error", detail: `failed to write ${targetPath}: ${error instanceof Error ? error.message : String(error)}` };
@@ -34646,8 +35514,8 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
     writeUsage(USAGE);
     return 1;
   }
-  const projectRoot = path45.resolve(parsed.value.projectRoot ?? process.cwd());
-  if (!existsSync42(projectRoot) || !statSync25(projectRoot).isDirectory()) {
+  const projectRoot = path46.resolve(parsed.value.projectRoot ?? process.cwd());
+  if (!existsSync43(projectRoot) || !statSync26(projectRoot).isDirectory()) {
     writeError(`project root '${projectRoot}' is not a directory`);
     return 1;
   }
@@ -34670,13 +35538,13 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
 }
 
 // src/cli/cmd-operations.ts
-import { existsSync as existsSync47, readFileSync as readFileSync33, statSync as statSync30 } from "fs";
+import { existsSync as existsSync48, readFileSync as readFileSync33, statSync as statSync31 } from "fs";
 import { execSync as execSync2 } from "child_process";
-import path50 from "path";
+import path51 from "path";
 
 // src/skills.ts
-import { existsSync as existsSync45, readdirSync as readdirSync17, readFileSync as readFileSync31, statSync as statSync28 } from "node:fs";
-import path48 from "node:path";
+import { existsSync as existsSync46, readdirSync as readdirSync18, readFileSync as readFileSync31, statSync as statSync29 } from "node:fs";
+import path49 from "node:path";
 
 // src/skills/handoff.ts
 var HARNESS_TOOL_MECHANISM_PATTERN = /\b(?:the|a|your|its|our)\s+`?([A-Z][A-Za-z]*)`?\s+tool\b/g;
@@ -36092,12 +36960,12 @@ function sortDiagnostics2(diagnostics) {
 }
 
 // src/skills/fs-checks.ts
-import { existsSync as existsSync43, lstatSync, readFileSync as readFileSync29, readlinkSync, statSync as statSync26 } from "node:fs";
-import path46 from "node:path";
+import { existsSync as existsSync44, lstatSync, readFileSync as readFileSync29, readlinkSync, statSync as statSync27 } from "node:fs";
+import path47 from "node:path";
 function validateRequiredSymlink(skillDir, skillName, entryName, expectedTarget, diagnostics) {
-  const entryPath = path46.join(skillDir, entryName);
-  const relativeSkillPath = path46.join("skills", skillName, entryName);
-  if (!existsSync43(entryPath)) {
+  const entryPath = path47.join(skillDir, entryName);
+  const relativeSkillPath = path47.join("skills", skillName, entryName);
+  if (!existsSync44(entryPath)) {
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.missing`, relativeSkillPath, `skill '${skillName}' is missing required ${entryName} symlink`));
     return;
   }
@@ -36112,15 +36980,15 @@ function validateRequiredSymlink(skillDir, skillName, entryName, expectedTarget,
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.invalid_target`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink must point to '${normalizedExpected}'`, normalizedExpected, target));
     return;
   }
-  const resolved = path46.resolve(skillDir, target);
-  if (!existsSync43(resolved) || !statSync26(resolved).isDirectory()) {
+  const resolved = path47.resolve(skillDir, target);
+  if (!existsSync44(resolved) || !statSync27(resolved).isDirectory()) {
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.broken`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink target does not resolve to a directory`));
   }
 }
 function validateMarketplaceMetadata(rootDir, skillNames, diagnostics) {
-  const metadataPath = path46.join(rootDir, "skills", "marketplace.json");
-  const relativeMetadataPath = path46.join("skills", "marketplace.json");
-  if (!existsSync43(metadataPath)) {
+  const metadataPath = path47.join(rootDir, "skills", "marketplace.json");
+  const relativeMetadataPath = path47.join("skills", "marketplace.json");
+  if (!existsSync44(metadataPath)) {
     diagnostics.push(makeDiagnostic5("skills.marketplace.missing", relativeMetadataPath, "skills marketplace metadata file is missing"));
     return 0;
   }
@@ -36252,13 +37120,13 @@ function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
 }
 
 // src/skills/package-names.ts
-import { existsSync as existsSync44, readdirSync as readdirSync16, readFileSync as readFileSync30, statSync as statSync27 } from "node:fs";
-import path47 from "node:path";
+import { existsSync as existsSync45, readdirSync as readdirSync17, readFileSync as readFileSync30, statSync as statSync28 } from "node:fs";
+import path48 from "node:path";
 var RETIRED_SKILLS_FILE = "retired-skills.json";
 var byName = (left, right) => left.localeCompare(right);
 function readRetiredSkillNames(rootDir) {
-  const listPath = path47.join(rootDir, RETIRED_SKILLS_FILE);
-  if (!existsSync44(listPath))
+  const listPath = path48.join(rootDir, RETIRED_SKILLS_FILE);
+  if (!existsSync45(listPath))
     return { names: [], present: false, problems: [] };
   let parsed;
   try {
@@ -36348,9 +37216,9 @@ function validateRetiredSkillList(rootDir, packagedNames, diagnostics) {
 // src/skills.ts
 function validateStrictSkillPackaging(rootDir) {
   const diagnostics = [];
-  const skillsRoot = path48.join(rootDir, "skills");
+  const skillsRoot = path49.join(rootDir, "skills");
   const relativeSkillsRoot = "skills";
-  if (!existsSync45(skillsRoot) || !statSync28(skillsRoot).isDirectory()) {
+  if (!existsSync46(skillsRoot) || !statSync29(skillsRoot).isDirectory()) {
     diagnostics.push(makeDiagnostic5("skills.directory.missing", relativeSkillsRoot, "skills directory is missing"));
     return {
       valid: false,
@@ -36363,21 +37231,21 @@ function validateStrictSkillPackaging(rootDir) {
       }
     };
   }
-  const skillNames = readdirSync17(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+  const skillNames = readdirSync18(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
   const skillContents = new Map;
   for (const skillName of skillNames) {
-    const skillFilePath = path48.join(skillsRoot, skillName, "SKILL.md");
-    if (existsSync45(skillFilePath))
+    const skillFilePath = path49.join(skillsRoot, skillName, "SKILL.md");
+    if (existsSync46(skillFilePath))
       skillContents.set(skillName, readFileSync31(skillFilePath, "utf8"));
   }
   for (const skillName of skillNames) {
-    const skillDir = path48.join(skillsRoot, skillName);
-    const skillPath = path48.join("skills", skillName, "SKILL.md");
+    const skillDir = path49.join(skillsRoot, skillName);
+    const skillPath = path49.join("skills", skillName, "SKILL.md");
     if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path48.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
+      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path49.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
     }
-    const skillFilePath = path48.join(skillDir, "SKILL.md");
-    if (!existsSync45(skillFilePath)) {
+    const skillFilePath = path49.join(skillDir, "SKILL.md");
+    if (!existsSync46(skillFilePath)) {
       diagnostics.push(makeDiagnostic5("skill.file.missing", skillPath, "skill directory must include SKILL.md"));
       continue;
     }
@@ -36410,18 +37278,18 @@ function validateStrictSkillPackaging(rootDir) {
 }
 
 // src/cli/tech-status.ts
-import { existsSync as existsSync46, readFileSync as readFileSync32, statSync as statSync29 } from "fs";
-import path49 from "path";
-var STRICT_TECH_DIR = path49.join(".strict-spec-driven", "tech");
+import { existsSync as existsSync47, readFileSync as readFileSync32, statSync as statSync30 } from "fs";
+import path50 from "path";
+var STRICT_TECH_DIR = path50.join(".strict-spec-driven", "tech");
 var EXCLUDED_TECH_BASENAMES2 = new Set(["INDEX.yaml"]);
 function listTechFiles2(techDir) {
   return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path49.basename(filePath);
+    const basename = path50.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES2.has(basename);
   });
 }
 function getTechStatus(rootDir) {
-  const techDir = path49.join(rootDir, STRICT_TECH_DIR);
+  const techDir = path50.join(rootDir, STRICT_TECH_DIR);
   const empty = {
     techDirExists: false,
     standardCount: 0,
@@ -36429,7 +37297,7 @@ function getTechStatus(rootDir) {
     strengthCounts: { MUST: 0, SHOULD: 0, MAY: 0 },
     standards: []
   };
-  if (!existsSync46(techDir) || !statSync29(techDir).isDirectory()) {
+  if (!existsSync47(techDir) || !statSync30(techDir).isDirectory()) {
     return empty;
   }
   const standards = [];
@@ -36492,8 +37360,8 @@ function runShip(argv) {
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
   let resolvedArchiveName = null;
-  const exactDir = path50.join(archiveRoot, target);
-  if (existsSync47(exactDir) && statSync30(exactDir).isDirectory()) {
+  const exactDir = path51.join(archiveRoot, target);
+  if (existsSync48(exactDir) && statSync31(exactDir).isDirectory()) {
     resolvedArchiveName = target;
   } else {
     const bareMatches = findArchivedMatchesByBareName(rootDir, target);
@@ -36511,11 +37379,11 @@ function runShip(argv) {
     writeError(`archived change '${target}' not found`);
     return 1;
   }
-  const resolvedArchiveDir = path50.join(archiveRoot, resolvedArchiveName);
+  const resolvedArchiveDir = path51.join(archiveRoot, resolvedArchiveName);
   const archivePath = normalizeRepoRelativePath2(rootDir, resolvedArchiveDir);
   let proposalSummary = "";
-  const proposalPath = path50.join(resolvedArchiveDir, "proposal.yaml");
-  if (existsSync47(proposalPath)) {
+  const proposalPath = path51.join(resolvedArchiveDir, "proposal.yaml");
+  if (existsSync48(proposalPath)) {
     try {
       const proposalDoc = parseYamlDocument(readFileSync33(proposalPath, "utf8"));
       const summary = proposalDoc.summary;
@@ -36564,7 +37432,7 @@ function runTechStatus(argv) {
 }
 var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 function getDirectoryCreationTimeMs(directoryPath) {
-  const stats = statSync30(directoryPath);
+  const stats = statSync31(directoryPath);
   return stats.birthtimeMs > 0 ? stats.birthtimeMs : stats.ctimeMs;
 }
 function runCommitAndPush(argv) {
@@ -36586,7 +37454,7 @@ function runCommitAndPush(argv) {
     const match = ARCHIVE_DATE_PATTERN.exec(name);
     return match ? {
       dirName: name,
-      createdAtMs: getDirectoryCreationTimeMs(path50.join(archiveRoot, name)),
+      createdAtMs: getDirectoryCreationTimeMs(path51.join(archiveRoot, name)),
       bareName: match[2]
     } : null;
   }).filter((entry) => entry !== null).sort((a, b) => b.createdAtMs - a.createdAtMs || b.dirName.localeCompare(a.dirName));
@@ -36621,435 +37489,6 @@ function runCommitAndPush(argv) {
   }
   writeJson({ changeName: latest.bareName, archiveDir: latest.dirName, commitMessage, pushed: true });
   return 0;
-}
-
-// src/scenes.ts
-import { existsSync as existsSync48, readdirSync as readdirSync18, rmdirSync as rmdirSync2, statSync as statSync31 } from "fs";
-import path51 from "path";
-var STRICT_WORKFLOW_DIR15 = ".strict-spec-driven";
-var SCENES_ROOT = `${STRICT_WORKFLOW_DIR15}/scenes`;
-var SCENES_INDEX_PATH = `${SCENES_ROOT}/INDEX.yaml`;
-var SPEC_INDEX_PATH2 = `${STRICT_WORKFLOW_DIR15}/specs/INDEX.yaml`;
-var SCENE_SCHEMA_ID = "strict-spec-driven/scene/v1";
-var SCENES_INDEX_SCHEMA_ID = "strict-spec-driven/scenes-index/v1";
-var SCENE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/scene.yaml";
-var SCENES_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/scenes-index.yaml";
-var KEBAB_CASE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
-function scenesDir(rootDir) {
-  return path51.join(rootDir, SCENES_ROOT);
-}
-function sceneFileRepoPath(area, sceneId) {
-  return `${SCENES_ROOT}/${area}/${sceneId}.yaml`;
-}
-function repoRelative3(rootDir, absolutePath) {
-  return path51.relative(rootDir, absolutePath).split(path51.sep).join("/");
-}
-function assertKebabCase(value, label) {
-  if (!KEBAB_CASE.test(value))
-    throw new Error(`${label} must be kebab-case: '${value}'`);
-}
-function schemaIssues(artifactType, candidate, artifactPath) {
-  return validateArtifact(loadBundledSchemaByArtifactType(artifactType), candidate, artifactPath).diagnostics.map((entry) => ({
-    code: entry.source,
-    fieldPath: entry.fieldPath,
-    message: entry.message,
-    expected: entry.expected,
-    actual: entry.actual
-  }));
-}
-function listSceneFiles(rootDir) {
-  const dir = scenesDir(rootDir);
-  if (!existsSync48(dir) || !statSync31(dir).isDirectory())
-    return [];
-  const files = [];
-  for (const areaName of readdirSync18(dir).sort()) {
-    const areaDir = path51.join(dir, areaName);
-    if (!existsSync48(areaDir) || !statSync31(areaDir).isDirectory())
-      continue;
-    files.push(...readdirSync18(areaDir).filter((name) => name.endsWith(".yaml")).map((name) => path51.join(areaDir, name)).sort());
-  }
-  return files;
-}
-function loadScenes(rootDir) {
-  const scenes = [];
-  const diagnostics = [];
-  for (const absolutePath of listSceneFiles(rootDir)) {
-    const repoPath = repoRelative3(rootDir, absolutePath);
-    let artifact;
-    try {
-      artifact = parseYamlFile(absolutePath);
-    } catch (error) {
-      diagnostics.push({
-        source: "schema",
-        artifactPath: repoPath,
-        fieldPath: "$",
-        message: `failed to parse scene: ${error instanceof Error ? error.message : String(error)}`
-      });
-      continue;
-    }
-    const sceneId = artifact?.scene?.id;
-    if (typeof sceneId !== "string" || sceneId.length === 0) {
-      diagnostics.push({ source: "schema", artifactPath: repoPath, fieldPath: "$.scene.id", message: "scene id is missing" });
-      continue;
-    }
-    const directoryArea = path51.basename(path51.dirname(absolutePath));
-    if (artifact.area !== directoryArea) {
-      diagnostics.push({
-        source: "reference",
-        artifactPath: repoPath,
-        fieldPath: "$.area",
-        message: `scene '${sceneId}' records area '${String(artifact.area)}' but is stored under '${directoryArea}'; ` + "the area is the scene's subdirectory name, so move the file to " + `${SCENES_ROOT}/${String(artifact.area)}/${sceneId}.yaml or correct the recorded area`,
-        expected: directoryArea,
-        actual: String(artifact.area)
-      });
-      continue;
-    }
-    const fileName = path51.basename(absolutePath, ".yaml");
-    if (fileName !== sceneId) {
-      diagnostics.push({
-        source: "reference",
-        artifactPath: repoPath,
-        fieldPath: "$.scene.id",
-        message: `scene '${sceneId}' is stored as '${fileName}.yaml'; the file name is the scene id, so the index entry ` + "and the canonical path would disagree",
-        expected: `${sceneId}.yaml`,
-        actual: `${fileName}.yaml`
-      });
-      continue;
-    }
-    scenes.push({ id: sceneId, area: artifact.area, absolutePath, repoPath, artifact });
-  }
-  return { scenes, diagnostics };
-}
-function buildScenesIndex(scenes) {
-  const areas = {};
-  const sorted = [...scenes].sort((left, right) => left.id.localeCompare(right.id));
-  for (const area of [...new Set(sorted.map((entry) => entry.area))].sort()) {
-    const entries = {};
-    for (const scene of sorted.filter((candidate) => candidate.area === area)) {
-      entries[scene.id] = {
-        title: scene.artifact.scene.title,
-        status: scene.artifact.status,
-        path: sceneFileRepoPath(scene.area, scene.id)
-      };
-    }
-    areas[area] = entries;
-  }
-  return {
-    schema: SCENES_INDEX_SCHEMA_ID,
-    schema_version: 1,
-    artifact_type: "scenes_index",
-    schema_file: SCENES_INDEX_SCHEMA_FILE,
-    areas
-  };
-}
-function buildBaseScene(input) {
-  if (input.title === undefined)
-    throw new Error("creating a scene requires --title");
-  if (input.area === undefined)
-    throw new Error("creating a scene requires --area");
-  return {
-    schema: SCENE_SCHEMA_ID,
-    schema_version: 1,
-    artifact_type: "scene",
-    schema_file: SCENE_SCHEMA_FILE,
-    scene: { id: input.id, title: input.title },
-    area: input.area,
-    status: input.status ?? "draft",
-    actors: [],
-    preconditions: [],
-    main_flow: {},
-    exception_flows: {}
-  };
-}
-function sameCoverage(left, right) {
-  return left.spec_id === right.spec_id && left.requirement_id === right.requirement_id;
-}
-function applyStepInput(flow, step, flowLabel) {
-  assertKebabCase(step.id, "step id");
-  const existing = flow[step.id];
-  if (existing === undefined && step.action === undefined) {
-    throw new Error(`new step '${step.id}' in ${flowLabel} requires --action`);
-  }
-  const target = existing ?? { action: step.action };
-  if (step.action !== undefined)
-    target.action = step.action;
-  for (const removed of step.removeCoverage) {
-    target.covered_by = (target.covered_by ?? []).filter((entry) => !sameCoverage(entry, removed));
-    if (target.covered_by.length === 0)
-      delete target.covered_by;
-  }
-  if (step.coveredBy.length > 0) {
-    const merged = [...target.covered_by ?? []];
-    for (const reference of step.coveredBy) {
-      if (!merged.some((entry) => sameCoverage(entry, reference)))
-        merged.push(reference);
-    }
-    target.covered_by = merged;
-    delete target.no_coverage_reason;
-  }
-  if (step.noCoverageReason !== undefined) {
-    target.no_coverage_reason = step.noCoverageReason;
-    delete target.covered_by;
-  }
-  flow[step.id] = target;
-}
-function applySceneInput(candidate, input) {
-  if (input.title !== undefined)
-    candidate.scene.title = input.title;
-  if (input.status !== undefined)
-    candidate.status = input.status;
-  if (input.area !== undefined && input.area !== candidate.area) {
-    throw new Error(`scene '${input.id}' is recorded in area '${candidate.area}'; the area is the scene's directory and is not changed by an edit`);
-  }
-  for (const name of input.removeActors) {
-    candidate.actors = (candidate.actors ?? []).filter((actor) => actor.name !== name);
-  }
-  for (const value of input.removePreconditions) {
-    candidate.preconditions = (candidate.preconditions ?? []).filter((entry) => entry !== value);
-  }
-  for (const flowId of input.removeExceptionFlows)
-    delete candidate.exception_flows?.[flowId];
-  for (const reference of input.removeSteps) {
-    const separator = reference.indexOf(":");
-    if (separator === -1) {
-      delete candidate.main_flow?.[reference];
-      continue;
-    }
-    const flowId = reference.slice(0, separator);
-    const stepId = reference.slice(separator + 1);
-    const flow = candidate.exception_flows?.[flowId];
-    if (flow !== undefined)
-      delete flow.steps?.[stepId];
-  }
-  for (const actor of input.actors) {
-    const existing = (candidate.actors ??= []).find((entry) => entry.name === actor.name);
-    if (existing === undefined)
-      candidate.actors.push({ ...actor });
-    else
-      existing.role = actor.role;
-  }
-  for (const value of input.preconditions) {
-    candidate.preconditions ??= [];
-    if (!candidate.preconditions.includes(value))
-      candidate.preconditions.push(value);
-  }
-  for (const flow of input.exceptionFlows) {
-    assertKebabCase(flow.id, "exception flow id");
-    const existing = (candidate.exception_flows ??= {})[flow.id];
-    if (existing === undefined)
-      candidate.exception_flows[flow.id] = { trigger: flow.trigger, steps: {} };
-    else
-      existing.trigger = flow.trigger;
-  }
-  for (const step of input.steps) {
-    if (step.exceptionFlow === undefined) {
-      applyStepInput(candidate.main_flow ??= {}, step, "the main flow");
-      continue;
-    }
-    const flow = (candidate.exception_flows ??= {})[step.exceptionFlow];
-    if (flow === undefined) {
-      throw new Error(`exception flow '${step.exceptionFlow}' does not exist; declare it with --exception-flow ${step.exceptionFlow} --trigger <text> first`);
-    }
-    applyStepInput(flow.steps ??= {}, step, `exception flow '${step.exceptionFlow}'`);
-  }
-}
-function hasSceneEditIntent(input) {
-  return input.title !== undefined || input.area !== undefined || input.status !== undefined || input.actors.length > 0 || input.preconditions.length > 0 || input.exceptionFlows.length > 0 || input.steps.length > 0 || input.removeActors.length > 0 || input.removePreconditions.length > 0 || input.removeExceptionFlows.length > 0 || input.removeSteps.length > 0;
-}
-function authorScene(rootDir, input) {
-  assertKebabCase(input.id, "scene id");
-  if (!input.delete && !hasSceneEditIntent(input)) {
-    throw new Error("scene-edit requires semantic fields, named removals, or --delete");
-  }
-  if (input.delete && hasSceneEditIntent(input)) {
-    throw new Error("--delete is a delete-only operation and is rejected alongside editing flags");
-  }
-  if (input.area !== undefined)
-    assertKebabCase(input.area, "scene area");
-  const loaded = loadScenes(rootDir);
-  if (loaded.diagnostics.length > 0) {
-    throw new Error("the recorded scene store cannot be read, so the scene index cannot be rebuilt: " + loaded.diagnostics.map((entry) => `${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; "));
-  }
-  const existing = loaded.scenes.find((entry) => entry.id === input.id);
-  if (input.delete && existing === undefined)
-    throw new Error(`scene '${input.id}' does not exist`);
-  const area = existing?.area ?? input.area;
-  if (area === undefined)
-    throw new Error("creating a scene requires --area");
-  const targetPath = existing?.repoPath ?? sceneFileRepoPath(area, input.id);
-  const absolutePath = path51.join(rootDir, targetPath);
-  const operation = input.delete ? "delete" : existing === undefined ? "create" : "update";
-  let candidate;
-  if (!input.delete) {
-    candidate = existing === undefined ? buildBaseScene({ ...input, area }) : parseYamlFile(existing.absolutePath);
-    applySceneInput(candidate, input);
-  }
-  const remaining = loaded.scenes.filter((entry) => entry.id !== input.id);
-  const indexScenes = candidate === undefined ? remaining : [...remaining, { id: input.id, area, absolutePath, repoPath: targetPath, artifact: candidate }];
-  const indexAbsolutePath = path51.join(rootDir, SCENES_INDEX_PATH);
-  const indexExists = existsSync48(indexAbsolutePath);
-  const indexOperation = indexScenes.length === 0 ? indexExists ? "delete" : "update" : indexExists ? "update" : "create";
-  const mutation = commitYamlMutation({
-    rootDir,
-    mutations: [
-      {
-        artifactFamily: "scene-state",
-        artifactId: input.id,
-        schemaId: SCENE_SCHEMA_ID,
-        familyRoot: scenesDir(rootDir),
-        absolutePath,
-        operation,
-        ...candidate === undefined ? {} : { candidate, validateCandidate: (value, context) => schemaIssues("scene", value, context.artifactPath) }
-      },
-      ...indexScenes.length === 0 && !indexExists ? [] : [{
-        artifactFamily: "scene-state",
-        artifactId: "scenes-index",
-        schemaId: SCENES_INDEX_SCHEMA_ID,
-        familyRoot: scenesDir(rootDir),
-        absolutePath: indexAbsolutePath,
-        operation: indexOperation,
-        role: "reference",
-        ...indexScenes.length === 0 ? {} : {
-          candidate: buildScenesIndex(indexScenes),
-          validateCandidate: (value, context) => schemaIssues("scenes_index", value, context.artifactPath)
-        }
-      }]
-    ]
-  });
-  if (mutation.committed && input.delete)
-    pruneEmptySceneDirectories(rootDir, area);
-  return {
-    ...mutation,
-    sceneId: input.id,
-    artifactPath: input.delete ? null : targetPath,
-    indexPath: SCENES_INDEX_PATH,
-    operation
-  };
-}
-function pruneEmptySceneDirectories(rootDir, area) {
-  for (const directoryPath of [path51.join(scenesDir(rootDir), area), scenesDir(rootDir)]) {
-    try {
-      if (existsSync48(directoryPath) && readdirSync18(directoryPath).length === 0)
-        rmdirSync2(directoryPath);
-    } catch {}
-  }
-}
-function loadSpecRequirements(rootDir) {
-  const universe = new Map;
-  const indexPath = path51.join(rootDir, SPEC_INDEX_PATH2);
-  if (!existsSync48(indexPath))
-    return universe;
-  let index;
-  try {
-    index = parseYamlFile(indexPath);
-  } catch {
-    return universe;
-  }
-  for (const entry of index.specs ?? []) {
-    if (typeof entry?.id !== "string" || typeof entry.path !== "string")
-      continue;
-    const specPath = path51.join(rootDir, entry.path);
-    if (!existsSync48(specPath))
-      continue;
-    try {
-      const spec = parseYamlFile(specPath);
-      universe.set(entry.id, new Set(Object.keys(spec.requirements ?? {})));
-    } catch {
-      universe.set(entry.id, new Set);
-    }
-  }
-  return universe;
-}
-function describeStep(flow, stepId, step, universe) {
-  const coveredBy = (step.covered_by ?? []).map((reference) => ({
-    ...reference,
-    resolved: universe.get(reference.spec_id)?.has(reference.requirement_id) ?? false
-  }));
-  const state = coveredBy.length === 0 ? "waived" : coveredBy.every((reference) => reference.resolved) ? "covered" : "unresolved";
-  return {
-    flow,
-    stepId,
-    action: step.action,
-    state,
-    coveredBy,
-    ...step.no_coverage_reason === undefined ? {} : { noCoverageReason: step.no_coverage_reason }
-  };
-}
-function describeScene(scene, universe) {
-  const steps = [];
-  for (const [stepId, step] of Object.entries(scene.artifact.main_flow ?? {})) {
-    steps.push(describeStep("main", stepId, step, universe));
-  }
-  for (const [flowId, flow] of Object.entries(scene.artifact.exception_flows ?? {})) {
-    for (const [stepId, step] of Object.entries(flow.steps ?? {})) {
-      steps.push(describeStep(flowId, stepId, step, universe));
-    }
-  }
-  const coverageCounts = { covered: 0, waived: 0, unresolved: 0 };
-  for (const step of steps)
-    coverageCounts[step.state] += 1;
-  return {
-    id: scene.id,
-    title: scene.artifact.scene.title,
-    area: scene.area,
-    status: scene.artifact.status,
-    path: scene.repoPath,
-    steps,
-    coverageCounts
-  };
-}
-function getSceneStatus(rootDir, options = {}) {
-  const loaded = loadScenes(rootDir);
-  const universe = loadSpecRequirements(rootDir);
-  const allAreas = [...new Set(loaded.scenes.map((scene) => scene.area))].sort();
-  const diagnostics = [...loaded.diagnostics];
-  let selected = loaded.scenes;
-  if (options.area !== undefined) {
-    selected = selected.filter((scene) => scene.area === options.area);
-    if (selected.length === 0) {
-      diagnostics.push({
-        source: "reference",
-        artifactPath: SCENES_INDEX_PATH,
-        fieldPath: "$.areas",
-        message: allAreas.length === 0 ? `no scene area matches '${options.area}'; this project records no scene yet, so author one with 'strict-spec-cli scene-edit <scene-id> --area <area> --title <text>'` : `no scene area matches '${options.area}'; recorded areas are ${allAreas.join(", ")} (list them with 'strict-spec-cli scene-status')`,
-        expected: allAreas.join(", "),
-        actual: options.area
-      });
-    }
-  }
-  if (options.sceneId !== undefined) {
-    const before = selected;
-    selected = selected.filter((scene) => scene.id === options.sceneId);
-    if (selected.length === 0 && before.length > 0) {
-      const recorded = before.map((scene) => scene.id).sort();
-      diagnostics.push({
-        source: "reference",
-        artifactPath: SCENES_INDEX_PATH,
-        fieldPath: "$.areas",
-        message: `no scene matches '${options.sceneId}'; recorded scenes are ${recorded.join(", ")} (list them with 'strict-spec-cli scene-status')`,
-        expected: recorded.join(", "),
-        actual: options.sceneId
-      });
-    }
-  }
-  const scenes = selected.map((scene) => describeScene(scene, universe)).sort((left, right) => left.area.localeCompare(right.area) || left.id.localeCompare(right.id));
-  const statusCounts = { draft: 0, active: 0, obsolete: 0 };
-  const coverageCounts = { covered: 0, waived: 0, unresolved: 0 };
-  for (const scene of scenes) {
-    statusCounts[scene.status] += 1;
-    for (const state of ["covered", "waived", "unresolved"]) {
-      coverageCounts[state] += scene.coverageCounts[state];
-    }
-  }
-  return {
-    valid: diagnostics.length === 0,
-    sceneCount: scenes.length,
-    statusCounts,
-    coverageCounts,
-    areas: allAreas,
-    scenes,
-    diagnostics
-  };
 }
 
 // src/cli/cmd-scenes.ts

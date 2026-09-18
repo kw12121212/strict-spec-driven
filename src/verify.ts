@@ -7,6 +7,7 @@ import {
   type ValidationDiagnostic,
 } from "./validation.js";
 import { TASK_SECTION_NAMES } from "./propose-generation.js";
+import { collectSceneCoverageDiagnostics } from "./scenes.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -291,8 +292,8 @@ function validateDeltaSpecs(
 /**
  * Schema-validates the delta scenes a change carries, so a change-level scene artifact is a real
  * participant in the lifecycle rather than a file only its writer ever checked. This is artifact
- * validation, not coverage gating: whether a scene step names a covering requirement is a separate
- * check owned by the change that introduces the coverage gap diagnostics.
+ * validation only: whether a merged scene step names a covering requirement is decided against the
+ * merged scene state by collectSceneCoverageDiagnostics, which runs once these diagnostics are clear.
  */
 function validateDeltaScenes(
   changeDir: string,
@@ -1105,7 +1106,14 @@ export function verifyChange(
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
 
   const scenesPrefix = `.strict-spec-driven/changes/${changeName}/scenes`;
-  allDiagnostics.push(...validateDeltaScenes(changeDir, scenesPrefix));
+  const sceneSchemaDiagnostics = validateDeltaScenes(changeDir, scenesPrefix);
+  allDiagnostics.push(...sceneSchemaDiagnostics);
+  // Coverage gating reads the merged scene state, which a delta scene that fails its own schema
+  // cannot produce, so the structural diagnostics are reported alone rather than alongside a
+  // merge failure that only restates them.
+  if (sceneSchemaDiagnostics.length === 0) {
+    allDiagnostics.push(...collectSceneCoverageDiagnostics(rootDir, changeDir, changeName));
+  }
 
   const techPrefix = `.strict-spec-driven/changes/${changeName}/tech`;
   allDiagnostics.push(...validateDeltaTech(changeDir, techPrefix));

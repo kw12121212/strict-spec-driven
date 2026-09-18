@@ -22009,14 +22009,14 @@ schema_version: 1
 schema_id: strict-spec-driven/delta-scene/v1
 artifact_type: delta_scene
 artifact_name: delta-scene
-description: Strict YAML delta scene artifact carrying one strict change's scene operations, addressed by flow and stable step id so a delta states only the steps it changes rather than restating a whole scene. A delta scene exists because the main scene contract makes every scene section required and its recorded merge rule leaves a step present only in the main scene untouched, so a main-scene document can express neither a partial edit nor a step retirement. Operations are grouped ADDED, MODIFIED, and REMOVED, and within each group steps are addressed under main_flow or under one named exception flow. Actor and precondition edits are not delta operations because no flow step references them; they are authored directly on the main scene through the scene authoring command.
+description: 'Strict YAML delta scene artifact carrying one strict change''s scene operations, addressed by flow and stable step id so a delta states only the steps it changes rather than restating a whole scene. A delta scene exists because the main scene contract makes every scene section required and its recorded merge rule leaves a step present only in the main scene untouched, so a main-scene document can express neither a partial edit nor a step retirement. Operations are grouped ADDED, MODIFIED, and REMOVED, and within each group steps are addressed under main_flow or under one named exception flow. Actors and preconditions are not delta operations because no flow step references them: a delta supplies them only in the scene block when it creates the scene, and edits them on a recorded scene through the scene authoring command.'
 example_ref: ../../../examples/strict-spec-driven/delta-scene.yaml
 merge_rules:
   added_existing_step: A step id that appears as an ADDED entry MUST NOT already exist at the same flow address in the target main scene at archive time. Verify must enforce this constraint and report it as a deterministic validation failure.
   modified_missing_step: If a MODIFIED entry addresses a step id absent from its flow in the main scene at archive time, the entry is treated as ADDED and recorded in the archive merge report.
   removed_missing_step: If a REMOVED entry addresses a step id absent from its flow in the main scene at archive time, the entry is silently skipped and recorded as a skipped removal in the archive merge report.
   covered_by_set_merge: Merging a step's covered_by entries combines them as a set keyed by the spec_id and requirement_id pair, so the merged coverage of a step does not depend on which delta spec its requirements arrived from and a reference repeated across changes does not duplicate. This restates the rule the main scene contract declares, because the delta is the artifact that produces the merge.
-  new_scene_creation: If target_scene matches no existing scene id at archive time, the delta is a new-scene creation only when it provides a scene block with title and area. Archive creates the main scene at the canonical path derived from the area and target_scene, from the ADDED operations, then regenerates the scene index. A new-scene delta MUST supply at least one ADDED main_flow step and at least one ADDED exception flow, because the main scene contract requires both, and MUST keep MODIFIED and REMOVED empty. When target_scene matches no scene and no scene block is present, archive fails with a missing-target error rather than creating a scene.
+  new_scene_creation: If target_scene matches no existing scene id at archive time, the delta is a new-scene creation only when it provides a scene block with title, area, actors, and preconditions. Archive creates the main scene at the canonical path derived from the area and target_scene, from the scene block and the ADDED operations, then regenerates the scene index. A new-scene delta MUST supply at least one ADDED main_flow step and at least one ADDED exception flow, because the main scene contract requires both, and MUST keep MODIFIED and REMOVED empty. When target_scene matches no scene and no scene block is present, archive fails with a missing-target error rather than creating a scene.
 json_schema:
   $schema: http://json-schema.org/draft-07/schema#
   definitions:
@@ -22153,7 +22153,7 @@ json_schema:
     scene:
       type: object
       additionalProperties: false
-      description: Optional new-scene block, present only when this delta creates a scene whose id does not yet exist. Archive materializes the main scene at the canonical path derived from area and target_scene.
+      description: Optional new-scene block, present only when this delta creates a scene whose id does not yet exist. It carries the scene identity and the sections no flow step references — title, area, actors, and preconditions — because the main scene contract requires all of them and a created scene assembled without them could not validate. Archive materializes the main scene at the canonical path derived from area and target_scene.
       properties:
         title:
           type: string
@@ -22162,9 +22162,35 @@ json_schema:
           type: string
           pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
           description: Kebab-case grouping key that is also the scene subdirectory name, so the created scene's index group and canonical path stay derivable from each other.
+        actors:
+          type: array
+          minItems: 1
+          description: Everyone and everything that acts in the created scene. Required because the main scene contract requires at least one actor, so a delta that creates a scene without them could not produce a valid scene.
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              name:
+                type: string
+                minLength: 1
+              role:
+                type: string
+                minLength: 1
+            required:
+              - name
+              - role
+        preconditions:
+          type: array
+          minItems: 1
+          description: What must already hold before the created scene's main flow begins. Required for the same reason as actors.
+          items:
+            type: string
+            minLength: 1
       required:
         - title
         - area
+        - actors
+        - preconditions
     operations:
       type: object
       additionalProperties: false
@@ -27378,9 +27404,11 @@ artifact_families:
       - The scenes-index/v1 area groups and canonical paths must match the scene artifacts stored beneath those areas.
       - Every flow step covered_by entry names a spec id and a requirement id that must resolve against the recorded main specs.
       - A delta scene merges into a main scene by step id under its flow, so its target_scene and area must resolve to the canonical main scene path the merge will write.
+      - Archive merges a change's delta scenes into the recorded scenes and regenerates the scene index in the same transaction, and ready and verify block on a covering reference that does not resolve, so a scene and the main specs it references must stay consistent.
     cli_owners:
       - scene-edit
       - generate
+      - archive
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/scene.yaml
@@ -27389,6 +27417,7 @@ artifact_families:
       - templates/strict-spec-driven/schemas/delta-scene.yaml
       - examples/strict-spec-driven/delta-scene.yaml
       - src/scenes.ts
+      - src/archive.ts
     validation_command: bun test/run.ts
 exclusions:
   external-dependency-yaml:
@@ -31239,7 +31268,7 @@ var COMMAND_METADATA_ENTRIES = {
       `  strict-spec-cli generate <change-name> tasks [(${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(" | ")}) --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete`,
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
-      "  strict-spec-cli generate <change-name> delta-scene --target-scene <id> [--title <text> --area <area>] [--operation <ADDED|MODIFIED|REMOVED> [--exception-flow <flow-id> --trigger <text>] (--step <id> | --exception-step <flow-id>:<step-id>) (--action <text> (--covered-by <spec-id>:<requirement-id> | --no-coverage-reason <text>) | --reason <text>)]... [--remove-step <step-id|flow-id:step-id>]...",
+      "  strict-spec-cli generate <change-name> delta-scene --target-scene <id> [--title <text> --area <area> (--actor <name> --role <text>)... (--precondition <text>)...] [--operation <ADDED|MODIFIED|REMOVED> [--exception-flow <flow-id> --trigger <text>] (--step <id> | --exception-step <flow-id>:<step-id>) (--action <text> (--covered-by <spec-id>:<requirement-id> | --no-coverage-reason <text>) | --reason <text>)]... [--remove-step <step-id|flow-id:step-id>]...",
       "",
       "Task examples (run in order in a project with strict workflow state; recorded --command values are not executed by generate):",
       '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the scoped behavior."',
@@ -31646,13 +31675,36 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--target-scene",
         arity: "value",
         valueLabel: "<id>",
-        description: "Delta-scene artifact only: the scene id this delta targets, which also resolves the delta's area-and-id path beneath the change. Required for delta-scene and accepted at most once. A target no scene index records is a new-scene creation and additionally requires --title and --area."
+        description: "Delta-scene artifact only: the scene id this delta targets, which also resolves the delta's area-and-id path beneath the change. Required for delta-scene and accepted at most once. A target no scene index records is a new-scene creation and additionally requires --title, --area, --actor with --role, and --precondition."
       },
       {
         name: "--area",
         arity: "value",
         valueLabel: "<area>",
         description: "Delta-scene artifact only: the area of a scene this delta creates, paired with --title. Accepted at most once, and refused when it disagrees with the area the scene is already recorded under."
+      },
+      {
+        name: "--actor",
+        arity: "value",
+        valueLabel: "<name>",
+        description: "Delta-scene artifact only: names one actor of a scene this delta creates, and must be followed by its --role. Accepted only in the new-scene block, because no flow step references an actor; edit a recorded scene's actors with scene-edit instead.",
+        repeatable: true,
+        repeatSemantics: "Each value declares one actor; restating a recorded name replaces only that actor's role."
+      },
+      {
+        name: "--role",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-scene artifact only: what the preceding --actor does in the scene this delta creates. Required after each --actor, because a bare label is the answer the scene contract exists to stop an author from skipping.",
+        repeatable: true
+      },
+      {
+        name: "--precondition",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Delta-scene artifact only: one condition that must already hold before the created scene's main flow begins. Accepted only in the new-scene block, and appends without duplicating a recorded condition.",
+        repeatable: true,
+        repeatSemantics: "Each value appends one precondition, skipping a value already recorded."
       },
       {
         name: "--exception-flow",
@@ -33839,7 +33891,7 @@ var COMMAND_METADATA_ENTRIES = {
   archive: {
     name: "archive",
     group: "change",
-    summary: "Archive a verified change, merging delta artifacts into the main specs and standards.",
+    summary: "Archive a verified change, merging delta artifacts into the main specs, standards, and scenes.",
     mcpDescription: "Performs a release-class mutation by archiving a verified strict change.",
     usage: `Usage: strict-spec-cli archive <change-name>
 `,
@@ -33847,13 +33899,14 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics", "rerenderedDocuments"],
+      keys: ["valid", "diagnostics", "rerenderedDocuments", "sceneMergeSummary", "mergedScenes"],
       description: "A JSON archive result describing merged artifacts and reconciled roadmap state."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "An empty specs/ directory is allowed and does not block archive.",
-      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent."
+      "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
+      "A change carrying delta scenes merges them into .strict-spec-driven/scenes/ and regenerates the scene index in one transaction; two delta scenes stating conflicting content for one step are refused rather than resolved."
     ]
   },
   list: {

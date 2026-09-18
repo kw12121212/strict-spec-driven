@@ -114,6 +114,41 @@ export type SceneStatusResult = {
 
 export type SceneStatusOptions = { area?: string; sceneId?: string };
 
+/** One operation group of a delta scene, addressed by flow and stable step id. */
+type DeltaFlowEdit = {
+  main_flow?: Record<string, SceneFlowStep>;
+  exception_flows?: Record<string, { trigger?: string; steps?: Record<string, SceneFlowStep> }>;
+};
+type DeltaFlowRemoval = {
+  main_flow?: Record<string, { reason: string }>;
+  exception_flows?: Record<string, { steps?: Record<string, { reason: string }> }>;
+};
+
+export type DeltaSceneArtifact = {
+  target_scene: string;
+  scene?: { title: string; area: string; actors: SceneActor[]; preconditions: string[] };
+  operations?: { ADDED?: DeltaFlowEdit; MODIFIED?: DeltaFlowEdit; REMOVED?: DeltaFlowRemoval };
+};
+
+export type SceneMergeReport = {
+  targetScene: string;
+  scenePath: string;
+  created: boolean;
+  added: number;
+  modified: number;
+  removed: number;
+  modifiedMissingTargetAsAdded: string[];
+  removedMissingTargetSkipped: string[];
+};
+
+export type SceneMergePlan = {
+  /** Every scene the merged store holds, whether this change touched it or not. */
+  scenes: LoadedScene[];
+  /** Only the scenes the change's delta scenes targeted, in the order their reports were opened. */
+  targeted: LoadedScene[];
+  reports: SceneMergeReport[];
+};
+
 function scenesDir(rootDir: string): string {
   return path.join(rootDir, SCENES_ROOT);
 }
@@ -491,6 +526,303 @@ function pruneEmptySceneDirectories(rootDir: string, area: string): void {
   }
 }
 
+/**
+ * Commits a change's delta scenes into the recorded scene store and regenerates the scene index in
+ * the same transaction, so a refused merge can never leave an index naming a scene file that was
+ * never written. Returns one report per targeted scene, and nothing at all when the change carries
+ * no delta scene.
+ */
+export function mergeDeltaScenes(rootDir: string, changeDir: string): SceneMergeReport[] {
+  if (listDeltaScenePaths(changeDir).length === 0) return [];
+  const plan = planDeltaSceneMerge(rootDir, changeDir);
+
+  const indexAbsolutePath = path.join(rootDir, SCENES_INDEX_PATH);
+  const indexExists = existsSync(indexAbsolutePath);
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [
+      ...plan.targeted.map((scene) => ({
+        artifactFamily: "scene-state",
+        artifactId: scene.id,
+        schemaId: SCENE_SCHEMA_ID,
+        familyRoot: scenesDir(rootDir),
+        absolutePath: scene.absolutePath,
+        operation: (existsSync(scene.absolutePath) ? "update" : "create") as "create" | "update",
+        candidate: scene.artifact,
+        validateCandidate: (value: unknown, context: { artifactPath: string }) =>
+          schemaIssues("scene", value, context.artifactPath),
+      })),
+      {
+        artifactFamily: "scene-state",
+        artifactId: "scenes-index",
+        schemaId: SCENES_INDEX_SCHEMA_ID,
+        familyRoot: scenesDir(rootDir),
+        absolutePath: indexAbsolutePath,
+        operation: (indexExists ? "update" : "create") as "create" | "update",
+        role: "reference" as const,
+        candidate: buildScenesIndex(plan.scenes),
+        validateCandidate: (value: unknown, context: { artifactPath: string }) =>
+          schemaIssues("scenes_index", value, context.artifactPath),
+      },
+    ],
+  });
+
+  if (!mutation.committed) {
+    throw new Error(
+      `merging the change's delta scenes into ${SCENES_ROOT} was refused: `
+      + mutation.diagnostics.map((entry) => `${entry.fieldPath}: ${entry.message}`).join("; "),
+    );
+  }
+  return plan.reports;
+}
+
+const MAIN_FLOW = "main";
+
+function flowLabel(flowId: string): string {
+  return flowId === MAIN_FLOW ? "the main flow" : `exception flow '${flowId}'`;
+}
+
+/**
+ * Merges one delta step into a flow. The merged step takes the delta's content, and its covering
+ * requirements union with whatever the main step already named so the merged coverage does not
+ * depend on which delta spec the requirements arrived from. Assigning an existing key leaves it at
+ * its recorded position and a new key appends, which is exactly the declared position rule: a
+ * modified step keeps its place in the scenario's step sequence and an added step lands after it.
+ */
+function mergeStepInto(flow: Record<string, SceneFlowStep>, stepId: string, incoming: SceneFlowStep): void {
+  const existing = flow[stepId];
+  const merged: SceneFlowStep = { action: incoming.action };
+  if (incoming.covered_by !== undefined) {
+    const union = [...(existing?.covered_by ?? [])];
+    for (const reference of incoming.covered_by) {
+      if (!union.some((entry) => sameCoverage(entry, reference))) union.push(reference);
+    }
+    merged.covered_by = union;
+  } else if (incoming.no_coverage_reason !== undefined) {
+    merged.no_coverage_reason = incoming.no_coverage_reason;
+  }
+  flow[stepId] = merged;
+}
+
+/** Resolves the flow a delta operation addresses, creating a named exception flow when the delta introduces it. */
+function resolveFlow(
+  scene: SceneArtifact,
+  flowId: string,
+  trigger: string | undefined,
+  deltaPath: string,
+): Record<string, SceneFlowStep> {
+  if (flowId === MAIN_FLOW) return (scene.main_flow ??= {});
+  const flows = (scene.exception_flows ??= {});
+  const existing = flows[flowId];
+  if (existing === undefined) {
+    if (trigger === undefined) {
+      throw new Error(
+        `delta scene '${deltaPath}' introduces exception flow '${flowId}' on scene '${scene.scene.id}' without a trigger; `
+        + "a flow this delta introduces must state the trigger that causes it",
+      );
+    }
+    flows[flowId] = { trigger, steps: {} };
+    return flows[flowId].steps;
+  }
+  if (trigger !== undefined) existing.trigger = trigger;
+  return (existing.steps ??= {});
+}
+
+/** Walks one operation group's main-flow and exception-flow entries as flat `(flowId, trigger, stepId, value)` rows. */
+function* walkFlowEntries<T>(
+  group: { main_flow?: Record<string, T>; exception_flows?: Record<string, { trigger?: string; steps?: Record<string, T> }> } | undefined,
+): Generator<{ flowId: string; trigger: string | undefined; stepId: string; value: T }> {
+  for (const [stepId, value] of Object.entries(group?.main_flow ?? {})) {
+    yield { flowId: MAIN_FLOW, trigger: undefined, stepId, value };
+  }
+  for (const [flowId, flow] of Object.entries(group?.exception_flows ?? {})) {
+    for (const [stepId, value] of Object.entries(flow?.steps ?? {})) {
+      yield { flowId, trigger: flow?.trigger, stepId, value };
+    }
+  }
+}
+
+/**
+ * Removes an exception flow the removals emptied. The scene contract requires every exception flow
+ * to hold at least one step, so leaving the emptied flow behind would write the empty container the
+ * creation rule forbids and fail the scene's own schema on the next read.
+ */
+function pruneEmptyExceptionFlows(scene: SceneArtifact): void {
+  for (const [flowId, flow] of Object.entries(scene.exception_flows ?? {})) {
+    if (Object.keys(flow?.steps ?? {}).length === 0) delete scene.exception_flows[flowId];
+  }
+}
+
+function buildSceneFromDelta(delta: DeltaSceneArtifact, deltaPath: string): SceneArtifact {
+  if (delta.scene === undefined) {
+    throw new Error(
+      `delta scene '${deltaPath}' targets scene '${delta.target_scene}', which does not exist; `
+      + "create it with a scene block naming title and area, or correct target_scene to name a recorded scene "
+      + "(list them with 'strict-spec-cli scene-status')",
+    );
+  }
+  return {
+    schema: SCENE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "scene",
+    schema_file: SCENE_SCHEMA_FILE,
+    scene: { id: delta.target_scene, title: delta.scene.title },
+    area: delta.scene.area,
+    status: "draft",
+    actors: delta.scene.actors.map((actor) => ({ ...actor })),
+    preconditions: [...delta.scene.preconditions],
+    main_flow: {},
+    exception_flows: {},
+  };
+}
+
+/** Identifies one step address across the whole merge, so two deltas touching it can be compared. */
+function stepAddress(sceneId: string, flowId: string, stepId: string): string {
+  return `${sceneId} ${flowId} ${stepId}`;
+}
+
+function listDeltaScenePaths(changeDir: string): string[] {
+  const deltaDir = path.join(changeDir, "scenes");
+  if (!existsSync(deltaDir) || !statSync(deltaDir).isDirectory()) return [];
+  const files: string[] = [];
+  const walk = (current: string): void => {
+    for (const name of readdirSync(current).sort()) {
+      const full = path.join(current, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (name.endsWith(".yaml") || name.endsWith(".yml")) files.push(full);
+    }
+  };
+  walk(deltaDir);
+  return files;
+}
+
+/**
+ * Computes the merged scene store a change's delta scenes produce, without writing anything. Both
+ * the archive merge and the coverage gate run through this, so the state the gate inspects before
+ * implementation is the same state archive will commit rather than an approximation of it.
+ */
+export function planDeltaSceneMerge(rootDir: string, changeDir: string): SceneMergePlan {
+  const loaded = loadScenes(rootDir);
+  if (loaded.diagnostics.length > 0) {
+    throw new Error(
+      "the recorded scene store cannot be read, so a delta scene cannot be merged into it: "
+      + loaded.diagnostics.map((entry) => `${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; "),
+    );
+  }
+
+  const working = new Map(loaded.scenes.map((scene) => [scene.id, scene]));
+  const reports = new Map<string, SceneMergeReport>();
+  const targeted: string[] = [];
+  // Records which delta file last set each step address, so a second delta of the same change that
+  // states a different action for it is refused instead of silently overwriting authored content.
+  const actionOwners = new Map<string, { action: string; deltaPath: string }>();
+
+  for (const deltaPath of listDeltaScenePaths(changeDir)) {
+    const repoDeltaPath = repoRelative(rootDir, deltaPath);
+    const delta = parseYamlFile<DeltaSceneArtifact>(deltaPath);
+    if (typeof delta.target_scene !== "string" || delta.target_scene.length === 0) {
+      throw new Error(`delta scene '${repoDeltaPath}' is missing target_scene`);
+    }
+
+    let scene = working.get(delta.target_scene);
+    let report = reports.get(delta.target_scene);
+    if (scene === undefined) {
+      const artifact = buildSceneFromDelta(delta, repoDeltaPath);
+      const repoPath = sceneFileRepoPath(artifact.area, delta.target_scene);
+      scene = {
+        id: delta.target_scene,
+        area: artifact.area,
+        absolutePath: path.join(rootDir, repoPath),
+        repoPath,
+        artifact,
+      };
+      working.set(scene.id, scene);
+    }
+    if (report === undefined) {
+      report = {
+        targetScene: delta.target_scene,
+        scenePath: scene.repoPath,
+        created: !loaded.scenes.some((entry) => entry.id === delta.target_scene),
+        added: 0,
+        modified: 0,
+        removed: 0,
+        modifiedMissingTargetAsAdded: [],
+        removedMissingTargetSkipped: [],
+      };
+      reports.set(delta.target_scene, report);
+      targeted.push(delta.target_scene);
+    }
+
+    const target = scene;
+    const entry = report;
+    const operations = delta.operations ?? {};
+    // Two deltas of the same change may cover one step from different specs, which the coverage set
+    // merge handles. Two deltas stating different actions for it is a conflict this merge refuses
+    // rather than resolves, because picking one would discard the other's authored content unseen.
+    const claimAction = (flowId: string, stepId: string, action: string, addedOperation: boolean): void => {
+      const address = stepAddress(target.id, flowId, stepId);
+      const owner = actionOwners.get(address);
+      if (owner !== undefined && (addedOperation || owner.action !== action)) {
+        const source = owner.deltaPath === repoDeltaPath
+          ? `delta scene '${repoDeltaPath}' states two conflicting operations for`
+          : `delta scenes '${owner.deltaPath}' and '${repoDeltaPath}' both operate on`;
+        throw new Error(
+          `${source} step '${stepId}' in ${flowLabel(flowId)} of scene '${target.id}'; keep one of the two operations `
+          + "and restate it with 'strict-spec-cli generate <change-name> delta-scene --target-scene "
+          + `${target.id} --operation MODIFIED --step ${stepId} --action <text>', dropping the other with `
+          + `'strict-spec-cli generate <change-name> delta-scene --target-scene ${target.id} --remove-step ${stepId}'`,
+        );
+      }
+      actionOwners.set(address, { action, deltaPath: repoDeltaPath });
+    };
+
+    for (const { flowId, trigger, stepId, value } of walkFlowEntries(operations.ADDED)) {
+      claimAction(flowId, stepId, value.action, true);
+      const flow = resolveFlow(target.artifact, flowId, trigger, repoDeltaPath);
+      if (stepId in flow) {
+        throw new Error(
+          `delta scene '${repoDeltaPath}' adds step '${stepId}' to ${flowLabel(flowId)} of scene '${target.id}', `
+          + "but that step already exists; state the edit as a MODIFIED operation with "
+          + `'strict-spec-cli generate <change-name> delta-scene --target-scene ${target.id} --operation MODIFIED --step ${stepId} --action <text>'`,
+        );
+      }
+      mergeStepInto(flow, stepId, value);
+      entry.added += 1;
+    }
+
+    for (const { flowId, trigger, stepId, value } of walkFlowEntries(operations.MODIFIED)) {
+      claimAction(flowId, stepId, value.action, false);
+      const flow = resolveFlow(target.artifact, flowId, trigger, repoDeltaPath);
+      const present = stepId in flow;
+      mergeStepInto(flow, stepId, value);
+      if (present) entry.modified += 1;
+      else entry.modifiedMissingTargetAsAdded.push(stepId);
+    }
+
+    for (const { flowId, stepId } of walkFlowEntries(operations.REMOVED)) {
+      const flow = flowId === MAIN_FLOW
+        ? target.artifact.main_flow
+        : target.artifact.exception_flows?.[flowId]?.steps;
+      if (flow === undefined || !(stepId in flow)) {
+        entry.removedMissingTargetSkipped.push(stepId);
+        continue;
+      }
+      delete flow[stepId];
+      entry.removed += 1;
+    }
+    pruneEmptyExceptionFlows(target.artifact);
+  }
+
+  const scenes = [...working.values()].sort((left, right) =>
+    left.area.localeCompare(right.area) || left.id.localeCompare(right.id));
+  return {
+    scenes,
+    targeted: targeted.map((id) => working.get(id)!),
+    reports: [...reports.values()].sort((left, right) =>
+      left.scenePath.localeCompare(right.scenePath) || left.targetScene.localeCompare(right.targetScene)),
+  };
+}
+
 type SpecRequirementUniverse = Map<string, Set<string>>;
 
 /**
@@ -567,6 +899,113 @@ function describeScene(scene: LoadedScene, universe: SpecRequirementUniverse): S
     steps,
     coverageCounts,
   };
+}
+
+/** Builds the delta-scene command that records coverage for one step, with every identifier already substituted. */
+function coverageRemedyCommand(changeName: string, sceneId: string, flowId: string, stepId: string, action: string): string {
+  const flowArgument = flowId === MAIN_FLOW ? "" : ` --exception-flow ${flowId}`;
+  return `strict-spec-cli generate ${changeName} delta-scene --target-scene ${sceneId} --operation MODIFIED${flowArgument}`
+    + ` --step ${stepId} --action ${JSON.stringify(action)} --covered-by <spec-id>:<requirement-id>`;
+}
+
+/**
+ * Reports every step of the scenes this change touches that names no covering requirement and no
+ * explicit waiver, or names a requirement that does not resolve. The scope is the merged result of
+ * the change's delta scenes applied to the main scenes they target, so a step the change inherits
+ * unchanged is checked while a scene the change never touches is not. A change carrying no delta
+ * scene, and a repository holding no scene at all, therefore produce nothing.
+ */
+export function collectSceneCoverageDiagnostics(
+  rootDir: string,
+  changeDir: string,
+  changeName: string,
+): ValidationDiagnostic[] {
+  if (listDeltaScenePaths(changeDir).length === 0) return [];
+
+  let plan: SceneMergePlan;
+  try {
+    plan = planDeltaSceneMerge(rootDir, changeDir);
+  } catch (error) {
+    return [{
+      source: "reference",
+      artifactPath: repoRelative(rootDir, path.join(changeDir, "scenes")),
+      fieldPath: "$",
+      message: `the change's delta scenes cannot be merged, so scene coverage cannot be checked: ${error instanceof Error ? error.message : String(error)}`,
+    }];
+  }
+
+  const universe = loadSpecRequirements(rootDir);
+  const diagnostics: ValidationDiagnostic[] = [];
+  for (const scene of plan.targeted) {
+    const sceneDiagnostics: ValidationDiagnostic[] = [];
+    const flows: Array<[string, Record<string, SceneFlowStep>]> = [
+      [MAIN_FLOW, scene.artifact.main_flow ?? {}],
+      ...Object.entries(scene.artifact.exception_flows ?? {})
+        .map(([flowId, flow]) => [flowId, flow?.steps ?? {}] as [string, Record<string, SceneFlowStep>]),
+    ];
+    for (const [flowId, flow] of flows) {
+      for (const [stepId, step] of Object.entries(flow)) {
+        const fieldPath = flowId === MAIN_FLOW
+          ? `$.main_flow.${stepId}`
+          : `$.exception_flows.${flowId}.steps.${stepId}`;
+        const remedy = coverageRemedyCommand(changeName, scene.id, flowId, stepId, step.action);
+        const covering = step.covered_by ?? [];
+
+        if (covering.length === 0 && step.no_coverage_reason === undefined) {
+          sceneDiagnostics.push({
+            source: "reference",
+            artifactPath: scene.repoPath,
+            fieldPath,
+            message:
+              `step '${stepId}' in ${flowLabel(flowId)} of scene '${scene.id}' names no covering requirement and no `
+              + `no-coverage reason; record its coverage with '${remedy}', reading the covering spec id and requirement id `
+              + `from ${SPEC_INDEX_PATH} and the spec file it names, or waive it deliberately by replacing --covered-by with `
+              + "--no-coverage-reason <text>",
+            expected: "a covering requirement or an explicit no-coverage reason",
+            actual: "neither",
+          });
+          continue;
+        }
+
+        const unresolved = covering.filter((reference) => !(universe.get(reference.spec_id)?.has(reference.requirement_id) ?? false));
+        if (unresolved.length === 0) continue;
+        sceneDiagnostics.push({
+          source: "reference",
+          artifactPath: scene.repoPath,
+          fieldPath,
+          message:
+            `step '${stepId}' in ${flowLabel(flowId)} of scene '${scene.id}' names covering requirement(s) that do not `
+            + `resolve: ${unresolved.map((reference) => `${reference.spec_id}:${reference.requirement_id}`).join(", ")}; `
+            + `correct the reference with '${remedy}', reading the recorded spec ids and requirement ids from `
+            + `${SPEC_INDEX_PATH} and the spec file it names, or add the missing requirement to this change with `
+            + `'strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement <text>'`,
+          expected: "covering requirements that resolve against the recorded main specs",
+          actual: unresolved.map((reference) => `${reference.spec_id}:${reference.requirement_id}`).join(", "),
+        });
+      }
+    }
+
+    // A step-level gap explains the merged scene far better than the schema violation it also
+    // causes, so the structural check reports only what no coverage gap already accounts for. The
+    // merge commits the merged scene against the scene schema, so reporting it here is what keeps
+    // archive from refusing after the spec and standard merges have already written.
+    diagnostics.push(...sceneDiagnostics);
+    if (sceneDiagnostics.length > 0) continue;
+    for (const issue of schemaIssues("scene", scene.artifact, scene.repoPath)) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath: scene.repoPath,
+        fieldPath: issue.fieldPath,
+        message:
+          `merging this change's delta scenes would leave scene '${scene.id}' invalid: ${issue.message}; `
+          + `inspect the merged result with 'strict-spec-cli scene-status --scene ${scene.id}' and correct the delta with `
+          + `'strict-spec-cli generate ${changeName} delta-scene --target-scene ${scene.id} --<named-args>'`,
+        ...(issue.expected === undefined ? {} : { expected: issue.expected }),
+        ...(issue.actual === undefined ? {} : { actual: issue.actual }),
+      });
+    }
+  }
+  return diagnostics;
 }
 
 /**

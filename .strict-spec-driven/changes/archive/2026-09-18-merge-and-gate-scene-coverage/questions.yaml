@@ -1,0 +1,74 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: merge-and-gate-scene-coverage
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'A project adopting this workflow has no enforced path from a scene to the requirements that cover it. The scene family now has a schema, a registered example, an authoring command, and a status command, but nothing consumes a delta scene: archive merges only delta specs and delta tech, and verify only schema-validates a change''s delta scenes. So an authored delta scene never reaches recorded main scene state, and a scene step that names no covering requirement stays advisory output that a human has to notice. The people affected are authors of requirement sets with systematic holes in actors, preconditions, and exception flows, which is the failure the scene-driven-requirements milestone exists to fix.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'The dependency expose-scene-cli-surface is complete, which was the last blocker. roadmap-recommend reports this as the only eligible planned change in the roadmap: 27 of 29 planned changes are archived and the remaining one, route-requirements-through-scenes, is skipped on an incomplete dependency that this change satisfies. Milestone ordering is contract-first, so merge and gating must land before skills and operator documentation route authors through scenes, otherwise guidance would name a capability the CLI does not provide.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: Four observable differences, drawn from the milestone done criteria. Archive merges a delta scene into the scene area directory and regenerates the scene index deterministically. ready and verify both exit non-zero with a coverage-gap diagnostic naming its runnable remedy command when a scene step is left uncovered or names a covering requirement that does not resolve. A repository holding no scene artifact observes no new diagnostic and no new required field. This repository's own recorded scene reports full step coverage under the new gate, proving the contract on real requirements rather than only on the minimal example.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: The scene and scene index schemas, their registry entries, and their examples stay unchanged. The main spec schema and every existing main spec requirement stay untouched, because coverage references are declared on the scene side only. No workflow config switch enables or disables scene coverage checking. No human-readable scene document is rendered. Scene-first routing in bundled skills and operator documentation stays out; that is the later route-requirements-through-scenes planned change. Existing specs, this repository, and existing external projects are not required to author scenes. Delta spec and delta tech archive merge behavior is unchanged, and scene status keeps exiting zero when a covering reference does not resolve.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Two deliverables in one change, as the planned change states. First, archive consumes delta scenes: merge into the recorded main scenes under the conflict rules already pinned in contract requirement yaml-scene-merge-conflict-rules, including the case where a step''s covering requirements arrive from more than one delta spec of the same change, then regenerate the scene index. Second, a coverage-gap diagnostic that blocks, not advises: an uncovered step or an unresolvable covering reference fails both ready and verify with an identical diagnostic naming its runnable remedy. Checking is triggered by the presence of a scene, never by the presence of a spec. The spec impact is carried as a delta spec against operations-domain-behavior.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: duplicate-step-id-across-delta-scenes
+    question: When two delta scene files in the same change both carry an operation for the same scene id and the same step id with different actions, which one determines the merged step's content and position?
+    context: 'Impact: this affects implementation files and tests, not proposal scope or the spec delta. The registered contract requirement yaml-scene-merge-conflict-rules pins main-versus-delta precedence and set-merging of covering requirements keyed by the spec-id and requirement-id pair, but it is silent on delta-versus-delta collision inside one change. Recommendation: reject the change at ready and verify with a diagnostic naming both delta scene file paths, the scene id, and the colliding step id, because silently picking one delta''s action would discard authored content without telling anyone. Options: (a) reject as a blocking diagnostic, (b) apply delta scene files in sorted path order and let the last one win, (c) merge covering requirements as a set and reject only when the actions differ.'
+    answer: Reject with a blocking diagnostic. When two delta scene files in the same change carry an operation for the same scene id and the same step id with different actions, the merge refuses rather than picking one, and the diagnostic names both delta scene file paths, the scene id, and the colliding step id. Silently preferring one delta would discard authored content with no signal to the author. This governs the action collision only; covering requirements continue to merge as a set keyed by the spec-id and requirement-id pair, as the contract requires.
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: coverage-scope-during-an-active-change
+    question: During an active change, should ready and verify evaluate coverage only over the steps the change's delta scenes touch, or over the full merged result of applying those deltas to the recorded main scenes?
+    context: 'Impact: this affects implementation files and tests. The planned change states that checking is triggered by the presence of a scene, but not whether an already-recorded main scene step that is uncovered blocks an unrelated change that happens to carry a delta scene for the same scene. Recommendation: evaluate the full merged result for every scene the change''s delta scenes target, and leave untouched main scenes out of change-level gating, so a change is responsible for the scenes it edits without inheriting every pre-existing gap in the repository. Options: (a) merged result for targeted scenes only, (b) delta-touched steps only, (c) every recorded main scene regardless of what the change touches.'
+    answer: Evaluate the full merged result for every scene the change's delta scenes target, and leave main scenes the change does not touch out of change-level gating. A change is responsible for the scenes it edits, including steps it inherits from the recorded main scene, without inheriting every pre-existing coverage gap in the repository. This keeps external adoption incremental, which the milestone records as a constraint.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: merged-step-position-rule
+    question: When a delta scene modifies a step id the main scene already holds, what position does the merged step take in the flow?
+    context: 'Impact: this affects implementation files, tests, and the contract spec. The registered contract requirement yaml-scene-merge-conflict-rules says a step present in both replaces the main scene step''s content and position, but a delta''s steps are split across the ADDED, MODIFIED, and REMOVED operation groups and carry no single ordering, while a main scene''s main_flow key order is the scenario''s step sequence.'
+    answer: A MODIFIED step keeps the position it holds in the main scene, and ADDED steps are appended in the delta's own declared order. Moving a modified mid-flow step to the end would corrupt the step sequence the flow exists to express. Because this refines the shipped contract wording, the change carries a delta spec against contracts-yaml-artifacts restating yaml-scene-merge-conflict-rules so the contract and the merge agree.
+    status: resolved
+    answered_by: human
+  - id: new-scene-delta-cannot-be-valid
+    question: A delta scene that creates a new scene cannot produce a schema-valid scene, because the delta-scene schema carries no actors or preconditions while the scene schema requires at least one of each. How should new-scene creation through a delta work?
+    context: 'Impact: this affects the delta-scene schema, the generate delta-scene argument surface, the archive merge, tests, and the contracts spec. The delta-scene schema''s new_scene_creation merge rule says archive creates the main scene from a delta supplying a scene block, but its scene block holds only title and area, so the created scene fails the scene schema''s minItems on actors and preconditions. Found while smoke-testing the merge.'
+    answer: Extend the delta-scene schema's scene block to carry actors and preconditions, and give generate delta-scene the matching named arguments. This keeps the model in which a change carries deltas and archive writes live state, so a change can introduce a whole new scene without mutating .strict-spec-driven/scenes/ mid-change. The alternative of requiring scene-edit first would write live workflow state during a change, which no other delta-carried family does.
+    status: resolved
+    answered_by: human
+  - id: coverage-gap-versus-schema-precedence
+    question: A merged scene step declaring neither a covering requirement nor a waiver also fails the scene schema's oneOf. Which diagnostic should the gate report?
+    context: 'Impact: this affects implementation files and tests. Reporting the schema violation first produced ''must match exactly one schema in oneOf'' against the whole scene, naming no step and carrying no remedy, which the blocking-diagnostics rule forbids. Found while running the coverage gate after adding merged-scene schema validation.'
+    answer: Report the coverage gap first and fall back to the schema violation only for a scene no coverage gap already explains. The step-level gap names the scene, the flow, the step, and the runnable remedy, while the schema violation names only the document; reporting both would repeat one defect in two voices, and reporting only the schema violation would strip the remedy the blocking-diagnostics rule requires.
+    status: resolved
+    answered_by: assumption

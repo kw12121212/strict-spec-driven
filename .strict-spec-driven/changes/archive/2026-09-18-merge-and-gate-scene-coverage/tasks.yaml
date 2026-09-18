@@ -1,0 +1,103 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: merge-and-gate-scene-coverage
+sections:
+  Implementation:
+    add-scene-merge-helpers:
+      text: 'Add delta-scene collection and merge helpers to src/archive.ts: collect main scene paths by scene id, resolve each delta scene''s canonical area-nested destination under .strict-spec-driven/scenes/, and apply ADDED, MODIFIED, and REMOVED operations to main scene content.'
+      status: complete
+    implement-merge-conflict-rules:
+      text: 'Implement the contract''s conflict rules in the merge: covering requirements merge as a set keyed by the spec-id and requirement-id pair, a step id present in both the delta scene and the main scene replaces the main step''s content and position, a step id present only in the main scene is left untouched, and covering requirements arriving from more than one delta spec in the same change all survive.'
+      status: complete
+    refuse-conflicting-delta-scene-actions:
+      text: 'Refuse the merge when two delta scenes of the same change carry conflicting actions for the same scene id and step id: exit non-zero naming both delta scene paths, the scene id, and the colliding step id, and leave every pre-existing file unchanged. Covering requirements still merge as a set keyed by the spec-id and requirement-id pair, so only an action collision refuses.'
+      status: complete
+    enforce-declared-delta-scene-merge-rules:
+      text: 'Enforce the delta-scene schema''s declared merge rules: refuse an ADDED step whose id already exists at the same flow address, treat a MODIFIED step whose target is absent as ADDED and record it in the merge report, skip a REMOVED step whose target is absent and record it as a skipped removal, and create a new main scene from a delta whose target_scene matches nothing only when the delta supplies a scene block with title and area. Keep a modified step at its main-scene position and append added steps in the delta''s declared order.'
+      status: complete
+    extend-new-scene-delta-block:
+      text: Extend the delta-scene schema's scene block with required actors and preconditions through schema-edit, update its description and new_scene_creation merge rule, add --actor, --role, and --precondition to generate delta-scene with their command metadata, and carry both sections through the archive merge when it creates a scene.
+      status: complete
+    refuse-delta-restating-recorded-scene-sections:
+      text: Refuse --actor, --role, and --precondition on a delta targeting an already-recorded scene, naming scene-edit as the command that owns those sections, so the new-scene arguments cannot silently edit a recorded scene's identity block.
+      status: complete
+    regenerate-scene-index-on-archive:
+      text: Regenerate .strict-spec-driven/scenes/INDEX.yaml deterministically after the merge, grouping scenes by area key and recording each scene's title, status, and canonical path, and wire the merge plus regeneration into archiveChange before the change directory moves into the archive area.
+      status: complete
+    add-coverage-gap-evaluator:
+      text: Add an exported scene coverage-gap evaluator to src/scenes.ts that walks main-flow and exception-flow steps and returns one diagnostic per step that names neither a covering requirement nor a no-coverage reason, and per step whose covering reference names a spec id or requirement id that does not resolve.
+      status: complete
+    build-remedy-diagnostic:
+      text: Give each coverage-gap diagnostic a runnable remedy naming the scene authoring command with the scene id, area, and step id already substituted, and naming the spec index as the source to consult for the covering requirement id the author must still supply.
+      status: complete
+    gate-ready-and-verify:
+      text: Call the coverage-gap evaluator from the ready path and from src/verify.ts so both gates exit non-zero with identical diagnostics, scoping evaluation to a change's delta scenes together with the main scenes they target and to recorded main scenes otherwise, and returning no diagnostic when the repository holds no scene artifact.
+      status: complete
+    report-invalid-merge-in-verify:
+      text: Report a merge that would leave a targeted scene failing the main scene schema as a verify diagnostic, so archive refuses before the spec and standard merges write rather than partway through, and name the runnable remedy with the change and scene already substituted.
+      status: complete
+    register-archive-as-scene-cli-owner:
+      text: Add archive to the scene-state cli_owners in inventory/yaml-mutation-surfaces.yaml through the inventory-edit command, because archive becomes a writer of main scene and scene index state and the inventory list is cross-checked against the implementation in both directions.
+      status: complete
+    register-archive-in-operation-matrix:
+      text: Add archive to the scene-state entry of the YAML operation matrix and its command-to-family mapping, because the matrix is cross-checked against the inventory's declared CLI owners in both directions.
+      status: complete
+    rebuild-compiled-output:
+      text: Run bun run build so dist/ reflects the edited TypeScript sources, because the test suite runs against compiled output.
+      status: complete
+  Testing:
+    test-scene-archive-merge:
+      text: Add tests covering archive merging a delta scene into .strict-spec-driven/scenes/, deterministic scene index regeneration, the merge conflict rules including a step id present in both, a main-only step left untouched, covering requirements arriving from more than one delta spec in the same change, and the refusal when two delta scenes of the same change carry conflicting actions for one step id, asserting that the refusal leaves every pre-existing file unchanged.
+      status: complete
+    test-coverage-gap-gating:
+      text: Add tests covering the coverage-gap diagnostic failing both ready and verify for an uncovered step, the unresolvable covering-reference failure, the explicit no-coverage-reason exemption passing both gates, a step inherited unchanged from a targeted main scene being in scope, an untouched main scene not blocking the change, and a repository holding no scene producing no diagnostic and no behavior change.
+      status: complete
+    run-lint:
+      text: Run the project type-check lint command and confirm it reports no errors.
+      status: complete
+      command: bun run lint
+    run-project-suite:
+      text: Run the complete project test suite, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun test/run.ts > /tmp/merge-and-gate-scene-coverage.log 2>&1; echo "EXIT=$?"
+    run-coverage-gate:
+      text: Run the blocking project regression and coverage gate and confirm it passes at the declared threshold with the new scene merge and gating code covered.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    test-declared-merge-rules:
+      text: 'Add tests for the declared delta-scene merge rules: an ADDED step colliding with an existing step id is refused, a MODIFIED step with an absent target is recorded as added, a REMOVED step with an absent target is recorded as a skipped removal, a new-scene delta without a scene block fails with a missing-target error, a modified mid-flow step keeps its position, and added steps append in delta order.'
+      status: complete
+    test-new-scene-delta-creation:
+      text: 'Add tests for new-scene creation through a delta: a complete new-scene block creates a scene the main scene schema accepts, an incomplete block is refused naming the missing arguments, --role without a preceding --actor is refused, and a delta targeting an unrecorded scene with no scene block fails with a missing-target error.'
+      status: complete
+    test-recorded-scene-section-refusal:
+      text: Add a test that a delta restating a recorded scene's actors is refused and that the refusal names the scene-edit command with the scene id substituted.
+      status: complete
+    test-merged-scene-validity:
+      text: Add tests that a merge which would empty a required scene container is reported by verify, that archive refuses it, and that the refused archive leaves the main specs untouched and the change active.
+      status: complete
+  Verification:
+    check-yaml-inventory:
+      text: Run the YAML mutation inventory check and confirm the scene-state entry matches the implementation after archive becomes a scene writer.
+      status: complete
+      command: bun run check:yaml-inventory
+    run-ready:
+      text: Run the change readiness check and confirm it reports no blocking diagnostics.
+      status: complete
+      command: strict-spec-cli ready merge-and-gate-scene-coverage
+    run-verify:
+      text: Run full change verification and confirm the delta spec, delta scene, and task state all validate.
+      status: complete
+      command: strict-spec-cli verify merge-and-gate-scene-coverage
+    author-repository-scene-coverage:
+      text: Confirm this repository's own recorded scene reports full step coverage under the new gate, and record a covering requirement or an explicit no-coverage reason for any step the gate reports, so the contract is proven on real requirements rather than only on the minimal example.
+      status: complete
+      command: strict-spec-cli scene-status
+    confirm-archive-readiness:
+      text: 'Confirm archive readiness for the scene merge path: the delta scene merges into main scenes, the scene index regenerates deterministically, and a second archive run over the same state produces identical index content.'
+      status: complete
+testing_gates:
+  validation_task: run-project-suite
+  unit_test_task: run-coverage-gate

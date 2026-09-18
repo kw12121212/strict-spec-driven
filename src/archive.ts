@@ -15,6 +15,7 @@ import {
   type VerifyDiagnostic,
   type VerifyResult,
 } from "./verify.js";
+import { mergeDeltaScenes, type SceneMergeReport } from "./scenes.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
@@ -148,6 +149,16 @@ export type ArchiveResult = {
     removedMissingTargetSkipped: number;
   };
   mergedStandards: ArchiveMergedStandardResult[];
+  sceneMergeSummary: {
+    scenesUpdated: number;
+    scenesCreated: number;
+    added: number;
+    modified: number;
+    removed: number;
+    modifiedMissingTargetAsAdded: number;
+    removedMissingTargetSkipped: number;
+  };
+  mergedScenes: SceneMergeReport[];
   roadmapSync: RoadmapSyncResult | null;
 };
 
@@ -762,6 +773,9 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
   regenerateSpecIndex(rootDir);
 
   const mergedStandards = mergeDeltaTechStandards(rootDir, changeDir);
+  // Scenes merge after the specs they cover, so a coverage reference this change also introduces
+  // resolves against the main specs already on disk rather than against their pre-merge state.
+  const mergedScenes = mergeDeltaScenes(rootDir, changeDir);
 
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
   renameSync(changeDir, archiveDestination);
@@ -825,6 +839,31 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     },
   );
 
+  const sceneMergeSummary = mergedScenes.reduce(
+    (summary, report) => {
+      if (report.created) {
+        summary.scenesCreated += 1;
+      } else {
+        summary.scenesUpdated += 1;
+      }
+      summary.added += report.added;
+      summary.modified += report.modified;
+      summary.removed += report.removed;
+      summary.modifiedMissingTargetAsAdded += report.modifiedMissingTargetAsAdded.length;
+      summary.removedMissingTargetSkipped += report.removedMissingTargetSkipped.length;
+      return summary;
+    },
+    {
+      scenesUpdated: 0,
+      scenesCreated: 0,
+      added: 0,
+      modified: 0,
+      removed: 0,
+      modifiedMissingTargetAsAdded: 0,
+      removedMissingTargetSkipped: 0,
+    },
+  );
+
   return {
     valid: true,
     changeName,
@@ -833,6 +872,8 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     mergedSpecs,
     techMergeSummary,
     mergedStandards,
+    sceneMergeSummary,
+    mergedScenes,
     roadmapSync,
   };
 }

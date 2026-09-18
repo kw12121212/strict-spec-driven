@@ -100,6 +100,20 @@ function asOptionalStringArray(value: unknown, fieldPath: string): string[] | un
   return asStringArray(value, fieldPath);
 }
 
+/** Reads the actors a new-scene delta declares, each a name paired with the role it plays. */
+function asSceneActors(value: unknown, fieldPath: string): Array<{ name: string; role: string }> {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`input field '${fieldPath}' must contain at least one actor with a name and a role`);
+  }
+  return value.map((item, index) => {
+    const actor = asRecord(item, `${fieldPath}[${index}]`);
+    return {
+      name: asString(actor.name, `${fieldPath}[${index}].name`),
+      role: asString(actor.role, `${fieldPath}[${index}].role`),
+    };
+  });
+}
+
 function validateGeneratedArtifact(artifactType: string, artifact: unknown, artifactPath: string): ValidationDiagnostic[] {
   const schema = loadBundledSchemaByArtifactType(artifactType);
   const result = validateArtifact(schema, artifact, artifactPath);
@@ -618,7 +632,7 @@ function buildDeltaTechArtifact(rootDir: string, input: GenerationInputRecord): 
 }
 
 /** Resolves the area a scene is recorded under, which is also its subdirectory name. */
-function readSceneAreaForTarget(rootDir: string, targetScene: string): string | undefined {
+export function readSceneAreaForTarget(rootDir: string, targetScene: string): string | undefined {
   const indexPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "scenes", "INDEX.yaml");
   if (!existsSync(indexPath)) return undefined;
   const index = parseYamlDocument<{ areas?: Record<string, Record<string, unknown>> }>(
@@ -665,9 +679,13 @@ function buildDeltaSceneArtifact(rootDir: string, input: GenerationInputRecord):
   };
 
   if (sceneBlock) {
+    // The created scene carries the sections no flow step references, because the main scene
+    // contract requires them and a scene the merge assembles without them could not validate.
     artifact.scene = {
       title: asString(sceneBlock.title, "$.scene.title"),
       area: asString(sceneBlock.area, "$.scene.area"),
+      actors: asSceneActors(sceneBlock.actors, "$.scene.actors"),
+      preconditions: asStringArray(sceneBlock.preconditions ?? [], "$.scene.preconditions", { minItems: 1 }),
     };
   }
 

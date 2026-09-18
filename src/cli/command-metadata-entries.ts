@@ -192,7 +192,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       `  strict-spec-cli generate <change-name> tasks [(${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(" | ")}) --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete`,
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
-      "  strict-spec-cli generate <change-name> delta-scene --target-scene <id> [--title <text> --area <area>] [--operation <ADDED|MODIFIED|REMOVED> [--exception-flow <flow-id> --trigger <text>] (--step <id> | --exception-step <flow-id>:<step-id>) (--action <text> (--covered-by <spec-id>:<requirement-id> | --no-coverage-reason <text>) | --reason <text>)]... [--remove-step <step-id|flow-id:step-id>]...",
+      "  strict-spec-cli generate <change-name> delta-scene --target-scene <id> [--title <text> --area <area> (--actor <name> --role <text>)... (--precondition <text>)...] [--operation <ADDED|MODIFIED|REMOVED> [--exception-flow <flow-id> --trigger <text>] (--step <id> | --exception-step <flow-id>:<step-id>) (--action <text> (--covered-by <spec-id>:<requirement-id> | --no-coverage-reason <text>) | --reason <text>)]... [--remove-step <step-id|flow-id:step-id>]...",
       "",
       "Task examples (run in order in a project with strict workflow state; recorded --command values are not executed by generate):",
       '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the scoped behavior."',
@@ -616,7 +616,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         arity: "value",
         valueLabel: "<id>",
         description:
-          "Delta-scene artifact only: the scene id this delta targets, which also resolves the delta's area-and-id path beneath the change. Required for delta-scene and accepted at most once. A target no scene index records is a new-scene creation and additionally requires --title and --area.",
+          "Delta-scene artifact only: the scene id this delta targets, which also resolves the delta's area-and-id path beneath the change. Required for delta-scene and accepted at most once. A target no scene index records is a new-scene creation and additionally requires --title, --area, --actor with --role, and --precondition.",
       },
       {
         name: "--area",
@@ -624,6 +624,32 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         valueLabel: "<area>",
         description:
           "Delta-scene artifact only: the area of a scene this delta creates, paired with --title. Accepted at most once, and refused when it disagrees with the area the scene is already recorded under.",
+      },
+      {
+        name: "--actor",
+        arity: "value",
+        valueLabel: "<name>",
+        description:
+          "Delta-scene artifact only: names one actor of a scene this delta creates, and must be followed by its --role. Accepted only in the new-scene block, because no flow step references an actor; edit a recorded scene's actors with scene-edit instead.",
+        repeatable: true,
+        repeatSemantics: "Each value declares one actor; restating a recorded name replaces only that actor's role.",
+      },
+      {
+        name: "--role",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-scene artifact only: what the preceding --actor does in the scene this delta creates. Required after each --actor, because a bare label is the answer the scene contract exists to stop an author from skipping.",
+        repeatable: true,
+      },
+      {
+        name: "--precondition",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-scene artifact only: one condition that must already hold before the created scene's main flow begins. Accepted only in the new-scene block, and appends without duplicating a recorded condition.",
+        repeatable: true,
+        repeatSemantics: "Each value appends one precondition, skipping a value already recorded.",
       },
       {
         name: "--exception-flow",
@@ -2861,20 +2887,21 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
   archive: {
     name: "archive",
     group: "change",
-    summary: "Archive a verified change, merging delta artifacts into the main specs and standards.",
+    summary: "Archive a verified change, merging delta artifacts into the main specs, standards, and scenes.",
     mcpDescription: "Performs a release-class mutation by archiving a verified strict change.",
     usage: "Usage: strict-spec-cli archive <change-name>\n",
     arguments: [CHANGE_NAME_ARG],
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics", "rerenderedDocuments"],
+      keys: ["valid", "diagnostics", "rerenderedDocuments", "sceneMergeSummary", "mergedScenes"],
       description: "A JSON archive result describing merged artifacts and reconciled roadmap state.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "An empty specs/ directory is allowed and does not block archive.",
       "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
+      "A change carrying delta scenes merges them into .strict-spec-driven/scenes/ and regenerates the scene index in one transaction; two delta scenes stating conflicting content for one step are refused rather than resolved.",
     ],
   },
 

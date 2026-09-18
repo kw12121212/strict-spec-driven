@@ -126,3 +126,67 @@ requirements:
         - GIVEN: the only matches are a surface classified read-only or human-only in the mutation surface inventory, a rendered non-YAML generated document, an intentionally invalid test fixture, or a documented human-manual-edit note
         - WHEN: the operator runs maintenance with the cli-only-yaml-policy check configured
         - THEN: maintenance reports no finding for those locations
+  operations-archive-scene-merge:
+    strength: MUST
+    statement: The system MUST make archive merge a change's delta scenes into the recorded main scenes and regenerate the scene index in the same operation, merging each step's covering requirements as a set keyed by the spec-id and requirement-id pair, replacing a main scene step whose id the delta scene also carries with the delta step's content and position, leaving a step id present only in the main scene untouched, and preserving covering requirements that arrive from more than one delta spec of the same change. When two delta scenes of the same change carry conflicting actions for the same scene id and step id, archive MUST refuse rather than choose, naming both delta scene paths, the scene id, and the colliding step id, and MUST leave every pre-existing file unchanged.
+    scenarios:
+      archive-merges-delta-scene-into-main-scene:
+        - GIVEN: an archivable change carrying a delta scene for a scene id that is not yet recorded
+        - WHEN: archive runs
+        - THEN: the scene is written at its canonical area-nested path under the scene area directory and the scene index records its title, status, and canonical path under its area group
+      archive-replaces-a-step-present-in-both:
+        - GIVEN: an archivable change whose delta scene carries a step id that the recorded main scene already holds with a different action and position
+        - WHEN: archive runs
+        - THEN: the merged scene carries the delta step's action and position and the main scene's earlier content for that step id is gone
+      archive-leaves-main-only-steps-untouched:
+        - GIVEN: a recorded main scene holding a step id the change's delta scene does not mention
+        - WHEN: archive runs
+        - THEN: that step remains in the merged scene unchanged
+      archive-unions-cross-spec-covering-requirements:
+        - GIVEN: a recorded main scene step naming a covering requirement in one spec and a change whose delta scenes name covering requirements in other specs for that same step id
+        - WHEN: archive runs
+        - THEN: the merged step names every one of those covering requirements exactly once, keyed by the spec-id and requirement-id pair
+      archive-regenerates-scene-index-deterministically:
+        - GIVEN: a merged scene state
+        - WHEN: archive regenerates the scene index and the same archive state is regenerated again
+        - THEN: both regenerations produce byte-identical scene index content
+      archive-refuses-conflicting-delta-scene-actions:
+        - GIVEN: a change carrying two delta scene files that both operate on the same scene id and the same step id with different actions
+        - WHEN: archive runs
+        - THEN: the command exits non-zero naming both delta scene paths, the scene id, and the colliding step id, and no main scene file and no scene index entry is written
+  operations-scene-coverage-gap-gate:
+    strength: MUST
+    statement: The system MUST fail both ready and verify with a coverage-gap diagnostic when a scene flow step in scope names neither a covering requirement nor an explicit no-coverage reason, or names a covering requirement whose spec id or requirement id does not resolve, and MUST likewise fail both when merging the change's delta scenes would leave a targeted scene failing the main scene schema, so archive refuses before it merges anything rather than partway through. The scope during an active change is the full result of merging the change's delta scenes onto the main scenes those deltas target, so a step the change inherits unchanged from a targeted main scene is in scope while a main scene the change does not touch is not. Every such diagnostic MUST name the scene, MUST name the runnable remedy command with the identifiers it already knows substituted in, and MUST name the source to consult for any identifier the author must still supply. Checking MUST be triggered by the presence of a scene artifact, so a repository holding no scene observes no new diagnostic and no new required field.
+    scenarios:
+      uncovered-step-blocks-ready-and-verify:
+        - GIVEN: a change carrying a delta scene whose flow step names neither a covering requirement nor a no-coverage reason
+        - WHEN: ready runs and verify runs
+        - THEN: both commands exit non-zero and report the same coverage-gap diagnostic naming the scene, the flow, and the step
+      unresolvable-covering-reference-blocks-both-gates:
+        - GIVEN: a scene flow step naming a covering requirement whose spec id or requirement id does not resolve to a recorded main spec requirement
+        - WHEN: ready runs and verify runs
+        - THEN: both commands exit non-zero and report the unresolvable reference, naming the spec id and requirement id that failed to resolve
+      diagnostic-names-its-runnable-remedy:
+        - GIVEN: a coverage-gap diagnostic for an uncovered step
+        - WHEN: the author reads the diagnostic
+        - THEN: it names the scene authoring command with the scene id, area, and step id already substituted and names the spec index as the source for the covering requirement id still to be chosen
+      explicit-no-coverage-reason-passes-both-gates:
+        - GIVEN: a scene flow step declaring an explicit no-coverage reason and no covering requirement
+        - WHEN: ready runs and verify runs
+        - THEN: neither command reports a coverage-gap diagnostic for that step
+      no-scene-repository-observes-no-new-diagnostic:
+        - GIVEN: a repository holding strict workflow state and no scene artifact
+        - WHEN: ready runs and verify runs
+        - THEN: neither command reports any scene coverage diagnostic and neither requires any new field
+      inherited-step-of-a-targeted-scene-is-in-scope:
+        - GIVEN: a change whose delta scene targets a recorded main scene that already holds an uncovered step the delta does not mention
+        - WHEN: ready runs and verify runs
+        - THEN: both commands exit non-zero reporting that inherited step as a coverage gap
+      untouched-main-scene-does-not-block-the-change:
+        - GIVEN: a recorded main scene holding an uncovered step and a change whose delta scenes target a different scene entirely
+        - WHEN: ready runs and verify runs
+        - THEN: neither command reports a coverage gap for the untouched scene
+      invalid-merged-scene-blocks-before-archive-writes:
+        - GIVEN: a change whose delta scene removes the only step of a recorded scene's exception flow, leaving a container the scene contract requires to hold at least one entry
+        - WHEN: verify runs and archive runs
+        - THEN: verify exits non-zero naming the scene the merge would invalidate, archive exits non-zero, the main specs are byte-identical to their pre-archive content, and the change remains active

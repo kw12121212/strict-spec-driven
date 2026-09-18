@@ -532,9 +532,11 @@ artifact_families:
       - The scenes-index/v1 area groups and canonical paths must match the scene artifacts stored beneath those areas.
       - Every flow step covered_by entry names a spec id and a requirement id that must resolve against the recorded main specs.
       - A delta scene merges into a main scene by step id under its flow, so its target_scene and area must resolve to the canonical main scene path the merge will write.
+      - Archive merges a change's delta scenes into the recorded scenes and regenerates the scene index in the same transaction, and ready and verify block on a covering reference that does not resolve, so a scene and the main specs it references must stay consistent.
     cli_owners:
       - scene-edit
       - generate
+      - archive
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/scene.yaml
@@ -543,6 +545,7 @@ artifact_families:
       - templates/strict-spec-driven/schemas/delta-scene.yaml
       - examples/strict-spec-driven/delta-scene.yaml
       - src/scenes.ts
+      - src/archive.ts
     validation_command: bun test/run.ts
 exclusions:
   external-dependency-yaml:

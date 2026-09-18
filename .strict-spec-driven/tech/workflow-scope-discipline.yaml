@@ -47,3 +47,15 @@ rules:
         - A new roadmap command builds a dependency index from the active milestones it just walked, so a target that was archived reads as missing and blocks the dependent work.
     exceptions:
       - Code that reports on archived history itself, rather than deciding whether an active dependency target is satisfied.
+  archive-merge-failures-surface-in-verify:
+    strength: SHOULD
+    statement: A merge that archive performs across more than one artifact family SHOULD be fully evaluated by verify, so a merge archive would refuse is rejected before archive writes any family. Archive applies its family merges in sequence without a transaction spanning them, so a refusal raised inside a later stage leaves the earlier stages already written and the change still active.
+    rationale: Archive writes main specs, then technical standards, then scenes. A refusal raised in a later stage cannot undo the earlier writes, so the repository is left holding a partial merge that no command reverses and that the operator must reconcile by hand. Evaluating the merge during verify costs one extra dry run and turns that partial-write hazard into an ordinary blocking diagnostic the author can act on.
+    enforcement:
+      method: test
+      detail: For the scene family this is collectSceneCoverageDiagnostics, which plans the merge, validates each merged scene against the scene schema, and reports the result as a verify diagnostic; archive then performs the same merge knowing it will succeed. The spec and technical-standard merges do not yet do this, which is why the rule is a default rather than an absolute.
+    examples:
+      good:
+        - verify plans the delta scene merge, finds the merged scene would leave a required exception flow empty, and exits non-zero naming the scene and the remedy; archive refuses and the main specs are untouched
+      bad:
+        - archive merges the delta specs, writes them, then throws inside the scene merge, leaving merged specs on disk with the change still active
