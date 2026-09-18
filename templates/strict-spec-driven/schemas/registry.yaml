@@ -401,6 +401,18 @@ entries:
       supersedes: []
       compatible_with: []
       notes: []
+  - schema_id: strict-spec-driven/delta-scene/v1
+    schema_version: 1
+    artifact_type: delta_scene
+    artifact_name: delta-scene
+    schema_file: delta-scene.yaml
+    primary_example: ../../../examples/strict-spec-driven/delta-scene.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
 migration:
   legacy_root: .spec-driven
   strict_root: .strict-spec-driven

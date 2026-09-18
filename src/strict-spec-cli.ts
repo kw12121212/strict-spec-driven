@@ -29,6 +29,7 @@ import { runLessonCreate, runLessonEdit, runLessonList, runLessonObsolete, runLe
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
+import { runSceneEdit, runSceneStatus } from "./cli/cmd-scenes.js";
 import { runSpecEdit, runTechEdit } from "./cli/cmd-spec-tech.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import { runYamlAuthoringProtocol } from "./cli/cmd-yaml-authoring-protocol.js";
@@ -128,6 +129,8 @@ export const commands = createCliCommandTable({
   "tech-status": (argv) => runTechStatus(argv),
   "spec-edit": (argv) => runSpecEdit(argv),
   "tech-edit": (argv) => runTechEdit(argv),
+  "scene-edit": (argv) => runSceneEdit(argv),
+  "scene-status": (argv) => runSceneStatus(argv),
   "architecture-edit": (argv) => runArchitectureEdit(argv),
   "architecture-generate": (argv) => runArchitectureGenerate(argv),
   "architecture-status": (argv) => runArchitectureStatus(argv),

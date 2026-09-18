@@ -754,7 +754,10 @@ function projectPendingBundle(
     if (escaped === undefined) return currentBundle;
     const insertAt = currentBundle.indexOf("\n};");
     if (insertAt === -1) throw new Error("embedded bundle has no recognizable entry table");
-    return `${currentBundle.slice(0, insertAt)},\n${entryPrefix}${escaped}\``.concat(currentBundle.slice(insertAt));
+    // The rendered table already ends every entry with a trailing comma, so the new entry is
+    // appended without adding one. Emitting a separator here produced a `,,` that made the bundle
+    // unparseable, and because the generator imports the bundle it could no longer regenerate it.
+    return `${currentBundle.slice(0, insertAt)}\n${entryPrefix}${escaped}\`,`.concat(currentBundle.slice(insertAt));
   }
   const valueStart = startIndex + entryPrefix.length;
   let cursor = valueStart;

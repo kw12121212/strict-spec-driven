@@ -237,6 +237,26 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   const cancelTool = toolsModule.MUTATING_TOOL_DEFINITIONS.find((tool) => tool.name === "cancel_change");
   context.assert(cancelTool?.safety === "destructive", "MCP cancel tool uses destructive safety class");
   context.assert(cancelTool?.cliCommand === "cancel", "MCP cancel tool delegates to cancel command");
+  {
+    // Every repository-owned family must reach an agent through MCP as well as the CLI, so the
+    // authoring tool is exposed as a write and the reporter as a read rather than only one of them.
+    const sceneEditTool = toolsModule.MUTATING_TOOL_DEFINITIONS.find((tool) => tool.name === "scene_edit");
+    const sceneStatusTool = toolsModule.READ_ONLY_TOOL_DEFINITIONS.find((tool) => tool.name === "scene_status");
+    context.assert(
+      sceneEditTool?.safety === "write"
+        && sceneEditTool?.cliCommand === "scene-edit"
+        && sceneStatusTool?.safety === "read"
+        && sceneStatusTool?.cliCommand === "scene-status",
+      "the MCP tool inventory exposes the scene authoring and status tools",
+      JSON.stringify({ sceneEditTool: sceneEditTool?.safety, sceneStatusTool: sceneStatusTool?.safety }),
+    );
+    context.assert(
+      sceneEditTool?.description.includes("scene-state") === true
+        && sceneEditTool?.description.includes("yaml-authoring-protocol scene-state") === true,
+      "the MCP scene authoring tool description names the artifact kind and routes to the authoring protocol",
+      sceneEditTool?.description,
+    );
+  }
   context.assert(
     inventoryModule.MCP_SAFETY_CLASSES.every((safetyClass) =>
       toolsModule.READ_ONLY_TOOL_DEFINITIONS.concat(toolsModule.MUTATING_TOOL_DEFINITIONS).some((tool) => tool.safety === safetyClass),

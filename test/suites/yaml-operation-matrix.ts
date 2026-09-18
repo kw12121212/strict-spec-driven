@@ -72,9 +72,6 @@ const CHECKOUT_SCOPED = notApplicable(
   "bundled-asset editing is repository maintenance scoped to this checkout and is never invoked from an installed CLI in another project",
 );
 
-const NO_SCENE_COMMAND = notApplicable(
-  "this change ships the scene contract only; the inventory declares every scene operation not-applicable and names no CLI owner, so there is no command whose behavior this dimension could exercise",
-);
 
 const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
   "workflow-config": {
@@ -395,31 +392,26 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "mcp-driven": NO_MCP_TOOL,
     },
   },
-  // The scene contract ships ahead of its command surface, so every cell is deliberately empty of
-  // execution rather than unproven: the family has no CLI owner to drive. The planned change
-  // expose-scene-cli-surface is what turns these cells into executed ones.
+  // The command surface now drives every mutation dimension of the scene family. scene-edit owns the
+  // live scene store and generate owns the change-level delta scene.
   "scene-state": {
-    owners: [],
+    owners: ["generate", "scene-edit"],
     cells: {
-      "create": NO_SCENE_COMMAND,
-      "scalar-update": NO_SCENE_COMMAND,
-      "keyed-update": NO_SCENE_COMMAND,
-      "additive-list": NO_SCENE_COMMAND,
-      "named-removal": NO_SCENE_COMMAND,
-      "deletion": NO_SCENE_COMMAND,
-      "invalid-input-no-mutation": notApplicable(
-        "no command writes a scene, so the only scene documents that reach validation are the bundled examples the foundation suite validates directly",
+      "create": coveredBy("scenes.ts", "creating a scene exits zero"),
+      "scalar-update": coveredBy("scenes.ts", "the named step action is replaced"),
+      "keyed-update": coveredBy("scenes.ts", "a main-flow step is addressed under main_flow in its operation group"),
+      "additive-list": coveredBy("scenes.ts", "a text-only step edit preserves the step's covering references"),
+      "named-removal": coveredBy("scenes.ts", "named actor removal drops only the identified actor"),
+      "deletion": coveredBy("scenes.ts", "deleting a scene removes its file"),
+      "invalid-input-no-mutation": coveredBy("scenes.ts", "the refused write leaves no scene file behind"),
+      "rollback": coveredBy("scenes.ts", "a rejected first delta scene write leaves no change container behind"),
+      "index-reconciliation": coveredBy("scenes.ts", "the index entry records the scene's canonical path"),
+      "deterministic-output": coveredBy("scenes.ts", "restating equivalent delta scene content is idempotent"),
+      "installed-cli": coveredBy("scenes.ts", "scene-status exits zero with an unresolved reference recorded"),
+      "copied-project": notApplicable(
+        "the scene family carries no legacy Markdown input, so migrate never produces a scene and a copied legacy project has none to preserve",
       ),
-      "rollback": NO_SCENE_COMMAND,
-      "index-reconciliation": notApplicable(
-        "no command writes a scene or its index, so no write exists that could leave the two out of step",
-      ),
-      "deterministic-output": notApplicable(
-        "the family renders no generated document and no command emits scene output to compare between runs",
-      ),
-      "installed-cli": NO_SCENE_COMMAND,
-      "copied-project": NO_SCENE_COMMAND,
-      "mcp-driven": NO_MCP_TOOL,
+      "mcp-driven": coveredBy("mcp-server.ts", "the MCP tool inventory exposes the scene authoring and status tools"),
     },
   },
 };
@@ -471,6 +463,7 @@ const MCP_FAMILY_TOOLS: Record<string, string[]> = {
   ],
   "change-delta-state": ["generate_change_artifact", "archive_change"],
   "roadmap-state": ["roadmap_sync"],
+  "scene-state": ["scene_edit", "generate_change_artifact"],
 };
 
 function suiteContainsAssertion(suite: string, assertion: string): boolean {
@@ -549,15 +542,15 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
     const listedScene = surfaceList.families.find((family) => family.kind === "scene-state");
     context.assert(
       listedScene !== undefined
-        && JSON.stringify([...listedScene.artifactTypes].sort()) === JSON.stringify(["scene", "scenes_index"]),
-      "yaml-surface-list reports the scene family and both of its artifact types from the embedded inventory",
+        && JSON.stringify([...listedScene.artifactTypes].sort()) === JSON.stringify(["delta_scene", "scene", "scenes_index"]),
+      "yaml-surface-list reports the scene family and all three of its artifact types from the embedded inventory",
       JSON.stringify(listedScene),
     );
     context.assert(
       listedScene !== undefined
         && Object.keys(listedScene.operations).length === 4
-        && Object.values(listedScene.operations).every((state) => state === "not-applicable"),
-      "yaml-surface-list reports every scene operation as not-applicable while no command owns one",
+        && Object.values(listedScene.operations).every((state) => state === "cli-owned"),
+      "yaml-surface-list reports every scene operation as cli-owned now that commands own them",
       JSON.stringify(listedScene?.operations),
     );
 
@@ -569,13 +562,14 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
       };
     };
     context.assert(
-      shown.family.cliOwners.length === 0
-        && shown.family.pathPatterns.includes(".strict-spec-driven/scenes/*/*.yaml"),
-      "yaml-surface-show reports the scene family with nested path patterns and no CLI owner",
-      JSON.stringify(shown.family.pathPatterns),
+      JSON.stringify([...shown.family.cliOwners].sort()) === JSON.stringify(["generate", "scene-edit"])
+        && shown.family.pathPatterns.includes(".strict-spec-driven/scenes/*/*.yaml")
+        && shown.family.pathPatterns.includes(".strict-spec-driven/changes/*/scenes/*/*.yaml"),
+      "yaml-surface-show reports the scene family with nested live and change-level path patterns and its CLI owners",
+      JSON.stringify({ cliOwners: shown.family.cliOwners, pathPatterns: shown.family.pathPatterns }),
     );
     context.assert(
-      shown.family.artifactTypes.length === 2
+      shown.family.artifactTypes.length === 3
         && shown.family.artifactTypes.every((entry) => entry.schemaId !== undefined && entry.exampleKey !== undefined),
       "yaml-surface-show resolves a registered schema and a bundled example for each scene artifact type",
       JSON.stringify(shown.family.artifactTypes),

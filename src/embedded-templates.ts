@@ -622,6 +622,189 @@ json_schema:
                         type: string
                         minLength: 1
 `,
+  "strict-spec-driven/schemas/delta-scene.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/delta-scene/v1
+artifact_type: delta_scene
+artifact_name: delta-scene
+description: Strict YAML delta scene artifact carrying one strict change's scene operations, addressed by flow and stable step id so a delta states only the steps it changes rather than restating a whole scene. A delta scene exists because the main scene contract makes every scene section required and its recorded merge rule leaves a step present only in the main scene untouched, so a main-scene document can express neither a partial edit nor a step retirement. Operations are grouped ADDED, MODIFIED, and REMOVED, and within each group steps are addressed under main_flow or under one named exception flow. Actor and precondition edits are not delta operations because no flow step references them; they are authored directly on the main scene through the scene authoring command.
+example_ref: ../../../examples/strict-spec-driven/delta-scene.yaml
+merge_rules:
+  added_existing_step: A step id that appears as an ADDED entry MUST NOT already exist at the same flow address in the target main scene at archive time. Verify must enforce this constraint and report it as a deterministic validation failure.
+  modified_missing_step: If a MODIFIED entry addresses a step id absent from its flow in the main scene at archive time, the entry is treated as ADDED and recorded in the archive merge report.
+  removed_missing_step: If a REMOVED entry addresses a step id absent from its flow in the main scene at archive time, the entry is silently skipped and recorded as a skipped removal in the archive merge report.
+  covered_by_set_merge: Merging a step's covered_by entries combines them as a set keyed by the spec_id and requirement_id pair, so the merged coverage of a step does not depend on which delta spec its requirements arrived from and a reference repeated across changes does not duplicate. This restates the rule the main scene contract declares, because the delta is the artifact that produces the merge.
+  new_scene_creation: If target_scene matches no existing scene id at archive time, the delta is a new-scene creation only when it provides a scene block with title and area. Archive creates the main scene at the canonical path derived from the area and target_scene, from the ADDED operations, then regenerates the scene index. A new-scene delta MUST supply at least one ADDED main_flow step and at least one ADDED exception flow, because the main scene contract requires both, and MUST keep MODIFIED and REMOVED empty. When target_scene matches no scene and no scene block is present, archive fails with a missing-target error rather than creating a scene.
+json_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  definitions:
+    flow_step:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          minLength: 1
+          description: What happens at this step, stated as behavior an outside observer could confirm.
+        covered_by:
+          type: array
+          minItems: 1
+          description: The requirements that cover this step, each naming the spec that holds it. Entries may belong to different specs, so one step can be covered across spec areas.
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              spec_id:
+                type: string
+                minLength: 1
+              requirement_id:
+                type: string
+                minLength: 1
+            required:
+              - spec_id
+              - requirement_id
+        no_coverage_reason:
+          type: string
+          minLength: 1
+          description: Why this step is deliberately covered by no requirement. An explicit reason is the only accepted alternative to covered_by, so a step declaring neither is refused rather than passing as though it were covered.
+      required:
+        - action
+      oneOf:
+        - required:
+            - covered_by
+        - required:
+            - no_coverage_reason
+    removed_step:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          description: Why this step is being retired, recorded so a later reader can tell a deliberate retirement from a lost step.
+      required:
+        - reason
+    step_map:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Steps keyed by stable step id. Document key order is the step order, and the key is the identity this delta merges against in the main scene.
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          $ref: '#/definitions/flow_step'
+    removed_step_map:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          $ref: '#/definitions/removed_step'
+    exception_flow_edit:
+      type: object
+      additionalProperties: false
+      properties:
+        trigger:
+          type: string
+          minLength: 1
+          description: What causes this exception flow to be taken instead of the remainder of the main flow. Required when this delta introduces the flow, and otherwise restates or replaces the recorded trigger.
+        steps:
+          $ref: '#/definitions/step_map'
+      required:
+        - steps
+    exception_flow_removed:
+      type: object
+      additionalProperties: false
+      properties:
+        steps:
+          $ref: '#/definitions/removed_step_map'
+      required:
+        - steps
+    exception_flows_edit:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          $ref: '#/definitions/exception_flow_edit'
+    exception_flows_removed:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          $ref: '#/definitions/exception_flow_removed'
+    edit_operation:
+      type: object
+      additionalProperties: false
+      description: One operation group. An empty group is valid, because a delta that only adds steps still declares MODIFIED and REMOVED.
+      properties:
+        main_flow:
+          $ref: '#/definitions/step_map'
+        exception_flows:
+          $ref: '#/definitions/exception_flows_edit'
+    removed_operation:
+      type: object
+      additionalProperties: false
+      properties:
+        main_flow:
+          $ref: '#/definitions/removed_step_map'
+        exception_flows:
+          $ref: '#/definitions/exception_flows_removed'
+  type: object
+  additionalProperties: false
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/delta-scene/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: delta_scene
+    schema_file:
+      type: string
+    target_scene:
+      type: string
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+      description: The stable id of the scene this delta targets. A delta addressing a scene that does not exist is a new-scene creation only when the scene block is present.
+    scene:
+      type: object
+      additionalProperties: false
+      description: Optional new-scene block, present only when this delta creates a scene whose id does not yet exist. Archive materializes the main scene at the canonical path derived from area and target_scene.
+      properties:
+        title:
+          type: string
+          minLength: 1
+        area:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+          description: Kebab-case grouping key that is also the scene subdirectory name, so the created scene's index group and canonical path stay derivable from each other.
+      required:
+        - title
+        - area
+    operations:
+      type: object
+      additionalProperties: false
+      properties:
+        ADDED:
+          $ref: '#/definitions/edit_operation'
+        MODIFIED:
+          $ref: '#/definitions/edit_operation'
+        REMOVED:
+          $ref: '#/definitions/removed_operation'
+      required:
+        - ADDED
+        - MODIFIED
+        - REMOVED
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - target_scene
+    - operations
+`,
   "strict-spec-driven/schemas/delta-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/delta-spec/v1
@@ -2781,6 +2964,18 @@ entries:
       supersedes: []
       compatible_with: []
       notes: []
+  - schema_id: strict-spec-driven/delta-scene/v1
+    schema_version: 1
+    artifact_type: delta_scene
+    artifact_name: delta-scene
+    schema_file: delta-scene.yaml
+    primary_example: ../../../examples/strict-spec-driven/delta-scene.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
 migration:
   legacy_root: .spec-driven
   strict_root: .strict-spec-driven
@@ -4379,6 +4574,40 @@ review_evidence:
         exclude:
           - src/generated/**
 `,
+  "examples/strict-spec-driven/delta-scene.yaml": `schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: checkout-flow
+operations:
+  ADDED:
+    main_flow:
+      confirm-order:
+        action: The shopper confirms the order total before paying.
+        covered_by:
+          - spec_id: commerce-checkout
+            requirement_id: order-total-is-confirmed
+    exception_flows:
+      payment-declined:
+        trigger: The payment gateway declines the charge.
+        steps:
+          show-decline:
+            action: The shopper is shown the decline reason and the cart is preserved.
+            no_coverage_reason: The decline copy is owned by the payments provider and is deliberately covered by no requirement here.
+  MODIFIED:
+    main_flow:
+      submit-payment:
+        action: The shopper submits payment and sees the authorization result.
+        covered_by:
+          - spec_id: commerce-checkout
+            requirement_id: payment-is-authorized
+          - spec_id: commerce-notifications
+            requirement_id: authorization-result-is-reported
+  REMOVED:
+    main_flow:
+      legacy-coupon-prompt:
+        reason: The coupon prompt was retired when coupons moved into the cart, so the step no longer happens.
+`,
   "examples/strict-spec-driven/delta-spec.new-spec.yaml": `schema: strict-spec-driven/delta-spec/v1
 schema_version: 1
 artifact_type: delta_spec
@@ -5747,28 +5976,37 @@ artifact_families:
     artifact_types:
       - scenes_index
       - scene
+      - delta_scene
     path_patterns:
       - .strict-spec-driven/scenes/INDEX.yaml
       - .strict-spec-driven/scenes/*/*.yaml
       - examples/strict-spec-driven/scene.yaml
       - examples/strict-spec-driven/scenes-index.yaml
+      - .strict-spec-driven/changes/*/scenes/*/*.yaml
+      - .strict-spec-driven/changes/archive/*/scenes/*/*.yaml
+      - examples/strict-spec-driven/delta-scene.yaml
     ownership: repository-owned
-    validation_owner: templates/strict-spec-driven/schemas/scene.yaml and scenes-index.yaml
+    validation_owner: templates/strict-spec-driven/schemas/scene.yaml, scenes-index.yaml, and delta-scene.yaml
     operations:
-      create: not-applicable
-      update: not-applicable
-      named_remove: not-applicable
-      delete: not-applicable
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - The scenes-index/v1 area groups and canonical paths must match the scene artifacts stored beneath those areas.
       - Every flow step covered_by entry names a spec id and a requirement id that must resolve against the recorded main specs.
-      - The planned change expose-scene-cli-surface flips create and update to cli-owned and names the commands that own them; this change ships the contract only, so the family declares no CLI mutation owner yet.
-    cli_owners: []
+      - A delta scene merges into a main scene by step id under its flow, so its target_scene and area must resolve to the canonical main scene path the merge will write.
+    cli_owners:
+      - scene-edit
+      - generate
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/scene.yaml
       - templates/strict-spec-driven/schemas/scenes-index.yaml
       - examples/strict-spec-driven/scene.yaml
+      - templates/strict-spec-driven/schemas/delta-scene.yaml
+      - examples/strict-spec-driven/delta-scene.yaml
+      - src/scenes.ts
     validation_command: bun test/run.ts
 exclusions:
   external-dependency-yaml:
@@ -6020,6 +6258,7 @@ mutation_surfaces:
       - roadmap-state
       - architecture-state
       - design-system-state
+      - scene-state
     evidence:
       - src/mcp/tools.ts
       - src/mcp/inventory.ts

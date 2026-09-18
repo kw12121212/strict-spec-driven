@@ -1246,6 +1246,17 @@ type ScenesIndexExample = {
   areas: Record<string, Record<string, { title: string; status: string; path: string }>>;
 };
 
+type DeltaSceneFlowStep = { action?: string; covered_by?: { spec_id: string; requirement_id: string }[]; no_coverage_reason?: string };
+type DeltaSceneExample = {
+  target_scene: string;
+  scene?: { title: string; area: string };
+  operations: Record<string, {
+    main_flow?: Record<string, DeltaSceneFlowStep | { reason?: string }>;
+    exception_flows?: Record<string, { trigger?: string; steps?: Record<string, DeltaSceneFlowStep | { reason?: string }> }>;
+  }>;
+};
+
+const deltaSceneExamplePath = "examples/strict-spec-driven/delta-scene.yaml";
 const sceneExamplePath = "examples/strict-spec-driven/scene.yaml";
 const scenesIndexExamplePath = "examples/strict-spec-driven/scenes-index.yaml";
 const sceneSchema = validationModule.loadBundledSchemaByArtifactType("scene") as Record<string, unknown>;
@@ -1253,6 +1264,13 @@ const scenesIndexSchema = validationModule.loadBundledSchemaByArtifactType("scen
 const sceneSchemaDocument = load(
   readFileSync(path.join(ROOT, "templates", "strict-spec-driven", "schemas", "scene.yaml"), "utf8"),
 ) as { description?: string; json_schema?: Record<string, unknown> };
+const deltaSceneSchema = validationModule.loadBundledSchemaByArtifactType("delta_scene") as Record<string, unknown>;
+const deltaSceneSchemaDocument = load(
+  readFileSync(path.join(ROOT, "templates", "strict-spec-driven", "schemas", "delta-scene.yaml"), "utf8"),
+) as { description?: string; merge_rules?: Record<string, string>; json_schema?: Record<string, unknown> };
+const deltaSceneExample = yamlModule.parseYamlFile<DeltaSceneExample>(
+  path.join(ROOT, "examples", "strict-spec-driven", "delta-scene.yaml"),
+);
 const sceneExample = yamlModule.parseYamlFile<SceneExample>(
   path.join(ROOT, "examples", "strict-spec-driven", "scene.yaml"),
 );
@@ -1472,6 +1490,100 @@ context.assert(
   indexEntry.path.split("/").slice(-2, -1)[0] === "expenses" && sceneExample.area === "expenses",
   "the scenes-index group key is the scene subdirectory name and the scene artifact records the same key",
   indexEntry.path,
+);
+
+context.assert(
+  validationModule.validateArtifact(deltaSceneSchema, deltaSceneExample, deltaSceneExamplePath).valid,
+  "minimal delta-scene example validates against the registered delta-scene schema",
+  validationModule.validateArtifact(deltaSceneSchema, deltaSceneExample, deltaSceneExamplePath)
+    .diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join(" | "),
+);
+context.assert(
+  bundledRegistry.entries.some(
+    (entry) =>
+      entry.schema_id === "strict-spec-driven/delta-scene/v1"
+      && entry.artifact_type === "delta_scene"
+      && entry.schema_file === "delta-scene.yaml"
+      && entry.primary_example.endsWith("/delta-scene.yaml"),
+  ),
+  "schema registry includes delta-scene schema and primary example",
+);
+
+// A delta scene exists to express the two things a whole-scene document cannot: a partial edit and
+// a step retirement. The example is asserted to exercise both rather than only parsing.
+context.assert(
+  deltaSceneExample.operations.REMOVED?.main_flow !== undefined
+    && Object.values(deltaSceneExample.operations.REMOVED.main_flow)
+      .every((entry) => typeof (entry as { reason?: string }).reason === "string"),
+  "the delta-scene example retires a step with a reason, which the main scene contract cannot express",
+);
+context.assert(
+  deltaSceneExample.operations.ADDED?.main_flow !== undefined
+    && (deltaSceneExample as { actors?: unknown }).actors === undefined
+    && (deltaSceneExample as { preconditions?: unknown }).preconditions === undefined,
+  "the delta-scene example states steps without restating the scene sections the main contract requires",
+);
+const crossSpecDeltaStep = Object.values(deltaSceneExample.operations.MODIFIED?.main_flow ?? {}).find(
+  (entry) => ((entry as DeltaSceneFlowStep).covered_by ?? []).length > 1,
+);
+context.assert(
+  crossSpecDeltaStep !== undefined
+    && new Set(((crossSpecDeltaStep as DeltaSceneFlowStep).covered_by ?? []).map((reference) => reference.spec_id)).size > 1,
+  "the delta-scene example covers one step across more than one spec area",
+);
+for (const ruleName of ["added_existing_step", "modified_missing_step", "removed_missing_step", "covered_by_set_merge", "new_scene_creation"]) {
+  context.assert(
+    typeof deltaSceneSchemaDocument.merge_rules?.[ruleName] === "string",
+    `the delta-scene schema declares the ${ruleName} merge rule rather than leaving it to the archive implementation`,
+  );
+}
+
+function deltaSceneRefusal(mutate: (candidate: DeltaSceneExample) => void): { valid: boolean; fieldPaths: string } {
+  const candidate = structuredClone(deltaSceneExample);
+  mutate(candidate);
+  const result = validationModule.validateArtifact(deltaSceneSchema, candidate, deltaSceneExamplePath);
+  return { valid: result.valid, fieldPaths: result.diagnostics.map((diagnostic) => diagnostic.fieldPath ?? "").join(" | ") };
+}
+
+const deltaSceneRefusals: Array<[string, (candidate: DeltaSceneExample) => void]> = [
+  ["$.target_scene", (candidate) => {
+    delete (candidate as Record<string, unknown>).target_scene;
+  }],
+  ["$.operations", (candidate) => {
+    delete (candidate as Record<string, unknown>).operations;
+  }],
+  ["$.operations.REMOVED", (candidate) => {
+    delete (candidate.operations.REMOVED as Record<string, unknown>);
+    delete candidate.operations.REMOVED;
+  }],
+  ["$.operations.ADDED.main_flow", (candidate) => {
+    candidate.operations.ADDED.main_flow = {};
+  }],
+  ["$.operations.ADDED.main_flow.confirm-order", (candidate) => {
+    delete (candidate.operations.ADDED.main_flow?.["confirm-order"] as Record<string, unknown>).covered_by;
+  }],
+  ["$.operations.REMOVED.main_flow.legacy-coupon-prompt", (candidate) => {
+    delete (candidate.operations.REMOVED?.main_flow?.["legacy-coupon-prompt"] as Record<string, unknown>).reason;
+  }],
+];
+for (const [expectedFieldPath, mutate] of deltaSceneRefusals) {
+  const refusal = deltaSceneRefusal(mutate);
+  context.assert(
+    !refusal.valid && refusal.fieldPaths.includes(expectedFieldPath),
+    `a delta-scene candidate rejected at ${expectedFieldPath} is refused with that field path`,
+    refusal.fieldPaths,
+  );
+}
+
+// A step carrying both a covering reference and a waiver reads as covered while declaring it is
+// not, so the contract must admit exactly one of the two here as it does on the main scene.
+const bothCoverageForms = deltaSceneRefusal((candidate) => {
+  (candidate.operations.ADDED.main_flow?.["confirm-order"] as DeltaSceneFlowStep).no_coverage_reason = "also waived";
+});
+context.assert(
+  !bothCoverageForms.valid,
+  "a delta-scene step declaring both a covering reference and a no-coverage reason is refused",
+  bothCoverageForms.fieldPaths,
 );
 
 // The patterns come from the inventory rather than from a literal here, so narrowing or dropping the

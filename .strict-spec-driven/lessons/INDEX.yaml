@@ -220,7 +220,7 @@ categories:
     a-set-field-path-that-does-not-exist-creates-a-n-02ec26:
       title: A --set field path that does not exist creates a new branch instead of failing
       status: active
-      occurrences: 3
+      occurrences: 4
       path: .strict-spec-driven/lessons/tooling/a-set-field-path-that-does-not-exist-creates-a-n-02ec26.yaml
     piping-a-test-runner-into-tail-or-head-discards-15d651:
       title: Piping a test runner into tail or head discards its exit status
@@ -267,3 +267,13 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-diagnostic-that-must-name-an-entry-s-id-forces-5b6cff.yaml
+    a-generated-file-its-own-generator-imports-can-b-26ef24:
+      title: A generated file its own generator imports can be corrupted beyond regeneration
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-generated-file-its-own-generator-imports-can-b-26ef24.yaml
+    two-suite-runs-redirected-to-one-log-file-produc-91d14d:
+      title: Two suite runs redirected to one log file produce a summary that belongs to neither
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/two-suite-runs-redirected-to-one-log-file-produc-91d14d.yaml

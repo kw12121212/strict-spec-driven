@@ -288,6 +288,46 @@ function validateDeltaSpecs(
   return diagnostics;
 }
 
+/**
+ * Schema-validates the delta scenes a change carries, so a change-level scene artifact is a real
+ * participant in the lifecycle rather than a file only its writer ever checked. This is artifact
+ * validation, not coverage gating: whether a scene step names a covering requirement is a separate
+ * check owned by the change that introduces the coverage gap diagnostics.
+ */
+function validateDeltaScenes(
+  changeDir: string,
+  artifactPathPrefix: string,
+): VerifyDiagnostic[] {
+  const scenesDir = path.join(changeDir, "scenes");
+  if (!existsSync(scenesDir)) return [];
+
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  function scanDir(dir: string): void {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        scanDir(fullPath);
+        continue;
+      }
+      if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) continue;
+      const relativePath = path.relative(scenesDir, fullPath).split(path.sep).join("/");
+      const artifactPath = `${artifactPathPrefix}/${relativePath}`;
+      let artifact: unknown;
+      try {
+        artifact = parseYamlDocument<unknown>(readFileSync(fullPath, "utf8"), { source: artifactPath });
+      } catch (error) {
+        diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta scene is not valid YAML", error));
+        continue;
+      }
+      diagnostics.push(...validateArtifactSchema("delta_scene", artifact, artifactPath));
+    }
+  }
+
+  scanDir(scenesDir);
+  return diagnostics;
+}
+
 function validateDeltaTech(
   changeDir: string,
   artifactPathPrefix: string,
@@ -1063,6 +1103,9 @@ export function verifyChange(
   allDiagnostics.push(...checkUnresolvableDeltaTargets(rootDir, changeDir));
 
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
+
+  const scenesPrefix = `.strict-spec-driven/changes/${changeName}/scenes`;
+  allDiagnostics.push(...validateDeltaScenes(changeDir, scenesPrefix));
 
   const techPrefix = `.strict-spec-driven/changes/${changeName}/tech`;
   allDiagnostics.push(...validateDeltaTech(changeDir, techPrefix));

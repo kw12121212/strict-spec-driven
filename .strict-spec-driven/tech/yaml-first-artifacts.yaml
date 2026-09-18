@@ -130,3 +130,17 @@ rules:
         - scene-state declares create, update, named_remove, and delete as not-applicable with cli_owners and direct_write_paths empty, and records a reference side effect naming expose-scene-cli-surface as the change that flips create and update to cli-owned.
       bad:
         - A family declaring create as human-only while a named follow-up change is about to make a command own it, which reads to every later reader as a decision that the family's YAML is hand-edited.
+  named-removal-prunes-the-container-it-empties:
+    strength: MUST
+    statement: A named-entry removal MUST also remove any grouping container the removal leaves empty — a keyed map, a nested flow, a category or area subdirectory, or a whole index whose contract requires at least one member — so the store after a removal is a state the family's own schema still accepts and a later write does not have to repair.
+    rationale: 'The existing creation rule forbids writing an empty artifact container, but nothing governed the symmetric case, so removal paths were free to produce exactly the state creation is forbidden from writing. That gap is not theoretical: within one change it produced an empty scene area directory left behind after deleting the last scene in it, and a main_flow left as an empty map whose own minProperties contract then refused the next delta write. Both are invisible until a subsequent operation fails, and the failure surfaces against the innocent later write rather than the removal that caused it.'
+    enforcement:
+      method: test
+      detail: For every family whose artifacts nest inside a keyed container or a subdirectory, a test removes the last member and asserts the emptied container is gone rather than present-and-empty, and that the immediately following write against the same family still validates.
+    examples:
+      good:
+        - Deleting the last scene in an area removes the area directory, and deleting the last recorded scene removes the scene index too, because the scenes-index contract requires at least one area holding at least one scene.
+      bad:
+        - Removing the last step from a delta scene's main_flow leaves main_flow as an empty map, so the next generate call against that delta is refused by the step map's own minimum-one-entry contract.
+    exceptions:
+      - A container the family's contract explicitly permits to be empty is left in place, because its emptiness is declared rather than residual — the operation groups of a delta artifact are required keys whose empty value is valid and meaningful.

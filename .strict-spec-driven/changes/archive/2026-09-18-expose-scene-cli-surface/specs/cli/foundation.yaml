@@ -1,0 +1,153 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-scene-authoring-command:
+      strength: MUST
+      statement: The system MUST provide a scene authoring command that creates a scene, incrementally updates it, removes a named entry of a scene such as a flow step, an actor, a precondition, an exception flow, or a coverage reference, and deletes a whole scene, through named semantic arguments, reconciling the scene index in the same operation as the scene file write and leaving behind no empty scene container.
+      scenarios:
+        first-scene-creates-directory-and-index:
+          - GIVEN: a project with strict workflow state and no scenes directory
+          - WHEN: the scene authoring command is invoked with the arguments describing one complete scene
+          - THEN: the scene file is written at its canonical nested path beneath the scene area directory
+        incremental-update-preserves-unnamed-fields:
+          - GIVEN: a recorded scene whose flow step carries an action and several covering requirement references
+          - WHEN: the scene authoring command is invoked naming only that step's replacement action
+          - THEN: the step's action is replaced and its covering requirement references and its position among the other steps are unchanged
+        named-step-removal-drops-exactly-one-step:
+          - GIVEN: a recorded scene holding more than one flow step
+          - WHEN: the scene authoring command is invoked to remove one step by its id
+          - THEN: only the named step is removed and every other step and its position is unchanged
+        whole-scene-deletion-removes-file-and-index-entry:
+          - GIVEN: a recorded scene registered in the scene index
+          - WHEN: the scene authoring command is invoked to delete that whole scene
+          - THEN: the scene file is removed and its scene index entry is removed in the same operation
+        rejected-write-leaves-no-partial-state:
+          - GIVEN: a project with strict workflow state
+          - WHEN: the scene authoring command is invoked with arguments that would produce an invalid scene
+          - THEN: the command exits non-zero with a diagnostic naming the invalid field
+        first-scene-creates-index-holding-that-scene:
+          - GIVEN: a project with strict workflow state and no scene index
+          - WHEN: the scene authoring command writes the first scene
+          - THEN: a scene index is created holding exactly one entry, grouped under the scene's area, recording that scene's title, status, and canonical path
+        rejected-write-leaves-no-orphaned-index-entry:
+          - GIVEN: a project with strict workflow state
+          - WHEN: a scene authoring invocation is rejected
+          - THEN: no scene file and no scene index entry from that invocation remains on disk
+        named-entry-removal-drops-only-the-identified-entry:
+          - GIVEN: a recorded scene holding more than one actor, precondition, and coverage reference
+          - WHEN: the scene authoring command is invoked to remove one named actor
+          - THEN: only that actor is removed and every precondition, coverage reference, and flow step is unchanged
+        deleting-the-last-scene-of-an-area-leaves-no-empty-container:
+          - GIVEN: a recorded scene that is the only scene in its area
+          - WHEN: the scene authoring command deletes that scene
+          - THEN: the area directory is removed rather than left behind empty
+        deleting-the-last-recorded-scene-removes-the-index:
+          - GIVEN: a recorded scene that is the only scene in the project
+          - WHEN: the scene authoring command deletes that scene
+          - THEN: the scene index is removed, because the index contract requires at least one scene and an index holding none is the empty container artifact creation forbids
+        delete-is-refused-alongside-an-editing-flag:
+          - GIVEN: a recorded scene
+          - WHEN: the scene authoring command is invoked with both the delete flag and an editing flag
+          - THEN: the command exits non-zero and the scene is unchanged
+    cli-scene-status-command:
+      strength: MUST
+      statement: The system MUST provide a read-only scene status command that reports every recorded scene, its main-flow and exception-flow steps, and each step's coverage state as covered, waived, or unresolved, that narrows its output to a named scene area or a named scene instead of always printing every scene, and that exits zero when a step's covering reference does not resolve.
+      scenarios:
+        status-reports-every-step-coverage-state:
+          - GIVEN: a recorded scene holding a step with covering requirement references and a step carrying an explicit no-coverage reason
+          - WHEN: the scene status command is invoked
+          - THEN: the covered step is reported as covered with its covering requirement references and the waived step is reported as waived with its recorded reason
+        status-narrows-to-one-area:
+          - GIVEN: a scene index holding scenes in more than one area
+          - WHEN: the scene status command is invoked with an area selector naming one of them
+          - THEN: only the scenes grouped under that area are reported
+        status-narrows-to-one-scene:
+          - GIVEN: a scene index holding more than one scene
+          - WHEN: the scene status command is invoked with a scene selector naming one of them
+          - THEN: only that scene and its steps are reported
+        unmatched-selector-exits-non-zero:
+          - GIVEN: a scene index that holds no scene matching the supplied selector
+          - WHEN: the scene status command is invoked with that selector
+          - THEN: the command exits non-zero with a diagnostic naming the recorded areas or scenes
+        status-mutates-nothing:
+          - GIVEN: a recorded scene and scene index
+          - WHEN: the scene status command is invoked
+          - THEN: no scene artifact and no scene index file is modified
+        unresolved-coverage-reference-is-reported-without-blocking:
+          - GIVEN: a recorded scene whose step names a covering requirement in a spec that holds no such requirement
+          - WHEN: the scene status command is invoked
+          - THEN: that step is reported as unresolved alongside the covered and waived steps and the command exits zero
+    cli-delta-scene-generation:
+      strength: MUST
+      statement: The system MUST allow a strict change to carry scene operations as a change-level delta scene artifact authored through the change artifact generation command, addressing each step by flow and stable step id so the delta states only the steps it changes, and MUST schema-validate that artifact when the change is verified, the way a change already carries and validates delta specs and delta tech.
+      scenarios:
+        delta-scene-written-under-change:
+          - GIVEN: a strict change and the facts describing a scene operation
+          - WHEN: the change artifact generation command is invoked for the delta scene artifact
+          - THEN: a delta scene artifact is written beneath that change's own scene directory and the structured result reports its path and artifact kind
+        first-delta-scene-call-creates-container-atomically:
+          - GIVEN: no strict change container exists for the named change
+          - WHEN: a delta scene generation call for that change is rejected
+          - THEN: no change container and no delta scene artifact remains on disk
+        repeated-equivalent-delta-scene-call-is-idempotent:
+          - GIVEN: a change already carrying a delta scene artifact
+          - WHEN: the same delta scene generation call is repeated with equivalent content
+          - THEN: the artifact content is unchanged and the command exits zero
+        delta-scene-addresses-a-step-without-restating-the-scene:
+          - GIVEN: a recorded scene holding several flow steps
+          - WHEN: a delta scene operation is authored for one of those steps
+          - THEN: the delta records only that step and declares none of the scene's other required sections
+        delta-scene-can-retire-a-step:
+          - GIVEN: a strict change that must retire a recorded flow step
+          - WHEN: a removal operation naming that step and its reason is authored
+          - THEN: the delta records the step as removed with its reason, which the main scene contract alone cannot express
+        delta-scene-step-requires-coverage-or-an-explicit-waiver:
+          - GIVEN: a strict change authoring a delta scene step
+          - WHEN: the step names neither a covering requirement nor an explicit no-coverage reason
+          - THEN: the command exits non-zero, because a step declaring neither would pass as though it were covered
+        removing-the-last-step-of-a-flow-removes-the-flow-container:
+          - GIVEN: a delta scene operation holding exactly one step in one flow
+          - WHEN: that step is removed from the delta by id
+          - THEN: the emptied flow container is removed too rather than left as an empty container the delta contract refuses
+        delta-scene-targeting-an-unrecorded-scene-requires-the-new-scene-block:
+          - GIVEN: a change authoring a delta scene for a scene id no scene index records
+          - WHEN: the delta is authored without the new-scene title and area
+          - THEN: the command exits non-zero and names the arguments that declare a new scene
+        verify-schema-validates-a-carried-delta-scene:
+          - GIVEN: a strict change carrying a delta scene artifact that does not satisfy the delta scene contract
+          - WHEN: the change is verified
+          - THEN: verification exits non-zero with a diagnostic naming the delta scene path and the offending field
+        verify-reports-an-unparseable-delta-scene:
+          - GIVEN: a strict change whose delta scene artifact is not valid YAML
+          - WHEN: the change is verified
+          - THEN: verification exits non-zero and reports the unparseable delta scene rather than skipping it
+        verify-passes-a-valid-delta-scene:
+          - GIVEN: a strict change carrying a valid delta scene artifact
+          - WHEN: the change is verified
+          - THEN: verification reports no diagnostic against the delta scene, and scene step coverage is not gated here because that gate is owned elsewhere
+    cli-scene-mutation-surface-projection:
+      strength: MUST
+      statement: The system MUST report the scene artifact family with its CLI-owned mutation operations and owning commands on every agent-facing discovery surface, comprising the YAML surface listing, the per-kind YAML surface report, the YAML authoring protocol, and the MCP tool inventory.
+      scenarios:
+        surface-listing-reports-scene-family-as-cli-owned:
+          - GIVEN: a repository whose YAML mutation inventory records the scene artifact family
+          - WHEN: the YAML surface listing command is invoked
+          - THEN: the scene artifact kind is reported with create, update, named remove, and delete each stated as CLI-owned
+        surface-show-names-the-owning-commands:
+          - GIVEN: a repository whose YAML mutation inventory records the scene artifact family
+          - WHEN: the per-kind YAML surface report is requested for the scene artifact kind
+          - THEN: the report names the scene authoring command and the change artifact generation command as the owners of its operations
+        authoring-protocol-binds-to-the-scene-kind:
+          - GIVEN: a repository whose YAML mutation inventory records the scene artifact family
+          - WHEN: the YAML authoring protocol is requested for the scene artifact kind
+          - THEN: the ordered authoring steps, the owning commands, the registered schema and example keys, and the validation command are reported for that kind
+        mcp-inventory-exposes-scene-mutation-coverage:
+          - GIVEN: the MCP capability inventory is requested
+          - WHEN: the reported tool set is inspected
+          - THEN: the scene authoring command is exposed as a write-class tool and the scene status command as a read-class tool
+  MODIFIED: {}
+  REMOVED: {}

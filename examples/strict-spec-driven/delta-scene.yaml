@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: checkout-flow
+operations:
+  ADDED:
+    main_flow:
+      confirm-order:
+        action: The shopper confirms the order total before paying.
+        covered_by:
+          - spec_id: commerce-checkout
+            requirement_id: order-total-is-confirmed
+    exception_flows:
+      payment-declined:
+        trigger: The payment gateway declines the charge.
+        steps:
+          show-decline:
+            action: The shopper is shown the decline reason and the cart is preserved.
+            no_coverage_reason: The decline copy is owned by the payments provider and is deliberately covered by no requirement here.
+  MODIFIED:
+    main_flow:
+      submit-payment:
+        action: The shopper submits payment and sees the authorization result.
+        covered_by:
+          - spec_id: commerce-checkout
+            requirement_id: payment-is-authorized
+          - spec_id: commerce-notifications
+            requirement_id: authorization-result-is-reported
+  REMOVED:
+    main_flow:
+      legacy-coupon-prompt:
+        reason: The coupon prompt was retired when coupons moved into the cart, so the step no longer happens.

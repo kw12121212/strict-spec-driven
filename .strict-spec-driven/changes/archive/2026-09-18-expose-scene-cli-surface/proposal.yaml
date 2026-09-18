@@ -1,0 +1,56 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: expose-scene-cli-surface
+  status: proposed
+summary:
+  what:
+    - Add a read-only scene-status command that reports recorded scenes, their flow steps, and each step's coverage state, and that narrows its output rather than always printing every scene.
+    - Add change-level delta scene generation so a strict change carries scene operations the way it already carries delta specs and delta tech.
+    - Document every new command in src/cli/command-metadata-entries.ts with flag meaning, repeatable, removal and delete semantics, output keys, exit-code meaning, and the artifact kind, schema key, and example key it writes.
+    - Flip the scene-state inventory family from not-applicable to cli-owned with its owning commands, so yaml-surface-list, yaml-surface-show, and yaml-authoring-protocol report the scene family with real mutation coverage.
+    - Expose the same scene mutation coverage on the MCP tool inventory, because the mutation-coverage registry requires a cell for every family on every agent-facing surface.
+    - Author this repository's own first real scene through the new command as dogfooding evidence, covering an end-to-end workflow run that crosses more than one spec area.
+    - Register a delta-scene schema with ADDED, MODIFIED, and REMOVED operation groups mirroring delta-spec, plus one minimal valid example, so a delta scene can address one flow step without restating the scene's required sections and can retire a step the shipped scene merge rule cannot.
+    - Add a scene-edit command that creates and incrementally updates a scene, removes a named entry of it such as a flow step, an actor, a precondition, an exception flow, or a coverage reference, and deletes a whole scene, through named semantic arguments only.
+    - Schema-validate a change's delta scene artifacts during verify, so a change-level scene artifact participates in the change lifecycle rather than being checked only by the command that wrote it.
+    - Capture the named-removal-prunes-the-container-it-empties rule as delta tech against yaml-first-artifacts, the symmetric counterpart to the existing rule that forbids writing an empty artifact container.
+  why:
+    - 'The scene contract shipped in define-scene-contract is unreachable: CLI-only YAML authoring forbids hand-writing a scene, so no project can author one until a command owns the write.'
+    - The milestone is ordered contract-first, and the command surface must land before archive merge and ready/verify coverage gating can consume it; two sibling planned changes are currently blocked with dependency-incomplete on this one.
+    - A project is expected to hold many scenes, so an unnarrowable status listing stops being usable well before that volume is reached.
+    - This is the first point in the milestone where a real scene can exist, and a real scene is expected to reveal contract gaps that the minimal valid example cannot.
+scope:
+  in:
+    - A read-only scene-status command reporting scenes, steps, and per-step coverage state, with narrowing selectors
+    - Change-level delta scene generation under .strict-spec-driven/changes/<change>/scenes/
+    - Deterministic reconciliation of .strict-spec-driven/scenes/INDEX.yaml on every scene write, including creating the scenes directory and index on the first scene
+    - command-metadata-entries.ts entries for every new command, and their registration in the CLI command registry and usage groups
+    - The scene-state inventory family revised to declare its CLI owners, and the surface projections that read it
+    - MCP tool inventory entries giving the scene family the same mutation coverage as other repository-owned families
+    - A delta spec against cli-foundation recording the new command behavior
+    - This repository's first real scene, authored through the new command, crossing more than one spec area
+    - Tests for each operation, the non-destructive write semantics, the refusal paths, the narrowing selector, and the surface projections
+    - templates/strict-spec-driven/schemas/delta-scene.yaml as a new registered strict YAML schema, its registry entry, one minimal valid example under examples/strict-spec-driven/, and the regenerated embedded template bundle
+    - A delta spec against contracts-yaml-artifacts recording the delta-scene schema contract and its merge semantics
+    - A scene-edit command owning create, incremental update, named-entry removal for flow steps, actors, preconditions, exception flows, and coverage references, and whole-scene deletion for .strict-spec-driven/scenes/
+    - Delta scene schema validation in verify, distinct from the deferred coverage-gap gating
+    - A delta tech artifact against yaml-first-artifacts recording that a named removal prunes the container it empties
+  out:
+    - Archive merge of delta scenes into main scenes, which belongs to the merge-and-gate-scene-coverage planned change
+    - Coverage-gap diagnostics that block ready and verify, which belong to the merge-and-gate-scene-coverage planned change
+    - Scene-first requirement routing in bundled skills and operator documentation, which belongs to the route-requirements-through-scenes planned change
+    - Any change to the scene or scenes-index schema shape beyond what the command surface requires, and any change to main-spec.yaml or to an existing main spec requirement shape
+    - A generated human-readable scene document rendered from scene YAML
+    - A workflow config switch that turns scene coverage checking on or off
+    - init scaffolding a scenes directory or an empty scene index
+unchanged_behavior:
+  - A repository holding no scene artifact observes no new diagnostic and no new required field, and every existing strict artifact family validates exactly as before.
+  - init scaffolds the same set of files as before, with no scenes directory and no scene index.
+  - ready and verify exit codes are unaffected by scene coverage state, because coverage gating is a later planned change.
+  - Every existing CLI command keeps its flags, output keys, and exit-code meaning, and bun scripts/check-yaml-mutation-inventory.ts continues to exit zero.
+roadmap:
+  milestone: scene-driven-requirements
+  planned_change: expose-scene-cli-surface

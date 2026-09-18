@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import path from "path";
 import {
   generateChangeArtifactFromInput,
@@ -1574,8 +1574,322 @@ function buildDeltaTechInputFromArgs(rootDir: string, changeName: string, argv: 
   return input;
 }
 
+type SceneStepGroup = {
+  operation: string;
+  /** Undefined addresses the main flow; a value addresses one named exception flow. */
+  flowId?: string;
+  stepId: string;
+  action?: string;
+  coveredBy: Array<{ spec_id: string; requirement_id: string }>;
+  noCoverageReason?: string;
+  reason?: string;
+};
+
+type DeltaSceneCommandInput = {
+  targetScene?: string;
+  title?: string;
+  area?: string;
+  steps: SceneStepGroup[];
+  triggers: Array<{ operation: string; flowId: string; trigger: string }>;
+  removedSteps: string[];
+};
+
+function parseSceneCoverageReference(value: string, flagName: string): { spec_id: string; requirement_id: string } {
+  const separator = value.indexOf(":");
+  if (separator <= 0 || separator === value.length - 1) {
+    throw new Error(`--${flagName} expects <spec-id>:<requirement-id>, received '${value}'`);
+  }
+  return { spec_id: value.slice(0, separator), requirement_id: value.slice(separator + 1) };
+}
+
+function parseFlowStepReference(value: string, flagName: string): { flowId: string; stepId: string } {
+  const separator = value.indexOf(":");
+  if (separator <= 0 || separator === value.length - 1) {
+    throw new Error(`--${flagName} expects <flow-id>:<step-id>, received '${value}'`);
+  }
+  return { flowId: value.slice(0, separator), stepId: value.slice(separator + 1) };
+}
+
+function parseDeltaSceneCommandInput(argv: string[], rootDir: string): DeltaSceneCommandInput {
+  const input: DeltaSceneCommandInput = { steps: [], triggers: [], removedSteps: [] };
+  let currentOperation: string | undefined;
+  let currentStep: SceneStepGroup | undefined;
+  let pendingExceptionFlow: string | undefined;
+
+  function readValue(name: string, index: number): string {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) throw new Error(`missing value for --${name}`);
+    return resolveStringValue(value, rootDir);
+  }
+
+  function requireOperation(flagName: string): string {
+    if (currentOperation === undefined) throw new Error(`missing required argument --operation before --${flagName}`);
+    return currentOperation;
+  }
+
+  function requireStep(flagName: string): SceneStepGroup {
+    if (currentStep === undefined) {
+      throw new Error(`--${flagName} requires an open step; supply --step <id> or --exception-step <flow-id>:<step-id> first`);
+    }
+    return currentStep;
+  }
+
+  function openStep(group: SceneStepGroup): void {
+    input.steps.push(group);
+    currentStep = group;
+  }
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+    const equals = token.indexOf("=");
+    const name = equals === -1 ? token.slice(2) : token.slice(2, equals);
+    const value = equals === -1 ? undefined : resolveStringValue(token.slice(equals + 1), rootDir);
+    const take = (): string => {
+      if (value !== undefined) return value;
+      const read = readValue(name, index);
+      index += 1;
+      return read;
+    };
+
+    switch (name) {
+      case "target-scene":
+        if (input.targetScene !== undefined) throw new Error("--target-scene may only be supplied once");
+        input.targetScene = take();
+        break;
+      case "title":
+        if (input.title !== undefined) throw new Error("--title may only be supplied once");
+        input.title = take();
+        break;
+      case "area":
+        if (input.area !== undefined) throw new Error("--area may only be supplied once");
+        input.area = take();
+        break;
+      case "operation":
+        currentOperation = take();
+        currentStep = undefined;
+        pendingExceptionFlow = undefined;
+        break;
+      case "exception-flow":
+        pendingExceptionFlow = take();
+        currentStep = undefined;
+        break;
+      case "trigger": {
+        const trigger = take();
+        if (pendingExceptionFlow === undefined) {
+          throw new Error("--trigger requires a preceding --exception-flow naming the flow it describes");
+        }
+        input.triggers.push({ operation: requireOperation("trigger"), flowId: pendingExceptionFlow, trigger });
+        break;
+      }
+      case "step":
+        openStep({ operation: requireOperation("step"), stepId: take(), coveredBy: [] });
+        break;
+      case "exception-step": {
+        const reference = parseFlowStepReference(take(), "exception-step");
+        openStep({
+          operation: requireOperation("exception-step"),
+          flowId: reference.flowId,
+          stepId: reference.stepId,
+          coveredBy: [],
+        });
+        break;
+      }
+      case "action": {
+        const step = requireStep("action");
+        if (step.action !== undefined) throw new Error(`--action may be supplied once per step, repeated for '${step.stepId}'`);
+        step.action = take();
+        break;
+      }
+      case "covered-by":
+        requireStep("covered-by").coveredBy.push(parseSceneCoverageReference(take(), "covered-by"));
+        break;
+      case "no-coverage-reason": {
+        const step = requireStep("no-coverage-reason");
+        if (step.noCoverageReason !== undefined) {
+          throw new Error(`--no-coverage-reason may be supplied once per step, repeated for '${step.stepId}'`);
+        }
+        step.noCoverageReason = take();
+        break;
+      }
+      case "reason": {
+        const step = requireStep("reason");
+        if (step.reason !== undefined) throw new Error(`--reason may be supplied once per step, repeated for '${step.stepId}'`);
+        step.reason = take();
+        break;
+      }
+      case "remove-step":
+        input.removedSteps.push(take());
+        break;
+      default:
+        throw new Error(`unsupported argument --${name}`);
+    }
+  }
+  return input;
+}
+
+/**
+ * A delta scene sits at the same area-and-id path beneath the change as the main scene it targets.
+ * The area is read from an already-written delta first, so a repeated call resolves the same file
+ * even before the targeted scene exists in the main store.
+ */
+function resolveDeltaSceneRelativePath(
+  rootDir: string,
+  changeName: string,
+  targetScene: string,
+  declaredArea: string | undefined,
+): string | undefined {
+  const changeScenesDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes", changeName, "scenes");
+  if (existsSync(changeScenesDir)) {
+    for (const areaName of readdirSync(changeScenesDir).sort()) {
+      if (existsSync(path.join(changeScenesDir, areaName, `${targetScene}.yaml`))) return `${areaName}/${targetScene}.yaml`;
+    }
+  }
+  const indexPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "scenes", "INDEX.yaml");
+  if (existsSync(indexPath)) {
+    const index = parseYamlDocument<{ areas?: Record<string, Record<string, unknown>> }>(
+      readFileSync(indexPath, "utf8"),
+      { source: indexPath },
+    );
+    for (const [area, scenes] of Object.entries(index.areas ?? {})) {
+      if (isRecord(scenes) && Object.prototype.hasOwnProperty.call(scenes, targetScene)) return `${area}/${targetScene}.yaml`;
+    }
+  }
+  return declaredArea === undefined ? undefined : `${declaredArea}/${targetScene}.yaml`;
+}
+
+function buildDeltaSceneInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
+  const commandInput = parseDeltaSceneCommandInput(argv, rootDir);
+  const targetScene = commandInput.targetScene;
+  if (!targetScene) throw new Error("missing required argument --target-scene");
+  if ((commandInput.title === undefined) !== (commandInput.area === undefined)) {
+    throw new Error("--title and --area must be supplied together to define a new scene");
+  }
+
+  const relativePath = resolveDeltaSceneRelativePath(rootDir, changeName, targetScene, commandInput.area);
+  const existing = relativePath === undefined
+    ? undefined
+    : readYamlIfExists<GenerationInputRecord>(
+      rootDir,
+      `${STRICT_WORKFLOW_DIR}/changes/${changeName}/scenes/${relativePath}`,
+    );
+
+  const input: GenerationInputRecord = {
+    target_scene: targetScene,
+    operations: existing && isRecord(existing.operations)
+      ? existing.operations
+      : { ADDED: {}, MODIFIED: {}, REMOVED: {} },
+  };
+  if (existing && isRecord(existing.scene)) input.scene = existing.scene;
+  if (commandInput.title !== undefined && commandInput.area !== undefined) {
+    input.scene = { title: commandInput.title, area: commandInput.area };
+  }
+
+  const operations = isRecord(input.operations) ? input.operations : {};
+  const session = newWriteSession();
+
+  // Removing the last step of a flow must take the flow container with it. Both step maps declare a
+  // minimum of one entry, and an exception flow requires its steps, so a container left empty by a
+  // removal would be refused by the delta's own schema on the very next write.
+  for (const reference of commandInput.removedSteps) {
+    const separator = reference.indexOf(":");
+    for (const operationMap of Object.values(operations)) {
+      if (!isRecord(operationMap)) continue;
+      if (separator === -1) {
+        if (!isRecord(operationMap.main_flow)) continue;
+        removeKeyedItem(operationMap.main_flow, reference);
+        if (Object.keys(operationMap.main_flow).length === 0) delete operationMap.main_flow;
+        continue;
+      }
+      const flows = operationMap.exception_flows;
+      if (!isRecord(flows)) continue;
+      const flowId = reference.slice(0, separator);
+      const flow = flows[flowId];
+      if (!isRecord(flow) || !isRecord(flow.steps)) continue;
+      removeKeyedItem(flow.steps, reference.slice(separator + 1));
+      if (Object.keys(flow.steps).length === 0) delete flows[flowId];
+      if (Object.keys(flows).length === 0) delete operationMap.exception_flows;
+    }
+  }
+
+  for (const entry of [...commandInput.triggers, ...commandInput.steps]) {
+    if (!["ADDED", "MODIFIED", "REMOVED"].includes(entry.operation)) {
+      throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
+    }
+  }
+
+  function operationMapFor(operation: string): GenerationInputRecord {
+    const existingMap = isRecord(operations[operation]) ? operations[operation] as GenerationInputRecord : {};
+    operations[operation] = existingMap;
+    return existingMap;
+  }
+
+  function exceptionFlowFor(operation: string, flowId: string): GenerationInputRecord {
+    const operationMap = operationMapFor(operation);
+    const flows = isRecord(operationMap.exception_flows) ? operationMap.exception_flows as GenerationInputRecord : {};
+    operationMap.exception_flows = flows;
+    const flow = isRecord(flows[flowId]) ? flows[flowId] as GenerationInputRecord : {};
+    flows[flowId] = flow;
+    return flow;
+  }
+
+  for (const declaration of commandInput.triggers) {
+    if (declaration.operation === "REMOVED") {
+      throw new Error(`a REMOVED exception flow takes no --trigger; drop its steps with --exception-step instead`);
+    }
+    exceptionFlowFor(declaration.operation, declaration.flowId).trigger = declaration.trigger;
+  }
+
+  for (const step of commandInput.steps) {
+    const stepValue: GenerationInputRecord = {};
+    if (step.operation === "REMOVED") {
+      if (!step.reason) throw new Error(`missing required argument --reason for removed step '${step.stepId}'`);
+      if (step.action || step.coveredBy.length > 0 || step.noCoverageReason) {
+        throw new Error(`removed step '${step.stepId}' only supports --reason`);
+      }
+      stepValue.reason = step.reason;
+    } else {
+      if (step.reason) throw new Error(`--reason is only valid with a REMOVED step, supplied for '${step.stepId}'`);
+      if (step.coveredBy.length > 0 && step.noCoverageReason !== undefined) {
+        throw new Error(
+          `step '${step.stepId}' may declare covering requirements or a no-coverage reason, not both`,
+        );
+      }
+      if (step.coveredBy.length === 0 && step.noCoverageReason === undefined) {
+        throw new Error(
+          `step '${step.stepId}' requires --covered-by or --no-coverage-reason, because a step declaring neither would pass as though it were covered`,
+        );
+      }
+      if (!step.action) throw new Error(`missing required argument --action for step '${step.stepId}'`);
+      stepValue.action = step.action;
+      if (step.coveredBy.length > 0) stepValue.covered_by = step.coveredBy;
+      else stepValue.no_coverage_reason = step.noCoverageReason;
+    }
+
+    const container = step.flowId === undefined
+      ? (() => {
+        const operationMap = operationMapFor(step.operation);
+        const mainFlow = isRecord(operationMap.main_flow) ? operationMap.main_flow as GenerationInputRecord : {};
+        operationMap.main_flow = mainFlow;
+        return mainFlow;
+      })()
+      : (() => {
+        const flow = exceptionFlowFor(step.operation, step.flowId as string);
+        const steps = isRecord(flow.steps) ? flow.steps as GenerationInputRecord : {};
+        flow.steps = steps;
+        return steps;
+      })();
+    upsertKeyedItem(container, step.stepId, stepValue, "delta scene step", session);
+  }
+
+  input.operations = operations;
+  return input;
+}
+
 /** Flags that identify which artifact --delete targets, and so may accompany it. */
-const DELETE_COMPANION_FLAGS = new Set(["delete", "target-spec", "spec-path", "target-standard", "tech-path"]);
+const DELETE_COMPANION_FLAGS = new Set(["delete", "target-spec", "spec-path", "target-standard", "tech-path", "target-scene"]);
 
 /** Artifacts --delete refuses, with the reason reported to the caller. */
 const DELETE_REFUSALS: Partial<Record<GeneratableArtifact, string>> = {
@@ -1604,6 +1918,14 @@ function resolveDeleteTarget(
     const targetStandard = requiredOne(flags, "target-standard");
     return `${changeDir}/tech/${resolveDeltaTechExistingPath(rootDir, targetStandard, optionalOne(flags, "tech-path"))}`;
   }
+  if (artifact === "delta-scene") {
+    const targetScene = requiredOne(flags, "target-scene");
+    const relativePath = resolveDeltaSceneRelativePath(rootDir, changeName, targetScene, undefined);
+    if (relativePath === undefined) {
+      throw new Error(`no delta scene for '${targetScene}' is recorded in change '${changeName}'`);
+    }
+    return `${changeDir}/scenes/${relativePath}`;
+  }
   return `${changeDir}/${artifact}.yaml`;
 }
 
@@ -1621,6 +1943,7 @@ const DELETE_SCHEMA_IDS: Record<GeneratableArtifact, string> = {
   tasks: "task_list",
   "delta-spec": "delta_spec",
   "delta-tech": "delta_tech",
+  "delta-scene": "delta_scene",
 };
 
 function runArtifactDelete(
@@ -1660,6 +1983,7 @@ function runArtifactDelete(
       rootDir,
       mutations: [{
         artifactFamily: artifact === "delta-spec" || artifact === "delta-tech"
+          || artifact === "delta-scene"
           ? "change-delta-state"
           : "change-planning-state",
         artifactId: `${changeName}/${artifact}`,
@@ -1698,6 +2022,8 @@ function buildInputFromNamedArgs(
       return buildDeltaInputFromArgs(rootDir, changeName, argv);
     case "delta-tech":
       return buildDeltaTechInputFromArgs(rootDir, changeName, argv);
+    case "delta-scene":
+      return buildDeltaSceneInputFromArgs(rootDir, changeName, argv);
   }
 }
 
@@ -1715,7 +2041,7 @@ export function runGenerate(argv: string[]): number {
     return 1;
   }
   if (!isGeneratableArtifact(artifact)) {
-    writeError("artifact must be one of: proposal, design, questions, tasks, delta-spec, delta-tech");
+    writeError("artifact must be one of: proposal, design, questions, tasks, delta-spec, delta-tech, delta-scene");
     return 1;
   }
 

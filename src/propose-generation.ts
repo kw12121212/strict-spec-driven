@@ -8,7 +8,7 @@ import { resolveYamlArtifactIdentifiers } from "./yaml-mutation-surface.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks", "delta-spec", "delta-tech"] as const;
+export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks", "delta-spec", "delta-tech", "delta-scene"] as const;
 export type GeneratableArtifact = (typeof GENERATABLE_ARTIFACTS)[number];
 
 export const TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"] as const;
@@ -122,6 +122,7 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     tasks: ["$.sections", "$.testing_gates"],
     "delta-spec": ["$.target_spec", "$.operations"],
     "delta-tech": ["$.target_standard", "$.standard", "$.operations"],
+    "delta-scene": ["$.target_scene", "$.scene", "$.operations"],
   };
 
   for (const prefix of directPrefixes[artifact]) {
@@ -143,7 +144,7 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     const resolvedStatusMatch = fieldPath.match(/^\$\.resolved\[(\d+)\]\.status$/);
     if (resolvedStatusMatch) return `$.resolved[${resolvedStatusMatch[1]}]`;
   }
-  if ((artifact === "delta-spec" || artifact === "delta-tech") && fieldPath === "$.schema_file") {
+  if ((artifact === "delta-spec" || artifact === "delta-tech" || artifact === "delta-scene") && fieldPath === "$.schema_file") {
     return "<generated schema_file>";
   }
 
@@ -616,6 +617,69 @@ function buildDeltaTechArtifact(rootDir: string, input: GenerationInputRecord): 
   return { relativePath, artifact };
 }
 
+/** Resolves the area a scene is recorded under, which is also its subdirectory name. */
+function readSceneAreaForTarget(rootDir: string, targetScene: string): string | undefined {
+  const indexPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "scenes", "INDEX.yaml");
+  if (!existsSync(indexPath)) return undefined;
+  const index = parseYamlDocument<{ areas?: Record<string, Record<string, unknown>> }>(
+    readFileSync(indexPath, "utf8"),
+    { source: normalizeRepoRelativePath(rootDir, indexPath) },
+  );
+  for (const [area, scenes] of Object.entries(index.areas ?? {})) {
+    if (isRecord(scenes) && Object.prototype.hasOwnProperty.call(scenes, targetScene)) return area;
+  }
+  return undefined;
+}
+
+/**
+ * A delta scene lives at the same area-and-id path beneath the change as the main scene it targets,
+ * so the area is resolved from the scene index for an existing scene and from the new-scene block
+ * for one this delta creates. Requiring the area rather than guessing it keeps the delta's path from
+ * disagreeing with the scene the archive merge will write into.
+ */
+function buildDeltaSceneArtifact(rootDir: string, input: GenerationInputRecord): { artifact: unknown; relativePath: string } {
+  const targetScene = asString(input.target_scene, "$.target_scene");
+  const operations = asRecord(input.operations ?? {}, "$.operations");
+  const sceneBlock = asOptionalRecord(input.scene, "$.scene");
+
+  const recordedArea = readSceneAreaForTarget(rootDir, targetScene);
+  const declaredArea = sceneBlock === undefined ? undefined : asString(sceneBlock.area, "$.scene.area");
+  const area = recordedArea ?? declaredArea;
+  if (area === undefined) {
+    throw new Error(
+      `scene '${targetScene}' is not recorded, so this delta must supply the new-scene block; pass --title and --area`,
+    );
+  }
+  if (recordedArea !== undefined && declaredArea !== undefined && declaredArea !== recordedArea) {
+    throw new Error(
+      `scene '${targetScene}' is recorded in area '${recordedArea}'; the new-scene block may not declare a different area`,
+    );
+  }
+
+  const artifact: GenerationInputRecord = {
+    schema: "strict-spec-driven/delta-scene/v1",
+    schema_version: 1,
+    artifact_type: "delta_scene",
+    schema_file: "templates/strict-spec-driven/schemas/delta-scene.yaml",
+    target_scene: targetScene,
+  };
+
+  if (sceneBlock) {
+    artifact.scene = {
+      title: asString(sceneBlock.title, "$.scene.title"),
+      area: asString(sceneBlock.area, "$.scene.area"),
+    };
+  }
+
+  artifact.operations = {
+    ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
+    MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
+    REMOVED: asRecord(operations.REMOVED ?? {}, "$.operations.REMOVED"),
+  };
+
+  return { relativePath: `${area}/${targetScene}.yaml`, artifact };
+}
+
 function buildTarget(
   rootDir: string,
   changeDir: string,
@@ -664,6 +728,14 @@ function buildTarget(
         absolutePath: path.join(changeDir, "tech", deltaTech.relativePath),
       };
     }
+    case "delta-scene": {
+      const deltaScene = buildDeltaSceneArtifact(rootDir, input);
+      return {
+        artifact: deltaScene.artifact,
+        artifactType: "delta_scene",
+        absolutePath: path.join(changeDir, "scenes", deltaScene.relativePath),
+      };
+    }
   }
 }
 
@@ -710,11 +782,24 @@ function writeGeneratedArtifactIntoContainer(
   const artifactPath = normalizeRepoRelativePath(rootDir, target.absolutePath);
   const replaced = existsSync(target.absolutePath);
 
-  if (!replaced && (artifact === "delta-spec" || artifact === "delta-tech")) {
+  if (!replaced && (artifact === "delta-spec" || artifact === "delta-tech" || artifact === "delta-scene")) {
     const candidate = asRecord(target.artifact, "$generated");
     const operations = asRecord(candidate.operations ?? {}, "$generated.operations");
-    const operationEntries = Object.values(operations).flatMap((value) => isRecord(value) ? Object.keys(value) : []);
-    const definesTarget = artifact === "delta-spec" ? candidate.spec !== undefined : candidate.standard !== undefined;
+    // A delta scene nests its entries one level deeper than the other delta families, because a
+    // step is addressed under main_flow or under one named exception flow rather than directly
+    // under the operation, so the emptiness check descends through that grouping.
+    const operationEntries = Object.values(operations).flatMap((value) => {
+      if (!isRecord(value)) return [];
+      if (artifact !== "delta-scene") return Object.keys(value);
+      const mainFlow = isRecord(value.main_flow) ? Object.keys(value.main_flow) : [];
+      const exceptionSteps = isRecord(value.exception_flows)
+        ? Object.values(value.exception_flows).flatMap((flow) => isRecord(flow) && isRecord(flow.steps) ? Object.keys(flow.steps) : [])
+        : [];
+      return [...mainFlow, ...exceptionSteps];
+    });
+    const definesTarget = artifact === "delta-spec"
+      ? candidate.spec !== undefined
+      : artifact === "delta-scene" ? candidate.scene !== undefined : candidate.standard !== undefined;
     if (!definesTarget && operationEntries.length === 0) {
       throw new Error(
         `new ${artifact} artifacts require an operation or new-target metadata; named removals cannot create an empty artifact`,

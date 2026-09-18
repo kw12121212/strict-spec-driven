@@ -1,0 +1,100 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: expose-scene-cli-surface
+sections:
+  Implementation:
+    implement-scene-store:
+      text: Implement the scene store module that reads, validates, and transactionally writes a scene artifact and reconciles .strict-spec-driven/scenes/INDEX.yaml in the same transaction, creating the scenes directory and the index on the first scene write and never leaving an index entry pointing at an absent scene file.
+      status: complete
+    add-scene-edit-command:
+      text: Add the scene-edit command owning create, incremental field-level update, named flow-step removal, named scene index entry removal, and whole-scene deletion through named semantic arguments, addressing steps and scenes by stable id, and register it in the CLI command registry and its usage group.
+      status: complete
+      command: strict-spec-cli scene-edit --help --json
+    add-scene-status-command:
+      text: Add the read-only scene-status command reporting recorded scenes, their main-flow and exception-flow steps, and each step's coverage state as covered or waived with its recorded reason, narrowed by an --area selector and a --scene selector and defaulting to the full index.
+      status: complete
+      command: strict-spec-cli scene-status
+    register-delta-scene-schema:
+      text: Author templates/strict-spec-driven/schemas/delta-scene.yaml through schema-edit with ADDED, MODIFIED, and REMOVED operation groups keyed by flow step id, register it in the bundled schema registry with its example_ref, and confirm the edit regenerated src/embedded-templates.ts in the same transaction. This is a workflow contract, so it lands before the generator code that validates against it.
+      status: complete
+    author-delta-scene-example:
+      text: Author one minimal valid delta-scene example under examples/strict-spec-driven/ through sample-edit, exercising an added step, a modified step, and a removed step, and register it as the schema's primary example.
+      status: complete
+    add-delta-scene-generation:
+      text: Add change-level delta scene authoring as a new generate artifact selector validating against the registered delta-scene schema and writing under .strict-spec-driven/changes/<change>/scenes/, reusing generate's atomic container creation, rollback on a rejected call, and structured result. Confirm the generator's normalizer actually copies every declared delta-scene field, because a registered schema field is not live until it does.
+      status: complete
+      command: strict-spec-cli generate expose-scene-cli-surface --help --json
+    revise-scene-inventory-family:
+      text: Revise the scene-state family in inventory/yaml-mutation-surfaces.yaml through inventory-edit so create, update, named_remove, and delete declare cli-owned with scene-edit and generate as owners, add the change-level delta scene path pattern, replace the reference side effect that named this planned change as pending, and confirm the edit regenerated src/embedded-templates.ts.
+      status: complete
+      command: strict-spec-cli inventory-edit --help --json
+    document-command-metadata:
+      text: Add src/cli/command-metadata-entries.ts entries for scene-edit and scene-status and extend the generate entry for the delta scene selector, documenting each flag's meaning, whether it is repeatable, the removal and delete semantics, the output keys, the exit-code meaning, and the artifact kind, schema key, and example key written.
+      status: complete
+      command: strict-spec-cli scene-edit --help --json
+    register-mcp-scene-tools:
+      text: Register scene-edit as a write-class MCP tool and scene-status as a read-class MCP tool in src/mcp/inventory.ts, so the MCP tool inventory reports the same scene mutation coverage as the CLI and the tool descriptions derive from the shared command-metadata registry rather than hand-written text.
+      status: complete
+    record-scene-delta-spec:
+      text: Record the new command behavior as a delta spec against cli-foundation, covering scene-edit's mutation operations and refusal paths, scene-status's reporting and narrowing, delta scene generation, and the scene family's projection onto yaml-surface-list, yaml-surface-show, yaml-authoring-protocol, and the MCP tool inventory.
+      status: complete
+      command: strict-spec-cli generate expose-scene-cli-surface delta-spec --target-spec cli-foundation
+    record-delta-scene-contract-delta-spec:
+      text: Record the delta-scene schema contract as a delta spec against contracts-yaml-artifacts, covering the operation-group shape, step-id keying, the step retirement semantics scene/v1 cannot express, and how a delta scene merges into a main scene.
+      status: complete
+      command: strict-spec-cli generate expose-scene-cli-surface delta-spec --target-spec contracts-yaml-artifacts
+    author-first-real-scene:
+      text: 'Author this repository''s first real scene through scene-edit as dogfooding evidence: an end-to-end strict change moving from propose through archive, naming covering requirements in more than one spec area, with at least one exception flow and any genuinely uncovered step carrying an explicit no_coverage_reason. Record any contract gap the real scene reveals as a finding rather than silently widening the scene schema.'
+      status: complete
+      command: strict-spec-cli scene-status
+  Testing:
+    run-lint:
+      text: Run the project lint command and confirm it exits zero.
+      status: complete
+      command: bun run lint
+    add-scene-edit-tests:
+      text: 'Add tests for every scene-edit operation and its refusal paths: creating a scene builds the scenes directory and a valid index in one transaction, an incremental field update leaves every unnamed field including covered_by entries and step position untouched, named step removal and named index-entry removal each drop exactly one entry, whole-scene deletion removes the file and its index entry, and a rejected write leaves no partial scene file and no orphaned index entry.'
+      status: complete
+      command: bun test/run.ts
+    add-scene-status-tests:
+      text: Add tests asserting scene-status reports every main-flow and exception-flow step with its coverage state as covered or waived with its recorded reason, that the --area and --scene selectors narrow the output to exactly the matching scenes, that an unmatched selector exits non-zero naming the recorded areas or scenes, and that the command mutates nothing.
+      status: complete
+      command: bun test/run.ts
+    add-delta-scene-schema-tests:
+      text: Add tests asserting the minimal delta-scene example validates, that an operation group keyed by an unknown step shape is rejected, that a REMOVED step entry is accepted where scene/v1 admits none, and that the bundled schema and sample listings report the new delta-scene assets.
+      status: complete
+      command: bun test/run.ts
+    add-delta-scene-tests:
+      text: Add tests asserting generate writes a change-level delta scene under the change's scenes/ directory, that the first call creates the change container atomically and a rejected call leaves no change behind, that restating equivalent content is idempotent, and that the structured result reports the artifact kind, schema key, and example key.
+      status: complete
+      command: bun test/run.ts
+    add-surface-projection-tests:
+      text: Extend the yaml-operation-matrix and mcp-server suites so yaml-surface-list, yaml-surface-show scene-state, and yaml-authoring-protocol scene-state report the family as cli-owned with its owning commands, and the MCP tool inventory reports scene-edit as a write-class tool and scene-status as a read-class tool with the same mutation coverage.
+      status: complete
+      command: bun test/run.ts
+    run-inventory-check:
+      text: Run the dedicated YAML mutation inventory check and confirm it exits zero with the scene-state family declaring cli-owned operations, registered command owners, and no uncovered-yaml-path diagnostic for the new change-level delta scene path.
+      status: complete
+      command: bun run check:yaml-inventory
+    run-project-regression:
+      text: Run the complete project regression with the blocking coverage gate, redirecting output to a file and reading the runner's own exit status rather than a pipeline's, and confirm the new src code is covered rather than dragging measured coverage below the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-no-scene-repository-unaffected:
+      text: 'Confirm a repository holding no scene artifact still observes no new diagnostic and no new required field: run the workflow-state and verify checks against a fixture project with no scenes directory, and confirm init scaffolds no scenes directory and no scene index.'
+      status: complete
+      command: strict-spec-cli check-workflow-state
+    run-ready-and-verify:
+      text: Run ready and verify for this change and confirm both exit zero with the delta spec recorded, every open question resolved, and every task complete.
+      status: complete
+      command: strict-spec-cli ready expose-scene-cli-surface && strict-spec-cli verify expose-scene-cli-surface
+    confirm-archive-readiness:
+      text: 'Confirm archive readiness: the delta spec merges into cli-foundation, the regenerated embedded templates are committed alongside their inventory source, the first real scene and its index validate as live workflow state, and the generated-doc, lesson-staleness, and cli-only-yaml-policy maintenance checks report no new finding.'
+      status: complete
+      command: strict-spec-cli maintenance
+testing_gates:
+  validation_task: run-inventory-check
+  unit_test_task: add-scene-edit-tests

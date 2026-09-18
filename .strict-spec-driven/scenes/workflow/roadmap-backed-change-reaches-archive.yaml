@@ -1,0 +1,130 @@
+schema: strict-spec-driven/scene/v1
+schema_version: 1
+artifact_type: scene
+schema_file: templates/strict-spec-driven/schemas/scene.yaml
+scene:
+  id: roadmap-backed-change-reaches-archive
+  title: A roadmap-backed change is carried from recommendation to archive
+area: workflow
+status: active
+actors:
+  - name: Workflow operator
+    role: Asks for the next roadmap-backed change and answers the questions only they can answer.
+  - name: AI agent
+    role: Runs the strict CLI, authors every artifact through it, and implements the change.
+  - name: Strict CLI
+    role: Owns YAML shape and filesystem mutation, and refuses any write that would not validate.
+preconditions:
+  - The project holds a .strict-spec-driven/ directory whose config.yaml validates.
+  - The roadmap records at least one incomplete milestone holding a planned change whose dependencies are all complete.
+  - No active strict change already targets the same planned change.
+main_flow:
+  recommend:
+    action: The agent asks the CLI for the next roadmap-backed planned change and receives exactly one recommendation with its milestone and source file.
+    covered_by:
+      - spec_id: roadmap-domain-behavior
+        requirement_id: roadmap-recommend-contract
+      - spec_id: cli-foundation
+        requirement_id: cli-roadmap-recommend-command
+  scaffold:
+    action: The agent creates the change container and authors its proposal, design, tasks, and questions through named CLI arguments, with the roadmap milestone and planned change recorded on the proposal.
+    covered_by:
+      - spec_id: cli-foundation
+        requirement_id: cli-propose-populates-artifacts-from-structured-input
+      - spec_id: cli-foundation
+        requirement_id: cli-propose-generation-uses-named-arguments
+      - spec_id: cli-foundation
+        requirement_id: cli-propose-roadmap-backed-guidance
+  record-delta:
+    action: The agent records the change's spec impact as a delta artifact whose operations address requirements by stable id.
+    covered_by:
+      - spec_id: contracts-yaml-artifacts
+        requirement_id: yaml-delta-operation-model
+      - spec_id: contracts-yaml-artifacts
+        requirement_id: yaml-delta-stable-matching
+  answer-questions:
+    action: The operator answers every open question, and the agent records each answer with the source it came from before implementation begins.
+    covered_by:
+      - spec_id: cli-foundation
+        requirement_id: cli-verify-checks-open-questions
+  implement:
+    action: The agent completes the pending tasks in list order, marking each complete through the CLI as it finishes.
+    covered_by:
+      - spec_id: cli-foundation
+        requirement_id: cli-apply-completes-next-pending-task
+      - spec_id: cli-foundation
+        requirement_id: cli-apply-emits-task-status-json
+  run-regression:
+    action: The agent runs the configured complete project regression and the coverage gate, which exits non-zero when measured coverage falls below the declared threshold.
+    covered_by:
+      - spec_id: testing-coverage-gate
+        requirement_id: coverage-measurement-command
+      - spec_id: testing-coverage-gate
+        requirement_id: config-coverage-declaration
+  verify:
+    action: The agent verifies the change, and verification reports every artifact, task, gate, and delta-target conflict it checked.
+    covered_by:
+      - spec_id: cli-foundation
+        requirement_id: cli-verify-validates-artifacts-against-schemas
+      - spec_id: cli-foundation
+        requirement_id: cli-verify-checks-task-completion
+      - spec_id: cli-foundation
+        requirement_id: cli-verify-enforces-exclusive-active-targets
+  review:
+    action: The agent reads every changed implementation and test file and reports findings against the recorded technical standards.
+    no_coverage_reason: Code review is performed by a bundled skill rather than by a CLI command, so no main spec requirement governs the reading itself; the shipped requirement records only that the review CLI command was removed.
+  archive:
+    action: The agent archives the change, which merges its delta artifacts into the main specs, regenerates the spec index, reconciles the roadmap planned-change status, and moves the change into the dated archive.
+    covered_by:
+      - spec_id: cli-foundation
+        requirement_id: cli-archive-merges-delta-specs-into-main-specs
+      - spec_id: cli-foundation
+        requirement_id: cli-archive-regenerates-spec-index-after-merge
+      - spec_id: cli-foundation
+        requirement_id: cli-archive-moves-change-to-date-prefixed-archive
+      - spec_id: roadmap-domain-behavior
+        requirement_id: roadmap-sync-contract
+  ship:
+    action: The operator is handed a focused commit summary for the archived change, and the push remains theirs to run.
+    covered_by:
+      - spec_id: operations-domain-behavior
+        requirement_id: operations-ship-contract
+      - spec_id: cli-foundation
+        requirement_id: cli-ship-reads-archived-change
+exception_flows:
+  no-eligible-planned-change:
+    trigger: Every planned change in the earliest incomplete milestone is blocked by an incomplete dependency or an active change already targeting it.
+    steps:
+      report-blockers:
+        action: The operator is told no planned change is eligible and is given the per-candidate reasons rather than an arbitrary substitute recommendation.
+        covered_by:
+          - spec_id: roadmap-domain-behavior
+            requirement_id: roadmap-recommend-contract
+  open-question-blocks-implementation:
+    trigger: An open question is still unresolved when implementation would otherwise begin.
+    steps:
+      refuse-handoff:
+        action: The proposal handoff check reports the unresolved questions and names the command that records each answer, and implementation does not start.
+        covered_by:
+          - spec_id: cli-foundation
+            requirement_id: cli-verify-checks-open-questions
+  regression-or-coverage-fails:
+    trigger: The configured regression command exits non-zero, either from a failing test or from measured coverage below the declared threshold.
+    steps:
+      block-archive:
+        action: Archive is blocked until the regression command passes again, and a coverage shortfall blocks it exactly as a failing test does rather than being reported as advisory.
+        covered_by:
+          - spec_id: testing-coverage-gate
+            requirement_id: coverage-measurement-command
+          - spec_id: testing-coverage-gate
+            requirement_id: self-hosted-coverage-contract
+  verification-refuses-archive:
+    trigger: Verification reports a pending task, an invalid artifact, an unset testing gate, or a delta target another active change already claims.
+    steps:
+      refuse-and-name-blockers:
+        action: Archive is refused and the deterministic diagnostics name each blocker, so the change returns to implementation rather than merging partially.
+        covered_by:
+          - spec_id: cli-foundation
+            requirement_id: cli-archive-requires-verified-change-state
+          - spec_id: cli-foundation
+            requirement_id: cli-verify-emits-deterministic-json-output

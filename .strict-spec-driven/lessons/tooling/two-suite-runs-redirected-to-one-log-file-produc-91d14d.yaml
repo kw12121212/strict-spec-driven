@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: two-suite-runs-redirected-to-one-log-file-produc-91d14d
+  title: Two suite runs redirected to one log file produce a summary that belongs to neither
+category: tooling
+status: active
+created_at: '2026-09-18T04:46:32.192Z'
+updated_at: '2026-09-18T04:46:32.192Z'
+context: Iterating on test expectations for a new artifact family, launching 'bun test/run.ts > /tmp/suite.log 2>&1' in the background more than once before an earlier run had finished.
+observation: 'Two concurrent runs both redirecting to /tmp/suite.log interleaved their writes. The tail of the file read ''1/4648 tests failed.'' while ''grep -c FAIL'' over the same file returned 0, because the summary line came from one run and the body from the other. Acting on either number alone would have been wrong in a different direction: the summary invented a failure that the visible body did not contain, and the body''s silence invited declaring the suite green. Only a single fresh run to a unique path resolved it, and that run reported all tests passing.'
+takeaway: A log file is shared mutable state, so the repository rule to redirect suite output to a file rather than piping it only preserves evidence while exactly one run owns the path. Give every run its own log file name, and when a summary line and the body of a log disagree, do not reconcile them -- discard the log and rerun once, because a mixture of two runs is not weak evidence but wrong evidence.
+applies_when: Launching 'bun test/run.ts' or 'bun scripts/coverage-gate.ts' in the background, or re-launching one, while a previous run redirecting to the same log path may still be writing; also whenever a log's PASS/FAIL body and its final summary count disagree.
+occurrences:
+  - origin: expose-scene-cli-surface
+    date: '2026-09-18'
+    evidence: /tmp/suite.log ended with '1/4648 tests failed.' while 'grep -c FAIL /tmp/suite.log' returned 0; background task ids b4km652lm and bw6n6qbq7 had both been started with the same '> /tmp/suite.log' redirect; a single clean run to /tmp/suite-final.log reported 'All 4649 tests passed.'

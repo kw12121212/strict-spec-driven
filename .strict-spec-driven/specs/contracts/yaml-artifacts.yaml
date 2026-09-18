@@ -1473,3 +1473,31 @@ requirements:
         - GIVEN: a newly initialized strict workflow directory
         - WHEN: the scaffolded files are inspected
         - THEN: no scenes directory and no scene index are present
+  delta-scene-artifact-contract:
+    strength: MUST
+    statement: The system MUST register a delta scene artifact schema that addresses flow steps by operation, flow, and stable step id, so a strict change can state only the steps it changes and can retire a step, neither of which the main scene contract can express.
+    scenarios:
+      delta-scene-schema-is-registered-with-an-example:
+        - GIVEN: the bundled strict YAML schema registry
+        - WHEN: the registered schemas and their minimal valid examples are listed
+        - THEN: a delta scene schema and one minimal valid delta scene example are reported
+      delta-scene-groups-steps-by-operation-and-flow:
+        - GIVEN: a delta scene artifact
+        - WHEN: its operations are validated
+        - THEN: each of the added, modified, and removed groups addresses steps under the main flow or under one named exception flow, keyed by stable step id
+      delta-scene-removed-step-carries-a-reason:
+        - GIVEN: a delta scene removing a flow step
+        - WHEN: the removal entry is validated
+        - THEN: the entry requires a reason and accepts no other field, so a retirement is distinguishable from a lost step
+      delta-scene-step-declares-coverage-or-a-waiver:
+        - GIVEN: a delta scene adding or modifying a flow step
+        - WHEN: the step is validated
+        - THEN: the step is accepted only when it declares either covering requirement references or an explicit no-coverage reason, and never both
+      delta-scene-covered-by-merges-as-a-set:
+        - GIVEN: a delta scene step whose covering references overlap those already recorded on the main scene step
+        - WHEN: the declared merge rule for that step is read
+        - THEN: the references combine as a set keyed by the spec id and requirement id pair, so a reference repeated across changes does not duplicate
+      delta-scene-may-create-a-scene:
+        - GIVEN: a delta scene whose target scene id matches no recorded scene
+        - WHEN: the declared new-scene rule is read
+        - THEN: the delta creates the scene only when it supplies a new-scene block naming the title and area, and otherwise fails with a missing-target error

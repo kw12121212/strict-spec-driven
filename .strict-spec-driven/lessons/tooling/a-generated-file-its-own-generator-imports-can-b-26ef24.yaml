@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-generated-file-its-own-generator-imports-can-b-26ef24
+  title: A generated file its own generator imports can be corrupted beyond regeneration
+category: tooling
+status: active
+created_at: '2026-09-18T04:46:17.174Z'
+updated_at: '2026-09-18T04:46:17.174Z'
+context: Adding the first new bundled asset in a while (templates/strict-spec-driven/schemas/delta-scene.yaml and examples/strict-spec-driven/delta-scene.yaml) through schema-edit and sample-edit, which regenerate src/embedded-templates.ts inside their own transaction.
+observation: 'projectPendingBundle in src/bundled-asset-mutation.ts appends a NEW bundle entry by slicing at the table''s closing brace and emitting a comma separator, but the rendered table already ends every entry with a trailing comma. The committed src/embedded-templates.ts therefore got '',,'' and stopped parsing. Because scripts/gen-templates-bundle.ts imports src/bundled-asset-mutation.ts, which imports the bundle, the generator could no longer run either: ''bun scripts/gen-templates-bundle.ts'' failed with the same syntax error at the same line. Regeneration, the normal remedy for a bad generated file, was unavailable. The update path was never affected, so the bug sat dormant until an asset was added rather than edited.'
+takeaway: 'When a generated file is imported by the toolchain that generates it, a write that corrupts its syntax also removes the ability to regenerate it, so the cheap remedy is gone exactly when it is needed. Break the cycle by hand-repairing only the minimal syntax defect to get the generator running again, then let the generator rewrite the file authoritatively, then fix the writer so the same input cannot recur. Also treat the add path and the edit path of an incremental file writer as separately untested: an insertion that has not run since the file''s separators last changed is where the drift hides.'
+applies_when: Any write to a generated source file that the build or generator imports -- src/embedded-templates.ts via schema-edit, sample-edit, template-edit, fixture-edit, or inventory-edit -- and especially when the write ADDS a new entry rather than updating an existing one, since the insertion branch runs far less often than the update branch.
+occurrences:
+  - origin: expose-scene-cli-surface
+    date: '2026-09-18'
+    evidence: 'src/embedded-templates.ts line 6382 held the literal ''`,,'' after ''schema-edit delta-scene''; ''bun run build'' and ''bun scripts/gen-templates-bundle.ts'' both failed with ''error: Expected identifier but found ","'' at that line; fixed in projectPendingBundle in src/bundled-asset-mutation.ts.'

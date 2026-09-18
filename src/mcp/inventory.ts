@@ -153,6 +153,13 @@ export const MCP_READ_ONLY_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     mutates: false,
   },
   {
+    name: "scene_status",
+    description: mcpToolDescription("scene-status"),
+    safety: "read",
+    cliCommand: "scene-status",
+    mutates: false,
+  },
+  {
     name: "harness_plan",
     description: mcpToolDescription("harness-plan"),
     safety: "read",
@@ -216,6 +223,13 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     description: mcpToolDescription("tech-edit"),
     safety: "write",
     cliCommand: "tech-edit",
+    mutates: true,
+  },
+  {
+    name: "scene_edit",
+    description: mcpToolDescription("scene-edit"),
+    safety: "write",
+    cliCommand: "scene-edit",
     mutates: true,
   },
   {

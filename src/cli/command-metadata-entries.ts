@@ -182,7 +182,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     summary: "Write or merge a change planning artifact from named arguments.",
     mcpDescription: `Mutates strict workflow state by generating or updating a change planning artifact. ${TASK_GROUP_GUIDANCE}`,
     usage: [
-      "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
+      "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech|delta-scene> --<named-args>",
       "",
       "Examples:",
       "  strict-spec-cli generate <change-name> proposal [--what <text>] [--why <text>] [--in <text>] [--out <text>] [--unchanged <text>] [--remove-what <substring>] [--remove-why <substring>]",
@@ -192,6 +192,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       `  strict-spec-cli generate <change-name> tasks [(${TASK_SELECTOR_FLAGS.map(({ name }) => name).join(" | ")}) --task <id> [--text <text>] [--status <pending|complete>] [--command <text>] [--before <task-id> | --after <task-id>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete`,
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
+      "  strict-spec-cli generate <change-name> delta-scene --target-scene <id> [--title <text> --area <area>] [--operation <ADDED|MODIFIED|REMOVED> [--exception-flow <flow-id> --trigger <text>] (--step <id> | --exception-step <flow-id>:<step-id>) (--action <text> (--covered-by <spec-id>:<requirement-id> | --no-coverage-reason <text>) | --reason <text>)]... [--remove-step <step-id|flow-id:step-id>]...",
       "",
       "Task examples (run in order in a project with strict workflow state; recorded --command values are not executed by generate):",
       '  strict-spec-cli generate example-change tasks --implementation --task implement-work --text "Implement the scoped behavior."',
@@ -206,7 +207,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       CHANGE_NAME_ARG,
       {
         name: "artifact",
-        description: "One of proposal, design, questions, tasks, delta-spec, or delta-tech.",
+        description: "One of proposal, design, questions, tasks, delta-spec, delta-tech, or delta-scene.",
         required: true,
       },
     ],
@@ -215,7 +216,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         name: "--delete",
         arity: "boolean",
         description:
-          "Remove the whole target artifact file. Accepted only with the flags that identify the artifact (--target-spec/--spec-path for delta-spec, --target-standard/--tech-path for delta-tech) and rejected alongside any editing flag, so a rebuild can never ride along on an edit. Not supported for questions, whose requirement entries no flag may clear, nor for proposal, which is merged instead. For tasks it refuses while any task is recorded complete.",
+          "Remove the whole target artifact file. Accepted only with the flags that identify the artifact (--target-spec/--spec-path for delta-spec, --target-standard/--tech-path for delta-tech, --target-scene for delta-scene) and rejected alongside any editing flag, so a rebuild can never ride along on an edit. Not supported for questions, whose requirement entries no flag may clear, nor for proposal, which is merged instead. For tasks it refuses while any task is recorded complete.",
       },
       {
         name: "--remove-approach",
@@ -434,7 +435,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         arity: "value",
         valueLabel: "<text>",
         description:
-          "Design artifact only: why the paired --alternative was rejected. Must name the specific disadvantage that ruled it out, not restate the option.",
+          "Design artifact: why the paired --alternative was rejected, naming the specific disadvantage that ruled it out rather than restating the option. Delta-tech artifact: the reason a REMOVED rule is retired. Delta-scene artifact: the reason a REMOVED step is retired, which is the only flag a removed step accepts.",
         repeatable: true,
       },
       {
@@ -611,6 +612,84 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
           "Delta-tech artifact only: the technical standard id this delta targets. Required for delta-tech and accepted at most once.",
       },
       {
+        name: "--target-scene",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Delta-scene artifact only: the scene id this delta targets, which also resolves the delta's area-and-id path beneath the change. Required for delta-scene and accepted at most once. A target no scene index records is a new-scene creation and additionally requires --title and --area.",
+      },
+      {
+        name: "--area",
+        arity: "value",
+        valueLabel: "<area>",
+        description:
+          "Delta-scene artifact only: the area of a scene this delta creates, paired with --title. Accepted at most once, and refused when it disagrees with the area the scene is already recorded under.",
+      },
+      {
+        name: "--exception-flow",
+        arity: "value",
+        valueLabel: "<flow-id>",
+        description:
+          "Delta-scene artifact only: names the exception flow the following --trigger describes, within the open operation group. Distinct from --exception, which appends an exception to a delta-tech rule.",
+        repeatable: true,
+      },
+      {
+        name: "--trigger",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-scene artifact only: what causes the preceding --exception-flow to be taken instead of the remainder of the main flow. Required when this delta introduces the flow, and rejected in a REMOVED operation group.",
+        repeatable: true,
+      },
+      {
+        name: "--step",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Delta-scene artifact only: opens one main-flow step group by stable step id within the open operation group; the following --action, --covered-by, --no-coverage-reason, and --reason belong to it until the next step selector.",
+        repeatable: true,
+      },
+      {
+        name: "--exception-step",
+        arity: "value",
+        valueLabel: "<flow-id>:<step-id>",
+        description:
+          "Delta-scene artifact only: opens one exception-flow step group, carrying the same step-scoped flags as --step.",
+        repeatable: true,
+      },
+      {
+        name: "--action",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-scene artifact only: the open step's action, required for an ADDED or MODIFIED step and rejected for a REMOVED one. One value per step group.",
+        repeatable: true,
+      },
+      {
+        name: "--covered-by",
+        arity: "value",
+        valueLabel: "<spec-id>:<requirement-id>",
+        description:
+          "Delta-scene artifact only: appends one covering requirement reference to the open step. Entries may name different specs, so one step can be covered across spec areas. An ADDED or MODIFIED step requires either this or --no-coverage-reason and is refused with both, because a step declaring neither would pass as though it were covered.",
+        repeatable: true,
+      },
+      {
+        name: "--no-coverage-reason",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Delta-scene artifact only: records why the open step is deliberately covered by no requirement. One value per step group, and the only accepted alternative to --covered-by.",
+        repeatable: true,
+      },
+      {
+        name: "--remove-step",
+        arity: "value",
+        valueLabel: "<step-id|flow-id:step-id>",
+        description:
+          "Delta-scene artifact only: drops one step from every operation group, from the main flow when unqualified and from one exception flow when qualified. Removing the last step of a flow removes the emptied flow container too. Each value removes one step; an absent id is a no-op.",
+        repeatable: true,
+      },
+      {
         name: "--tech-path",
         arity: "value",
         valueLabel: "<path>",
@@ -622,7 +701,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         arity: "value",
         valueLabel: "<text>",
         description:
-          "Delta-spec and delta-tech artifacts: title for a main spec or standard this delta creates. Delta-spec pairs it with --new-spec-path; delta-tech pairs it with --category. Accepted at most once.",
+          "Delta-spec, delta-tech, and delta-scene artifacts: title for a main spec, standard, or scene this delta creates. Delta-spec pairs it with --new-spec-path; delta-tech pairs it with --category; delta-scene pairs it with --area. Accepted at most once.",
       },
       {
         name: "--category",
@@ -636,7 +715,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         arity: "value",
         valueLabel: "<ADDED|MODIFIED|REMOVED>",
         description:
-          "Delta-spec and delta-tech artifacts: opens an operation group; the following requirement or rule flags belong to it.",
+          "Delta-spec, delta-tech, and delta-scene artifacts: opens an operation group; the following requirement, rule, or scene step flags belong to it.",
         repeatable: true,
         repeatSemantics: "Repeat once per operation group; groups are merged by operation.",
       },
@@ -892,6 +971,71 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       "Scalar and keyed restatement affects only the named content; removals are exact.",
       "Creation defaults to .strict-spec-driven/specs/<spec-id>.yaml and persists only after a title and complete requirement validate.",
       "Use schema-show main-spec and sample-show main-spec to inspect the artifact contract.",
+    ],
+  },
+
+  "scene-edit": {
+    name: "scene-edit",
+    group: "operations",
+    summary: "Create, incrementally update, remove named entries from, or delete a live scene and reconcile the scene index.",
+    mcpDescription: "Mutates a repository-owned scene and its scene index through named semantic fields and the atomic YAML boundary.",
+    usage: "Usage: strict-spec-cli scene-edit <scene-id> [named fields and removals | --delete]\n",
+    arguments: [{ name: "scene-id", description: "Stable kebab-case scene id used to resolve the live artifact.", required: true }],
+    flags: [
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Set the scene title; required together with --area when creating a scene." },
+      { name: "--area", arity: "value", valueLabel: "<area>", description: "Kebab-case grouping key that is also the scene subdirectory name; required when creating a scene and refused on an existing scene with a different value, because the area is the artifact's directory rather than an editable field." },
+      { name: "--status", arity: "value", valueLabel: "<draft|active|obsolete>", description: "Set the scene lifecycle status; creation defaults to draft." },
+      { name: "--actor", arity: "value", valueLabel: "<name>", description: "Upsert one actor by name, paired positionally with --role. Restating a recorded name replaces only its role.", repeatable: true, repeatSemantics: "One --role per --actor, supplied in equal counts." },
+      { name: "--role", arity: "value", valueLabel: "<text>", description: "What the paired --actor does in this scene.", repeatable: true },
+      { name: "--precondition", arity: "value", valueLabel: "<text>", description: "Append one precondition without duplicates.", repeatable: true },
+      { name: "--exception-flow", arity: "value", valueLabel: "<flow-id>", description: "Upsert one exception flow by id, paired positionally with --trigger. An exception flow must be declared before a step can be added to it.", repeatable: true, repeatSemantics: "One --trigger per --exception-flow, supplied in equal counts." },
+      { name: "--trigger", arity: "value", valueLabel: "<text>", description: "What causes the paired --exception-flow to be taken instead of the remainder of the main flow.", repeatable: true },
+      { name: "--step", arity: "value", valueLabel: "<id>", description: "Open one main-flow step group by stable step id; the following --action, --covered-by, --remove-covered-by, and --no-coverage-reason belong to it until the next step selector. A new step also requires --action.", repeatable: true },
+      { name: "--exception-step", arity: "value", valueLabel: "<flow-id>:<step-id>", description: "Open one exception-flow step group; carries the same step-scoped flags as --step and requires that exception flow to already exist.", repeatable: true },
+      { name: "--action", arity: "value", valueLabel: "<text>", description: "Set the open step's action. Supplied once per step group." },
+      { name: "--covered-by", arity: "value", valueLabel: "<spec-id>:<requirement-id>", description: "Append one covering requirement reference to the open step without duplicates. Entries may name different specs, so one step can be covered across spec areas. Supplying one clears a recorded no-coverage reason, because the contract admits exactly one of the two.", repeatable: true },
+      { name: "--remove-covered-by", arity: "value", valueLabel: "<spec-id>:<requirement-id>", description: "Remove this exact covering reference from the open step; an absent reference is a no-op.", repeatable: true },
+      { name: "--no-coverage-reason", arity: "value", valueLabel: "<text>", description: "Record why the open step is deliberately covered by no requirement. Supplying it clears recorded covering references. Supplied once per step group." },
+      { name: "--remove-actor", arity: "value", valueLabel: "<name>", description: "Remove only this named actor; an absent name is a no-op.", repeatable: true },
+      { name: "--remove-precondition", arity: "value", valueLabel: "<text>", description: "Remove this exact precondition; an absent value is a no-op.", repeatable: true },
+      { name: "--remove-exception-flow", arity: "value", valueLabel: "<flow-id>", description: "Remove only this keyed exception flow and its steps; an absent id is a no-op.", repeatable: true },
+      { name: "--remove-step", arity: "value", valueLabel: "<step-id|flow-id:step-id>", description: "Remove only this keyed step, from the main flow when unqualified and from one exception flow when qualified; an absent id is a no-op.", repeatable: true },
+      { name: "--delete", arity: "boolean", description: "Delete the resolved scene and its index entry in one isolated transaction; refused alongside any editing flag. Deleting the last recorded scene deletes the scene index too, because the index contract requires at least one scene." },
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "sceneId", "artifactPath", "indexPath", "operation"],
+      description: "A deterministic multi-artifact mutation result covering the scene file and the regenerated scene index.",
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "The scene file and the regenerated index commit in one transaction, so a rejected write leaves no scene file and no index entry naming an absent file.",
+      "Scalar and keyed restatement affects only the named content; lists append uniquely and removals are exact.",
+      "Creation writes .strict-spec-driven/scenes/<area>/<scene-id>.yaml and persists only after actors, preconditions, the main flow, and at least one exception flow validate, so a partially answered scene is refused rather than stored.",
+      "Use schema-show scene and sample-show scene to inspect the artifact contract.",
+    ],
+  },
+
+  "scene-status": {
+    name: "scene-status",
+    group: "operations",
+    summary: "Report the recorded scenes with each flow step's coverage state, narrowed by area or scene.",
+    usage: "Usage: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]\n",
+    arguments: [],
+    flags: [
+      { name: "--area", arity: "value", valueLabel: "<area>", description: "Report only the scenes grouped under this area; an area matching no scene exits non-zero and names the recorded areas." },
+      { name: "--scene", arity: "value", valueLabel: "<scene-id>", description: "Report only this scene and its steps; a scene id matching no scene exits non-zero and names the recorded scenes." },
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "sceneCount", "statusCounts", "coverageCounts", "areas", "scenes", "diagnostics"],
+      description: "A read-only scene report listing every main-flow and exception-flow step with its coverage state.",
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Each step is reported as covered when every covering reference resolves against a recorded main spec, waived when it carries an explicit no-coverage reason, and unresolved when a reference names a spec or requirement that does not exist.",
+      "An unresolved reference is reported and exits zero; the gate that blocks ready and verify on an uncovered step is owned elsewhere, so this command stays usable to survey a scene that is still being authored.",
+      "The command reads the scene store and the spec index and mutates nothing.",
     ],
   },
 

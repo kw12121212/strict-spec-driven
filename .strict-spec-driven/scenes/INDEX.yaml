@@ -1,0 +1,10 @@
+schema: strict-spec-driven/scenes-index/v1
+schema_version: 1
+artifact_type: scenes_index
+schema_file: templates/strict-spec-driven/schemas/scenes-index.yaml
+areas:
+  workflow:
+    roadmap-backed-change-reaches-archive:
+      title: A roadmap-backed change is carried from recommendation to archive
+      status: active
+      path: .strict-spec-driven/scenes/workflow/roadmap-backed-change-reaches-archive.yaml

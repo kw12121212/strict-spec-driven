@@ -13,6 +13,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "tech-status",
   "spec-edit",
   "tech-edit",
+  "scene-edit",
+  "scene-status",
   "architecture-edit",
   "architecture-generate",
   "architecture-status",

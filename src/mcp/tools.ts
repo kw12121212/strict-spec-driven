@@ -56,6 +56,10 @@ const liveArtifactAuthorSchema = z.strictObject({
   args: z.array(z.string().min(1)).min(1),
   ...confirmField,
 });
+const sceneStatusSchema = z.strictObject({
+  area: z.string().min(1).optional(),
+  scene: z.string().min(1).optional(),
+});
 const harnessSessionMutateSchema = z.strictObject({
   action: z.enum(["create", "edit", "delete", "archive"]),
   session: z.string().min(1),
@@ -121,6 +125,12 @@ export const READ_ONLY_TOOL_DEFINITIONS: McpToolDefinition[] = [
     return cliArgs;
   }, optionalArtifactKindSchema),
   command(inventoryFor("tech_status"), () => ["tech-status"]),
+  command(inventoryFor("scene_status"), (args) => {
+    const cliArgs = ["scene-status"];
+    if (typeof args.area === "string") cliArgs.push("--area", args.area);
+    if (typeof args.scene === "string") cliArgs.push("--scene", args.scene);
+    return cliArgs;
+  }, sceneStatusSchema),
   command(inventoryFor("harness_plan"), (args) => {
     const cliArgs = ["harness-plan"];
     if (typeof args.environment === "string") cliArgs.push("--environment", args.environment);
@@ -159,6 +169,11 @@ export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ], liveArtifactAuthorSchema),
   command(inventoryFor("tech_edit"), (args) => [
     "tech-edit",
+    String(args.id),
+    ...(Array.isArray(args.args) ? args.args.map(String) : []),
+  ], liveArtifactAuthorSchema),
+  command(inventoryFor("scene_edit"), (args) => [
+    "scene-edit",
     String(args.id),
     ...(Array.isArray(args.args) ? args.args.map(String) : []),
   ], liveArtifactAuthorSchema),

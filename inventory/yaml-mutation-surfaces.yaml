@@ -512,28 +512,37 @@ artifact_families:
     artifact_types:
       - scenes_index
       - scene
+      - delta_scene
     path_patterns:
       - .strict-spec-driven/scenes/INDEX.yaml
       - .strict-spec-driven/scenes/*/*.yaml
       - examples/strict-spec-driven/scene.yaml
       - examples/strict-spec-driven/scenes-index.yaml
+      - .strict-spec-driven/changes/*/scenes/*/*.yaml
+      - .strict-spec-driven/changes/archive/*/scenes/*/*.yaml
+      - examples/strict-spec-driven/delta-scene.yaml
     ownership: repository-owned
-    validation_owner: templates/strict-spec-driven/schemas/scene.yaml and scenes-index.yaml
+    validation_owner: templates/strict-spec-driven/schemas/scene.yaml, scenes-index.yaml, and delta-scene.yaml
     operations:
-      create: not-applicable
-      update: not-applicable
-      named_remove: not-applicable
-      delete: not-applicable
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - The scenes-index/v1 area groups and canonical paths must match the scene artifacts stored beneath those areas.
       - Every flow step covered_by entry names a spec id and a requirement id that must resolve against the recorded main specs.
-      - The planned change expose-scene-cli-surface flips create and update to cli-owned and names the commands that own them; this change ships the contract only, so the family declares no CLI mutation owner yet.
-    cli_owners: []
+      - A delta scene merges into a main scene by step id under its flow, so its target_scene and area must resolve to the canonical main scene path the merge will write.
+    cli_owners:
+      - scene-edit
+      - generate
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/scene.yaml
       - templates/strict-spec-driven/schemas/scenes-index.yaml
       - examples/strict-spec-driven/scene.yaml
+      - templates/strict-spec-driven/schemas/delta-scene.yaml
+      - examples/strict-spec-driven/delta-scene.yaml
+      - src/scenes.ts
     validation_command: bun test/run.ts
 exclusions:
   external-dependency-yaml:
@@ -785,6 +794,7 @@ mutation_surfaces:
       - roadmap-state
       - architecture-state
       - design-system-state
+      - scene-state
     evidence:
       - src/mcp/tools.ts
       - src/mcp/inventory.ts
