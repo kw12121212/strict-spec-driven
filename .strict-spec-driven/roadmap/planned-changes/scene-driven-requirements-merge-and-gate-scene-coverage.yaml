@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: merge-and-gate-scene-coverage
+  milestone: scene-driven-requirements
+status: planned
+summary: Merge delta scenes on archive and block ready and verify on uncovered scene steps.
+details: 'Extend archive so a change with scene operations merges them into .strict-spec-driven/scenes/ and regenerates the scene index, with deterministic conflict rules matching the delta spec merge contract, including the rule for a step whose covering requirements arrive from more than one delta spec in the same change. Add the coverage-gap diagnostic: a scene step naming no covering requirement and no explicit no-coverage reason, or naming a requirement id that does not resolve, fails ready and verify. The diagnostic must name the runnable remedy with the target identifiers already filled in, as the blocking-diagnostics rule requires, and must name the source to consult for any identifier the caller still has to supply. Checking is triggered by the presence of a scene, so a repository with no scene sees no new diagnostic. Carry the spec impact as a delta spec against operations-domain-behavior. Tests cover merge, index regeneration, conflict rules, the gap diagnostic in both ready and verify, the resolvable-reference failure, the explicit exemption path, and the no-scene no-op.'
+depends_on:
+  - expose-scene-cli-surface

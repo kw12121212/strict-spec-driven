@@ -1,0 +1,56 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: define-scene-contract
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: A project adopting this workflow has no entry point from scene to requirement. The author is asked for requirements immediately, so they skip describing who acts, under what preconditions, and what happens when the main flow fails, and the resulting requirement set has systematic holes that depend on a human noticing them. This affects the author of a new project's specs and every reader downstream of those specs. Replayed from the scene-driven-requirements milestone goal and details.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'For this contract-first change specifically: a scene and a scene index have registered strict YAML schemas with minimal valid examples, the bundled schema and example inventories report both families, the scene-state family appears in inventory/yaml-mutation-surfaces.yaml, and a scene omitting actors, preconditions, the main flow, or exception flows is rejected by validation while a repository holding no scene artifact observes no new diagnostic. The milestone-level outcome - scene status reporting covered steps and named gaps, and ready and verify failing on an uncovered step - is delivered by later planned changes. Replayed from the milestone done_criteria and the planned change summary.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'The milestone is ordered contract-first: the artifact contract and its registrations must land before any command exposes the family, before archive and gating consume it, and before skill and documentation routing names it, so guidance never points at a capability the CLI does not provide. Three sibling planned changes in the same milestone are currently blocked with dependency-incomplete on this one, so nothing else in the milestone can start. Replayed from the milestone details and the roadmap recommendation output.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No change to templates/strict-spec-driven/schemas/main-spec.yaml or to the shape of an existing main spec requirement; no existing spec, standard, or change artifact may become invalid. Existing specs, this repository, and existing external projects are not required to author scenes. No workflow config switch that turns scene coverage checking on or off. Legacy .spec-driven migration semantics are unchanged beyond confirming migration never creates an empty scenes directory. No generated human-readable scene document. init scaffolds no scenes directory and no scene index. Replayed from the milestone scope.out and notes.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The intended reading is contract-only: this change defines the scene and scenes-index schemas, registers them, adds one minimal example per family, adds the scene-state inventory family, regenerates the embedded template bundle, and records the spec impact as a delta spec against contracts-yaml-artifacts. It does not add a scene CLI command, MCP tool, delta scene generation, archive merge, or coverage gating, all of which belong to named sibling planned changes. Two further readings were rejected: embedding scenes inside main specs, and declaring coverage from the spec side, both excluded because the milestone makes the family independent and leaves main specs untouched. Replayed from the planned change details and the milestone scope.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: scene-state-inventory-operation-states
+    question: What operation states should the new scene-state inventory family declare while this change ships the contract but no scene command?
+    context: 'Impact: this affects the inventory artifact, the blocking inventory check, and what the later expose-scene-cli-surface planned change must revise; it does not affect the scene schema shape or the delta spec. Evidence: scripts/check-yaml-mutation-inventory.ts reports missing-cli-owner when an operation is declared cli-owned and cli_owners is empty, and unknown-cli-owner when a named owner is not registered in COMMAND_REGISTRATION_ORDER, so this change cannot truthfully declare cli-owned. The technical standard yaml-mutation-surfaces-stay-inventoried requires every family to record current CLI ownership or direct-write paths, and its exception clause names read-only and human-only as the explicitly classified non-CLI states, which is an argument for human-only over not-applicable. src/yaml-mutation-surface.ts reports an inventory operation state verbatim and attaches a not-yet-CLI-owned note only for direct-write, so neither candidate state is misreported by yaml-surface-show. Recommendation: declare create, update, named_remove, and delete as not-applicable in this change, with a reference side effect stating that expose-scene-cli-surface flips create and update to cli-owned and names its commands. Options: (a) not-applicable now, revised by the command-surface change - recommended, it claims nothing the repository has not delivered; (b) human-only now - aligns with the standard''s exception vocabulary but reads as a deliberate policy that scene YAML is hand-edited, which contradicts the next planned change; (c) defer the whole inventory family entry to expose-scene-cli-surface - contradicts this planned change''s stated scope.'
+    answer: Declare create, update, named_remove, and delete all as not-applicable for the scene-state family in this change, and record a reference side effect stating that expose-scene-cli-surface flips create and update to cli-owned and names its commands. The state must not claim a capability this change does not ship, and human-only would read as a deliberate hand-editing policy that contradicts the next planned change.
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: scene-index-grouping-key
+    question: What should the scene index group its entries by, given that scene files are nested in subdirectories from the first release?
+    context: 'Impact: this affects the scenes-index schema shape, the minimal scenes-index example, and the scene status output the later command-surface change must narrow; it does not affect the scene schema itself. Evidence: the lessons index groups by the fixed technical-standard category enum, which works because that vocabulary is closed. Scenes have no equivalent closed vocabulary, and the milestone notes only say the family organizes files in subdirectories the way lessons does and that scene status supports narrowing its output. Recommendation: group by a free-form kebab-case area key that also names the subdirectory, so the group key and the canonical path stay derivable from each other without inventing a closed enum the product cannot yet justify. Options: (a) free-form kebab-case area key matching the subdirectory name - recommended; (b) reuse the closed technical-standard category enum - forces scenes into an engineering-subject vocabulary that does not describe user scenes; (c) flat index with no grouping - contradicts the decision to build for many scenes and leaves scene status nothing to narrow on.'
+    answer: Group scene index entries by a free-form kebab-case area key that is also the scene subdirectory name, so the group key and the canonical path stay derivable from each other. Do not reuse the closed technical-standard category enum, which describes engineering subjects rather than user scenes, and do not ship a flat index.
+    status: resolved
+    kind: technical
+    answered_by: human

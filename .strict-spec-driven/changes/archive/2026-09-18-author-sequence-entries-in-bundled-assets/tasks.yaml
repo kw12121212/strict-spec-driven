@@ -1,0 +1,64 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: author-sequence-entries-in-bundled-assets
+sections:
+  Implementation:
+    confirm-registry-validates-today:
+      text: Confirm the committed templates/strict-spec-driven/schemas/registry.yaml validates against its declared strict-spec-driven/schema-registry/v1 contract before the participant check is tightened, so the change rejects only malformed candidates instead of refusing every registry write.
+      status: complete
+    express-registry-contract-in-enforced-dialect:
+      text: Convert templates/strict-spec-driven/schemas/schema-registry.yaml from the unenforced fields dialect to a json_schema document carrying the same required fields, enums, item shapes, and additional-field rules, through schema-edit in one transaction, and confirm the committed registry still validates afterwards.
+      status: complete
+    accept-append-index-in-field-paths:
+      text: In the shared addressed-path editor in src/bundled-asset-mutation.ts, accept a sequence index equal to the sequence length by creating a new entry at that position for a set or append edit, keep refusing any larger index with the existing field-path-out-of-range diagnostic, and keep refusing a new index for a removal edit.
+      status: complete
+    create-empty-sequences:
+      text: Add a create-only argument that writes an empty sequence at an absent addressed path, refuse it with a deterministic diagnostic where the path already records any value, and route it through the same candidate validation and atomic commit as every other edit.
+      status: complete
+    validate-registry-against-registered-schema:
+      text: Replace the shape-only registry branch in validateSchemaDocument with validation of the complete candidate against the registry's declared registered schema, reusing the existing registered-schema validation path, and keep non-registry bundled schema documents on their json_schema wrapper check.
+      status: complete
+    name-the-remedy-in-the-refusal:
+      text: Make the refusal of a value appended to a sequence whose contract requires mappings name the runnable remedy as well as the invalid candidate, so the blocking diagnostic satisfies the standard requiring each remedy to be stated as a runnable form rather than merely mentioned.
+      status: complete
+    document-sequence-addressing-in-metadata:
+      text: Update the shared command-metadata entries for the bundled-asset editing commands so text help, machine-readable help, and the MCP tool descriptions state that a set path may address the next sequence index to create an entry, and that a larger index is refused.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the project lint command and confirm it exits zero.
+      status: complete
+      command: bun run lint
+    add-sequence-entry-tests:
+      text: Add regressions in test/suites/foundation-and-fixtures.ts covering entry creation at the next index through the shipped command, refusal of an index beyond the next position, refusal of a scalar appended to a sequence of mappings, refusal of an entry missing required fields, idempotent restatement of an existing entry, and preservation of every sibling entry and unnamed field.
+      status: complete
+      command: bun test/run.ts
+    prove-appended-scalar-is-rejected-end-to-end:
+      text: Prove the defect is closed by driving the previously accepted scalar append to the registry entries sequence through the shipped command and observing a non-zero exit with a candidate-invalid diagnostic and a byte-identical registry and embedded bundle, rather than asserting only at module level.
+      status: complete
+      command: bun test/run.ts
+    run-inventory-check:
+      text: Run the YAML mutation inventory check and confirm it still exits zero after the editor and validation changes.
+      status: complete
+      command: bun run check:yaml-inventory
+    run-project-regression:
+      text: Run the complete project regression with the coverage gate, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-registry-entry-authoring-end-to-end:
+      text: 'Verify the capability the blocked work needs against this repository: author one throwaway registry entry through schema-edit with several set pairs addressing the next position plus empty-sequence creation, read the entry back from the registry document, then remove it with a named removal and confirm the registry and the embedded bundle return to their committed content. Read the entry back from the registry itself rather than from schema-list, which reports bundled asset files rather than registry entries.'
+      status: complete
+    run-ready-and-verify:
+      text: Run ready and verify for this change and confirm both exit zero.
+      status: complete
+      command: strict-spec-cli verify author-sequence-entries-in-bundled-assets
+    confirm-unblocks-scene-contract:
+      text: 'Confirm the blocked dependent work is ready to resume before archive: roadmap-recommend reports define-scene-contract skipped for dependency-incomplete naming this planned change, and the registry registration path that change needs is now exercisable through schema-edit. The dependency itself clears when this change archives and roadmap reconciliation records this planned change complete, which the archive summary reports.'
+      status: complete
+      command: strict-spec-cli roadmap-recommend --details
+testing_gates:
+  validation_task: run-inventory-check
+  unit_test_task: add-sequence-entry-tests

@@ -89,6 +89,7 @@ export const EMBEDDED_BUNDLE_PATH = "src/embedded-templates.ts";
 export type BundledAssetEdit =
   | { kind: "set"; fieldPath: string; value: string }
   | { kind: "append"; fieldPath: string; value: string }
+  | { kind: "create-list"; fieldPath: string }
   | { kind: "remove"; fieldPath: string };
 
 export type BundledAssetMutationOptions = {
@@ -225,6 +226,24 @@ function coerceScalar(value: string): unknown {
 
 type EditFailure = { fieldPath: string; message: string; code: string };
 
+function isMapping(value: unknown): boolean {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isEmptySequence(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
+}
+
+/**
+ * Whether the segment addresses the position one past the last entry. Addressing it creates the
+ * entry, so a new sequence item is authored with the same field addressing that edits an existing
+ * one; any further position stays refused, because it would leave a hole in the sequence.
+ */
+function isAppendPosition(container: readonly unknown[], segment: string): boolean {
+  const index = Number.parseInt(segment, 10);
+  return Number.isInteger(index) && index === container.length && segment === String(index);
+}
+
 /**
  * Apply field-addressed edits to a parsed document. Only the addressed field is touched; every
  * sibling key, sequence entry, and unaddressed branch is left as parsed.
@@ -255,6 +274,11 @@ export function applyFieldEdits(
       if (Array.isArray(container)) {
         const index = Number.parseInt(segment, 10);
         if (!Number.isInteger(index) || index < 0 || index >= container.length) {
+          if (edit.kind !== "remove" && isAppendPosition(container, segment)) {
+            container.push({});
+            cursor = container[container.length - 1];
+            continue;
+          }
           failures.push({ fieldPath: edit.fieldPath, message: `sequence index '${segment}' is out of range`, code: "field-path-out-of-range" });
           failed = true;
           break;
@@ -282,11 +306,26 @@ export function applyFieldEdits(
     if (Array.isArray(cursor)) {
       const index = Number.parseInt(leaf, 10);
       if (!Number.isInteger(index) || index < 0 || index >= cursor.length) {
+        // Only the two kinds that address a field create one. An --append naming an index rather
+        // than its sequence would skip the duplicate check that appending to the sequence applies,
+        // so it stays refused and the caller is left with the form that dedups.
+        if (edit.kind === "set" && isAppendPosition(cursor, leaf)) {
+          cursor.push(coerceScalar(edit.value));
+          continue;
+        }
+        if (edit.kind === "create-list" && isAppendPosition(cursor, leaf)) {
+          cursor.push([]);
+          continue;
+        }
         failures.push({ fieldPath: edit.fieldPath, message: `sequence index '${leaf}' is out of range`, code: "field-path-out-of-range" });
         continue;
       }
       if (edit.kind === "remove") cursor.splice(index, 1);
-      else cursor[index] = coerceScalar(edit.value);
+      else if (edit.kind === "create-list") {
+        if (!isEmptySequence(cursor[index])) {
+          failures.push({ fieldPath: edit.fieldPath, message: `sequence index '${leaf}' already records content, and empty-sequence creation only fills an absent or already-empty field`, code: "field-path-already-recorded" });
+        }
+      } else cursor[index] = coerceScalar(edit.value);
       continue;
     }
 
@@ -299,11 +338,37 @@ export function applyFieldEdits(
       delete container[leaf];
       continue;
     }
+    if (edit.kind === "create-list") {
+      // Creation only fills an absent field: overwriting recorded content here would be the
+      // in-place rebuild that the artifact-writes rule keeps out of every editing command. An
+      // already-empty sequence is left as it is rather than refused, so restating the edits that
+      // authored an entry stays idempotent the way every other artifact write is.
+      const existing = container[leaf];
+      if (existing !== undefined) {
+        if (!isEmptySequence(existing)) {
+          failures.push({ fieldPath: edit.fieldPath, message: `'${leaf}' already records content, and empty-sequence creation only fills an absent or already-empty field`, code: "field-path-already-recorded" });
+        }
+        continue;
+      }
+      container[leaf] = [];
+      continue;
+    }
     if (edit.kind === "append") {
       const existing = container[leaf];
       const list = Array.isArray(existing) ? existing : existing === undefined ? [] : undefined;
       if (list === undefined) {
         failures.push({ fieldPath: edit.fieldPath, message: `'${leaf}' is not a sequence`, code: "field-path-not-a-sequence" });
+        continue;
+      }
+      // A sequence whose recorded entries are mappings cannot hold a coerced scalar. Refusing it
+      // here rather than at candidate validation is what lets the diagnostic name the runnable form
+      // that does create an entry, which a schema-shaped diagnostic cannot state.
+      if (list.length > 0 && list.every((entry) => isMapping(entry))) {
+        failures.push({
+          fieldPath: edit.fieldPath,
+          message: `'${leaf}' holds mapping entries, so an appended scalar cannot be one of them; author the entry's fields at the next position instead, as --set ${edit.fieldPath}.${list.length}.<field> --value <text>`,
+          code: "sequence-holds-mappings",
+        });
         continue;
       }
       const value = coerceScalar(edit.value);
@@ -341,6 +406,14 @@ function registeredSchemaFor(candidate: unknown, assetPath: string): { schema: o
   }
 }
 
+/** Validate a candidate against the registered schema its own `schema` field names. */
+function validateAgainstRegisteredSchema(candidate: unknown, assetPath: string): YamlMutationValidationIssue[] {
+  const resolved = registeredSchemaFor(candidate, assetPath);
+  if ("error" in resolved) return [resolved.error];
+  const result = validateWithSchema(resolved.schema, candidate, assetPath);
+  return result.diagnostics.map((entry) => issue(entry.fieldPath ?? "$", entry.message, "candidate-invalid", { artifactPath: assetPath }));
+}
+
 /**
  * A bundled schema document is a JSON Schema wrapper, not an instance of a registered artifact
  * schema, so it is judged on the wrapper contract the loader actually depends on.
@@ -351,8 +424,12 @@ function validateSchemaDocument(candidate: unknown, assetPath: string): YamlMuta
   if (path.basename(assetPath) === "registry.yaml") {
     if (!Array.isArray(record.entries)) {
       issues.push(issue("$.entries", "the schema registry must hold an entries sequence", "registry-entries-missing", { artifactPath: assetPath }));
+      return issues;
     }
-    return issues;
+    // The registry is an instance of a registered artifact schema, unlike the schema documents it
+    // indexes, so it is judged on that contract. A shape check over entries alone was strictly
+    // weaker than what every registry reader depends on, and admitted an entry of any type.
+    return validateAgainstRegisteredSchema(candidate, assetPath);
   }
   const jsonSchema = record.json_schema;
   if (!jsonSchema || typeof jsonSchema !== "object") {
@@ -375,10 +452,7 @@ function validateCandidateFor(
       // .valid. fixture parses and an .invalid. one still reaches the checker being tested.
       return [];
     }
-    const resolved = registeredSchemaFor(candidate, assetPath);
-    if ("error" in resolved) return [resolved.error];
-    const result = validateWithSchema(resolved.schema, candidate, assetPath);
-    return result.diagnostics.map((entry) => issue(entry.fieldPath ?? "$", entry.message, "candidate-invalid", { artifactPath: assetPath }));
+    return validateAgainstRegisteredSchema(candidate, assetPath);
   };
 }
 

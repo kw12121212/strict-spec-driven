@@ -1,0 +1,62 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/scenes-index/v1
+artifact_type: scenes_index
+artifact_name: scenes-index
+description: Strict YAML scene index artifact grouping scene ids by their free-form area key and recording each scene title, status, and canonical nested path, so one area can be surveyed without reading unrelated scene files. The area key is also the scene subdirectory name, which keeps the group key and the canonical path derivable from each other. At least one area holding at least one scene is required, because an index with no scene in it is the empty container a repository that never adopted scenes would be made to carry.
+example_ref: ../../../examples/strict-spec-driven/scenes-index.yaml
+json_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - areas
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/scenes-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: scenes_index
+    schema_file:
+      type: string
+    areas:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Scene entries grouped by the free-form kebab-case area key that names their subdirectory.
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+              type: object
+              additionalProperties: false
+              required:
+                - title
+                - status
+                - path
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                status:
+                  type: string
+                  enum:
+                    - draft
+                    - active
+                    - obsolete
+                  description: Mirrors the scene lifecycle status so an area can be ranked without opening each scene file.
+                path:
+                  type: string
+                  minLength: 1
+                  description: The canonical nested path of the scene file, whose subdirectory is the area key this entry is grouped under.

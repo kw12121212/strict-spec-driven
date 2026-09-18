@@ -23,6 +23,7 @@ import {
 import { pathToFileURL } from "url";
 import { load } from "js-yaml";
 import {
+  inventoryPatternMatches,
   validateYamlMutationInventory,
   type InventoryDiagnostic,
 } from "../../scripts/check-yaml-mutation-inventory.js";
@@ -1223,6 +1224,271 @@ context.assert(combinedResult.valid === false, "validateArtifact combines schema
 context.assert(
   combinedResult.diagnostics.some((diagnostic) => diagnostic.source === "duplicate_id"),
   "validateArtifact output includes duplicate diagnostics",
+);
+
+context.section("[4a] scene artifact contract");
+
+type SceneFlowStep = {
+  action: string;
+  covered_by?: { spec_id: string; requirement_id: string }[];
+  no_coverage_reason?: string;
+};
+type SceneExample = {
+  scene: { id: string; title: string };
+  area: string;
+  status: string;
+  actors: { name: string; role: string }[];
+  preconditions: string[];
+  main_flow: Record<string, SceneFlowStep>;
+  exception_flows: Record<string, { trigger: string; steps: Record<string, SceneFlowStep> }>;
+};
+type ScenesIndexExample = {
+  areas: Record<string, Record<string, { title: string; status: string; path: string }>>;
+};
+
+const sceneExamplePath = "examples/strict-spec-driven/scene.yaml";
+const scenesIndexExamplePath = "examples/strict-spec-driven/scenes-index.yaml";
+const sceneSchema = validationModule.loadBundledSchemaByArtifactType("scene") as Record<string, unknown>;
+const scenesIndexSchema = validationModule.loadBundledSchemaByArtifactType("scenes_index") as Record<string, unknown>;
+const sceneSchemaDocument = load(
+  readFileSync(path.join(ROOT, "templates", "strict-spec-driven", "schemas", "scene.yaml"), "utf8"),
+) as { description?: string; json_schema?: Record<string, unknown> };
+const sceneExample = yamlModule.parseYamlFile<SceneExample>(
+  path.join(ROOT, "examples", "strict-spec-driven", "scene.yaml"),
+);
+const scenesIndexExample = yamlModule.parseYamlFile<ScenesIndexExample>(
+  path.join(ROOT, "examples", "strict-spec-driven", "scenes-index.yaml"),
+);
+
+context.assert(
+  validationModule.validateArtifact(sceneSchema, sceneExample, sceneExamplePath).valid,
+  "minimal scene example validates against the registered scene schema",
+);
+context.assert(
+  validationModule.validateArtifact(scenesIndexSchema, scenesIndexExample, scenesIndexExamplePath).valid,
+  "minimal scenes-index example validates against the registered scenes-index schema",
+);
+context.assert(
+  bundledRegistry.entries.some(
+    (entry) =>
+      entry.schema_id === "strict-spec-driven/scene/v1"
+      && entry.artifact_type === "scene"
+      && entry.schema_file === "scene.yaml"
+      && entry.primary_example.endsWith("/scene.yaml"),
+  ),
+  "schema registry includes scene schema and primary example",
+);
+context.assert(
+  bundledRegistry.entries.some(
+    (entry) =>
+      entry.schema_id === "strict-spec-driven/scenes-index/v1"
+      && entry.artifact_type === "scenes_index"
+      && entry.schema_file === "scenes-index.yaml"
+      && entry.primary_example.endsWith("/scenes-index.yaml"),
+  ),
+  "schema registry includes scenes-index schema and primary example",
+);
+
+/**
+ * Every refusal case starts from the committed example and applies one edit, so a case proves the
+ * rule it names rather than the shape a hand-built probe happened to be given.
+ */
+function sceneRefusal(mutate: (candidate: SceneExample) => void): { valid: boolean; fieldPaths: string; messages: string } {
+  const candidate = structuredClone(sceneExample);
+  mutate(candidate);
+  const result = validationModule.validateArtifact(sceneSchema, candidate, sceneExamplePath);
+  return {
+    valid: result.valid,
+    fieldPaths: result.diagnostics.map((diagnostic) => diagnostic.fieldPath ?? "").join(" | "),
+    messages: result.diagnostics.map((diagnostic) => diagnostic.message).join(" | "),
+  };
+}
+
+for (const section of ["actors", "preconditions", "main_flow", "exception_flows", "area", "status"] as const) {
+  const refusal = sceneRefusal((candidate) => {
+    delete (candidate as Record<string, unknown>)[section];
+  });
+  context.assert(
+    !refusal.valid && refusal.fieldPaths.includes(`$.${section}`),
+    `a scene omitting ${section} is refused with a diagnostic naming the missing section`,
+    refusal.fieldPaths,
+  );
+}
+
+const emptyMainFlow = sceneRefusal((candidate) => {
+  candidate.main_flow = {};
+});
+context.assert(
+  !emptyMainFlow.valid && emptyMainFlow.fieldPaths.includes("$.main_flow"),
+  "a scene whose main flow holds no step is refused",
+  emptyMainFlow.fieldPaths,
+);
+
+const emptyExceptionFlows = sceneRefusal((candidate) => {
+  candidate.exception_flows = {};
+});
+context.assert(
+  !emptyExceptionFlows.valid && emptyExceptionFlows.fieldPaths.includes("$.exception_flows"),
+  "a scene naming no exception flow is refused",
+  emptyExceptionFlows.fieldPaths,
+);
+
+const undeclaredCoverage = sceneRefusal((candidate) => {
+  delete candidate.main_flow["open-claim-form"].covered_by;
+});
+context.assert(
+  !undeclaredCoverage.valid
+    && undeclaredCoverage.fieldPaths.includes("$.main_flow.open-claim-form.covered_by")
+    && undeclaredCoverage.fieldPaths.includes("$.main_flow.open-claim-form.no_coverage_reason"),
+  "a flow step declaring neither covering requirements nor a waiver is refused, naming the step id and both declarations",
+  undeclaredCoverage.fieldPaths,
+);
+
+const doubleDeclaredCoverage = sceneRefusal((candidate) => {
+  candidate.main_flow["open-claim-form"].no_coverage_reason = "Waived while also claiming coverage.";
+});
+context.assert(
+  !doubleDeclaredCoverage.valid
+    && doubleDeclaredCoverage.fieldPaths.includes("$.main_flow.open-claim-form")
+    && doubleDeclaredCoverage.messages.includes("oneOf"),
+  "a flow step declaring both covering requirements and a waiver is refused as ambiguous",
+  `${doubleDeclaredCoverage.fieldPaths} :: ${doubleDeclaredCoverage.messages}`,
+);
+
+const emptyCoverageList = sceneRefusal((candidate) => {
+  candidate.main_flow["open-claim-form"].covered_by = [];
+});
+context.assert(
+  !emptyCoverageList.valid && emptyCoverageList.fieldPaths.includes("$.main_flow.open-claim-form.covered_by"),
+  "a flow step whose covering-requirement list is empty is refused rather than read as covered",
+  emptyCoverageList.fieldPaths,
+);
+
+const partialCoverageEntry = sceneRefusal((candidate) => {
+  candidate.main_flow["open-claim-form"].covered_by = [{ spec_id: "expenses-claim-capture" } as { spec_id: string; requirement_id: string }];
+});
+context.assert(
+  !partialCoverageEntry.valid && partialCoverageEntry.fieldPaths.includes("requirement_id"),
+  "a covering-requirement entry naming a spec but no requirement is refused",
+  partialCoverageEntry.fieldPaths,
+);
+
+const exceptionStepWithoutCoverage = sceneRefusal((candidate) => {
+  delete candidate.exception_flows["receipt-upload-is-rejected"].steps["report-the-size-limit"].covered_by;
+});
+context.assert(
+  !exceptionStepWithoutCoverage.valid
+    && exceptionStepWithoutCoverage.fieldPaths.includes("$.exception_flows.receipt-upload-is-rejected.steps.report-the-size-limit.covered_by"),
+  "the coverage declaration rule reaches exception-flow steps, not only main-flow steps",
+  exceptionStepWithoutCoverage.fieldPaths,
+);
+
+const exceptionFlowWithoutTrigger = sceneRefusal((candidate) => {
+  delete (candidate.exception_flows["receipt-upload-is-rejected"] as Record<string, unknown>).trigger;
+});
+context.assert(
+  !exceptionFlowWithoutTrigger.valid && exceptionFlowWithoutTrigger.fieldPaths.includes("trigger"),
+  "an exception flow that names no trigger is refused",
+  exceptionFlowWithoutTrigger.fieldPaths,
+);
+
+const nonKebabArea = sceneRefusal((candidate) => {
+  candidate.area = "Expense Reports";
+});
+context.assert(
+  !nonKebabArea.valid && nonKebabArea.fieldPaths.includes("$.area"),
+  "an area key that could not be a subdirectory name is refused",
+  nonKebabArea.fieldPaths,
+);
+
+const waivedSteps = Object.entries(sceneExample.main_flow).filter(([, step]) => step.no_coverage_reason !== undefined);
+context.assert(
+  waivedSteps.length >= 1 && waivedSteps.every(([, step]) => step.covered_by === undefined),
+  "the minimal scene example carries an explicitly waived step with no covering requirement",
+);
+const crossSpecSteps = Object.values(sceneExample.main_flow).filter(
+  (step) => new Set((step.covered_by ?? []).map((entry) => entry.spec_id)).size > 1,
+);
+context.assert(
+  crossSpecSteps.length >= 1,
+  "the minimal scene example carries one step covered by requirements in two different specs",
+);
+context.assert(
+  Object.keys(sceneExample.main_flow).length > 1
+    && Object.keys(sceneExample.main_flow)[0] === "open-claim-form",
+  "main flow step order is recoverable from the parsed key sequence",
+  Object.keys(sceneExample.main_flow).join(","),
+);
+
+// The archive merge rule lands in a later planned change, so this change's only obligation is that
+// the contract states it. Asserting it here keeps the statement from being dropped silently.
+const sceneCoveredByDescription = String(
+  ((((sceneSchemaDocument.json_schema?.definitions as Record<string, Record<string, Record<string, Record<string, unknown>>>>)
+    ?.flow_step?.properties?.covered_by?.description) ?? "")),
+);
+context.assert(
+  sceneCoveredByDescription.includes("set keyed by the spec_id and requirement_id pair"),
+  "the scene contract states that covering requirements merge as a set keyed by the spec and requirement pair",
+);
+context.assert(
+  String(sceneSchemaDocument.description ?? "").includes("a step id present only in the main scene is left untouched"),
+  "the scene contract states how a delta scene step merges against a main scene step id",
+);
+
+function scenesIndexCandidate(mutate: (candidate: ScenesIndexExample) => void): ScenesIndexExample {
+  const candidate = structuredClone(scenesIndexExample);
+  mutate(candidate);
+  return candidate;
+}
+const scenesIndexRefusals: Array<[string, ScenesIndexExample]> = [
+  ["$.areas", scenesIndexCandidate((candidate) => {
+    candidate.areas = {};
+  })],
+  ["$.areas.expenses", scenesIndexCandidate((candidate) => {
+    candidate.areas.expenses = {};
+  })],
+  ["$.areas.expenses.submit-expense-claim.path", scenesIndexCandidate((candidate) => {
+    delete (candidate.areas.expenses["submit-expense-claim"] as Record<string, unknown>).path;
+  })],
+  ["$.areas.expenses.submit-expense-claim.status", scenesIndexCandidate((candidate) => {
+    delete (candidate.areas.expenses["submit-expense-claim"] as Record<string, unknown>).status;
+  })],
+  ["$.areas.expenses.submit-expense-claim.title", scenesIndexCandidate((candidate) => {
+    delete (candidate.areas.expenses["submit-expense-claim"] as Record<string, unknown>).title;
+  })],
+];
+for (const [expectedFieldPath, candidate] of scenesIndexRefusals) {
+  const result = validationModule.validateArtifact(scenesIndexSchema, candidate, scenesIndexExamplePath);
+  const fieldPaths = result.diagnostics.map((diagnostic) => diagnostic.fieldPath ?? "").join(" | ");
+  context.assert(
+    !result.valid && fieldPaths.includes(expectedFieldPath),
+    `a scenes-index candidate rejected at ${expectedFieldPath} is refused with that field path`,
+    fieldPaths,
+  );
+}
+
+const indexEntry = scenesIndexExample.areas.expenses["submit-expense-claim"];
+context.assert(
+  indexEntry.path.split("/").slice(-2, -1)[0] === "expenses" && sceneExample.area === "expenses",
+  "the scenes-index group key is the scene subdirectory name and the scene artifact records the same key",
+  indexEntry.path,
+);
+
+// The patterns come from the inventory rather than from a literal here, so narrowing or dropping the
+// nested pattern fails this assertion instead of leaving it asserting a string nothing declares.
+const declaredScenePatterns = (
+  (loadYamlMutationInventory().artifact_families as Record<string, { path_patterns?: string[] }>)["scene-state"]
+    ?.path_patterns ?? []
+);
+context.assert(
+  declaredScenePatterns.length > 0
+    && declaredScenePatterns.some((pattern) => inventoryPatternMatches(pattern, indexEntry.path)),
+  "a declared scene path pattern covers the nested scene location the index records",
+  declaredScenePatterns.join(","),
+);
+context.assert(
+  !existsSync(path.join(ROOT, "templates", "strict-spec-driven", "scaffold", "scenes")),
+  "the bundled scaffold creates no scenes directory, so an upgraded repository reports no scene family it never adopted",
 );
 
 context.section("[4] scaffold template assets");
@@ -3991,6 +4257,246 @@ function createSyntheticCheckout(): { root: string; cleanup: () => void } {
     context.assert(
       deletedMalformed.valid && !existsSync(malformedPath),
       "deletion remains supported for a must-not-parse fixture",
+    );
+  } finally {
+    checkout.cleanup();
+  }
+}
+
+// --- Sequence entry authoring in bundled assets ---------------------------------------------
+
+/** The registry's own contract must be enforceable, or validating a candidate against it checks nothing. */
+{
+  const registryContract = validationModule.loadBundledSchema<Record<string, unknown>>("schema-registry.yaml");
+  context.assert(
+    registryContract.properties !== undefined && Array.isArray(registryContract.required)
+      && (registryContract.required as string[]).includes("entries"),
+    "the schema registry's own contract is expressed in the dialect the validator enforces",
+  );
+}
+
+/**
+ * Names the documents whose contract the shared validator cannot execute. A document written in the
+ * repository's early fields dialect reaches the validator as a schema of unknown keywords, which
+ * matches every candidate, so its declared rules are documentation rather than validation.
+ */
+function schemasTheValidatorCannotExecute(documents: [string, unknown][]): string[] {
+  const unenforced: string[] = [];
+  for (const [name, document] of documents) {
+    const wrapper = document as Record<string, unknown>;
+    const contract = (wrapper?.json_schema ?? wrapper) as Record<string, unknown> | undefined;
+    const executable = contract !== undefined && contract !== null && typeof contract === "object"
+      && (contract.properties !== undefined || contract.items !== undefined || contract.$ref !== undefined);
+    if (!executable) unenforced.push(name);
+  }
+  return unenforced;
+}
+
+{
+  // The governed set comes from the registry rather than from the schema directory, so a schema that
+  // is registered but unenforceable cannot escape the check by being skipped in the listing.
+  const registeredSchemaFiles = [...new Set(bundledRegistry.entries.map((entry) => entry.schema_file))];
+  const registeredDocuments: [string, unknown][] = registeredSchemaFiles.map((schemaFile) => [
+    schemaFile,
+    load(readFileSync(path.join(ROOT, "templates", "strict-spec-driven", "schemas", schemaFile), "utf8")),
+  ]);
+  context.assert(
+    registeredDocuments.length > 1 && schemasTheValidatorCannotExecute(registeredDocuments).length === 0,
+    "every registered schema expresses its contract in the dialect the shared validator executes",
+  );
+
+  // The same predicate must refuse a realistic violator, or a green result above would prove only
+  // that the matcher never fires.
+  const fieldsDialectDocument = {
+    schema_id: "strict-spec-driven/unenforced-probe/v1",
+    artifact_type: "unenforced_probe",
+    additional_fields: false,
+    fields: { id: { type: "string", required: true } },
+  };
+  const withViolator = schemasTheValidatorCannotExecute([
+    ...registeredDocuments,
+    ["unenforced-probe.yaml", fieldsDialectDocument],
+  ]);
+  context.assert(
+    withViolator.length === 1 && withViolator[0] === "unenforced-probe.yaml",
+    "the dialect check names a fields-dialect schema as one the validator cannot execute",
+  );
+}
+
+/** A synthetic checkout whose registry is the committed one, so candidates meet the real contract. */
+function createRegistryCheckout(): { root: string; cleanup: () => void; registryPath: string; bundlePath: string } {
+  const checkout = createSyntheticCheckout();
+  const registryPath = path.join(checkout.root, "templates", "strict-spec-driven", "schemas", "registry.yaml");
+  writeFileSync(registryPath, readFileSync(path.join(ROOT, "templates", "strict-spec-driven", "schemas", "registry.yaml"), "utf8"));
+  return {
+    root: checkout.root,
+    cleanup: checkout.cleanup,
+    registryPath,
+    bundlePath: path.join(checkout.root, "src", "embedded-templates.ts"),
+  };
+}
+
+type BundledAssetEditInput = NonNullable<Parameters<BundledAssetModule["mutateBundledAsset"]>[0]["edits"]>[number];
+
+/** Field edits that author one complete registry entry at the given position. */
+function registryEntryEdits(position: number, schemaId: string): BundledAssetEditInput[] {
+  const at = `entries.${position}`;
+  return [
+    { kind: "set", fieldPath: `${at}.schema_id`, value: schemaId },
+    { kind: "set", fieldPath: `${at}.schema_version`, value: "1" },
+    { kind: "set", fieldPath: `${at}.artifact_type`, value: "probe_artifact" },
+    { kind: "set", fieldPath: `${at}.artifact_name`, value: "probe-artifact" },
+    { kind: "set", fieldPath: `${at}.schema_file`, value: "probe-artifact.yaml" },
+    { kind: "set", fieldPath: `${at}.primary_example`, value: "../../../examples/strict-spec-driven/probe-artifact.yaml" },
+    { kind: "set", fieldPath: `${at}.compatibility.status`, value: "current" },
+    { kind: "set", fieldPath: `${at}.compatibility.introduced_in`, value: "1" },
+    { kind: "create-list", fieldPath: `${at}.compatibility.supersedes` },
+    { kind: "create-list", fieldPath: `${at}.compatibility.compatible_with` },
+    { kind: "create-list", fieldPath: `${at}.compatibility.notes` },
+  ];
+}
+
+{
+  const checkout = createRegistryCheckout();
+  try {
+    const entriesOf = (): Record<string, unknown>[] =>
+      (load(readFileSync(checkout.registryPath, "utf8")) as { entries: Record<string, unknown>[] }).entries;
+    const firstEntryBefore = JSON.stringify(entriesOf()[0]);
+    const countBefore = entriesOf().length;
+
+    const created = bundledAssets.mutateBundledAsset({
+      family: "bundled-schema-assets",
+      assetName: "registry.yaml",
+      rootDir: checkout.root,
+      edits: registryEntryEdits(countBefore, "strict-spec-driven/probe-artifact/v1"),
+    });
+    const entriesAfter = entriesOf();
+    const createdEntry = entriesAfter[countBefore] as Record<string, unknown> | undefined;
+    const createdCompatibility = createdEntry?.compatibility as Record<string, unknown> | undefined;
+    context.assert(
+      created.valid && created.committed && entriesAfter.length === countBefore + 1
+        && createdEntry?.schema_id === "strict-spec-driven/probe-artifact/v1"
+        && createdEntry?.schema_version === 1
+        && createdCompatibility?.status === "current"
+        && Array.isArray(createdCompatibility?.supersedes) && (createdCompatibility?.supersedes as unknown[]).length === 0
+        && JSON.stringify(entriesAfter[0]) === firstEntryBefore,
+      "addressing the position after a sequence's last entry authors a new registry entry and preserves every existing entry",
+    );
+
+    const restatedBefore = readFileSync(checkout.registryPath, "utf8");
+    const restated = bundledAssets.mutateBundledAsset({
+      family: "bundled-schema-assets",
+      assetName: "registry.yaml",
+      rootDir: checkout.root,
+      edits: registryEntryEdits(countBefore, "strict-spec-driven/probe-artifact/v1"),
+    });
+    context.assert(
+      restated.valid && restated.committed && readFileSync(checkout.registryPath, "utf8") === restatedBefore,
+      "restating the same entry at the same position is idempotent",
+    );
+
+    const beforeRefusals = readFileSync(checkout.registryPath, "utf8");
+    const bundleBeforeRefusals = readFileSync(checkout.bundlePath, "utf8");
+    const nothingWasWritten = (): boolean =>
+      readFileSync(checkout.registryPath, "utf8") === beforeRefusals
+      && readFileSync(checkout.bundlePath, "utf8") === bundleBeforeRefusals;
+    const entryCount = entriesOf().length;
+
+    const beyondNext = bundledAssets.mutateBundledAsset({
+      family: "bundled-schema-assets",
+      assetName: "registry.yaml",
+      rootDir: checkout.root,
+      edits: registryEntryEdits(entryCount + 1, "strict-spec-driven/too-far/v1"),
+    });
+    context.assert(
+      !beyondNext.valid && !beyondNext.committed
+        && beyondNext.diagnostics.some((entry) => entry.code === "field-path-out-of-range")
+        && nothingWasWritten(),
+      "a position beyond the next one is still refused as out of range and writes nothing",
+    );
+
+    const appendedScalar = bundledAssets.mutateBundledAsset({
+      family: "bundled-schema-assets",
+      assetName: "registry.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "append", fieldPath: "entries", value: "probe" }],
+    });
+    const remedyDiagnostic = appendedScalar.diagnostics.find((entry) => entry.code === "sequence-holds-mappings");
+    context.assert(
+      !appendedScalar.valid && !appendedScalar.committed && remedyDiagnostic !== undefined
+        && remedyDiagnostic.message.includes(`--set entries.${entryCount}.<field>`)
+        && nothingWasWritten(),
+      "appending a scalar to a sequence of mappings is refused and the diagnostic names the runnable form that creates an entry",
+    );
+
+    const incomplete = bundledAssets.mutateBundledAsset({
+      family: "bundled-schema-assets",
+      assetName: "registry.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: `entries.${entryCount}.schema_id`, value: "strict-spec-driven/incomplete/v1" }],
+    });
+    context.assert(
+      !incomplete.valid && !incomplete.committed
+        && incomplete.diagnostics.some((entry) => entry.code === "candidate-invalid" && entry.message.includes("compatibility"))
+        && nothingWasWritten(),
+      "an entry missing required fields is refused against the registry's declared contract and writes nothing",
+    );
+
+    const overRecorded = bundledAssets.mutateBundledAsset({
+      family: "bundled-schema-assets",
+      assetName: "registry.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "create-list", fieldPath: "entries.0.compatibility.status" }],
+    });
+    context.assert(
+      !overRecorded.valid && !overRecorded.committed
+        && overRecorded.diagnostics.some((entry) => entry.code === "field-path-already-recorded")
+        && nothingWasWritten(),
+      "empty-sequence creation over a recorded value is refused rather than clearing it",
+    );
+  } finally {
+    checkout.cleanup();
+  }
+}
+
+{
+  // The scalar append committed silently through the shipped command once, so the closure of that
+  // defect is proven where an operator meets it rather than only at the module boundary.
+  const checkout = createRegistryCheckout();
+  try {
+    const before = readFileSync(checkout.registryPath, "utf8");
+    const bundleBefore = readFileSync(checkout.bundlePath, "utf8");
+    const refused = cli(["schema-edit", "registry.yaml", "--append", "entries", "--item", "probe"], { cwd: checkout.root });
+    const refusedReport = JSON.parse(refused.stdout) as { valid: boolean; committed: boolean; diagnostics: { code: string }[] };
+    context.assert(
+      refused.status === 1 && !refusedReport.valid && !refusedReport.committed
+        && refusedReport.diagnostics.some((entry) => entry.code === "sequence-holds-mappings")
+        && readFileSync(checkout.registryPath, "utf8") === before
+        && readFileSync(checkout.bundlePath, "utf8") === bundleBefore,
+      "the shipped schema-edit command refuses a scalar appended to the registry entries sequence",
+    );
+
+    const position = (load(before) as { entries: unknown[] }).entries.length;
+    const authored = cli([
+      "schema-edit",
+      "registry.yaml",
+      "--set", `entries.${position}.schema_id`, "--value", "strict-spec-driven/probe-artifact/v1",
+      "--set", `entries.${position}.schema_version`, "--value", "1",
+      "--set", `entries.${position}.artifact_type`, "--value", "probe_artifact",
+      "--set", `entries.${position}.artifact_name`, "--value", "probe-artifact",
+      "--set", `entries.${position}.schema_file`, "--value", "probe-artifact.yaml",
+      "--set", `entries.${position}.primary_example`, "--value", "../../../examples/strict-spec-driven/probe-artifact.yaml",
+      "--set", `entries.${position}.compatibility.status`, "--value", "current",
+      "--set", `entries.${position}.compatibility.introduced_in`, "--value", "1",
+      "--create-empty-list", `entries.${position}.compatibility.supersedes`,
+      "--create-empty-list", `entries.${position}.compatibility.compatible_with`,
+      "--create-empty-list", `entries.${position}.compatibility.notes`,
+    ], { cwd: checkout.root });
+    const authoredEntries = (load(readFileSync(checkout.registryPath, "utf8")) as { entries: Record<string, unknown>[] }).entries;
+    context.assert(
+      authored.status === 0 && authoredEntries.length === position + 1
+        && authoredEntries[position]?.artifact_name === "probe-artifact",
+      "the shipped schema-edit command registers a new schema family through named field arguments",
     );
   } finally {
     checkout.cleanup();

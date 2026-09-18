@@ -1,0 +1,55 @@
+schema: strict-spec-driven/scene/v1
+schema_version: 1
+artifact_type: scene
+schema_file: ../../templates/strict-spec-driven/schemas/scene.yaml
+scene:
+  id: submit-expense-claim
+  title: An employee submits an expense claim for approval
+area: expenses
+status: active
+actors:
+  - name: employee
+    role: Submits the claim and attaches each receipt.
+  - name: approving-manager
+    role: Reviews the submitted claim and approves or rejects it.
+preconditions:
+  - The employee is signed in and belongs to a cost centre that has an approving manager.
+  - At least one receipt is available to attach to the claim.
+main_flow:
+  open-claim-form:
+    action: The employee opens the expense claim form.
+    covered_by:
+      - spec_id: expenses-claim-capture
+        requirement_id: claim-form-lists-the-employee-cost-centres
+  attach-receipt:
+    action: The employee attaches a receipt to the claim.
+    covered_by:
+      - spec_id: expenses-claim-capture
+        requirement_id: receipt-attachment-accepts-declared-image-formats
+      - spec_id: storage-retention
+        requirement_id: attached-receipts-are-retained-for-seven-years
+  submit-for-approval:
+    action: The employee submits the claim and the approving manager is notified.
+    covered_by:
+      - spec_id: expenses-claim-capture
+        requirement_id: submitted-claim-notifies-the-approving-manager
+  read-submission-confirmation:
+    action: The employee reads the on-screen confirmation that the claim was submitted.
+    no_coverage_reason: The confirmation wording is governed by the design system rather than by a spec requirement, so this step is waived explicitly instead of being given a hollow requirement to point at.
+exception_flows:
+  receipt-upload-is-rejected:
+    trigger: The attached receipt is rejected because it exceeds the declared size limit.
+    steps:
+      report-the-size-limit:
+        action: The employee is told the size limit and the claim keeps the receipts it already holds.
+        covered_by:
+          - spec_id: expenses-claim-capture
+            requirement_id: oversized-receipt-is-rejected-without-discarding-the-draft
+  cost-centre-has-no-approving-manager:
+    trigger: The employee cost centre has no approving manager at the moment of submission.
+    steps:
+      refuse-the-submission:
+        action: Submission is refused and the employee is told who to contact.
+        covered_by:
+          - spec_id: expenses-claim-capture
+            requirement_id: claim-without-an-approving-manager-is-refused

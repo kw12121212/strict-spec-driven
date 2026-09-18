@@ -23,3 +23,7 @@ milestones:
     title: Consolidate the bundled skill surface
     path: roadmap/milestones/skill-surface-consolidation.yaml
     status: complete
+  scene-driven-requirements:
+    title: Scene-driven requirements entry point
+    path: roadmap/milestones/scene-driven-requirements.yaml
+    status: proposed

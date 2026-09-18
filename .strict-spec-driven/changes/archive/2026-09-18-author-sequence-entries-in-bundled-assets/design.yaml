@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: author-sequence-entries-in-bundled-assets
+approach:
+  - 'Relax exactly one rule in the shared addressed-path editor: an index equal to the sequence''s current length is accepted and creates a new entry at that position, while any larger index stays refused with the existing out-of-range diagnostic. Intermediate segments already auto-create missing mappings, so several --set pairs addressing the same new index build a whole entry in one invocation, and restating that index later is an ordinary update of an existing entry.'
+  - Replace the registry's shape-only participant check with validation of the complete candidate document against the schema-registry contract the registry already declares in its own schema field, reusing the same registered-schema path every other artifact asset takes. A scalar appended to entries then fails as a candidate-invalid diagnostic before commit, and an incomplete entry fails the same way.
+  - Confirm before changing the check that the committed registry validates against its registered schema today, so tightening validation rejects only malformed candidates rather than refusing every registry write.
+decisions:
+  append-through-the-existing-set-argument:
+    decision: Sequence-entry creation is expressed as an addressed --set path whose final sequence index equals the sequence length, not as a new flag.
+    rationale: The editor already auto-creates missing intermediate mappings, so one relaxed bound makes an entry's fields authorable with the arguments the surface already documents. A new flag would need its own field-addressing grammar to say which fields the new entry carries, duplicating --set for one container shape.
+  only-the-next-index-is-creatable:
+    decision: An index equal to the sequence length creates an entry; any index beyond it keeps failing with field-path-out-of-range.
+    rationale: Allowing an arbitrary index would either leave holes in the sequence or silently relocate the entry, and a typo'd large index is the exact mistake the existing bound catches. Restricting creation to the append position keeps the write deterministic and keeps the diagnostic meaningful.
+  registry-validates-against-its-registered-schema:
+    decision: The registry participant check validates the whole candidate against strict-spec-driven/schema-registry/v1 instead of asserting only that entries is an array.
+    rationale: The registry declares that schema in its own schema field and the loader depends on every entry's fields, so the shape-only check was strictly weaker than the contract it was standing in for. Reusing the registered-schema path makes one validator responsible for the registry rather than two disagreeing ones.
+  bundled-schema-documents-keep-their-wrapper-check:
+    decision: A bundled schema document that is not the registry keeps being judged on the json_schema wrapper contract rather than against a registered artifact schema.
+    rationale: Such a document is a JSON Schema wrapper, not an instance of a registered artifact schema, so there is nothing stricter to validate it against and changing it is out of scope for this change.
+  empty-list-creation-is-its-own-create-only-flag:
+    decision: An empty sequence is created through a dedicated create-only argument that names the absent path, rather than by accepting an append with no item.
+    rationale: 'A registry entry cannot be completed without one: supersedes, compatible_with, and notes are required sequences whose correct value for a new family is empty. An append with no item would create an empty list whenever a caller''s --item was dropped by mistake, and a flag that overwrote an existing list would be the in-place rebuild the artifact-writes rule forbids, so the argument refuses a path that already holds a value.'
+  express-the-registry-contract-in-the-enforced-dialect:
+    decision: The registry's schema asset is converted from the fields dialect to a json_schema document carrying the same rules, rather than adding a hand-written entry check beside it.
+    rationale: No module interprets the fields dialect, so the declared contract was unenforceable and validating against it was a no-op. A hand-written check would be the second source of truth this change set out to remove, and it would drift from the declared rules exactly as the shape-only check did. Only this asset uses the old dialect, nothing in src reads its fields content, and the single test that names it asserts its schema id line.
+alternatives:
+  - option: Make --append/--item accept a structured mapping value, such as JSON text.
+    reason: 'That is a raw payload argument, which the CLI-only authoring protocol excludes: the surface is defined by named semantic arguments, not by embedded documents.'
+  - option: Add a registry-specific schema-register command that appends an entry from named flags.
+    reason: It would solve the registry and leave every other sequence of mappings in a bundled asset unauthorable, and it duplicates field addressing the shared editor already provides.
+  - option: Leave validation as a shape check and reject scalars with a bespoke rule.
+    reason: A bespoke rule would have to restate the registry entry contract a second time, which is how the two checks drifted apart in the first place.
+risks:
+  - Tightening the registry check can refuse writes if the committed registry does not already validate against its registered schema; the approach makes confirming that a prerequisite step rather than an assumption.
+  - Relaxing the index bound touches the editor shared by every bundled-asset command, so a mistake affects schema, scaffold, example, fixture, and inventory writes alike, and the fixture family deliberately bypasses schema validation and must keep doing so.
+  - The appended-scalar defect committed silently once already, so the regression must assert the rejection through the shipped command rather than only at module level.
+  - Making the registry contract enforceable can reveal that the committed registry does not satisfy its own declared rules; the conversion is therefore verified by validating the committed registry before and after.

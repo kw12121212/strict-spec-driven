@@ -1,0 +1,67 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  scene-driven-requirements:
+    title: Scene-driven requirements entry point
+order: 600
+goal: Give a project a structured scene artifact authored before requirements exist, and report uncovered scene steps as deterministic diagnostics, so skipped actors, preconditions, and exception flows stop depending on a human noticing them.
+scope:
+  in:
+    - New scene and scenes-index artifact families under .strict-spec-driven/scenes/, with registered schemas, minimal valid examples, and schema-registry entries
+    - 'CLI and MCP mutation surface for the scene family: scene authoring, scene status, and change-level delta scene generation'
+    - Archive merge of delta scenes into main scenes with deterministic conflict rules and a regenerated scene index
+    - Coverage-gap diagnostics that block ready and verify when a scene step names no covering requirement
+    - Scene-first requirement routing in bundled skills and in operator documentation for external projects
+    - A standalone bundled scene-editing skill, with scene-first interrogation kept inside the existing proposal and brainstorm skills
+  out:
+    - Any change to the main-spec schema or to the shape of an existing main spec requirement
+    - Requiring existing specs, this repository, or existing external projects to author scenes
+    - A workflow config switch that turns scene coverage checking on or off
+    - Changing legacy .spec-driven migration semantics beyond confirming migration never creates an empty scenes directory
+    - A generated human-readable scene document rendered from scene YAML
+done_criteria:
+  - A project can author a scene through the strict CLI, and scene status reports every scene step as covered or as a named gap
+  - ready and verify exit non-zero with a coverage-gap diagnostic naming the runnable remedy command when a delta scene leaves a step uncovered
+  - A repository holding no scene artifact observes no new diagnostic and no new required field after upgrading the CLI
+  - Archive merges a delta scene into .strict-spec-driven/scenes/ and regenerates the scene index deterministically
+  - yaml-surface-list, yaml-authoring-protocol, the MCP tool inventory, and inventory/yaml-mutation-surfaces.yaml all report the scene family
+  - bun scripts/coverage-gate.ts --threshold 78 passes with the new behavior covered by tests
+  - The shipped skill validation command reports the proposal and brainstorm skills declaring the scene artifact kind and the scene-before-requirement authoring order, so the entry point this milestone exists to deliver is verified rather than assumed
+  - This repository authors its own first real scene through the new command and it reports full step coverage, so the contract is proven on real requirements rather than only on the minimal example
+intake_questions:
+  - id: scene-edit-skill-packaging
+    question: Should scene authoring ship as a new bundled skill, or join an existing spec-editing skill?
+    context: 'Answered by the requester: a standalone bundled skill. It is symmetric with the standalone technical-standard editing skill already packaged, and it keeps scene authoring discoverable for an external project instead of hiding it inside a spec-editing skill. The cost accepted is one more packaged skill surface and one more file subject to the per-skill content checks and line budgets.'
+    impact: Settled before the skill and documentation planned change; that change creates a new skill package and the packaged-skill reference checks gain its name.
+    recommendation: Ship the standalone scene-editing skill, and keep scene-first interrogation inside the proposal and brainstorm skills rather than moving it into the new skill.
+  - id: scene-human-readable-rendering
+    question: Should scenes render to a human-readable generated document the way architecture and design system artifacts do?
+    context: 'Answered by the requester: no renderer. The reason is volume - a project is expected to hold many scenes, so a per-scene rendered document produces a large document set with little readership and one more generated-document surface that can go stale. The design consequence is recorded separately: the family is built for many scenes from the start.'
+    impact: Settled before the skill and documentation planned change; no generator, banner contract, generated-documents registration, or staleness check is added for scenes.
+    recommendation: Do not build a scene renderer in this milestone, and revisit only if review by non-engineering stakeholders later becomes a real requirement.
+  - id: scene-step-cross-spec-coverage
+    question: May one scene step name covering requirements in more than one spec area?
+    context: Allowing it matches how an end-to-end scene actually crosses spec areas, which is the reason the scene family is independent rather than embedded. It also makes the archive merge conflict rules harder, because a merged scene can reference requirements arriving from different delta specs in the same change.
+    impact: Decided in the contract planned change; it constrains the scene schema shape and the archive merge rules that the later planned change implements.
+    recommendation: Allow multiple covering requirements across spec areas, and pin the merge conflict rule explicitly in the contract rather than discovering it during archive implementation.
+planned_changes: {}
+dependencies:
+  - Builds on the completed CLI-owned YAML mutation foundation and CLI artifact-coverage milestones; no incomplete milestone blocks this work
+risks:
+  - A new artifact family must be registered on every agent-facing surface, and a missed registration fails a shipped MUST check rather than degrading quietly
+  - Coverage gating can push an author to write a hollow requirement purely to silence a gap, which is why an explicit no-coverage reason belongs in the contract
+  - Scene-first routing touches propose, brainstorm, apply, review, sync-specs, archive, and auto, where per-skill content checks and line budgets constrain what can be added
+  - Cross-spec-area coverage references complicate the archive merge conflict rules for scenes
+  - A new artifact family adds a large amount of src code at once, and the blocking coverage gate measures src line coverage against a fixed threshold, so thin tests on new code fail the gate as a coverage number rather than as a located test failure
+status: proposed
+notes:
+  - Coverage references are declared on the scene side only, as a step naming a spec id and requirement id, so main-spec artifacts and every existing spec stay untouched
+  - The scene schema makes actors, preconditions, main flow, and exception flows required fields, because the reported failure is authors skipping those questions rather than forgetting to write them down
+  - Checking is triggered by the presence of a scene, never by the presence of a spec, so external adoption is incremental and the upgrade is not breaking
+  - 'Decided from the independent-family structure: one scene step may name covering requirements in more than one spec area, because a cross-area end-to-end scene is the reason the family is independent rather than embedded in a main spec; the archive merge conflict rule for that case is pinned in the contract planned change rather than discovered during archive implementation'
+  - 'Decided by the requester: scene authoring ships as its own bundled skill, symmetric with the standalone technical-standard editing skill, rather than being folded into an existing spec-editing skill'
+  - 'Decided by the requester: scenes do not render to a human-readable document, because a project is expected to accumulate many scenes and rendering each one produces a document set nobody reads plus another staleness surface to keep in sync'
+  - 'Consequence of the expected scene volume: the scene family organizes scene files in subdirectories the way the lessons family does, the scene index is built to hold many entries, and the scene status command supports narrowing its output rather than always printing every scene'
+details: 'The reported problem is that a project adopting this workflow has no entry point from scene to requirement. An author is asked for requirements immediately, skips describing who acts, under what preconditions, and what happens when the main flow fails, and the resulting requirement set has systematic holes. A scene artifact embedded inside a main spec cannot fix this, because it forces the author to choose a spec file before any requirement exists. The scene family is therefore independent and may reference requirements across spec areas. Work is ordered contract-first: the artifact contract and its registrations land before any command exposes it, the command surface lands before archive and gating consume it, and skill and documentation routing lands last so guidance never names a capability the CLI does not yet provide.'

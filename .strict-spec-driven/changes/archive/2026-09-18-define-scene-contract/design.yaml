@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-scene-contract
+approach:
+  - 'Add the scene family as data first: two new schema files, two registry entries, two minimal examples, one inventory family entry, and one regenerated embedded-templates bundle. Schema validation, schema-list/schema-show, sample-list/sample-show, and yaml-surface-list are already generic over the bundled registry and the embedded inventory, so the family becomes discoverable without new command code.'
+  - 'Model the scene family on the lessons family, which is the existing precedent for a many-file artifact family with an index: the scene index groups entries and names canonical nested paths, and the declared scene path patterns admit one level of subdirectory nesting the way .strict-spec-driven/lessons/*/*.yaml does.'
+  - Keep coverage declarations one-directional. A step's covered_by entry names a spec id and a requirement id, so a scene points at specs and no main spec points back at a scene. Nothing in the main-spec schema changes and no existing spec file is rewritten.
+decisions:
+  scene-family-is-independent:
+    decision: The scene family lives under .strict-spec-driven/scenes/ as its own artifact family with its own index, not embedded inside a main spec.
+    rationale: The reported failure is that an author must pick a spec file before any requirement exists. An embedded scene reproduces that ordering problem, and an end-to-end scene legitimately crosses spec areas, which an embedded scene cannot express.
+  step-coverage-is-required-or-explicitly-waived:
+    decision: Every flow step must carry either a non-empty covered_by list or an explicit no_coverage_reason string, and the schema forbids both being present.
+    rationale: A step with neither is the silent hole the milestone exists to close, and a step with both hides which one the later coverage gate should trust. Forcing an explicit waiver keeps the later gate honest without pushing an author to invent a hollow requirement purely to silence it.
+  required-scene-sections:
+    decision: actors, preconditions, main_flow, and exception_flows are all required fields, with main_flow requiring at least one step and exception_flows requiring at least one named flow.
+    rationale: The reported failure is authors skipping those questions, not forgetting to write down answers they already have. Making them optional would let the schema validate the exact artifact the milestone is meant to prevent.
+  cross-spec-area-merge-rule-in-contract:
+    decision: 'One step may name covering requirements across several spec areas, and the contract states the archive merge rule: covered_by entries merge as a set keyed by the spec-id and requirement-id pair, a delta scene step replaces the main scene step''s text and step ordering, and a step id present in the main scene but absent from the delta scene is left untouched.'
+    rationale: The milestone intake question settled that cross-area coverage is allowed; leaving the merge rule to the archive implementation would let the rule be discovered as a bug during merge. Pinning a set-union rule keyed by the pair makes a cross-area step's merge outcome independent of which delta spec its requirements arrive from.
+  nested-scene-paths-from-the-start:
+    decision: Scene files are declared at .strict-spec-driven/scenes/*/*.yaml with the index at .strict-spec-driven/scenes/INDEX.yaml, and the index groups scene entries so it stays readable at many-scene size.
+    rationale: A project is expected to accumulate many scenes. Retrofitting nesting after scenes exist would be a path migration like the one the lessons family already had to perform, so the family is declared nested from its first release.
+  no-init-scaffold-for-scenes:
+    decision: init does not create .strict-spec-driven/scenes/ or a scene index; both are created on the first scene write.
+    rationale: An empty container conflicts with the artifact-creation-persists-meaningful-state-only rule, and a scaffolded empty index would make every upgraded repository report a scene family it never adopted.
+alternatives:
+  - option: Embed scenes inside main-spec.yaml as a scenes section on each spec.
+    reason: Forces the author to choose a spec file before any requirement exists, which is the reported problem, and cannot express a scene crossing spec areas.
+  - option: Declare coverage from the spec side, as a requirement naming the scene steps it covers.
+    reason: Would modify the main-spec schema and make every existing spec answer a new question, breaking the milestone's out-of-scope boundary and the incremental-adoption property.
+  - option: Register the scene-state inventory family with its operations already marked cli-owned.
+    reason: scripts/check-yaml-mutation-inventory.ts reports missing-cli-owner for a cli-owned operation with no registered command, so the claim would be both unfalsifiable and a blocking check failure until the command surface lands.
+risks:
+  - The inventory check refuses a cli-owned operation that names no registered command, so the scene-state family's operation states must describe a family with no command surface yet and be revisited by expose-scene-cli-surface. This is recorded as an open question.
+  - src/embedded-templates.ts is both generated and compiled, so forgetting to regenerate it leaves the new schemas invisible to schema-show, sample-show, and the shared schema cache while every source file looks correct.
+  - New schema and example assets add repository YAML that the inventory coverage check walks, so a path pattern that misses one file fails the check as an uncovered-yaml-path rather than as a located test failure.
+  - This change adds contract surface but little src code, so the blocking coverage gate is unlikely to move; the risk is the opposite one, that thin tests let an invalid scene shape ship as valid.

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-diagnostic-that-must-name-an-entry-s-id-forces-5b6cff
+  title: A diagnostic that must name an entry's id forces the collection to be a keyed map
+category: tooling
+status: active
+created_at: '2026-09-18T03:14:58.716Z'
+updated_at: '2026-09-18T03:14:58.716Z'
+context: Designing the scene artifact schema, whose delta spec required that a flow step declaring no coverage be refused with a diagnostic naming the step id, and whose planning artifacts described each step as carrying a stable step id.
+observation: 'Modelled as a sequence of step objects each holding an id field, the refusal was reachable but the diagnostic was not: Ajv reports instancePath /main_flow/1, and src/validation.ts jsonPointerToFieldPath renders that as $.main_flow[1], because a validator addresses a sequence entry by position and never reads the id inside it. Re-modelling main_flow and each exception flow''s steps as a keyed map of step id to step made the identical required-property error render as $.main_flow.open-claim-form.covered_by, naming both the step and the missing declaration, and made the delta spec''s merge rule keyed on step id expressible at all.'
+takeaway: When an artifact contract requires a diagnostic to name a collection entry by its stable id, the id has to be the map key rather than a field inside a sequence entry, because schema validators address sequence entries positionally. Decide the keyed-map-versus-sequence shape from the diagnostic and merge-identity requirements before authoring the schema; this repository already keys ordered collections that way for roadmap milestones, spec requirements, and task lists, and relies on YAML key order for their sequence.
+applies_when: Choosing between a sequence of identified objects and a keyed map when authoring or extending a strict YAML artifact schema, especially when a requirement says validation must name the offending entry, or when a delta-merge rule matches entries by a stable id.
+occurrences:
+  - origin: define-scene-contract
+    date: '2026-09-18'
+    evidence: Scene flow steps shipped as keyed maps under json_schema.properties.main_flow.patternProperties in templates/strict-spec-driven/schemas/scene.yaml; test/suites/foundation-and-fixtures.ts asserts the refusal field paths $.main_flow.open-claim-form.covered_by and $.main_flow.open-claim-form.no_coverage_reason, which a sequence shape could not have produced.

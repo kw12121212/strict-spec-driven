@@ -377,6 +377,30 @@ entries:
       compatible_with: []
       notes:
         - Known top-level fields are typed while unknown fields stay allowed; preferred_human_language records the user's human-language preference, and the review_evidence.project_regression.coverage declaration subtree is strict.
+  - schema_id: strict-spec-driven/scene/v1
+    schema_version: 1
+    artifact_type: scene
+    artifact_name: scene
+    schema_file: scene.yaml
+    primary_example: ../../../examples/strict-spec-driven/scene.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/scenes-index/v1
+    schema_version: 1
+    artifact_type: scenes_index
+    artifact_name: scenes-index
+    schema_file: scenes-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/scenes-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
 migration:
   legacy_root: .spec-driven
   strict_root: .strict-spec-driven

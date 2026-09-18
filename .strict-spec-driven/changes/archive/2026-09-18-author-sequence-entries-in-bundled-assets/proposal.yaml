@@ -1,0 +1,45 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: author-sequence-entries-in-bundled-assets
+  status: proposed
+summary:
+  what:
+    - Let an addressed-path bundled-asset edit create one new mapping entry in a sequence, so a caller can author a new schema registry entry through schema-edit instead of being refused.
+    - Validate the whole candidate bundled asset against the contract its registered schema declares before commit, so an entry of the wrong shape is rejected rather than committed.
+    - Document the accepted addressing in command metadata and machine-readable help, and cover the behavior with regressions including a negative case for a scalar appended to a sequence of mappings.
+    - Let a caller create an empty sequence at an absent addressed path, because a registry entry's compatibility lists are required fields whose natural value for a new family is empty, and refuse it where a value is already recorded so no edit can clear recorded content.
+    - Express the schema registry's own contract in the dialect the validator actually enforces, so the registry's declared entry rules are checked rather than documented.
+    - Capture the resulting convention as a delta tech rule on yaml-first-artifacts, so a future schema asset cannot declare rules in a dialect the validator never executes.
+  why:
+    - 'No supported argument creates a mapping entry inside a sequence: an addressed path naming a new sequence index is refused with field-path-out-of-range, and --append with --item coerces its value to a scalar. templates/strict-spec-driven/schemas/registry.yaml therefore cannot gain an entry through the CLI, which blocks registering any new bundled schema family and contradicts the existing MUST that the CLI owns creation for the bundled schema and registry family.'
+    - 'The same surface commits an invalid asset: appending a bare scalar to the registry entries sequence was accepted and reported valid with committed true, because the registry participant check asserts only that entries is an array. That contradicts the standard requiring a mutation to validate the complete candidate document before an atomic commit.'
+    - The immediate consumer is the blocked define-scene-contract change, which cannot register the scene and scenes-index schemas until a registry entry is authorable, and whose own schema creation would be refused for a dangling reference without one.
+    - 'The registry''s schema is written in an early fields dialect that no code in src/ interprets: the loader extracts a json_schema mapping when present and otherwise hands the whole document to the validator, where unknown keywords make every candidate vacuously valid. Validating the registry against its declared contract therefore checks nothing until that contract is expressed in the enforced dialect, which is why an entry carrying only schema_id was accepted during implementation.'
+scope:
+  in:
+    - Sequence-entry creation through the shared addressed-path edit surface used by schema-edit, template-edit, sample-edit, fixture-edit, and inventory-edit
+    - Schema-contract validation of the complete candidate bundled asset before commit, replacing the shape-only registry participant check
+    - Command metadata and machine-readable help describing the accepted sequence addressing and its rejection cases
+    - A delta spec against cli-foundation recording the new creation behavior and the validation obligation
+    - Regressions covering entry creation, rejection of an out-of-range index, rejection of a scalar appended to a sequence of mappings, rejection of an incomplete entry, and idempotent restatement of an existing entry
+    - Creation of an empty sequence at an absent addressed path, refused where any value is already recorded
+    - Conversion of the schema registry's own schema asset from the unenforced fields dialect to the enforced json_schema dialect, preserving the rules it already declares
+    - A delta tech rule on yaml-first-artifacts requiring a registered schema to express its contract in the dialect the shared validator executes
+  out:
+    - Any change to the scene or scenes-index artifact contract, which stays in define-scene-contract
+    - Any change to which artifact families the mutation inventory declares
+    - A new bundled-asset editing command, or any change to how an asset name resolves to its confined family location
+    - Relaxing the intentionally invalid validation-fixture contract, which must keep bypassing schema validation
+unchanged_behavior:
+  - Every existing bundled-asset edit keeps affecting only the fields it names, with siblings, unnamed fields, and unrelated assets untouched.
+  - An accepted write still regenerates the embedded asset bundle inside the same transaction, and a failure still leaves the asset and the bundle byte-identical.
+  - An addressed path naming a sequence index beyond the next position is still refused, and removal of an absent path is still an error rather than a no-op.
+  - Validation fixtures are still checked for parseability and declared intent rather than against the schema they name, so an intentionally invalid fixture stays invalid.
+  - Deletion is still refused while any reference names the asset, and the bundled-asset commands still refuse to run outside a checkout holding the bundled source tree.
+  - 'The registry''s declared rules keep their current meaning: the same fields stay required, the same enums stay closed, and the committed registry keeps validating.'
+roadmap:
+  milestone: cli-yaml-artifact-coverage
+  planned_change: author-sequence-entries-in-bundled-assets

@@ -3173,3 +3173,47 @@ requirements:
         - GIVEN: bundled skill guidance whose use-when clause names a condition rather than a capitalised actor
         - WHEN: the shipped skill validation command runs over the skill set
         - THEN: no product-name diagnostic is reported for that clause
+  cli-bundled-asset-sequence-entry-creation:
+    strength: MUST
+    statement: The system MUST let a caller create one new entry in a bundled asset's sequence through the same named field-addressing arguments that edit an existing field, by addressing the position immediately after the sequence's last entry, and MUST keep refusing an addressed position beyond that one with a deterministic diagnostic.
+    scenarios:
+      next-position-creates-an-entry:
+        - GIVEN: a bundled asset holding a sequence of mapping entries
+        - WHEN: a caller addresses fields under the position immediately after the last entry through the asset's editing command
+        - THEN: a new entry carrying exactly those fields is appended, every existing entry and unnamed field is unchanged, and the command exits zero
+      a-position-beyond-the-next-one-is-refused:
+        - GIVEN: a bundled asset holding a sequence of mapping entries
+        - WHEN: a caller addresses a position more than one past the last entry
+        - THEN: the command exits non-zero with a diagnostic naming the out-of-range position, and the asset and the embedded bundle are byte-identical to their pre-write content
+      restating-an-existing-position-updates-it:
+        - GIVEN: a bundled asset whose sequence already holds an entry at an addressed position
+        - WHEN: a caller restates one field under that position
+        - THEN: only that field is overwritten, every sibling field of the entry is preserved, and repeating the same invocation changes nothing further
+      a-required-empty-sequence-is-creatable:
+        - GIVEN: a bundled asset contract that requires a sequence field whose correct value for a new entry is empty
+        - WHEN: a caller creates that sequence at its absent addressed path through the asset's editing command
+        - THEN: the entry is written with an empty sequence at that field, the candidate satisfies its declared contract, and the command exits zero
+      creating-a-sequence-over-recorded-content-is-refused:
+        - GIVEN: a bundled asset whose addressed path already records content
+        - WHEN: a caller requests empty-sequence creation at that path
+        - THEN: the command exits non-zero naming the recorded content, and the asset is byte-identical to its pre-write content
+      restating-an-authored-entry-stays-idempotent:
+        - GIVEN: a bundled asset whose sequence entry was authored by a set of field edits including empty-sequence creation
+        - WHEN: the identical edits are supplied again
+        - THEN: the command exits zero and the asset is byte-identical, because creation over an already-empty sequence is accepted as the no-op it is
+  cli-bundled-asset-candidates-validate-against-their-declared-contract:
+    strength: MUST
+    statement: The system MUST validate a bundled asset's complete candidate document against the contract its own declared schema states before committing, rather than against a weaker shape assertion, so an entry of the wrong type or an entry missing required fields is refused before the write.
+    scenarios:
+      an-incomplete-entry-is-refused:
+        - GIVEN: a bundled asset whose declared contract requires several fields on every entry of a sequence
+        - WHEN: a caller creates a new entry carrying only some of those fields
+        - THEN: the command exits non-zero naming the missing fields, and the recorded asset is unchanged
+      a-valid-candidate-still-commits:
+        - GIVEN: a bundled asset and a candidate that satisfies its declared contract
+        - WHEN: the caller commits the edit through the asset's editing command
+        - THEN: the write is accepted, the embedded bundle is regenerated in the same transaction, and the command exits zero
+      a-scalar-in-a-sequence-of-mappings-is-refused:
+        - GIVEN: a bundled asset whose declared contract requires every entry of a sequence to be a mapping
+        - WHEN: a caller appends a scalar value to that sequence through the asset's editing command
+        - THEN: the command exits non-zero, neither the asset nor the embedded bundle is written, and the diagnostic names both the invalid candidate and the runnable form that does create an entry

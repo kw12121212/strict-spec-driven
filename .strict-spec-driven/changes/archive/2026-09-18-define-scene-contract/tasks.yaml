@@ -1,0 +1,72 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-scene-contract
+sections:
+  Implementation:
+    author-scene-schema:
+      text: 'Author templates/strict-spec-driven/schemas/scene.yaml through schema-edit: schema_id strict-spec-driven/scene/v1, artifact_type scene, required scene id and title, actors, preconditions, main_flow, and exception_flows, with every flow step carrying a stable step id and either a non-empty covered_by list of spec-id and requirement-id pairs or a no_coverage_reason string, never both.'
+      status: complete
+      command: strict-spec-cli schema-edit --help --json
+    author-scenes-index-schema:
+      text: 'Author templates/strict-spec-driven/schemas/scenes-index.yaml through schema-edit: schema_id strict-spec-driven/scenes-index/v1, artifact_type scenes_index, grouping scene entries with title, status, and canonical nested path so the index stays readable at many-scene size.'
+      status: complete
+      command: strict-spec-cli schema-edit --help --json
+    register-scene-schemas:
+      text: Register both new schemas in templates/strict-spec-driven/schemas/registry.yaml through schema-edit, each with artifact_type, artifact_name, schema_file, primary_example, and a current compatibility block, and set each schema's example_ref to its new example.
+      status: complete
+      command: strict-spec-cli schema-list
+    author-scene-examples:
+      text: 'Author one minimal valid example per family under examples/strict-spec-driven/ through sample-edit: scene.yaml exercising a covered step, a waived step with no_coverage_reason, and at least one exception flow; scenes-index.yaml holding one grouped entry with a nested path.'
+      status: complete
+      command: strict-spec-cli sample-list
+    register-scene-inventory-family:
+      text: Add the scene-state family to inventory/yaml-mutation-surfaces.yaml through inventory-edit with artifact types scenes_index and scene, path patterns .strict-spec-driven/scenes/INDEX.yaml and .strict-spec-driven/scenes/*/*.yaml plus the two new example paths, ownership repository-owned, operation states that do not claim a command this change does not ship, reference side effects, evidence, and a validation command.
+      status: complete
+      command: strict-spec-cli inventory-edit --help --json
+    regenerate-embedded-templates:
+      text: Confirm the schema, sample, and inventory edits regenerated src/embedded-templates.ts inside their own transactions rather than deferring it, then rebuild so the compiled bundle the CLI reads serves the scene family through schema-show, sample-show, sample-list, and yaml-surface-show.
+      status: complete
+      command: bun run build
+    record-scene-delta-spec:
+      text: Record the scene contract requirements as a delta spec against contracts-yaml-artifacts, covering the scene and scenes-index families, the required scene sections, the covered-by-or-waiver step rule, the cross-spec-area coverage allowance, and the archive merge rule for cross-area covered_by entries.
+      status: complete
+      command: strict-spec-cli generate define-scene-contract delta-spec --target-spec contracts-yaml-artifacts
+  Testing:
+    run-lint:
+      text: Run the project lint command and confirm it exits zero.
+      status: complete
+      command: bun run lint
+    add-scene-schema-tests:
+      text: Add tests asserting the minimal scene and scenes-index examples validate, that a scene missing actors, preconditions, main_flow, or exception_flows is rejected, that a step with neither covered_by nor no_coverage_reason is rejected, that a step with both is rejected, that a step naming covering requirements in two different spec areas is accepted, and that a nested scene path is accepted.
+      status: complete
+      command: bun test/run.ts
+    add-registry-and-inventory-tests:
+      text: Extend the foundation and yaml-operation-matrix suites so the new registry entries, example coverage, and the scene-state inventory family are asserted, and assert yaml-surface-list and yaml-surface-show report the scene family from the embedded inventory.
+      status: complete
+      command: bun test/run.ts
+    run-inventory-check:
+      text: Run the dedicated YAML mutation inventory check and confirm it exits zero with the scene-state family registered and no uncovered-yaml-path diagnostic for the new schema and example files.
+      status: complete
+      command: bun run check:yaml-inventory
+    run-project-regression:
+      text: Run the complete project regression with the coverage gate, redirecting output to a file and reading the runner's own exit status.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-no-scene-repository-unaffected:
+      text: 'Confirm a repository holding no scene artifact reports no new diagnostic and no new required field: run verify and the workflow-state checks against this repository before authoring any real scene, and confirm init scaffolds no scenes directory and no scene index.'
+      status: complete
+      command: strict-spec-cli verify define-scene-contract
+    run-ready-and-verify:
+      text: Run ready and verify for this change and confirm both exit zero with the delta spec recorded and every task complete.
+      status: complete
+      command: strict-spec-cli ready define-scene-contract && strict-spec-cli verify define-scene-contract
+    confirm-archive-readiness:
+      text: 'Confirm archive readiness for the new bundled assets: the delta spec merges into contracts-yaml-artifacts, the regenerated embedded templates are committed alongside their sources, and the generated-document and cli-only-yaml-policy maintenance checks report no new finding.'
+      status: complete
+      command: strict-spec-cli maintenance
+testing_gates:
+  validation_task: run-inventory-check
+  unit_test_task: add-scene-schema-tests

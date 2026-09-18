@@ -72,6 +72,10 @@ const CHECKOUT_SCOPED = notApplicable(
   "bundled-asset editing is repository maintenance scoped to this checkout and is never invoked from an installed CLI in another project",
 );
 
+const NO_SCENE_COMMAND = notApplicable(
+  "this change ships the scene contract only; the inventory declares every scene operation not-applicable and names no CLI owner, so there is no command whose behavior this dimension could exercise",
+);
+
 const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
   "workflow-config": {
     owners: ["init", "config-edit"],
@@ -391,6 +395,33 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "mcp-driven": NO_MCP_TOOL,
     },
   },
+  // The scene contract ships ahead of its command surface, so every cell is deliberately empty of
+  // execution rather than unproven: the family has no CLI owner to drive. The planned change
+  // expose-scene-cli-surface is what turns these cells into executed ones.
+  "scene-state": {
+    owners: [],
+    cells: {
+      "create": NO_SCENE_COMMAND,
+      "scalar-update": NO_SCENE_COMMAND,
+      "keyed-update": NO_SCENE_COMMAND,
+      "additive-list": NO_SCENE_COMMAND,
+      "named-removal": NO_SCENE_COMMAND,
+      "deletion": NO_SCENE_COMMAND,
+      "invalid-input-no-mutation": notApplicable(
+        "no command writes a scene, so the only scene documents that reach validation are the bundled examples the foundation suite validates directly",
+      ),
+      "rollback": NO_SCENE_COMMAND,
+      "index-reconciliation": notApplicable(
+        "no command writes a scene or its index, so no write exists that could leave the two out of step",
+      ),
+      "deterministic-output": notApplicable(
+        "the family renders no generated document and no command emits scene output to compare between runs",
+      ),
+      "installed-cli": NO_SCENE_COMMAND,
+      "copied-project": NO_SCENE_COMMAND,
+      "mcp-driven": NO_MCP_TOOL,
+    },
+  },
 };
 
 type InventoryFamily = { cli_owners?: string[] };
@@ -506,6 +537,48 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
       missingDimensions.length === 0,
       `${familyId} declares every operation-matrix dimension`,
       missingDimensions.join(","),
+    );
+  }
+
+  // The surface commands read the embedded inventory compiled into dist, not the working-tree file
+  // the completeness assertions above parse, so a family is only discoverable once the bundle was
+  // regenerated and rebuilt. Driving both commands is what distinguishes the two layers.
+  {
+    type SurfaceFamily = { kind: string; artifactTypes: string[]; operations: Record<string, string> };
+    const surfaceList = JSON.parse(cli(["yaml-surface-list"]).stdout) as { families: SurfaceFamily[] };
+    const listedScene = surfaceList.families.find((family) => family.kind === "scene-state");
+    context.assert(
+      listedScene !== undefined
+        && JSON.stringify([...listedScene.artifactTypes].sort()) === JSON.stringify(["scene", "scenes_index"]),
+      "yaml-surface-list reports the scene family and both of its artifact types from the embedded inventory",
+      JSON.stringify(listedScene),
+    );
+    context.assert(
+      listedScene !== undefined
+        && Object.keys(listedScene.operations).length === 4
+        && Object.values(listedScene.operations).every((state) => state === "not-applicable"),
+      "yaml-surface-list reports every scene operation as not-applicable while no command owns one",
+      JSON.stringify(listedScene?.operations),
+    );
+
+    const shown = JSON.parse(cli(["yaml-surface-show", "scene-state"]).stdout) as {
+      family: {
+        cliOwners: string[];
+        pathPatterns: string[];
+        artifactTypes: { artifactType: string; schemaId?: string; exampleKey?: string }[];
+      };
+    };
+    context.assert(
+      shown.family.cliOwners.length === 0
+        && shown.family.pathPatterns.includes(".strict-spec-driven/scenes/*/*.yaml"),
+      "yaml-surface-show reports the scene family with nested path patterns and no CLI owner",
+      JSON.stringify(shown.family.pathPatterns),
+    );
+    context.assert(
+      shown.family.artifactTypes.length === 2
+        && shown.family.artifactTypes.every((entry) => entry.schemaId !== undefined && entry.exampleKey !== undefined),
+      "yaml-surface-show resolves a registered schema and a bundled example for each scene artifact type",
+      JSON.stringify(shown.family.artifactTypes),
     );
   }
 

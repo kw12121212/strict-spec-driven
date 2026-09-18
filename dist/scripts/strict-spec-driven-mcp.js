@@ -24139,6 +24139,30 @@ entries:
       compatible_with: []
       notes:
         - Known top-level fields are typed while unknown fields stay allowed; preferred_human_language records the user's human-language preference, and the review_evidence.project_regression.coverage declaration subtree is strict.
+  - schema_id: strict-spec-driven/scene/v1
+    schema_version: 1
+    artifact_type: scene
+    artifact_name: scene
+    schema_file: scene.yaml
+    primary_example: ../../../examples/strict-spec-driven/scene.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/scenes-index/v1
+    schema_version: 1
+    artifact_type: scenes_index
+    artifact_name: scenes-index
+    schema_file: scenes-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/scenes-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
 migration:
   legacy_root: .spec-driven
   strict_root: .strict-spec-driven
@@ -24412,6 +24436,226 @@ json_schema:
           type: string
           minLength: 1
 `,
+  "strict-spec-driven/schemas/scene.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/scene/v1
+artifact_type: scene
+artifact_name: scene
+description: 'Strict YAML scene artifact describing one end-to-end situation a real actor goes through - who acts, what must already be true, the ordered main flow, and the exception flows that branch off it - where every flow step declares either the requirements that cover it or an explicit reason it is waived, so a gap in the requirement set is visible in the artifact rather than discovered by a reader. A scene is independent of any single spec: one step may name covering requirements belonging to several specs. A delta scene merges into a main scene by step id: covered_by entries merge as a set keyed by the spec_id and requirement_id pair, a step id present in both replaces the main scene step content and its position, and a step id present only in the main scene is left untouched.'
+example_ref: ../../../examples/strict-spec-driven/scene.yaml
+json_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  definitions:
+    flow_step:
+      type: object
+      additionalProperties: false
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          minLength: 1
+          description: What happens at this step, stated as behavior an outside observer could confirm.
+        covered_by:
+          type: array
+          minItems: 1
+          description: The requirements that cover this step, each naming the spec that holds it. Entries may belong to different specs, so one step can be covered across spec areas. On merge into a main scene these entries combine as a set keyed by the spec_id and requirement_id pair, so the merged coverage of a step does not depend on which delta spec its requirements arrived from.
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - spec_id
+              - requirement_id
+            properties:
+              spec_id:
+                type: string
+                minLength: 1
+                description: The id of the spec that holds the covering requirement.
+              requirement_id:
+                type: string
+                minLength: 1
+                description: The id of the requirement within that spec which covers this step.
+        no_coverage_reason:
+          type: string
+          minLength: 1
+          description: Why this step is deliberately covered by no requirement. An explicit reason is the only accepted alternative to covered_by, so a step declaring neither is refused rather than passing as though it were covered.
+      oneOf:
+        - required:
+            - covered_by
+        - required:
+            - no_coverage_reason
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - scene
+    - area
+    - status
+    - actors
+    - preconditions
+    - main_flow
+    - exception_flows
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/scene/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: scene
+    schema_file:
+      type: string
+    scene:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+          description: Stable scene identity, unchanged across edits so a delta scene and an index entry can address the same scene.
+        title:
+          type: string
+          minLength: 1
+    area:
+      type: string
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+      description: Free-form kebab-case grouping key that is also the scene subdirectory name, so the index group and the canonical file path stay derivable from each other.
+    status:
+      type: string
+      enum:
+        - draft
+        - active
+        - obsolete
+      description: active means the scene describes current intended behavior. draft means it is still being authored. obsolete means it was explicitly retired. The index mirrors this value so one area can be surveyed without opening every scene file.
+    actors:
+      type: array
+      minItems: 1
+      description: Everyone and everything that acts in this scene. A role is required alongside each name, because a bare label is the answer this artifact exists to stop an author from skipping.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - name
+          - role
+        properties:
+          name:
+            type: string
+            minLength: 1
+          role:
+            type: string
+            minLength: 1
+            description: What this actor does in this scene.
+    preconditions:
+      type: array
+      minItems: 1
+      description: What must already be true before the main flow can begin.
+      items:
+        type: string
+        minLength: 1
+    main_flow:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: The ordered steps of the path that succeeds, keyed by stable step id. Document key order is the step order, and the key is the identity a delta scene step merges against.
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          $ref: '#/definitions/flow_step'
+    exception_flows:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: The named ways the main flow fails or branches, each with the trigger that causes it and its own ordered steps. At least one is required, because an unstated failure path is the systematic hole this artifact exists to close.
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          type: object
+          additionalProperties: false
+          required:
+            - trigger
+            - steps
+          properties:
+            trigger:
+              type: string
+              minLength: 1
+              description: What causes this exception flow to be taken instead of the remainder of the main flow.
+            steps:
+              type: object
+              minProperties: 1
+              additionalProperties: false
+              patternProperties:
+                ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+                  $ref: '#/definitions/flow_step'
+`,
+  "strict-spec-driven/schemas/scenes-index.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/scenes-index/v1
+artifact_type: scenes_index
+artifact_name: scenes-index
+description: Strict YAML scene index artifact grouping scene ids by their free-form area key and recording each scene title, status, and canonical nested path, so one area can be surveyed without reading unrelated scene files. The area key is also the scene subdirectory name, which keeps the group key and the canonical path derivable from each other. At least one area holding at least one scene is required, because an index with no scene in it is the empty container a repository that never adopted scenes would be made to carry.
+example_ref: ../../../examples/strict-spec-driven/scenes-index.yaml
+json_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - areas
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/scenes-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: scenes_index
+    schema_file:
+      type: string
+    areas:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Scene entries grouped by the free-form kebab-case area key that names their subdirectory.
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+              type: object
+              additionalProperties: false
+              required:
+                - title
+                - status
+                - path
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                status:
+                  type: string
+                  enum:
+                    - draft
+                    - active
+                    - obsolete
+                  description: Mirrors the scene lifecycle status so an area can be ranked without opening each scene file.
+                path:
+                  type: string
+                  minLength: 1
+                  description: The canonical nested path of the scene file, whose subdirectory is the area key this entry is grouped under.
+`,
   "strict-spec-driven/schemas/schema-registry.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/schema-registry/v1
@@ -24419,144 +24663,151 @@ artifact_type: schema_registry
 artifact_name: schema-registry
 description: Strict YAML schema registry artifact.
 example_ref: ../../../examples/strict-spec-driven/schema-registry.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/schema-registry/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: schema_registry
-  schema_file:
-    type: string
-    required: true
-  registry:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-        identifier: registry
-      status:
-        type: string
-        required: true
-        enum:
-          - current
-          - deprecated
-          - superseded
-  entries:
-    type: sequence
-    required: true
-    min_items: 1
-    unique_by: schema_id
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
-        schema_id:
+json_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - registry
+    - entries
+    - migration
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/schema-registry/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: schema_registry
+    schema_file:
+      type: string
+    registry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+      properties:
+        id:
           type: string
-          required: true
-          identifier: schema
-        schema_version:
-          type: integer
-          required: true
-        artifact_type:
+        status:
           type: string
-          required: true
-        artifact_name:
-          type: string
-          required: true
-        schema_file:
-          type: string
-          required: true
-        primary_example:
-          type: string
-          required: true
-        compatibility:
-          type: mapping
-          required: true
-          additional_fields: false
-          fields:
-            status:
-              type: string
-              required: true
-              enum:
-                - current
-                - deprecated
-                - superseded
-            introduced_in:
-              type: integer
-              required: true
-            supersedes:
-              type: sequence
-              required: true
-              items:
-                type: string
-            superseded_by:
-              type: string
-              required: false
-            compatible_with:
-              type: sequence
-              required: true
-              items:
-                type: string
-            notes:
-              type: sequence
-              required: true
-              items:
-                type: string
-  migration:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      legacy_root:
-        type: string
-        required: true
-      strict_root:
-        type: string
-        required: true
-      role_mappings:
-        type: sequence
-        required: true
-        min_items: 1
-        unique_by: legacy_role
-        items:
-          type: mapping
-          additional_fields: false
-          fields:
-            legacy_role:
-              type: string
-              required: true
-            artifact_type:
-              type: string
-              required: true
-            schema_id:
-              type: string
-              required: true
-              references: entries.schema_id
-      unsupported_shape_reporting:
-        type: mapping
-        required: true
-        additional_fields: false
-        fields:
-          warning_fields:
-            type: sequence
-            required: true
-            min_items: 1
-            items:
-              type: string
-          manual_follow_up_field:
+          enum:
+            - current
+            - deprecated
+            - superseded
+    entries:
+      type: array
+      minItems: 1
+      description: Every registered artifact schema, each entry identified by its schema_id, which is unique across the sequence.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - schema_id
+          - schema_version
+          - artifact_type
+          - artifact_name
+          - schema_file
+          - primary_example
+          - compatibility
+        properties:
+          schema_id:
             type: string
-            required: true
+          artifact_type:
+            type: string
+          artifact_name:
+            type: string
+          schema_file:
+            type: string
+          primary_example:
+            type: string
+          schema_version:
+            type: integer
+          compatibility:
+            type: object
+            additionalProperties: false
+            required:
+              - status
+              - introduced_in
+              - supersedes
+              - compatible_with
+              - notes
+            properties:
+              status:
+                type: string
+                enum:
+                  - current
+                  - deprecated
+                  - superseded
+              introduced_in:
+                type: integer
+              supersedes:
+                type: array
+                items:
+                  type: string
+              compatible_with:
+                type: array
+                items:
+                  type: string
+              notes:
+                type: array
+                items:
+                  type: string
+              superseded_by:
+                type: string
+    migration:
+      type: object
+      additionalProperties: false
+      required:
+        - legacy_root
+        - strict_root
+        - role_mappings
+        - unsupported_shape_reporting
+      properties:
+        legacy_root:
+          type: string
+        strict_root:
+          type: string
+        role_mappings:
+          type: array
+          minItems: 1
+          description: Legacy role to strict artifact mappings, each identified by its legacy_role, which is unique across the sequence.
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - legacy_role
+              - artifact_type
+              - schema_id
+            properties:
+              legacy_role:
+                type: string
+              artifact_type:
+                type: string
+              schema_id:
+                type: string
+                description: Names an entries[].schema_id recorded in this same registry.
+        unsupported_shape_reporting:
+          type: object
+          additionalProperties: false
+          required:
+            - warning_fields
+            - manual_follow_up_field
+          properties:
+            warning_fields:
+              type: array
+              minItems: 1
+              items:
+                type: string
+            manual_follow_up_field:
+              type: string
 `,
   "strict-spec-driven/schemas/sop-category.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -26140,6 +26391,73 @@ risks: []
 status: proposed
 notes: []
 `,
+  "examples/strict-spec-driven/scene.yaml": `schema: strict-spec-driven/scene/v1
+schema_version: 1
+artifact_type: scene
+schema_file: ../../templates/strict-spec-driven/schemas/scene.yaml
+scene:
+  id: submit-expense-claim
+  title: An employee submits an expense claim for approval
+area: expenses
+status: active
+actors:
+  - name: employee
+    role: Submits the claim and attaches each receipt.
+  - name: approving-manager
+    role: Reviews the submitted claim and approves or rejects it.
+preconditions:
+  - The employee is signed in and belongs to a cost centre that has an approving manager.
+  - At least one receipt is available to attach to the claim.
+main_flow:
+  open-claim-form:
+    action: The employee opens the expense claim form.
+    covered_by:
+      - spec_id: expenses-claim-capture
+        requirement_id: claim-form-lists-the-employee-cost-centres
+  attach-receipt:
+    action: The employee attaches a receipt to the claim.
+    covered_by:
+      - spec_id: expenses-claim-capture
+        requirement_id: receipt-attachment-accepts-declared-image-formats
+      - spec_id: storage-retention
+        requirement_id: attached-receipts-are-retained-for-seven-years
+  submit-for-approval:
+    action: The employee submits the claim and the approving manager is notified.
+    covered_by:
+      - spec_id: expenses-claim-capture
+        requirement_id: submitted-claim-notifies-the-approving-manager
+  read-submission-confirmation:
+    action: The employee reads the on-screen confirmation that the claim was submitted.
+    no_coverage_reason: The confirmation wording is governed by the design system rather than by a spec requirement, so this step is waived explicitly instead of being given a hollow requirement to point at.
+exception_flows:
+  receipt-upload-is-rejected:
+    trigger: The attached receipt is rejected because it exceeds the declared size limit.
+    steps:
+      report-the-size-limit:
+        action: The employee is told the size limit and the claim keeps the receipts it already holds.
+        covered_by:
+          - spec_id: expenses-claim-capture
+            requirement_id: oversized-receipt-is-rejected-without-discarding-the-draft
+  cost-centre-has-no-approving-manager:
+    trigger: The employee cost centre has no approving manager at the moment of submission.
+    steps:
+      refuse-the-submission:
+        action: Submission is refused and the employee is told who to contact.
+        covered_by:
+          - spec_id: expenses-claim-capture
+            requirement_id: claim-without-an-approving-manager-is-refused
+`,
+  "examples/strict-spec-driven/scenes-index.yaml": `schema: strict-spec-driven/scenes-index/v1
+schema_version: 1
+artifact_type: scenes_index
+schema_file: ../../templates/strict-spec-driven/schemas/scenes-index.yaml
+areas:
+  expenses:
+    submit-expense-claim:
+      title: An employee submits an expense claim for approval
+      status: active
+      path: .strict-spec-driven/scenes/expenses/submit-expense-claim.yaml
+`,
   "examples/strict-spec-driven/schema-registry.yaml": `schema: strict-spec-driven/schema-registry/v1
 schema_version: 1
 artifact_type: schema_registry
@@ -26807,6 +27125,33 @@ artifact_families:
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
     validation_command: bun run check:yaml-inventory
+  scene-state:
+    artifact_types:
+      - scenes_index
+      - scene
+    path_patterns:
+      - .strict-spec-driven/scenes/INDEX.yaml
+      - .strict-spec-driven/scenes/*/*.yaml
+      - examples/strict-spec-driven/scene.yaml
+      - examples/strict-spec-driven/scenes-index.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/scene.yaml and scenes-index.yaml
+    operations:
+      create: not-applicable
+      update: not-applicable
+      named_remove: not-applicable
+      delete: not-applicable
+    reference_side_effects:
+      - The scenes-index/v1 area groups and canonical paths must match the scene artifacts stored beneath those areas.
+      - Every flow step covered_by entry names a spec id and a requirement id that must resolve against the recorded main specs.
+      - The planned change expose-scene-cli-surface flips create and update to cli-owned and names the commands that own them; this change ships the contract only, so the family declares no CLI mutation owner yet.
+    cli_owners: []
+    direct_write_paths: []
+    evidence:
+      - templates/strict-spec-driven/schemas/scene.yaml
+      - templates/strict-spec-driven/schemas/scenes-index.yaml
+      - examples/strict-spec-driven/scene.yaml
+    validation_command: bun test/run.ts
 exclusions:
   external-dependency-yaml:
     path_patterns:
@@ -30498,7 +30843,7 @@ var BUNDLED_ASSET_EDIT_FLAGS = [
     name: "--set",
     arity: "value",
     valueLabel: "<field-path>",
-    description: "Address a field to overwrite, as a dotted path such as registry.status. Pairs with the following --value.",
+    description: "Address a field to overwrite, as a dotted path such as registry.status. Pairs with the following --value. A path segment that is the position one past a sequence's last entry creates that entry, so several --set pairs naming the same new position author one new sequence entry; any further position is refused as out of range.",
     repeatable: true,
     repeatSemantics: "Each --set/--value pair is one edit, applied in the order supplied."
   },
@@ -30513,7 +30858,7 @@ var BUNDLED_ASSET_EDIT_FLAGS = [
     name: "--append",
     arity: "value",
     valueLabel: "<field-path>",
-    description: "Address a sequence to append to. Pairs with the following --item and appends without duplicating an existing entry.",
+    description: "Address a sequence to append to. Pairs with the following --item and appends without duplicating an existing entry. A sequence whose recorded entries are mappings refuses an appended scalar and names the --set form that creates an entry instead.",
     repeatable: true,
     repeatSemantics: "Each --append/--item pair is one edit, applied in the order supplied."
   },
@@ -30523,6 +30868,14 @@ var BUNDLED_ASSET_EDIT_FLAGS = [
     valueLabel: "<text>",
     description: "The value appended to the preceding --append sequence.",
     repeatable: true
+  },
+  {
+    name: "--create-empty-list",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Create an empty sequence at the addressed path, for a contract that requires a list field whose correct value is empty. Creation only fills an absent path, and an already-empty sequence is accepted as a no-op so restating an authored entry stays idempotent; a path recording any content is refused, so no edit clears recorded content.",
+    repeatable: true,
+    repeatSemantics: "Each value creates one sequence, applied in the order supplied."
   },
   {
     name: "--remove-entry",
@@ -31731,7 +32084,7 @@ var COMMAND_METADATA_ENTRIES = {
     name: "schema-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a bundled strict YAML schema asset.",
-    usage: `Usage: strict-spec-cli schema-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+    usage: `Usage: strict-spec-cli schema-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]
 `,
     arguments: [
       {
@@ -31756,14 +32109,15 @@ var COMMAND_METADATA_ENTRIES = {
       "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
       "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
       "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
-      "A schema document is judged on the wrapper contract its loader depends on: registry.yaml must keep an entries sequence, and every other schema must keep a json_schema mapping."
+      "A schema document other than registry.yaml is judged on the wrapper contract its loader depends on, so it must keep a json_schema mapping; registry.yaml is an instance of its own registered schema and the whole candidate is validated against that contract, so an entry of the wrong type or an entry missing required fields is refused before the write.",
+      "Register a new schema by addressing the position one past the registry's last entry, as --set entries.<next>.<field> --value <text> repeated per field, with --create-empty-list for a required list whose value is empty."
     ]
   },
   "template-edit": {
     name: "template-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a bundled scaffold or SOP category template.",
-    usage: `Usage: strict-spec-cli template-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+    usage: `Usage: strict-spec-cli template-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]
 `,
     arguments: [
       {
@@ -31794,7 +32148,7 @@ var COMMAND_METADATA_ENTRIES = {
     name: "sample-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a bundled minimal valid strict YAML sample.",
-    usage: `Usage: strict-spec-cli sample-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+    usage: `Usage: strict-spec-cli sample-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]
 `,
     arguments: [
       {
@@ -31826,7 +32180,7 @@ var COMMAND_METADATA_ENTRIES = {
     name: "fixture-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a validation test fixture.",
-    usage: `Usage: strict-spec-cli fixture-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+    usage: `Usage: strict-spec-cli fixture-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]
 `,
     arguments: [
       {
@@ -31858,7 +32212,7 @@ var COMMAND_METADATA_ENTRIES = {
     name: "inventory-edit",
     group: "maintenance",
     summary: "Update, remove named entries from, or delete the YAML mutation inventory.",
-    usage: `Usage: strict-spec-cli inventory-edit [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+    usage: `Usage: strict-spec-cli inventory-edit [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]
 `,
     arguments: [],
     flags: BUNDLED_ASSET_EDIT_FLAGS,

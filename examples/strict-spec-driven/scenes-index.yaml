@@ -1,0 +1,10 @@
+schema: strict-spec-driven/scenes-index/v1
+schema_version: 1
+artifact_type: scenes_index
+schema_file: ../../templates/strict-spec-driven/schemas/scenes-index.yaml
+areas:
+  expenses:
+    submit-expense-claim:
+      title: An employee submits an expense claim for approval
+      status: active
+      path: .strict-spec-driven/scenes/expenses/submit-expense-claim.yaml

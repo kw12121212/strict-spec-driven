@@ -508,6 +508,33 @@ artifact_families:
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
     validation_command: bun run check:yaml-inventory
+  scene-state:
+    artifact_types:
+      - scenes_index
+      - scene
+    path_patterns:
+      - .strict-spec-driven/scenes/INDEX.yaml
+      - .strict-spec-driven/scenes/*/*.yaml
+      - examples/strict-spec-driven/scene.yaml
+      - examples/strict-spec-driven/scenes-index.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/scene.yaml and scenes-index.yaml
+    operations:
+      create: not-applicable
+      update: not-applicable
+      named_remove: not-applicable
+      delete: not-applicable
+    reference_side_effects:
+      - The scenes-index/v1 area groups and canonical paths must match the scene artifacts stored beneath those areas.
+      - Every flow step covered_by entry names a spec id and a requirement id that must resolve against the recorded main specs.
+      - The planned change expose-scene-cli-surface flips create and update to cli-owned and names the commands that own them; this change ships the contract only, so the family declares no CLI mutation owner yet.
+    cli_owners: []
+    direct_write_paths: []
+    evidence:
+      - templates/strict-spec-driven/schemas/scene.yaml
+      - templates/strict-spec-driven/schemas/scenes-index.yaml
+      - examples/strict-spec-driven/scene.yaml
+    validation_command: bun test/run.ts
 exclusions:
   external-dependency-yaml:
     path_patterns:

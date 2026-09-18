@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-scene-contract
+  milestone: scene-driven-requirements
+status: complete
+summary: Define the scene and scenes-index artifact contract and register it on every discovery surface.
+details: 'Add templates/strict-spec-driven/schemas/scene.yaml and scenes-index.yaml, register both in templates/strict-spec-driven/schemas/registry.yaml, and add one minimal valid example per family under examples/strict-spec-driven/. The scene schema requires a stable scene id, title, actors, preconditions, an ordered main flow, and exception flows, with every flow step carrying a stable step id and either a covered_by list naming spec id and requirement id pairs or an explicit no_coverage_reason. Because each covered_by entry names its own spec id, one step may cover requirements across several spec areas; the contract states the archive merge rule for that case rather than leaving it to the archive implementation. Coverage is declared on the scene side only, so main-spec.yaml is not modified and no existing spec becomes invalid. The family is designed for many scenes from the start: scene files live in subdirectories the way lesson files do, the declared path patterns admit that nesting, and the index shape stays usable at that size. Add the scene-state family to inventory/yaml-mutation-surfaces.yaml with its artifact types, path patterns, operations, reference side effects, evidence, and validation command, and regenerate src/embedded-templates.ts inside the same change. Init does not scaffold a scene index, because an empty container conflicts with the artifact-creation-persists-meaningful-state-only rule; the scenes directory and its index are created on the first scene write. Carry the spec impact as a delta spec against contracts-yaml-artifacts. Tests cover schema validation of both families, nested scene paths, the inventory check, and the diagnostics emitted for an invalid scene.'
+depends_on:
+  - author-sequence-entries-in-bundled-assets

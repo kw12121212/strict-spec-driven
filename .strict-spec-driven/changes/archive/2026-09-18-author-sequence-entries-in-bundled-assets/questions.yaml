@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: author-sequence-entries-in-bundled-assets
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Nobody can register a new bundled schema family through the CLI. schema-edit is the only owner of the registry, and it offers no argument that puts a mapping entry into the entries sequence: an addressed path naming a new index is refused with field-path-out-of-range, and --append with --item coerces its value to a scalar. The party suffering it is the agent or maintainer adding any new artifact family, immediately the blocked define-scene-contract change. A second, worse-shaped problem is that the surface accepted an invalid write: appending a scalar to entries committed and reported valid, leaving a registry whose entry is a string rather than a mapping.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: A caller authors a complete new registry entry through schema-edit with several field-addressed pairs naming the position after the last entry, schema-list reports the new family, and a named removal returns the registry and the embedded bundle to their previous content. Appending a scalar to entries exits non-zero with a diagnostic naming both the invalid candidate and the supported way to create an entry, and leaves the registry byte-identical. An index beyond the next position is still refused.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'The gap was found while implementing define-scene-contract: its first task cannot be completed, because creating a schema without its registry entry is itself refused as a dangling reference, and the registry entry cannot be authored. The milestone cli-yaml-artifact-coverage was reopened for this, so the whole scene-driven-requirements milestone is waiting behind it.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No change to the scene or scenes-index contract, which stays in define-scene-contract. No change to which families the mutation inventory declares. No new bundled-asset editing command, and no change to how an asset name resolves to its confined family location. The intentionally invalid validation-fixture contract must keep bypassing schema validation. Existing edits must keep affecting only the fields they name, must keep regenerating the embedded bundle in the same transaction, and deletion must stay refused while any reference names the asset.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The requester chose to fix the capability as a prerequisite planned change rather than hand-editing the registry or deferring to a later bugfix. The intended reading is therefore the general primitive plus the validation fix, not a registry-only special case: the creation rule lands in the addressed-path editor shared by every bundled-asset command, and the validation fix replaces the registry''s weaker shape check with its own declared contract. Expressed as a structured mapping argument or as a bespoke schema-register command were both rejected.'
+    status: resolved
+    kind: requirement
+    answered_by: human

@@ -5,141 +5,148 @@ artifact_type: schema_registry
 artifact_name: schema-registry
 description: Strict YAML schema registry artifact.
 example_ref: ../../../examples/strict-spec-driven/schema-registry.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/schema-registry/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: schema_registry
-  schema_file:
-    type: string
-    required: true
-  registry:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-        identifier: registry
-      status:
-        type: string
-        required: true
-        enum:
-          - current
-          - deprecated
-          - superseded
-  entries:
-    type: sequence
-    required: true
-    min_items: 1
-    unique_by: schema_id
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
-        schema_id:
+json_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - registry
+    - entries
+    - migration
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/schema-registry/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: schema_registry
+    schema_file:
+      type: string
+    registry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+      properties:
+        id:
           type: string
-          required: true
-          identifier: schema
-        schema_version:
-          type: integer
-          required: true
-        artifact_type:
+        status:
           type: string
-          required: true
-        artifact_name:
-          type: string
-          required: true
-        schema_file:
-          type: string
-          required: true
-        primary_example:
-          type: string
-          required: true
-        compatibility:
-          type: mapping
-          required: true
-          additional_fields: false
-          fields:
-            status:
-              type: string
-              required: true
-              enum:
-                - current
-                - deprecated
-                - superseded
-            introduced_in:
-              type: integer
-              required: true
-            supersedes:
-              type: sequence
-              required: true
-              items:
-                type: string
-            superseded_by:
-              type: string
-              required: false
-            compatible_with:
-              type: sequence
-              required: true
-              items:
-                type: string
-            notes:
-              type: sequence
-              required: true
-              items:
-                type: string
-  migration:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      legacy_root:
-        type: string
-        required: true
-      strict_root:
-        type: string
-        required: true
-      role_mappings:
-        type: sequence
-        required: true
-        min_items: 1
-        unique_by: legacy_role
-        items:
-          type: mapping
-          additional_fields: false
-          fields:
-            legacy_role:
-              type: string
-              required: true
-            artifact_type:
-              type: string
-              required: true
-            schema_id:
-              type: string
-              required: true
-              references: entries.schema_id
-      unsupported_shape_reporting:
-        type: mapping
-        required: true
-        additional_fields: false
-        fields:
-          warning_fields:
-            type: sequence
-            required: true
-            min_items: 1
-            items:
-              type: string
-          manual_follow_up_field:
+          enum:
+            - current
+            - deprecated
+            - superseded
+    entries:
+      type: array
+      minItems: 1
+      description: Every registered artifact schema, each entry identified by its schema_id, which is unique across the sequence.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - schema_id
+          - schema_version
+          - artifact_type
+          - artifact_name
+          - schema_file
+          - primary_example
+          - compatibility
+        properties:
+          schema_id:
             type: string
-            required: true
+          artifact_type:
+            type: string
+          artifact_name:
+            type: string
+          schema_file:
+            type: string
+          primary_example:
+            type: string
+          schema_version:
+            type: integer
+          compatibility:
+            type: object
+            additionalProperties: false
+            required:
+              - status
+              - introduced_in
+              - supersedes
+              - compatible_with
+              - notes
+            properties:
+              status:
+                type: string
+                enum:
+                  - current
+                  - deprecated
+                  - superseded
+              introduced_in:
+                type: integer
+              supersedes:
+                type: array
+                items:
+                  type: string
+              compatible_with:
+                type: array
+                items:
+                  type: string
+              notes:
+                type: array
+                items:
+                  type: string
+              superseded_by:
+                type: string
+    migration:
+      type: object
+      additionalProperties: false
+      required:
+        - legacy_root
+        - strict_root
+        - role_mappings
+        - unsupported_shape_reporting
+      properties:
+        legacy_root:
+          type: string
+        strict_root:
+          type: string
+        role_mappings:
+          type: array
+          minItems: 1
+          description: Legacy role to strict artifact mappings, each identified by its legacy_role, which is unique across the sequence.
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - legacy_role
+              - artifact_type
+              - schema_id
+            properties:
+              legacy_role:
+                type: string
+              artifact_type:
+                type: string
+              schema_id:
+                type: string
+                description: Names an entries[].schema_id recorded in this same registry.
+        unsupported_shape_reporting:
+          type: object
+          additionalProperties: false
+          required:
+            - warning_fields
+            - manual_follow_up_field
+          properties:
+            warning_fields:
+              type: array
+              minItems: 1
+              items:
+                type: string
+            manual_follow_up_field:
+              type: string

@@ -70,6 +70,12 @@ function parseEditArgs(argv: string[], expectsAssetName: boolean): ParsedEditArg
       pending = undefined;
       continue;
     }
+    if (token === "--create-empty-list") {
+      const fieldPath = takeValue();
+      if (fieldPath === undefined) return { error: "--create-empty-list requires a field path" };
+      parsed.edits.push({ kind: "create-list", fieldPath });
+      continue;
+    }
     if (token === "--remove-entry") {
       const fieldPath = takeValue();
       if (fieldPath === undefined) return { error: "--remove-entry requires a field path" };

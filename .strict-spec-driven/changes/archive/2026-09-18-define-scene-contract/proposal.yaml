@@ -1,0 +1,44 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-scene-contract
+  status: proposed
+summary:
+  what:
+    - Add strict YAML schemas for a new scene artifact family and its scene index under templates/strict-spec-driven/schemas/, register both in the bundled schema registry, and provide one minimal valid example per family under examples/strict-spec-driven/.
+    - 'Define the scene contract fields: a stable scene id, title, actors, preconditions, an ordered main flow, and exception flows, where every flow step carries a stable step id and either a covered_by list of spec-id and requirement-id pairs or an explicit no_coverage_reason.'
+    - State in the contract that one step may name covering requirements across several spec areas, and pin the archive merge conflict rule for that case instead of leaving it to the archive implementation.
+    - Declare scene file path patterns that admit lesson-style subdirectory nesting, so the family is usable at many-scene volume from the start.
+    - Add the scene-state artifact family to inventory/yaml-mutation-surfaces.yaml with its artifact types, path patterns, operations, reference side effects, evidence, and validation command, and regenerate src/embedded-templates.ts in the same change.
+    - Capture the contract-first inventory convention the scene-state family established as a delta tech rule under the change's tech/ directory, so archive merges it into the yaml-first-artifacts standard.
+  why:
+    - 'A project adopting this workflow has no entry point from scene to requirement: the author is asked for requirements immediately, skips describing who acts, under what preconditions, and what happens when the main flow fails, and the requirement set ends up with systematic holes.'
+    - The milestone is ordered contract-first, so the artifact contract and its discovery registrations must land before any command, archive merge, or coverage gate can consume them.
+    - Declaring coverage on the scene side only means main-spec.yaml is untouched and no existing spec becomes invalid, which keeps external adoption incremental rather than breaking.
+scope:
+  in:
+    - templates/strict-spec-driven/schemas/scene.yaml and templates/strict-spec-driven/schemas/scenes-index.yaml as new registered strict YAML schemas
+    - Schema registry entries for both new schemas in templates/strict-spec-driven/schemas/registry.yaml
+    - One minimal valid example per family under examples/strict-spec-driven/
+    - The scene-state artifact family entry in inventory/yaml-mutation-surfaces.yaml
+    - Regenerated src/embedded-templates.ts covering the new bundled schema and example assets
+    - A delta spec against contracts-yaml-artifacts recording the scene and scenes-index contract requirements, including the cross-spec-area archive merge rule
+    - Tests covering schema validation of both families, nested scene paths, the inventory check, and the diagnostics emitted for an invalid scene
+    - A delta tech artifact against yaml-first-artifacts recording that a repository-owned family whose schema ships ahead of its writer declares every operation not-applicable, names no owner, and names the change that will flip it
+  out:
+    - Any scene CLI command, MCP tool, or change-level delta scene generation, which belong to the expose-scene-cli-surface planned change
+    - Archive merge implementation and ready/verify coverage-gap gating, which belong to later planned changes in this milestone
+    - Scene-first routing in bundled skills and operator documentation, which is the last planned change in this milestone
+    - Any change to templates/strict-spec-driven/schemas/main-spec.yaml or to the shape of an existing main spec requirement
+    - Init scaffolding a scenes directory or scene index, because an empty container conflicts with the artifact-creation-persists-meaningful-state-only rule
+    - A generated human-readable scene document rendered from scene YAML
+unchanged_behavior:
+  - Every existing strict artifact family validates exactly as before, and no existing spec, standard, or change artifact becomes invalid.
+  - A repository holding no scene artifact observes no new diagnostic and no new required field.
+  - init scaffolds the same set of files as before, with no scenes directory and no scene index.
+  - bun scripts/check-yaml-mutation-inventory.ts continues to exit zero with the new family registered.
+roadmap:
+  milestone: scene-driven-requirements
+  planned_change: define-scene-contract

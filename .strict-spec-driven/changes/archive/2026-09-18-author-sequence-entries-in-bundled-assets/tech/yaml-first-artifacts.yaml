@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: yaml-first-artifacts
+operations:
+  ADDED:
+    schemas-declare-contracts-in-the-enforced-dialect:
+      strength: MUST
+      statement: A registered strict YAML artifact schema MUST express its validation contract in the dialect the shared validator executes, so every rule the schema declares is actually checked; a validation path MUST NOT be described as validating a candidate against a declared contract when the schema behind it carries keywords the validator does not interpret.
+      rationale: 'A schema of uninterpreted keywords matches every candidate, so the write reports valid while no declared rule was checked. That is strictly worse than having no validation, because the passing result is read as evidence the contract held: it is how a registry entry carrying one field out of seven was accepted by a check whose stated purpose was to reject exactly that. Keeping the declared contract and the executed contract the same document removes the gap in which a rule can be documentation.'
+      enforcement:
+        method: test
+        detail: test/suites/foundation-and-fixtures.ts derives the governed set from the schema registry's entries rather than from the schema directory, asserts that no registered schema's contract is inexecutable, and proves the check fires by running the same predicate over a realistic fields-dialect document and observing it named.
+  MODIFIED: {}
+  REMOVED: {}

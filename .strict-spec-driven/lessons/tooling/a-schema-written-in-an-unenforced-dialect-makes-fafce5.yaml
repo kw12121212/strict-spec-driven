@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-schema-written-in-an-unenforced-dialect-makes-fafce5
+  title: A schema written in an unenforced dialect makes validating against it a no-op
+category: tooling
+status: active
+created_at: '2026-09-17T16:37:00.734Z'
+updated_at: '2026-09-17T16:37:00.734Z'
+context: Closing a defect where appending a scalar to the schema registry's entries sequence committed and reported valid. The plan was to replace the registry's shape-only participant check with validation of the whole candidate against the contract the registry declares in its own schema field, reusing the registered-schema path every other artifact asset takes.
+observation: 'The tightened check accepted an entry carrying only schema_id. loadBundledSchema returns raw.json_schema when the schema document has one and otherwise returns the whole document, so templates/strict-spec-driven/schemas/schema-registry.yaml, written in the repository''s early fields dialect with additional_fields and fields keys, reached ajv as a schema whose every keyword is unknown and therefore matched any candidate. No module under src/ interprets that dialect at all: its unique_by, references, and identifier declarations were documentation, and so were its required fields. Converting the asset to a json_schema document carrying the same rules made the same validation call reject the incomplete entry by name.'
+takeaway: Before routing a write through a schema, confirm the schema is expressed in the dialect the validator actually executes, not merely that the artifact declares a schema id. A validator handed a document of unknown keywords reports valid for everything, so a green write is evidence the schema was loaded, not that any rule was checked. Test the tightening with a deliberately invalid candidate and watch it be refused before trusting it.
+applies_when: Routing a repository-owned YAML write through schema validation, tightening a shape-only check into a schema check, or debugging why a write that should violate a declared contract is still accepted; also when adding rules to a schema asset and expecting them to be enforced.
+occurrences:
+  - origin: author-sequence-entries-in-bundled-assets
+    date: '2026-09-17'
+    evidence: src/bundled-asset-mutation.ts validateSchemaDocument, src/validation.ts loadBundledSchema, templates/strict-spec-driven/schemas/schema-registry.yaml

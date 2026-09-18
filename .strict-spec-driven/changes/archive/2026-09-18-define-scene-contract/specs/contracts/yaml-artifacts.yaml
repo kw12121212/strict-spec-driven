@@ -1,0 +1,107 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+operations:
+  ADDED:
+    yaml-scene-artifact-family:
+      strength: MUST
+      statement: The system MUST define strict YAML schemas for a scene artifact and a scene index artifact, register both in the bundled schema registry, and provide at least one minimal valid example for each.
+      scenarios:
+        scene-families-are-registered-and-exemplified:
+          - GIVEN: the strict workflow artifact contract is reviewed
+          - WHEN: the scene and scene index artifact families are checked against the registered schemas and examples
+          - THEN: each family has a registered schema with a stable schema id and at least one minimal valid example associated with it
+        scene-families-are-discoverable:
+          - GIVEN: a registered scene schema and scene index schema
+          - WHEN: the bundled schema and example inventories are listed
+          - THEN: both families are reported with their schema and example keys without requiring any scene artifact to exist in the repository
+    yaml-scene-required-sections:
+      strength: MUST
+      statement: The system MUST require a scene artifact to carry a stable scene id, a human-readable title, a kebab-case area key naming the subdirectory group it belongs to, a lifecycle status, actors, preconditions, an ordered main flow with at least one step, and at least one named exception flow.
+      scenarios:
+        scene-missing-a-required-section-is-rejected:
+          - GIVEN: a scene artifact omitting actors, preconditions, the main flow, or exception flows
+          - WHEN: the scene is validated against its registered schema
+          - THEN: validation fails and the diagnostic names the missing required section
+        complete-scene-is-accepted:
+          - GIVEN: a scene artifact carrying a stable scene id, a title, actors, preconditions, an ordered main flow, and at least one named exception flow
+          - WHEN: the scene is validated against its registered schema
+          - THEN: validation succeeds
+        scene-area-and-status-are-required:
+          - GIVEN: a scene artifact omitting its area key or its lifecycle status
+          - WHEN: the scene is validated against its registered schema
+          - THEN: validation fails, because the scene index records each scene's status and area group and has no other source for either
+    yaml-scene-step-coverage-declaration:
+      strength: MUST
+      statement: The system MUST identify every scene flow step by a stable step id that is the step's key in a keyed map whose document key order is the step order, and MUST require each step to declare either a non-empty list of covering requirements naming a spec id and a requirement id, or an explicit no-coverage reason, rejecting a step that declares both and a step that declares neither.
+      scenarios:
+        step-with-no-coverage-declaration-is-rejected:
+          - GIVEN: a scene flow step declaring neither a covering requirement nor a no-coverage reason
+          - WHEN: the scene is validated against its registered schema
+          - THEN: validation fails and the diagnostic names the step id and the missing coverage declaration
+        step-with-both-declarations-is-rejected:
+          - GIVEN: a scene flow step declaring both a covering requirement and a no-coverage reason
+          - WHEN: the scene is validated against its registered schema
+          - THEN: validation fails, because which declaration governs coverage would otherwise be ambiguous
+        explicitly-waived-step-is-accepted:
+          - GIVEN: a scene flow step declaring a no-coverage reason and no covering requirement
+          - WHEN: the scene is validated against its registered schema
+          - THEN: validation succeeds and the recorded reason is readable as the explicit waiver for that step
+        step-identity-and-order-come-from-the-keyed-map:
+          - GIVEN: a scene main flow recorded as a keyed map of step ids
+          - WHEN: the steps are read by a YAML parser that preserves map key order
+          - THEN: the step order is recoverable from the key sequence
+          - AND: each step id is unique within its flow without a separate id field
+    yaml-scene-cross-spec-coverage:
+      strength: MUST
+      statement: The system MUST allow one scene flow step to name covering requirements belonging to more than one spec, and MUST NOT require a scene to be associated with a single spec.
+      scenarios:
+        step-covering-two-spec-areas-is-accepted:
+          - GIVEN: a scene flow step naming one covering requirement in one spec and another covering requirement in a different spec
+          - WHEN: the scene is validated against its registered schema
+          - THEN: validation succeeds and both covering requirements are retained with their own spec ids
+    yaml-scene-merge-conflict-rules:
+      strength: MUST
+      statement: 'The system MUST define how a delta scene merges into a main scene: covering requirements merge as a set keyed by the spec-id and requirement-id pair, a step id present in both replaces the main scene step''s content and position, and a step id present only in the main scene is left untouched.'
+      scenarios:
+        cross-area-covering-requirements-merge-as-a-set:
+          - GIVEN: a main scene step already naming a covering requirement in one spec and a delta scene step naming a covering requirement in a different spec for the same step id
+          - WHEN: the merge rule stated by the contract is applied
+          - THEN: the merged step names both covering requirements exactly once each, independent of which delta spec the requirements arrived from
+        main-only-step-survives-the-merge:
+          - GIVEN: a main scene holding a step id the delta scene does not mention
+          - WHEN: the merge rule stated by the contract is applied
+          - THEN: that step remains in the merged scene unchanged
+    yaml-scene-family-nesting-and-index:
+      strength: MUST
+      statement: The system MUST declare scene file locations that admit subdirectory nesting and MUST require the scene index to group scenes by an area key that is also their subdirectory name and to record each scene's title, status, and canonical path, so one group of scenes is discoverable without reading unrelated scene files.
+      scenarios:
+        nested-scene-path-is-declared-valid:
+          - GIVEN: a scene artifact stored in a subdirectory of the scenes directory
+          - WHEN: its location is compared with the declared scene path patterns
+          - THEN: the nested location is covered by a declared pattern
+        scene-index-entry-names-its-canonical-path:
+          - GIVEN: a scene index recording one scene
+          - WHEN: the index entry is inspected
+          - THEN: the entry states the scene title, status, and canonical nested path
+        index-group-key-names-the-scene-subdirectory:
+          - GIVEN: a scene index recording one scene inside one area group
+          - WHEN: the group key is compared with the scene's canonical path and with the scene artifact itself
+          - THEN: the group key is the subdirectory name inside that canonical path
+          - AND: the scene artifact records the same area key
+    yaml-scene-adoption-is-opt-in:
+      strength: MUST
+      statement: The system MUST leave a repository holding no scene artifact unaffected by the scene contract, adding no required field to any existing artifact family and creating no scene directory or scene index until a scene is first written.
+      scenarios:
+        repository-without-scenes-sees-no-new-requirement:
+          - GIVEN: a repository with strict workflow state and no scene artifact
+          - WHEN: its existing artifacts are validated after the scene contract is registered
+          - THEN: every existing artifact remains valid and no diagnostic references a missing scene or scene index
+        initialization-creates-no-empty-scene-container:
+          - GIVEN: a newly initialized strict workflow directory
+          - WHEN: the scaffolded files are inspected
+          - THEN: no scenes directory and no scene index are present
+  MODIFIED: {}
+  REMOVED: {}

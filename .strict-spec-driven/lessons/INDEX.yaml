@@ -220,7 +220,7 @@ categories:
     a-set-field-path-that-does-not-exist-creates-a-n-02ec26:
       title: A --set field path that does not exist creates a new branch instead of failing
       status: active
-      occurrences: 1
+      occurrences: 3
       path: .strict-spec-driven/lessons/tooling/a-set-field-path-that-does-not-exist-creates-a-n-02ec26.yaml
     piping-a-test-runner-into-tail-or-head-discards-15d651:
       title: Piping a test runner into tail or head discards its exit status
@@ -257,3 +257,13 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-background-suite-run-tests-the-files-as-they-w-750832.yaml
+    a-schema-written-in-an-unenforced-dialect-makes-fafce5:
+      title: A schema written in an unenforced dialect makes validating against it a no-op
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-schema-written-in-an-unenforced-dialect-makes-fafce5.yaml
+    a-diagnostic-that-must-name-an-entry-s-id-forces-5b6cff:
+      title: A diagnostic that must name an entry's id forces the collection to be a keyed map
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-diagnostic-that-must-name-an-entry-s-id-forces-5b6cff.yaml

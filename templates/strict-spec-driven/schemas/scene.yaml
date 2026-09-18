@@ -1,0 +1,156 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/scene/v1
+artifact_type: scene
+artifact_name: scene
+description: 'Strict YAML scene artifact describing one end-to-end situation a real actor goes through - who acts, what must already be true, the ordered main flow, and the exception flows that branch off it - where every flow step declares either the requirements that cover it or an explicit reason it is waived, so a gap in the requirement set is visible in the artifact rather than discovered by a reader. A scene is independent of any single spec: one step may name covering requirements belonging to several specs. A delta scene merges into a main scene by step id: covered_by entries merge as a set keyed by the spec_id and requirement_id pair, a step id present in both replaces the main scene step content and its position, and a step id present only in the main scene is left untouched.'
+example_ref: ../../../examples/strict-spec-driven/scene.yaml
+json_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  definitions:
+    flow_step:
+      type: object
+      additionalProperties: false
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          minLength: 1
+          description: What happens at this step, stated as behavior an outside observer could confirm.
+        covered_by:
+          type: array
+          minItems: 1
+          description: The requirements that cover this step, each naming the spec that holds it. Entries may belong to different specs, so one step can be covered across spec areas. On merge into a main scene these entries combine as a set keyed by the spec_id and requirement_id pair, so the merged coverage of a step does not depend on which delta spec its requirements arrived from.
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - spec_id
+              - requirement_id
+            properties:
+              spec_id:
+                type: string
+                minLength: 1
+                description: The id of the spec that holds the covering requirement.
+              requirement_id:
+                type: string
+                minLength: 1
+                description: The id of the requirement within that spec which covers this step.
+        no_coverage_reason:
+          type: string
+          minLength: 1
+          description: Why this step is deliberately covered by no requirement. An explicit reason is the only accepted alternative to covered_by, so a step declaring neither is refused rather than passing as though it were covered.
+      oneOf:
+        - required:
+            - covered_by
+        - required:
+            - no_coverage_reason
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - scene
+    - area
+    - status
+    - actors
+    - preconditions
+    - main_flow
+    - exception_flows
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/scene/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: scene
+    schema_file:
+      type: string
+    scene:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+          description: Stable scene identity, unchanged across edits so a delta scene and an index entry can address the same scene.
+        title:
+          type: string
+          minLength: 1
+    area:
+      type: string
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+      description: Free-form kebab-case grouping key that is also the scene subdirectory name, so the index group and the canonical file path stay derivable from each other.
+    status:
+      type: string
+      enum:
+        - draft
+        - active
+        - obsolete
+      description: active means the scene describes current intended behavior. draft means it is still being authored. obsolete means it was explicitly retired. The index mirrors this value so one area can be surveyed without opening every scene file.
+    actors:
+      type: array
+      minItems: 1
+      description: Everyone and everything that acts in this scene. A role is required alongside each name, because a bare label is the answer this artifact exists to stop an author from skipping.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - name
+          - role
+        properties:
+          name:
+            type: string
+            minLength: 1
+          role:
+            type: string
+            minLength: 1
+            description: What this actor does in this scene.
+    preconditions:
+      type: array
+      minItems: 1
+      description: What must already be true before the main flow can begin.
+      items:
+        type: string
+        minLength: 1
+    main_flow:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: The ordered steps of the path that succeeds, keyed by stable step id. Document key order is the step order, and the key is the identity a delta scene step merges against.
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          $ref: '#/definitions/flow_step'
+    exception_flows:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: The named ways the main flow fails or branches, each with the trigger that causes it and its own ordered steps. At least one is required, because an unstated failure path is the systematic hole this artifact exists to close.
+      patternProperties:
+        ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+          type: object
+          additionalProperties: false
+          required:
+            - trigger
+            - steps
+          properties:
+            trigger:
+              type: string
+              minLength: 1
+              description: What causes this exception flow to be taken instead of the remainder of the main flow.
+            steps:
+              type: object
+              minProperties: 1
+              additionalProperties: false
+              patternProperties:
+                ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$:
+                  $ref: '#/definitions/flow_step'

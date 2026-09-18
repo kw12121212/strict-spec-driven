@@ -111,3 +111,22 @@ rules:
         - Removing the mapping contract from main-spec by dropping it from required and replacing its object sub-schema with a description naming it deprecated and ignored, plus a test asserting a residual mapping field validates and is stripped on the next CLI write.
       bad:
         - Deleting the mapping property from main-spec entirely, so every external project's specs authored before the upgrade fail schema validation as an unknown key.
+  schemas-declare-contracts-in-the-enforced-dialect:
+    strength: MUST
+    statement: A registered strict YAML artifact schema MUST express its validation contract in the dialect the shared validator executes, so every rule the schema declares is actually checked; a validation path MUST NOT be described as validating a candidate against a declared contract when the schema behind it carries keywords the validator does not interpret.
+    rationale: 'A schema of uninterpreted keywords matches every candidate, so the write reports valid while no declared rule was checked. That is strictly worse than having no validation, because the passing result is read as evidence the contract held: it is how a registry entry carrying one field out of seven was accepted by a check whose stated purpose was to reject exactly that. Keeping the declared contract and the executed contract the same document removes the gap in which a rule can be documentation.'
+    enforcement:
+      method: test
+      detail: test/suites/foundation-and-fixtures.ts derives the governed set from the schema registry's entries rather than from the schema directory, asserts that no registered schema's contract is inexecutable, and proves the check fires by running the same predicate over a realistic fields-dialect document and observing it named.
+  contract-first-families-declare-no-unshipped-operation:
+    strength: MUST
+    statement: A repository-owned artifact family whose registered schema ships in a change that ships no command writing it MUST declare every mutation operation as not-applicable, MUST name no CLI owner and no direct-write path, and MUST record a reference side effect naming the later change that will flip the operations a command comes to own.
+    rationale: 'Every other classification asserts something the repository has not delivered: cli-owned with no named owner is refused by the inventory check as an unfalsifiable claim, direct-write names code that does not exist, and human-only reads as a deliberate policy that the family''s YAML is hand-edited, which the very next planned change contradicts. The inventory check can refuse the first two but cannot tell a truthful not-applicable from an abandoned one, so naming the change that will flip the state is what stops the classification from outliving the reason for it.'
+    enforcement:
+      method: review
+      detail: bun run check:yaml-inventory already refuses a cli-owned operation with no registered owner and a direct-write path with no owner, and test/suites/yaml-operation-matrix.ts already requires every inventoried family to declare a reason for each not-applicable dimension; what review adds is confirming the reference side effect names the change that will flip the operations.
+    examples:
+      good:
+        - scene-state declares create, update, named_remove, and delete as not-applicable with cli_owners and direct_write_paths empty, and records a reference side effect naming expose-scene-cli-surface as the change that flips create and update to cli-owned.
+      bad:
+        - A family declaring create as human-only while a named follow-up change is about to make a command own it, which reads to every later reader as a decision that the family's YAML is hand-edited.

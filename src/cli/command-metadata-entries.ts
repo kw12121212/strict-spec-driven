@@ -34,7 +34,7 @@ const BUNDLED_ASSET_EDIT_FLAGS: CliCommandFlag[] = [
     name: "--set",
     arity: "value",
     valueLabel: "<field-path>",
-    description: "Address a field to overwrite, as a dotted path such as registry.status. Pairs with the following --value.",
+    description: "Address a field to overwrite, as a dotted path such as registry.status. Pairs with the following --value. A path segment that is the position one past a sequence's last entry creates that entry, so several --set pairs naming the same new position author one new sequence entry; any further position is refused as out of range.",
     repeatable: true,
     repeatSemantics: "Each --set/--value pair is one edit, applied in the order supplied.",
   },
@@ -49,7 +49,7 @@ const BUNDLED_ASSET_EDIT_FLAGS: CliCommandFlag[] = [
     name: "--append",
     arity: "value",
     valueLabel: "<field-path>",
-    description: "Address a sequence to append to. Pairs with the following --item and appends without duplicating an existing entry.",
+    description: "Address a sequence to append to. Pairs with the following --item and appends without duplicating an existing entry. A sequence whose recorded entries are mappings refuses an appended scalar and names the --set form that creates an entry instead.",
     repeatable: true,
     repeatSemantics: "Each --append/--item pair is one edit, applied in the order supplied.",
   },
@@ -59,6 +59,14 @@ const BUNDLED_ASSET_EDIT_FLAGS: CliCommandFlag[] = [
     valueLabel: "<text>",
     description: "The value appended to the preceding --append sequence.",
     repeatable: true,
+  },
+  {
+    name: "--create-empty-list",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Create an empty sequence at the addressed path, for a contract that requires a list field whose correct value is empty. Creation only fills an absent path, and an already-empty sequence is accepted as a no-op so restating an authored entry stays idempotent; a path recording any content is refused, so no edit clears recorded content.",
+    repeatable: true,
+    repeatSemantics: "Each value creates one sequence, applied in the order supplied.",
   },
   {
     name: "--remove-entry",
@@ -1304,7 +1312,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "schema-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a bundled strict YAML schema asset.",
-    usage: "Usage: strict-spec-cli schema-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]\n",
+    usage: "Usage: strict-spec-cli schema-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]\n",
     arguments: [
       {
         name: "asset",
@@ -1329,7 +1337,8 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
       "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
       "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
-      "A schema document is judged on the wrapper contract its loader depends on: registry.yaml must keep an entries sequence, and every other schema must keep a json_schema mapping.",
+      "A schema document other than registry.yaml is judged on the wrapper contract its loader depends on, so it must keep a json_schema mapping; registry.yaml is an instance of its own registered schema and the whole candidate is validated against that contract, so an entry of the wrong type or an entry missing required fields is refused before the write.",
+      "Register a new schema by addressing the position one past the registry's last entry, as --set entries.<next>.<field> --value <text> repeated per field, with --create-empty-list for a required list whose value is empty.",
     ],
   },
 
@@ -1337,7 +1346,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "template-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a bundled scaffold or SOP category template.",
-    usage: "Usage: strict-spec-cli template-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]\n",
+    usage: "Usage: strict-spec-cli template-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]\n",
     arguments: [
       {
         name: "asset",
@@ -1369,7 +1378,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "sample-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a bundled minimal valid strict YAML sample.",
-    usage: "Usage: strict-spec-cli sample-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]\n",
+    usage: "Usage: strict-spec-cli sample-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]\n",
     arguments: [
       {
         name: "asset",
@@ -1402,7 +1411,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "fixture-edit",
     group: "maintenance",
     summary: "Create, update, remove named entries from, or delete a validation test fixture.",
-    usage: "Usage: strict-spec-cli fixture-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]\n",
+    usage: "Usage: strict-spec-cli fixture-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]\n",
     arguments: [
       {
         name: "asset",
@@ -1435,7 +1444,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "inventory-edit",
     group: "maintenance",
     summary: "Update, remove named entries from, or delete the YAML mutation inventory.",
-    usage: "Usage: strict-spec-cli inventory-edit [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]\n",
+    usage: "Usage: strict-spec-cli inventory-edit [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--create-empty-list <field-path>]... [--remove-entry <field-path>]... [--delete]\n",
     arguments: [
     ],
     flags: BUNDLED_ASSET_EDIT_FLAGS,

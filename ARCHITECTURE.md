@@ -411,8 +411,8 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | Spec | ID | Requirements |
 | --- | --- | --- |
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 224 |
-| [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 118 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 226 |
+| [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
 | [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
@@ -480,3 +480,5 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `runtime-repository-evidence-is-embedded` — Repository-owned evidence a CLI command must read while running inside another project MUST be embedded in the bundled asset set and read embedded-first, with a working-tree read only as a fallback; a command MUST NOT depend on a repository path that exists only in this repository's checkout.
 - **MUST** `bundled-asset-writes-regenerate-derived-output` — A mutation of a repository-bundled asset that is embedded, registered, or referenced elsewhere MUST regenerate and revalidate its derived output inside the same transaction as the source write; regeneration MUST NOT be deferred to a separate command, build step, or post-write hook.
 - **MUST** `retired-schema-fields-leave-a-tombstone` — Retiring a field from a strict artifact schema MUST remove it from the schema's required list and replace its sub-schema with a description-only permissive allowance, rather than deleting the property, unless the change explicitly decides that artifacts still carrying the field must fail validation.
+- **MUST** `schemas-declare-contracts-in-the-enforced-dialect` — A registered strict YAML artifact schema MUST express its validation contract in the dialect the shared validator executes, so every rule the schema declares is actually checked; a validation path MUST NOT be described as validating a candidate against a declared contract when the schema behind it carries keywords the validator does not interpret.
+- **MUST** `contract-first-families-declare-no-unshipped-operation` — A repository-owned artifact family whose registered schema ships in a change that ships no command writing it MUST declare every mutation operation as not-applicable, MUST name no CLI owner and no direct-write path, and MUST record a reference side effect naming the later change that will flip the operations a command comes to own.
