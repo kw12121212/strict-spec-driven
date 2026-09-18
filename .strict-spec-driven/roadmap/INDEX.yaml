@@ -26,4 +26,4 @@ milestones:
   scene-driven-requirements:
     title: Scene-driven requirements entry point
     path: roadmap/milestones/scene-driven-requirements.yaml
-    status: proposed
+    status: complete

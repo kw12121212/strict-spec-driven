@@ -122,13 +122,17 @@ node dist/strict-spec-cli.js generate my-first-change proposal --what "..." --wh
 node dist/strict-spec-cli.js generate my-first-change design --approach "..."
 node dist/strict-spec-cli.js generate my-first-change tasks --section Implementation --task first-task --text "..."
 node dist/strict-spec-cli.js generate my-first-change questions --resolve requirement-problem --answer "..." --answered-by human
+node dist/strict-spec-cli.js generate my-first-change delta-scene --target-scene my-scene --title "..." --area workflow --actor "..." --role "..." --precondition "..." --operation ADDED --step first-step --action "..." --covered-by <spec-id>:<requirement-id>
 ```
+
+Before drafting a single requirement, the proposal skills ask who acts, what must already be true, what happens step by ordered step, and what happens when the main flow fails. When the change touches user-observable behavior, that answer is written down as a delta scene *before* the delta spec, and each requirement is then derived from a flow step it covers. A purely technical change has no actor flow to describe and records why no scene applies instead.
 
 The artifacts this authors:
 - `proposal.yaml` — what and why
 - `design.yaml` — approach and key decisions
 - `tasks.yaml` — implementation and testing tasks
 - `questions.yaml` — seeded requirement questions plus open questions, surfaced and resolved by `/strict-spec-auto` or `/strict-spec-apply` before implementation
+- `scenes/` — delta scene files, when the change touches user-observable behavior; authored before `specs/`, so each requirement is derived from a flow step
 - `specs/` — delta spec files, only when the change has observable spec impact
 
 CLI code owns YAML shape and filesystem mutation for these artifacts: AI workflows describe every change through `generate`'s named arguments and never write the YAML text themselves. Before authoring an unfamiliar artifact, run `strict-spec-cli yaml-authoring-protocol` for the full CLI-only authoring protocol, `<command> --help --json` for the owning command's contract, and `schema-show` / `sample-show` for the artifact's schema and a minimal valid example. An artifact's declared `schema_file` resolves beneath the shared schema cache root `~/.strict-spec-schemas/` (or `STRICT_SPEC_SCHEMA_CACHE_DIR`), and schema `example_ref` paths resolve beneath the cached examples tree — installed skills never assume a source-repository `templates` directory.
@@ -169,6 +173,7 @@ Verification checks:
 - No open questions remain in `questions.yaml`
 - All planning artifacts pass strict YAML schema validation
 - Delta specs in `specs/` pass delta-spec schema validation
+- Every flow step of a scene the change touches names a covering requirement or an explicit no-coverage reason; the diagnostic names the runnable command that records it
 - No two active changes target the same requirement ID with conflicting modifications
 
 ### 4. Archive the change
@@ -181,6 +186,7 @@ After verification passes, archive the change to merge its delta specs into the 
 
 Archiving:
 - Merges delta specs into `.strict-spec-driven/specs/` main spec files
+- Merges delta scenes into `.strict-spec-driven/scenes/` and regenerates the scene index
 - Moves the change directory to `.strict-spec-driven/changes/archive/YYYY-MM-DD-my-first-change/`
 - Regenerates the strict spec index
 

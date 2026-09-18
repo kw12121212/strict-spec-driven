@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: route-requirements-through-scenes
+  status: proposed
+summary:
+  what:
+    - Ship a standalone bundled scene-editing skill and make the bundled proposal and brainstorm skills interrogate the scene — actors, preconditions, main flow, exception flows — and author the scene before any delta spec requirement is drafted.
+    - Make the apply, review, sync-specs, archive, and auto skills recognize scenes and their coverage state, and register the new skill on every packaged-skill enumeration surface.
+    - Route requirement authoring through scenes in the external-facing operator documentation for both languages, and regenerate ARCHITECTURE.md.
+  why:
+    - The scene contract, CLI surface, archive merge, and coverage gating all exist, but no bundled skill or operator document tells an author to describe the scene before requirements, so the entry point the milestone exists to deliver is still missing.
+    - An author asked for requirements immediately skips who acts, under what preconditions, and what happens when the main flow fails, and the resulting requirement set has systematic holes that the gate can only report once a scene exists to gate against.
+scope:
+  in:
+    - A new standalone bundled skill package under skills/ that owns live scene authoring through scene-edit and scene-status, with its artifact kind, authoring-protocol command, validation command, and no-fallback boundary named.
+    - Scene-first interrogation inside the strict-spec-propose and strict-spec-brainstorm skills, placing scene authoring before delta-spec authoring in their step order.
+    - Scene and scene-coverage awareness in the strict-spec-apply, strict-spec-review, strict-spec-sync-specs, strict-spec-archive, and strict-spec-auto skills.
+    - validate-skills expectations for the new skill package and for the scene guidance added to the edited skills, so the routing is enforced rather than assumed.
+    - 'Registration of the new skill on every packaged-skill enumeration surface: skills/marketplace.json and the agent-guidance entry in inventory/yaml-mutation-surfaces.yaml.'
+    - External-facing documentation updates in both languages for README, QUICKSTART, AGENTS.md, and RTK.md, plus a regenerated ARCHITECTURE.md.
+    - Tests covering validate-skills over the new and edited skill packages, the documentation scans, and a regression confirming legacy migration creates no empty scenes directory.
+    - One shared registry of strict skill name family prefixes, consumed by the skill directory scan, the marketplace entry scan, and the workflow-state guidance scope, with the scene-editing family registered in it.
+  out:
+    - Any scene renderer, generated human-readable scene document, banner contract, or generated-documents registration, per the recorded milestone decision.
+    - Any change to the scene schema, the scene CLI surface, the archive merge rules, or the coverage-gap diagnostics, all of which landed in the earlier planned changes of this milestone.
+    - Any change to legacy .spec-driven migration semantics beyond confirming migration never creates an empty scenes directory.
+    - Requiring existing specs, this repository, or existing external projects to author scenes, and any workflow config switch that turns scene coverage checking on or off.
+unchanged_behavior:
+  - A repository holding no scene artifact observes no new diagnostic and no new required field; scene checking stays triggered by the presence of a scene.
+  - The scene schema, scene index shape, scene-edit and scene-status command surfaces, delta-scene generation, and archive scene merge behave exactly as they do today.
+  - The retired-skill list and the uninstall path keep removing the same names; adding a package changes what is installed, not how removal is resolved.
+roadmap:
+  milestone: scene-driven-requirements
+  planned_change: route-requirements-through-scenes

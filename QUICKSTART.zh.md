@@ -121,13 +121,17 @@ node dist/strict-spec-cli.js generate my-first-change proposal --what "..." --wh
 node dist/strict-spec-cli.js generate my-first-change design --approach "..."
 node dist/strict-spec-cli.js generate my-first-change tasks --section Implementation --task first-task --text "..."
 node dist/strict-spec-cli.js generate my-first-change questions --resolve requirement-problem --answer "..." --answered-by human
+node dist/strict-spec-cli.js generate my-first-change delta-scene --target-scene my-scene --title "..." --area workflow --actor "..." --role "..." --precondition "..." --operation ADDED --step first-step --action "..." --covered-by <spec-id>:<requirement-id>
 ```
+
+在起草任何一条需求之前，提议类 Skills 会先问：谁在行动、必须已经成立的是什么、一切顺利时逐步发生什么、主流程失败时会发生什么。当变更触及用户可观察行为时，这些答案会在 delta spec *之前*写成 delta scene，随后每条需求都从它所覆盖的流程步骤推导出来。纯技术变更没有参与者流程可描述，改为记录「为何不适用场景」。
 
 由此编写出的制品：
 - `proposal.yaml` — 是什么以及为什么
 - `design.yaml` — 方案和关键决策
 - `tasks.yaml` — 实现和测试任务
 - `questions.yaml` — 预置的需求问题及开放性问题，由 `/strict-spec-auto` 或 `/strict-spec-apply` 在实现前显式提出并解决
+- `scenes/` — 增量场景文件，当变更触及用户可观察行为时创建；写在 `specs/` 之前，使每条需求都从流程步骤推导而来
 - `specs/` — 增量规范文件，仅当变更有可观测的规范影响时才创建
 
 这些制品的 YAML 结构与文件系统写入由 CLI 代码负责：AI 工作流通过 `generate` 的命名参数描述每一次变更，绝不自行书写 YAML 文本。编写不熟悉的制品前，先运行 `strict-spec-cli yaml-authoring-protocol` 查看完整的 CLI 独占编写协议，用 `<command> --help --json` 查看所属命令的契约，用 `schema-show` / `sample-show` 查看制品的 schema 和最小有效示例。制品声明的 `schema_file` 在共享 schema 缓存根目录 `~/.strict-spec-schemas/`（或 `STRICT_SPEC_SCHEMA_CACHE_DIR`）下解析，schema 的 `example_ref` 路径在缓存的 examples 树下解析——已安装的 Skills 绝不假设存在源码仓库的 `templates` 目录。
@@ -168,6 +172,7 @@ node dist/strict-spec-cli.js apply my-first-change
 - `questions.yaml` 中无开放性问题
 - 所有规划制品通过严格 YAML 模式验证
 - `specs/` 中的增量规范通过增量规范模式验证
+- 变更触及的场景中，每个流程步骤都指名了覆盖它的需求或明确的免覆盖理由；诊断信息会给出记录覆盖的可运行命令
 - 没有两个活跃变更以冲突的修改方式针对同一需求 ID
 
 ### 4. 归档变更
@@ -180,6 +185,7 @@ node dist/strict-spec-cli.js apply my-first-change
 
 归档操作：
 - 将增量规范合并到 `.strict-spec-driven/specs/` 主规范文件
+- 将增量场景合并到 `.strict-spec-driven/scenes/` 并重新生成场景索引
 - 将变更目录移至 `.strict-spec-driven/changes/archive/YYYY-MM-DD-my-first-change/`
 - 重新生成严格规范索引
 

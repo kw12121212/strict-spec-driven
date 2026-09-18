@@ -22,6 +22,7 @@ import {
   delegatesObligation,
   parseDelegations,
   GENERIC_COMMAND_PLACEHOLDER,
+  hasStrictSkillNamePrefix,
   PLANNING_STRICT_SKILL_EXPECTATIONS,
   ROADMAP_STRICT_SKILL_EXPECTATIONS,
   PREFERRED_HUMAN_LANGUAGE_HEADING,
@@ -309,12 +310,7 @@ function validateTaskOrderGuidance(
 }
 
 function requiresExistingStrictWorkflowState(skillName: string): boolean {
-  return (
-    skillName.startsWith("strict-spec-") ||
-    skillName.startsWith("strict-roadmap-") ||
-    skillName.startsWith("strict-tech-")
-  )
-    && skillName !== "strict-spec-init";
+  return hasStrictSkillNamePrefix(skillName) && skillName !== "strict-spec-init";
 }
 
 function validateStrictWorkflowStateGuidance(

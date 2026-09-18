@@ -42,6 +42,16 @@ type SkillModelModule = {
   CORE_STRICT_SKILL_EXPECTATIONS: Record<string, { requiredSnippets?: string[] }>;
 };
 
+type SceneSkillModelModule = {
+  CORE_STRICT_SKILL_EXPECTATIONS: Record<string, { requiredCommands?: Record<string, string> }>;
+  PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, { requiredCommands?: Record<string, string> }>;
+  ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, { requiredCommands?: Record<string, string> }>;
+  SCENE_STATUS_COMMAND: string;
+  STRICT_SKILL_NAME_PREFIXES: readonly string[];
+  STRICT_SKILL_NAME_PREFIX_EXPECTATION: string;
+  hasStrictSkillNamePrefix: (name: string) => boolean;
+};
+
 type YamlAuthoringProtocolModule = {
   YAML_AUTHORING_PROTOCOL_STEPS: ReadonlyArray<{ order: number; id: string; title: string }>;
   YAML_AUTHORING_PROTOCOL_BOUNDARY: { id: string; title: string; statement: string; reportContains: string[] };
@@ -3844,6 +3854,7 @@ const PINNED_MUTATION_CAPABLE_SKILLS = [
   "strict-roadmap-reorder",
   "strict-roadmap-review",
   "strict-roadmap-transition",
+  "strict-scene-edit",
   "strict-spec-apply",
   "strict-spec-architecture",
   "strict-spec-archive",
@@ -3886,13 +3897,14 @@ context.assert(
     === JSON.stringify([...strictSkillNames].sort()),
   "the pinned classification accounts for every bundled skill package on disk",
 );
-// The surface reduction this milestone exists to produce is pinned here rather than asserted in a
-// change record, so a skill added back later fails a test instead of quietly restoring the count.
+// The packaged surface is pinned here rather than asserted in a change record, so a skill added or
+// restored later fails a test instead of quietly moving the count. It went from 24 to 25 when the
+// standalone scene-editing package landed, which is the one addition the scene milestone authorized.
 context.assert(
-  packageValidation.summary.skillCount === 24
-    && packageValidation.summary.marketplaceCount === 24
+  packageValidation.summary.skillCount === 25
+    && packageValidation.summary.marketplaceCount === 25
     && packageValidation.summary.diagnosticsCount === 0,
-  "validate-skills reports 24 bundled skills with marketplace parity and no diagnostics",
+  "validate-skills reports 25 bundled skills with marketplace parity and no diagnostics",
   `skillCount: ${packageValidation.summary.skillCount}, marketplaceCount: ${packageValidation.summary.marketplaceCount}, diagnosticsCount: ${packageValidation.summary.diagnosticsCount}`,
 );
 
@@ -3902,15 +3914,18 @@ context.assert(
 // author could act on it was never named. A per-skill bound fails only the skill that actually
 // grew.
 //
-// Measured across the 24 packages at 4941 lines total, largest strict-spec-propose at 482 and mean
-// 206. The bound is that largest measurement plus headroom, not a target any skill was trimmed to
+// The bound is the largest measurement plus headroom, not a target any skill was trimmed to
 // reach, so moving it is a deliberate decision carrying a new measurement rather than a silent
-// drift. It was last re-derived when strict-spec-bugfix delegated its phase procedures: that moved
-// the largest package from strict-spec-auto to strict-spec-propose, and 482 plus the same 45-line
-// headroom every previous measurement carried gives 527. Re-deriving downward matters more than it
-// looks: left at the previous 607 the bound would have carried 125 lines of slack and stopped
-// catching the growth it exists to catch.
-const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 527;
+// drift. Re-deriving downward matters as much as upward: left at an older, larger bound it would
+// carry slack and stop catching the growth it exists to catch.
+//
+// It was last re-derived when scene-first requirement routing landed. strict-spec-propose owns that
+// procedure — the four scene questions, the scene-before-requirement order, and the technical-only
+// carve-out — while the six skills that consume it delegate or name it in a few lines each, so the
+// largest package grew from 482 to 537 and the rest barely moved. 537 plus the same 45-line
+// headroom every previous measurement has carried gives 582. Measured across the 25 packages at
+// 5126 lines total, largest strict-spec-propose at 537 and mean 205.
+const BUNDLED_SKILL_LINE_BUDGET_PER_SKILL = 582;
 const bundledSkillLineCounts = strictSkillNames.map((skillName) => ({
   skillName,
   lines: readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8").split("\n").length - 1,
@@ -5401,6 +5416,285 @@ context.assert(
     .join(", "),
 );
 
+
+{
+  /**
+   * Scene-first requirement routing, proven through the shipped command rather than by reading the
+   * guidance this change also wrote.
+   *
+   * Every negative case below removes one element from the real committed skill text and runs
+   * `validate-skills` over a realistic skill set, so the failure is attributable to that element.
+   * The positive control is the same command over the unmodified text: the whole-set run asserted
+   * earlier in this suite reports zero diagnostics, and each probe reruns it with one removal.
+   */
+  const sceneGuidanceSkills = [
+    "strict-spec-propose",
+    "strict-spec-brainstorm",
+    "strict-spec-apply",
+    "strict-spec-review",
+    "strict-spec-sync-specs",
+    "strict-spec-archive",
+    "strict-spec-auto",
+    "strict-scene-edit",
+  ] as const;
+
+  const sceneSkillText = Object.fromEntries(
+    sceneGuidanceSkills.map((name) => [name, readFileSync(path.join(ROOT, "skills", name, "SKILL.md"), "utf8")]),
+  ) as Record<(typeof sceneGuidanceSkills)[number], string>;
+
+  // One removal per matcher category the routing relies on: a required snippet, the artifact kind
+  // the authoring-protocol check reads, a required command entry, and a delegation declaration.
+  const sceneRemovalProbes: Array<{
+    pkg: (typeof sceneGuidanceSkills)[number];
+    remove: string;
+    replacement: string;
+    code: string;
+    expectedIn: string;
+    label: string;
+  }> = [
+    {
+      pkg: "strict-spec-propose",
+      remove: "**Author the scene before the delta spec.**",
+      replacement: "**Write the scene down.**",
+      code: "skill.core.required_snippet.missing",
+      expectedIn: "Author the scene before the delta spec",
+      label: "the scene-before-requirement authoring order",
+    },
+    {
+      pkg: "strict-spec-propose",
+      remove: "`change-delta-state`,\n`scene-state`.",
+      replacement: "`change-delta-state`.",
+      code: "skill.core.required_snippet.missing",
+      expectedIn: "`scene-state`",
+      label: "the scene artifact kind",
+    },
+    {
+      pkg: "strict-spec-propose",
+      remove: "scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]\n",
+      replacement: "",
+      code: "skill.core.command.missing",
+      expectedIn: "strict-spec-cli scene-status",
+      label: "the scene status command mapping",
+    },
+    {
+      pkg: "strict-spec-brainstorm",
+      remove: "- scene-first-routing: owned by `strict-spec-propose`\n",
+      replacement: "",
+      code: "skill.planning.required_snippet.missing",
+      expectedIn: "scene-first-routing: owned by `strict-spec-propose`",
+      label: "the delegation to the routing's owner",
+    },
+    {
+      pkg: "strict-spec-auto",
+      remove: "naming neither a\n   covering requirement nor an explicit no-coverage reason",
+      replacement: "that is not yet covered",
+      code: "skill.core.required_snippet.missing",
+      expectedIn: "naming neither a covering requirement nor an explicit no-coverage reason",
+      label: "the coverage-gap condition the gate reports",
+    },
+    {
+      pkg: "strict-scene-edit",
+      remove: "Never invent a covering reference to silence a coverage gap; report the\n  missing requirement instead",
+      replacement: "Coverage references should be accurate",
+      code: "skill.planning.required_snippet.missing",
+      expectedIn: "Never invent a covering reference to silence a coverage gap",
+      label: "the ban on inventing a covering reference",
+    },
+  ];
+
+  for (const probe of sceneRemovalProbes) {
+    const original = sceneSkillText[probe.pkg];
+    context.assert(
+      original.includes(probe.remove),
+      `the scene probe for ${probe.label} matches committed ${probe.pkg} text`,
+      probe.remove,
+    );
+    const probed = validateSkillsOverPackage(probe.pkg, original.replace(probe.remove, probe.replacement));
+    context.assert(
+      probed.status !== 0 && probed.diagnostics.some((diagnostic) =>
+        diagnostic.code === probe.code
+        && diagnostic.path?.startsWith(`skills/${probe.pkg}/SKILL.md`)
+        && (diagnostic.expected ?? "").includes(probe.expectedIn)),
+      `shipped validate-skills reports ${probe.pkg} losing ${probe.label}`,
+      describeDiagnostics(probed.diagnostics),
+    );
+  }
+
+  // The positive control for the same probes: the committed text, run through the same command,
+  // reports nothing. Without it a removal probe could be passing on an unrelated defect.
+  for (const pkg of sceneGuidanceSkills) {
+    const control = validateSkillsOverPackage(pkg, sceneSkillText[pkg]);
+    context.assert(
+      control.status === 0 && control.diagnostics.length === 0,
+      `shipped validate-skills accepts the committed ${pkg} scene guidance`,
+      describeDiagnostics(control.diagnostics),
+    );
+  }
+
+  /**
+   * The expectation registry and the packages it governs, cross-checked in both directions, so a
+   * skill that gained scene guidance without an expectation and an expectation naming a package
+   * this suite never exercises both fail.
+   */
+  const sceneModel = await loadDistModule<SceneSkillModelModule>("skills/model.js");
+  const sceneStatusCommand = sceneModel.SCENE_STATUS_COMMAND;
+  // The expectation maps are unioned rather than read one at a time: which map a package sits in
+  // is a grouping detail, and reading only one would silently exempt every package in the others.
+  const registrySceneSkills = [
+    sceneModel.CORE_STRICT_SKILL_EXPECTATIONS,
+    sceneModel.PLANNING_STRICT_SKILL_EXPECTATIONS,
+    sceneModel.ROADMAP_STRICT_SKILL_EXPECTATIONS,
+  ]
+    .flatMap((expectations) => Object.entries(expectations))
+    .filter(([, expectation]) => Object.values(expectation.requiredCommands ?? {}).includes(sceneStatusCommand))
+    .map(([name]) => name)
+    .sort();
+  // strict-spec-archive is the one scene-aware package with no scene-status mapping: it states that
+  // the archive command merges the delta scenes and that an absent scenes directory is not a
+  // blocker, and it reads no coverage state of its own, so requiring the command there would pin a
+  // command the guidance has no step for.
+  const assertedSceneSkills = [...sceneGuidanceSkills]
+    .filter((name) => name !== "strict-spec-archive")
+    .sort();
+  context.assert(
+    registrySceneSkills.join(",") === assertedSceneSkills.join(","),
+    "every package the scene-status expectation governs is exercised here, and no exercised package lacks it",
+    `${registrySceneSkills.join(", ")} vs ${assertedSceneSkills.join(", ")}`,
+  );
+
+  /**
+   * The family-prefix registry. Registering `strict-scene-` in one place is what makes the package
+   * above valid at all, so the negative case is a package carrying no registered prefix: it must
+   * still be reported, and the report must name the registered families rather than a stale copy.
+   */
+  context.assert(
+    sceneModel.STRICT_SKILL_NAME_PREFIXES.includes("strict-scene-")
+      && sceneModel.hasStrictSkillNamePrefix("strict-scene-edit")
+      && !sceneModel.hasStrictSkillNamePrefix("scene-edit"),
+    "the shared prefix registry recognizes the scene family and still rejects an unprefixed name",
+    sceneModel.STRICT_SKILL_NAME_PREFIXES.join(", "),
+  );
+  // The delegated-procedure owner pattern is the fourth site the registry feeds, and no bundled
+  // skill delegates to the scene family today, so it would otherwise go unexercised. Redirecting a
+  // committed delegation to the scene package must make the owner resolve to it: a pattern that did
+  // not recognize the family would ignore the line entirely and report nothing about that owner.
+  const sceneOwnedDelegation = validateSkillsOverPackage(
+    "strict-spec-brainstorm",
+    sceneSkillText["strict-spec-brainstorm"].replace(
+      "- requirement-interrogation: owned by `strict-spec-propose`",
+      "- requirement-interrogation: owned by `strict-scene-edit`",
+    ),
+  );
+  context.assert(
+    sceneOwnedDelegation.status !== 0 && sceneOwnedDelegation.diagnostics.some((diagnostic) =>
+      diagnostic.code === "skill.delegation.owner.section.missing"
+      && diagnostic.actual === "strict-scene-edit"),
+    "a delegation naming a scene-family owner resolves to that owner rather than going unparsed",
+    describeDiagnostics(sceneOwnedDelegation.diagnostics),
+  );
+
+  const unregisteredFamilyRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-unregistered-family-"));
+  try {
+    const marketplaceEntries = seedBundledSkillPackages(unregisteredFamilyRoot);
+    const strayDir = path.join(unregisteredFamilyRoot, "skills", "loose-scene-edit");
+    mkdirSync(strayDir, { recursive: true });
+    symlinkSync("../../dist/scripts", path.join(strayDir, "scripts"));
+    copyFileSync(
+      path.join(ROOT, "skills", "strict-scene-edit", "SKILL.md"),
+      path.join(strayDir, "SKILL.md"),
+    );
+    marketplaceEntries.push({ name: "loose-scene-edit", family: "loose" });
+    writeFileSync(
+      path.join(unregisteredFamilyRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        { schema: "strict-spec-driven/skill-marketplace/v1", namespace: "strict-spec-driven", skills: marketplaceEntries },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    const strayResult = cli(["validate-skills"], { cwd: unregisteredFamilyRoot });
+    const strayDiagnostics = (JSON.parse(strayResult.stdout.trim()) as { diagnostics?: SkillDiagnostic[] }).diagnostics ?? [];
+    const directoryDiagnostic = strayDiagnostics.find((diagnostic) => diagnostic.code === "skill.directory.legacy_name");
+    const marketplaceDiagnostic = strayDiagnostics.find(
+      (diagnostic) => diagnostic.code === "skills.marketplace.skills.entry.name.legacy",
+    );
+    context.assert(
+      strayResult.status !== 0
+        && directoryDiagnostic !== undefined
+        && marketplaceDiagnostic !== undefined
+        && directoryDiagnostic.expected === sceneModel.STRICT_SKILL_NAME_PREFIX_EXPECTATION
+        && marketplaceDiagnostic.expected === sceneModel.STRICT_SKILL_NAME_PREFIX_EXPECTATION,
+      "both name checks reject an unregistered family and report the shared registry's prefixes",
+      describeDiagnostics(strayDiagnostics),
+    );
+  } finally {
+    rmSync(unregisteredFamilyRoot, { recursive: true, force: true });
+  }
+
+  /**
+   * Operator documentation. The scan derives its files from the repository paths the change
+   * declares it updated rather than from the text it inserted, and each required phrase is asserted
+   * on normalized whitespace so a line wrap cannot defeat it.
+   */
+  const sceneDocChecks: Array<{ file: string; phrases: string[] }> = [
+    {
+      file: "README.md",
+      phrases: [
+        "## Scene-First Requirement Routing",
+        "mandatory as a question and optional as an artifact",
+        "before the delta spec",
+        "triggered by the presence of a scene, never by the presence of a spec",
+        "`/strict-scene-edit`",
+      ],
+    },
+    {
+      file: "README.zh.md",
+      phrases: [
+        "## 场景优先的需求路由",
+        "提问强制、工件可选",
+        "写在 delta spec 之前",
+        "检查由场景的存在触发，绝不由规范的存在触发",
+        "`/strict-scene-edit`",
+      ],
+    },
+    {
+      file: "QUICKSTART.md",
+      phrases: [
+        "delta scene files, when the change touches user-observable behavior",
+        "written down as a delta scene *before* the delta spec",
+        "Merges delta scenes into `.strict-spec-driven/scenes/`",
+      ],
+    },
+    {
+      file: "QUICKSTART.zh.md",
+      phrases: [
+        "增量场景文件，当变更触及用户可观察行为时创建",
+        "写成 delta scene",
+        "将增量场景合并到 `.strict-spec-driven/scenes/`",
+      ],
+    },
+    {
+      file: "RTK.md",
+      phrases: [
+        "## Scene-First Requirement Routing",
+        "mandatory as a question and optional as an artifact",
+        "before the delta spec",
+        "triggered by the presence of a\nscene, never by the presence of a spec",
+        "strict-spec-cli scene-status",
+      ],
+    },
+  ];
+  for (const check of sceneDocChecks) {
+    const normalized = readFileSync(path.join(ROOT, check.file), "utf8").replace(/\s+/g, " ");
+    const missing = check.phrases.filter((phrase) => !normalized.includes(phrase.replace(/\s+/g, " ")));
+    context.assert(
+      missing.length === 0,
+      `${check.file} routes requirement authoring through scenes`,
+      missing.join(" | "),
+    );
+  }
+}
 }
 
 // The retired-skill list the installers read. Its whole job is to name packages that no longer

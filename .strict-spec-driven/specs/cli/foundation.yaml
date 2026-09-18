@@ -3361,3 +3361,55 @@ requirements:
         - GIVEN: the MCP capability inventory is requested
         - WHEN: the reported tool set is inspected
         - THEN: the scene authoring command is exposed as a write-class tool and the scene status command as a read-class tool
+  cli-validate-skills-enforces-scene-first-requirement-routing:
+    strength: MUST
+    statement: The system MUST validate the strict-spec-propose and strict-spec-brainstorm skill packages through validate-skills, enforcing guidance that declares the scene artifact kind, names the scene authoring commands, interrogates actors, preconditions, main flow, and exception flows, and places scene authoring before delta-spec requirement authoring, and MUST report deterministic path-specific diagnostics when that guidance is missing.
+    scenarios:
+      validate-skills-accepts-scene-first-proposal-guidance:
+        - GIVEN: the strict-spec-propose and strict-spec-brainstorm packages declare the scene artifact kind and the scene-before-requirement authoring order
+        - WHEN: validate-skills runs against the strict skill packages
+        - THEN: the command exits zero and reports no diagnostic for either package
+      validate-skills-reports-missing-scene-first-guidance:
+        - GIVEN: the scene-before-requirement authoring order is removed from the strict-spec-propose package
+        - WHEN: validate-skills runs
+        - THEN: the command exits non-zero and emits a deterministic diagnostic naming the strict-spec-propose package path and the missing scene guidance
+  cli-validate-skills-enforces-scene-editing-skill-package:
+    strength: MUST
+    statement: The system MUST ship a standalone bundled scene-editing skill package and validate it through validate-skills, enforcing that it names its scene authoring and scene status commands, its artifact kind, its authoring-protocol command, its validation command, and the boundary that stops rather than editing scene YAML directly, and MUST report deterministic diagnostics when the package or its required guidance is absent.
+    scenarios:
+      validate-skills-accepts-the-scene-editing-package:
+        - GIVEN: the bundled skill set contains the standalone scene-editing package with its required commands and its no-fallback boundary
+        - WHEN: validate-skills runs
+        - THEN: the command exits zero and reports no diagnostic for the scene-editing package
+      validate-skills-reports-a-missing-scene-command:
+        - GIVEN: the scene-editing package omits one of its required scene commands
+        - WHEN: validate-skills runs
+        - THEN: the command exits non-zero and emits a deterministic diagnostic naming the scene-editing package path and the missing command
+  cli-validate-skills-enforces-scene-aware-lifecycle-skills:
+    strength: MUST
+    statement: The system MUST validate the strict-spec-apply, strict-spec-review, strict-spec-sync-specs, strict-spec-archive, and strict-spec-auto skill packages through validate-skills, enforcing guidance that recognizes scenes and their coverage state by naming the scene status command and the coverage-gap diagnostic without restating the gating rules those skills delegate, and MUST report deterministic path-specific diagnostics when that guidance is missing.
+    scenarios:
+      validate-skills-accepts-scene-aware-lifecycle-guidance:
+        - GIVEN: the apply, review, sync-specs, archive, and auto packages name the scene status command and the coverage-gap diagnostic
+        - WHEN: validate-skills runs
+        - THEN: the command exits zero and reports no diagnostic for any of those packages
+      validate-skills-reports-missing-scene-coverage-awareness:
+        - GIVEN: the scene coverage guidance is removed from the strict-spec-auto package
+        - WHEN: validate-skills runs
+        - THEN: the command exits non-zero and emits a deterministic diagnostic naming the strict-spec-auto package path and the missing scene coverage guidance
+  cli-strict-skill-family-prefixes-are-one-registry:
+    strength: MUST
+    statement: The system MUST recognize the scene-editing skill family as a strict skill name prefix in every check that decides whether a name is a strict skill name — the skill directory scan, the marketplace entry scan, the workflow-state guidance scope, and the delegated-procedure owner check — and MUST resolve all of them from one shared registry of family prefixes, so registering a family there is accepted by every check at once and no check carries its own copy of the list.
+    scenarios:
+      scene-family-skill-directory-is-accepted:
+        - GIVEN: a bundled skill package directory and marketplace entry named for the scene-editing family
+        - WHEN: strict skill package validation runs
+        - THEN: the package is validated as a strict skill and no legacy-name diagnostic is reported for its directory or its marketplace entry
+      scene-family-skill-may-own-a-delegated-procedure:
+        - GIVEN: a bundled skill declares a delegated procedure owned by a skill in the scene-editing family
+        - WHEN: strict skill package validation runs
+        - THEN: the declaration is recognized as a delegation to that owner rather than reported as an unrecognized line
+      unknown-family-prefix-is-still-rejected:
+        - GIVEN: a bundled skill package directory whose name carries none of the registered family prefixes
+        - WHEN: strict skill package validation runs
+        - THEN: the command exits non-zero and reports a legacy-name diagnostic naming the registered family prefixes

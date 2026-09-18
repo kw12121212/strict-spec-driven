@@ -22,6 +22,8 @@ tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
+generate-delta-scene: strict-spec-cli generate <change-name> delta-scene --<named-args>
+scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]
 ready: strict-spec-cli ready <change-name>
 verify: strict-spec-cli verify <change-name>
 ```
@@ -29,8 +31,8 @@ verify: strict-spec-cli verify <change-name>
 ## CLI-Only YAML Authoring Protocol
 
 Every mutation of repository-owned YAML in this skill goes through the strict
-CLI. This skill writes `change-planning-state`, `change-delta-state`. Before
-the first mutation run `strict-spec-cli yaml-authoring-protocol
+CLI. This skill writes `change-planning-state`, `change-delta-state`,
+`scene-state`. Before the first mutation run `strict-spec-cli yaml-authoring-protocol
 <artifact-kind>` for each of them: that command reports the ordered authoring
 steps, the owning command for each operation, and the bundled schema and
 example keys with their cache-resolved paths, bound to the artifact kind and
@@ -58,6 +60,7 @@ owning skill's procedure at the step that needs it; how it is loaded is whatever
 the running harness provides.
 
 - requirement-interrogation: owned by `strict-spec-propose`
+- scene-first-routing: owned by `strict-spec-propose`
 - change-intake-gate: owned by `strict-spec-propose`
 - spec-artifact-routing: owned by `strict-spec-propose`
 - delta-artifact-authoring: owned by `strict-spec-propose`
@@ -124,6 +127,9 @@ run `init` from this skill.
      spec-artifact-routing procedure
    - the answers the delegated requirement-interrogation procedure asks for, which
      only the requester can give and which shape every choice above
+   - the situation the idea occurs in, asked with the delegated
+     scene-first-routing procedure before any requirement is discussed, so the
+     spec areas above are derived from a flow rather than recalled
    - any other questions that still need a human answer before implementation
 
 4. **Suggest the change name** — once the idea is coherent enough, propose a
@@ -159,6 +165,10 @@ run `init` from this skill.
     - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
+    - when the change touches user-observable behavior, `strict-spec-cli generate <change-name> delta-scene --target-scene <scene-id> --operation ADDED --step <step-id> --action "..." --covered-by <spec-id>:<requirement-id>`
+      before the delta spec below, following the delegated scene-first-routing
+      procedure; run `strict-spec-cli scene-status` first to find a recorded
+      scene that already describes the situation
     - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
       once per target strict main spec path, following the delegated
       delta-artifact-authoring procedure

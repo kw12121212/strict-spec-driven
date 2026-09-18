@@ -282,3 +282,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/two-suite-runs-redirected-to-one-log-file-produc-91d14d.yaml
+    a-new-name-family-is-rejected-by-whichever-check-0e9a37:
+      title: A new name family is rejected by whichever check kept its own copy of the allowed prefixes
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-new-name-family-is-rejected-by-whichever-check-0e9a37.yaml

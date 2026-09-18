@@ -1,0 +1,70 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: route-requirements-through-scenes
+sections:
+  Implementation:
+    create-scene-edit-skill:
+      text: Create the standalone bundled skill package skills/strict-scene-edit/SKILL.md, owning live scene authoring through scene-edit and scene-status, and naming the scene artifact kind, the yaml-authoring-protocol command, the validation command, and the boundary that stops rather than editing scene YAML directly.
+      status: complete
+    share-skill-family-prefix-registry:
+      text: Extract the strict skill name prefixes into one shared registry and consume it from the skill directory scan, the marketplace entry scan, and the workflow-state guidance scope, then register the scene-editing family in it so the new package is accepted by every check at once.
+      status: complete
+    register-scene-edit-skill:
+      text: 'Register strict-scene-edit on the enumeration surfaces that are not derived from the skills/ directory listing: add it to skills/marketplace.json under a strict-scene family, and add its SKILL.md to the agent-guidance entry in inventory/yaml-mutation-surfaces.yaml through the inventory-edit command.'
+      status: complete
+    route-propose-scene-first:
+      text: Edit the strict-spec-propose skill so it interrogates the scene first, asking for actors, preconditions, main flow, and exception flows, authors the scene before any delta-spec requirement is drafted, and records why no scene applies when the change is purely technical.
+      status: complete
+    route-brainstorm-scene-first:
+      text: Edit the strict-spec-brainstorm skill with the same scene-first interrogation and the same scene-before-requirement authoring order, without restating the procedure the scene-editing skill owns.
+      status: complete
+    scene-aware-lifecycle-skills:
+      text: Edit the strict-spec-apply, strict-spec-review, strict-spec-sync-specs, strict-spec-archive, and strict-spec-auto skills to recognize scenes and their coverage state by naming scene-status and the coverage-gap diagnostic, without restating the gating rules those skills delegate.
+      status: complete
+    extend-validate-skills-expectations:
+      text: Extend the validate-skills expectation model with the new scene-editing package and with the scene guidance required of the edited proposal, brainstorm, apply, review, sync-specs, archive, and auto packages, so each edit is enforced by the shipped checker rather than by prose alone.
+      status: complete
+    update-operator-documentation:
+      text: 'Route requirement authoring through scenes in the external-facing documentation for both languages: README, QUICKSTART, AGENTS.md, and RTK.md.'
+      status: complete
+    regenerate-architecture-document:
+      text: Regenerate ARCHITECTURE.md through the strict architecture CLI so the generated document reflects the new skill package and the scene-first routing.
+      status: complete
+  Testing:
+    lint-check:
+      text: Run the project lint command and confirm the type check passes after the source edits.
+      status: complete
+      command: bun run lint
+    validate-skills-suite:
+      text: Run the bundled skill validation command over the new and edited skill packages and confirm it reports the declared scene artifact kind and the scene-before-requirement authoring order.
+      status: complete
+      command: bun run validate-skills
+    unit-and-regression-tests:
+      text: Add and run unit and regression tests covering the new validate-skills expectations for the scene-editing package and the edited lifecycle packages, the documentation scans, and a case confirming legacy migration creates no empty scenes directory.
+      status: complete
+      command: bun test/run.ts
+    yaml-inventory-check:
+      text: Run the YAML mutation inventory check so the agent-guidance entry listing the packaged skill files agrees with the skills shipped after the new package is added.
+      status: complete
+      command: bun run check:yaml-inventory
+    coverage-gate:
+      text: Run the complete project regression with the coverage gate and confirm it passes at the declared threshold with the new behavior covered.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    ready-check:
+      text: Run the readiness check for this change and resolve every deterministic blocker it reports.
+      status: complete
+      command: strict-spec-cli ready route-requirements-through-scenes
+    verify-check:
+      text: Run the change verification and confirm the delta spec matches what was actually built across the skill, registration, and documentation surfaces.
+      status: complete
+      command: strict-spec-cli verify route-requirements-through-scenes
+    archive-readiness-check:
+      text: 'Confirm archive readiness: the delta spec merges into the cli-foundation main spec, the regenerated spec index stays deterministic, and the roadmap planned change reconciles to complete on archive.'
+      status: complete
+testing_gates:
+  validation_task: validate-skills-suite
+  unit_test_task: unit-and-regression-tests

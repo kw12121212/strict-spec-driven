@@ -19,6 +19,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
+scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]
 ```
 
 ## CLI-Only YAML Authoring Protocol
@@ -62,6 +63,12 @@ run `init` from this skill.
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/specs/INDEX.yaml`
    - every strict YAML main spec file that appears relevant to the chosen scope
+   - the recorded scenes covering that scope, through
+     `strict-spec-cli scene-status --area <area>`, when the project records any.
+     A step reported as covered names the requirement that is supposed to
+     describe it, which turns a drift question into a located comparison; a step
+     reported as a deliberate waiver is not a gap. A project recording no scene
+     produces nothing here and the scan proceeds unchanged.
 
 3. **Read repository evidence in the chosen scope** — inspect the code, tests,
    and nearby docs that define current observable behavior in that area.
@@ -71,6 +78,9 @@ run `init` from this skill.
 4. **Classify drift findings** — compare repository evidence to the current
    strict specs and sort findings into:
    - confirmed behavior that exists in code but is missing from strict specs
+   - a recorded scene step whose covering requirement no longer describes what
+     the code does, which is drift the scene located rather than drift found by
+     reading code alone
    - existing strict requirements that appear outdated or incomplete
    - ambiguous findings that need human confirmation before they become specs
    - areas with no meaningful drift in the scanned scope

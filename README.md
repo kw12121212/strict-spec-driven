@@ -124,7 +124,7 @@ On Windows, `install.ps1` installs `strict-spec-cli` via `npm install -g .` when
 
 Both installers also remove the skills this repository has retired. Installing only ever adds packages, so upgrading over an older checkout used to leave every deleted skill on the machine, still offering a slash command that no longer resolves. The retired names are recorded in `retired-skills.json` — they cannot be derived from a name prefix, because some retired packages predate the current naming families — and each install hands that list to the `skills` CLI, which removes them from every agent directory it manages. Uninstalling names both the packaged and the retired skills for the same reason: given no names, the `skills` CLI opens an interactive selection menu, which a non-interactive session answers with nothing at all.
 
-### Skills: `strict-spec-*` and `strict-roadmap-*`
+### Skills: `strict-spec-*`, `strict-roadmap-*`, and `strict-scene-*`
 
 Skills are Agent Skills packages installed via `install.sh`. Invoke them in Claude Code using their slash-command names:
 
@@ -157,6 +157,12 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
 | `/strict-roadmap-transition` | Perform one roadmap state transition: `pause`, `resume`, `defer`, `refine`, `move`, `reopen`, `archive`, or `sync` |
 | `/strict-roadmap-reorder` | Change one active milestone's position in roadmap order |
+
+**Strict scene skills** (`strict-scene-*`):
+
+| Slash command | Purpose |
+|---|---|
+| `/strict-scene-edit` | Author or correct a scene: actors, preconditions, main flow, exception flows, and each step's coverage |
 
 The roadmap docs describe the preferred split-file collaboration model: keep milestone files and `INDEX.yaml` low churn, store day-to-day roadmap work in `.strict-spec-driven/roadmap/planned-changes/`, rerun `roadmap-sync` after merges or archive handoff, and treat external tracker references as optional context rather than required source of truth.
 
@@ -214,6 +220,49 @@ which:
 | CLI | first questions authoring, `ready` diagnostics | The questions exist, are answered, and carry attribution |
 | Skills | The asking technique in the four skill prompts, enforced by `validate-skills` | The questions are asked one at a time, carrying a concrete guess, explained before they are posed, with pushback that states its reason |
 | Neither | — | Whether the agent genuinely interrogated. This is judgment and cannot be checked; recording `answered_by: assumption` makes an evasion visible rather than preventing it |
+
+## Scene-First Requirement Routing
+
+Requirement interrogation establishes the *need*. Scene-first routing
+establishes the *situation the need occurs in*, and it runs between the two
+gates above and below, because a requirement set written without it has holes
+that are invisible in the requirements themselves.
+
+`/strict-spec-propose`, `/strict-spec-brainstorm`, and `/strict-spec-auto` ask
+four questions in every proposal, whatever the change turns out to be: who acts
+and what each actor does, what must already be true before the main flow begins,
+what happens step by ordered step when nothing goes wrong, and what can go
+wrong, what triggers each exception flow, and what happens then. An author asked
+for requirements immediately skips all four and never notices, because nothing
+in a requirement records the question that was never asked.
+
+The scene is **mandatory as a question and optional as an artifact**. When the
+change touches user-observable behavior, the scene is written down — as a delta
+scene under the change, before the delta spec, so each requirement is derived
+from a flow step rather than recalled. When the change is purely technical
+— a refactor, build or test tooling, repository maintenance, an architecture
+constraint, a script, or skill guidance — there is no actor flow to describe,
+and the skill records why no scene applies instead of inventing one.
+
+Every flow step declares either the requirements that cover it or an explicit
+reason it is deliberately covered by none, and one step may name covering
+requirements across several spec areas. Once a change carries a delta scene,
+`ready` and `verify` exit non-zero on a step naming neither, and the diagnostic
+names the runnable command that records the coverage:
+
+```bash
+strict-spec-cli scene-status --scene <scene-id>
+strict-spec-cli generate <change-name> delta-scene --target-scene <scene-id> \
+  --operation MODIFIED --step <step-id> --action "..." \
+  --covered-by <spec-id>:<requirement-id>
+```
+
+Checking is triggered by the presence of a scene, never by the presence of a
+spec. A project that records no scene sees no new diagnostic and no new required
+field, so adopting scenes is incremental and upgrading the CLI is not a breaking
+change. Scenes live under `.strict-spec-driven/scenes/<area>/`, are edited
+outside a change with `/strict-scene-edit`, and are merged into that store by
+`archive` when a change carries delta scenes.
 
 ## Change Intake Question Gate
 

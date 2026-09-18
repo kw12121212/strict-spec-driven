@@ -27697,6 +27697,7 @@ mutation_surfaces:
       - skills/strict-tech-sync/SKILL.md
       - skills/strict-roadmap-transition/SKILL.md
       - skills/strict-roadmap-reorder/SKILL.md
+      - skills/strict-scene-edit/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -27720,6 +27721,7 @@ mutation_surfaces:
       - bundled-schema-assets
       - bundled-scaffold-assets
       - bundled-reference-examples
+      - scene-state
     evidence:
       - skills/strict-spec-auto/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
@@ -27762,6 +27764,7 @@ mutation_surfaces:
       - roadmap-state
       - lessons-state
       - sop-state
+      - scene-state
     evidence:
       - README.md
       - ROADMAP_GUIDE.md

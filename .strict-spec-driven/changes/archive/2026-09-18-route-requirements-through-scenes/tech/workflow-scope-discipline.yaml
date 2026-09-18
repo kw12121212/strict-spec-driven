@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-scope-discipline
+operations:
+  ADDED:
+    shared-name-classification-registry:
+      strength: SHOULD
+      statement: When more than one check classifies a name against the same family of allowed values — skill name prefixes, artifact kinds, categories, or status values — those checks SHOULD resolve the family from one exported registry rather than each carrying its own literal copy, and any operator-facing expected value SHOULD render from that registry rather than restating the members.
+      rationale: 'A member added to some sites and not others is accepted by some checks and reported as an unrecognized name by the rest, and that diagnostic reads like a typo rather than like a missing registration. Rendering the expected value from the registry also stops the message naming a stale set after the family grows. This generalizes the rule already recorded here for roadmap dependency-target resolution: a consumer resolves from the shared source rather than building its own.'
+      enforcement:
+        method: review
+        detail: Adding the strict-scene- skill family had to touch four independent checks — the skill directory scan, the marketplace entry scan, the workflow-state guidance scope, and the delegated-procedure owner pattern — each holding its own copy of the three existing prefixes.
+      examples:
+        good:
+          - One exported STRICT_SKILL_NAME_PREFIXES constant with a shared predicate and a rendered expectation string, consumed by every check that classifies a skill name.
+        bad:
+          - Each check repeating name.startsWith("strict-spec-") || name.startsWith("strict-roadmap-") and its own literal "strict-spec-*, strict-roadmap-*, or strict-tech-*" expected value.
+      exceptions:
+        - A family whose members are classified at exactly one site needs no registry; extract one when the second consumer appears.
+  MODIFIED: {}
+  REMOVED: {}

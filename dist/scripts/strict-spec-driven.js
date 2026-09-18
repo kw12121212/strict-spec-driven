@@ -12831,6 +12831,7 @@ mutation_surfaces:
       - skills/strict-tech-sync/SKILL.md
       - skills/strict-roadmap-transition/SKILL.md
       - skills/strict-roadmap-reorder/SKILL.md
+      - skills/strict-scene-edit/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:
@@ -12854,6 +12855,7 @@ mutation_surfaces:
       - bundled-schema-assets
       - bundled-scaffold-assets
       - bundled-reference-examples
+      - scene-state
     evidence:
       - skills/strict-spec-auto/SKILL.md
       - skills/strict-roadmap-review/SKILL.md
@@ -12896,6 +12898,7 @@ mutation_surfaces:
       - roadmap-state
       - lessons-state
       - sop-state
+      - scene-state
     evidence:
       - README.md
       - ROADMAP_GUIDE.md
@@ -35794,6 +35797,16 @@ var CHECK_WORKFLOW_STATE_COMMAND = `${COMMAND_PREFIX} check-workflow-state`;
 var STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET = `Before any other step, run \`${CHECK_WORKFLOW_STATE_COMMAND}\``;
 var STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET = "stop immediately and tell the user to run `/strict-spec-init`";
 var STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";
+var STRICT_SKILL_NAME_PREFIXES = [
+  "strict-spec-",
+  "strict-roadmap-",
+  "strict-tech-",
+  "strict-scene-"
+];
+var STRICT_SKILL_NAME_PREFIX_EXPECTATION = STRICT_SKILL_NAME_PREFIXES.map((prefix) => `${prefix}*`).join(", ");
+function hasStrictSkillNamePrefix(name) {
+  return STRICT_SKILL_NAME_PREFIXES.some((prefix) => name.startsWith(prefix));
+}
 var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 var ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 var ROADMAP_GENERATE_MILESTONE_SNIPPET = "roadmap-generate milestone";
@@ -35983,14 +35996,43 @@ var REVIEW_INDEPENDENCE_SNIPPETS = [
     element: "the rule that an unprovable verdict on a MUST-strength requirement blocks the archive recommendation"
   }
 ];
+var SCENE_FIRST_ROUTING_HEADING = "## Scene-First Requirement Routing";
+var SCENE_COVERAGE_DIAGNOSTIC_SNIPPET = "naming neither a covering requirement nor an explicit no-coverage reason";
+var SCENE_COVERAGE_REMEDY_SNIPPET = "diagnostic names the runnable command";
+var SCENE_STATUS_COMMAND = `${COMMAND_PREFIX} scene-status`;
+var SCENE_DELTA_GENERATE_COMMAND = `${COMMAND_PREFIX} generate <change-name> delta-scene --<named-args>`;
+var SCENE_FIRST_ROUTING_SNIPPETS = [
+  { snippet: "before any requirement is drafted", element: "that the scene questions come before any requirement" },
+  { snippet: "who acts", element: "the actor question" },
+  { snippet: "what must already be true", element: "the precondition question" },
+  { snippet: "step by ordered step", element: "the ordered main-flow question" },
+  { snippet: "what triggers each exception flow", element: "the exception-flow question" },
+  { snippet: "Author the scene before the delta spec", element: "the scene-before-requirement authoring order" },
+  { snippet: "`scene-state`", element: "the scene artifact kind the routing writes" },
+  { snippet: "record why no scene applies", element: "what a purely technical change records instead of a scene" },
+  {
+    snippet: "triggered by the presence of a scene, never by the presence of a spec",
+    element: "that scene checking is triggered by a scene rather than by a spec"
+  },
+  {
+    snippet: "Do not invent an actor flow to fill the artifact",
+    element: "the ban on inventing a flow to satisfy the artifact"
+  }
+];
 var DELEGATED_PROCEDURES_HEADING = "## Delegated Procedures";
-var DELEGATION_DECLARATION_PATTERN = /^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+`(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)`/gm;
+var DELEGATION_DECLARATION_PATTERN = new RegExp(String.raw`^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+\`((?:` + STRICT_SKILL_NAME_PREFIXES.join("|") + String.raw`)[a-z0-9]+(?:-[a-z0-9]+)*)\``, "gm");
 var delegationDeclaration = (obligation, owner) => `${obligation}: owned by \`${owner}\``;
 var DELEGABLE_OBLIGATIONS = {
   "requirement-interrogation": {
     element: "the requirement-interrogation guidance",
     ownerHeading: REQUIREMENT_INTERROGATION_HEADING,
     ownerSnippets: REQUIREMENT_INTERROGATION_SNIPPETS,
+    waivedSnippets: []
+  },
+  "scene-first-routing": {
+    element: "the scene-first requirement-routing guidance",
+    ownerHeading: SCENE_FIRST_ROUTING_HEADING,
+    ownerSnippets: SCENE_FIRST_ROUTING_SNIPPETS,
     waivedSnippets: []
   },
   "review-independence": {
@@ -36139,13 +36181,16 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      "generate-delta-scene": SCENE_DELTA_GENERATE_COMMAND,
+      "scene-status": SCENE_STATUS_COMMAND,
       ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
-    requiredHeadings: ["## Steps", "## Rules"],
+    requiredHeadings: ["## Steps", "## Rules", SCENE_FIRST_ROUTING_HEADING],
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-auto",
+      ...SCENE_FIRST_ROUTING_SNIPPETS.map((expectation) => expectation.snippet),
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
       "strict-roadmap-recommend",
       PROPOSE_MILESTONE_SELECTOR_SNIPPET,
@@ -36174,12 +36219,16 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
       apply: `${COMMAND_PREFIX} apply <change-name>`,
+      "scene-status": SCENE_STATUS_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
     requiredSnippets: [
       ".strict-spec-driven/",
       "harness-plan",
+      SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
+      SCENE_COVERAGE_REMEDY_SNIPPET,
+      "never a waiver to invent",
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
       SAMPLE_SHOW_LOOKUP_SNIPPET,
@@ -36197,6 +36246,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
   "strict-spec-review": {
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      "scene-status": SCENE_STATUS_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
@@ -36204,6 +36254,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       ".strict-spec-driven/",
       "harness-plan",
       "direct code review evidence",
+      SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
+      "a way to silence a gap",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
@@ -36233,7 +36285,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       NOT_REUSABLE_CLASSIFICATION_SNIPPET,
       ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
-      REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET
+      REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
+      "merge strict YAML delta scenes into",
+      "the change merges no scene and the recorded scenes are left untouched"
     ],
     forbiddenSnippets: [
       "any change to roadmap state caused by archive",
@@ -36244,6 +36298,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      "generate-delta-scene": SCENE_DELTA_GENERATE_COMMAND,
+      "scene-status": SCENE_STATUS_COMMAND,
       apply: `${COMMAND_PREFIX} apply <change-name>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       ready: READY_COMMAND,
@@ -36254,6 +36310,10 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-ship <change-name>",
+      delegationDeclaration("scene-first-routing", "strict-spec-propose"),
+      SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
+      SCENE_COVERAGE_REMEDY_SNIPPET,
+      "not a safe blocker fix",
       AUTO_TARGETED_CONTEXT_RESET_SNIPPET,
       AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
       AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
@@ -36517,6 +36577,8 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      "generate-delta-scene": SCENE_DELTA_GENERATE_COMMAND,
+      "scene-status": SCENE_STATUS_COMMAND,
       ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
@@ -36526,6 +36588,7 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
       "proposal.yaml",
       "questions.yaml",
       delegationDeclaration("requirement-interrogation", "strict-spec-propose"),
+      delegationDeclaration("scene-first-routing", "strict-spec-propose"),
       delegationDeclaration("change-intake-gate", "strict-spec-propose"),
       delegationDeclaration("spec-artifact-routing", "strict-spec-propose"),
       delegationDeclaration("delta-artifact-authoring", "strict-spec-propose"),
@@ -36546,10 +36609,32 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
   },
   "strict-spec-sync-specs": {
     requiredCommands: {
-      "spec-edit": `${COMMAND_PREFIX} spec-edit <spec-id> [--spec-path <path>] --<named-args>`
+      "spec-edit": `${COMMAND_PREFIX} spec-edit <spec-id> [--spec-path <path>] --<named-args>`,
+      "scene-status": SCENE_STATUS_COMMAND
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/specs/", "INDEX.yaml"]
+    requiredSnippets: [
+      ".strict-spec-driven/specs/",
+      "INDEX.yaml",
+      "A step reported as covered names the requirement that is supposed to describe it",
+      "A project recording no scene produces nothing here"
+    ]
+  },
+  "strict-scene-edit": {
+    requiredCommands: {
+      "scene-edit": `${COMMAND_PREFIX} scene-edit <scene-id>`,
+      "scene-status": SCENE_STATUS_COMMAND
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/scenes/",
+      "who acts",
+      "what must already be true",
+      "step by ordered step",
+      "what triggers each exception flow",
+      "Never invent a covering reference to silence a coverage gap",
+      "Never hand-edit scene or scene-index YAML"
+    ]
   }
 };
 function makeDiagnostic5(code, diagPath, message, expected, actual) {
@@ -36664,7 +36749,7 @@ function validateTaskOrderGuidance(skillName, content, skillPath, diagnostics) {
   }
 }
 function requiresExistingStrictWorkflowState(skillName) {
-  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-") || skillName.startsWith("strict-tech-")) && skillName !== "strict-spec-init";
+  return hasStrictSkillNamePrefix(skillName) && skillName !== "strict-spec-init";
 }
 function validateStrictWorkflowStateGuidance(skillName, content, commands, skillPath, diagnostics) {
   if (!requiresExistingStrictWorkflowState(skillName))
@@ -37020,8 +37105,8 @@ function validateMarketplaceMetadata(rootDir, skillNames, diagnostics) {
       continue;
     }
     marketplaceNames.push(entry.name);
-    if (!entry.name.startsWith("strict-spec-") && !entry.name.startsWith("strict-roadmap-") && !entry.name.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic5("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-*, strict-roadmap-*, or strict-tech-*", entry.name));
+    if (!hasStrictSkillNamePrefix(entry.name)) {
+      diagnostics.push(makeDiagnostic5("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", STRICT_SKILL_NAME_PREFIX_EXPECTATION, entry.name));
     }
   }
   const normalizeList = (values) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
@@ -37241,8 +37326,8 @@ function validateStrictSkillPackaging(rootDir) {
   for (const skillName of skillNames) {
     const skillDir = path49.join(skillsRoot, skillName);
     const skillPath = path49.join("skills", skillName, "SKILL.md");
-    if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path49.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
+    if (!hasStrictSkillNamePrefix(skillName)) {
+      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path49.join("skills", skillName), "skill directory must use strict prefix", STRICT_SKILL_NAME_PREFIX_EXPECTATION, skillName));
     }
     const skillFilePath = path49.join(skillDir, "SKILL.md");
     if (!existsSync46(skillFilePath)) {

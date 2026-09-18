@@ -22,6 +22,7 @@ lesson-status: strict-spec-cli lesson-status [--category <category>]
 modify: strict-spec-cli modify [change-name|archive-dir]
 generate: strict-spec-cli generate <change-name> tasks --<named-args>
 apply: strict-spec-cli apply <change-name>
+scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]
 verify: strict-spec-cli verify <change-name>
 ```
 
@@ -167,6 +168,18 @@ run `init` from this skill.
    change carries delta tech artifacts under `changes/<name>/tech/`, re-read
    them too and confirm the rule operations still match the standard change
    that was actually implemented.
+
+8b. **Recheck scene coverage when the change carries delta scenes** — if
+    `changes/<name>/scenes/` holds any artifact, re-read those scenes against
+    what was built and run `strict-spec-cli scene-status --scene <scene-id>` for
+    each one. `verify` blocks on a flow step naming neither a covering
+    requirement nor an explicit no-coverage reason, and its diagnostic names the
+    runnable command that records the coverage, so treat that diagnostic as the
+    remedy rather than rediscovering the rule. A step whose covering requirement
+    changed id during implementation is corrected through that command; a step
+    that turned out to need a requirement nobody wrote is a finding to raise,
+    never a waiver to invent. A change carrying no delta scene has nothing to
+    recheck here.
 
 9. **Gitignore hygiene** — once all tasks are complete, check for non-source
    artifacts that should not be committed:

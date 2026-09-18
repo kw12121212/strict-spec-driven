@@ -1,7 +1,12 @@
 import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
 import path from "node:path";
 import { toPosix } from "../diagnostics.js";
-import { makeDiagnostic, type SkillPackagingDiagnostic } from "./model.js";
+import {
+  hasStrictSkillNamePrefix,
+  makeDiagnostic,
+  STRICT_SKILL_NAME_PREFIX_EXPECTATION,
+  type SkillPackagingDiagnostic,
+} from "./model.js";
 
 export function validateRequiredSymlink(
   skillDir: string,
@@ -143,17 +148,13 @@ export function validateMarketplaceMetadata(
       continue;
     }
     marketplaceNames.push(entry.name);
-    if (
-      !entry.name.startsWith("strict-spec-") &&
-      !entry.name.startsWith("strict-roadmap-") &&
-      !entry.name.startsWith("strict-tech-")
-    ) {
+    if (!hasStrictSkillNamePrefix(entry.name)) {
       diagnostics.push(
         makeDiagnostic(
           "skills.marketplace.skills.entry.name.legacy",
           `${relativeMetadataPath}#skills[${index}].name`,
           "skills marketplace entries must use strict skill name prefixes",
-          "strict-spec-*, strict-roadmap-*, or strict-tech-*",
+          STRICT_SKILL_NAME_PREFIX_EXPECTATION,
           entry.name,
         ),
       );

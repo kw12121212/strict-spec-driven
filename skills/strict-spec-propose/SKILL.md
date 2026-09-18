@@ -29,6 +29,8 @@ roadmap-status: strict-spec-cli roadmap-status
 roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
+generate-delta-scene: strict-spec-cli generate <change-name> delta-scene --<named-args>
+scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]
 ready: strict-spec-cli ready <change-name>
 verify: strict-spec-cli verify <change-name>
 ```
@@ -60,8 +62,8 @@ verify: strict-spec-cli verify <change-name>
 ## CLI-Only YAML Authoring Protocol
 
 Every mutation of repository-owned YAML in this skill goes through the strict
-CLI. This skill writes `change-planning-state`, `change-delta-state`. Before
-the first mutation run `strict-spec-cli yaml-authoring-protocol
+CLI. This skill writes `change-planning-state`, `change-delta-state`,
+`scene-state`. Before the first mutation run `strict-spec-cli yaml-authoring-protocol
 <artifact-kind>` for each of them: that command reports the ordered authoring
 steps, the owning command for each operation, and the bundled schema and
 example keys with their cache-resolved paths, bound to the artifact kind and
@@ -147,6 +149,42 @@ stays a restated solution — record `--answered-by assumption` rather than
 inventing a plausible answer. An assumption blocks `ready` and forces an
 explicit human decision; a fabricated answer passes silently and is worse.
 
+## Scene-First Requirement Routing
+
+Run this after the requirement interrogation and before any requirement is
+drafted. The interrogation establishes the need; this establishes the situation
+it occurs in, so the requirement set is derived from that situation rather than
+recalled. Ask all four in every proposal, whatever the change turns out to be:
+
+- who acts, and what each actor does
+- what must already be true before the main flow begins
+- what happens, step by ordered step, when nothing goes wrong
+- what can go wrong, what triggers each exception flow, and what happens then
+
+A requirement set written without those answers has systematic holes — skipped
+actors, assumed preconditions, unwritten exception flows — and they are
+invisible in the requirements themselves, because nothing in a requirement
+records the question that was never asked.
+
+**Author the scene before the delta spec.** Run `strict-spec-cli scene-status`,
+narrowed with `--area` or `--scene`, to find a recorded scene that already
+describes the situation; then write the change's delta scene and draft each
+delta-spec requirement against a flow step it covers.
+
+The scene is mandatory as a question and optional as an artifact. It is authored
+when the change touches user-observable behavior. When the change is purely
+technical — a refactor, build or test tooling, repository maintenance, an
+architecture constraint, a script, or skill guidance — there is no actor flow to
+describe: **record why no scene applies** as a design decision and leave
+`scenes/` absent. Do not invent an actor flow to fill the artifact, and do not
+skip the questions to avoid the answer.
+
+Scene checking is triggered by the presence of a scene, never by the presence of
+a spec, so a project recording no scene sees no new diagnostic. Once a change
+carries a delta scene, `ready` and `verify` block on any step of the scenes it
+touches naming neither a covering requirement nor an explicit no-coverage
+reason, and the diagnostic names the runnable command that records the coverage.
+
 ## Change Intake Question Gate
 
 Before implementation handoff or proposal validation, perform the required
@@ -178,6 +216,8 @@ apply.
 A strict change may legitimately have no delta spec. Do not invent a
 `delta-spec` just to satisfy artifact shape.
 
+- Create `delta-scene` artifacts when the change touches user-observable
+  behavior, before the delta specs covering them.
 - Create `delta-spec` artifacts only when the change modifies user-observable
   behavior or another requirement that belongs in a strict YAML main spec.
 - For purely technical changes such as refactors, build or test tooling,
@@ -386,6 +426,18 @@ run `init` from this skill.
    impact analysis and recommendation/options in `--context`, not as separate
    CLI flags. If everything is clear, leave `open: []`.
 
+7b. **Author the scene before the requirements** — carrying the four answers
+    collected under Scene-First Requirement Routing into the change's delta
+    scene, after `scene-status` has been checked for a scene describing it:
+    ```bash
+    strict-spec-cli generate <change-name> delta-scene --target-scene <scene-id> --title "..." --area <area> --actor <name> --role "..." --precondition "..." --operation ADDED --step <step-id> --action "..." --covered-by <spec-id>:<requirement-id> --exception-flow <flow-id> --trigger "..." --exception-step <flow-id>:<step-id> --action "..." --no-coverage-reason "..."
+    ```
+    A target no scene index records is a new scene, additionally requiring
+    `--title`, `--area`, `--actor` with `--role`, and `--precondition`. A step
+    may name covering requirements across several spec areas, and requirements
+    this change adds are referenced by the ids step 8 will create. Skip this step
+    for a purely technical change.
+
 8. **Generate strict YAML delta specs only when specs change** — run this step
    only when the change has observable spec impact. Use one direct CLI
    invocation per target spec and include all requirement operations needed for
@@ -468,6 +520,9 @@ run `init` from this skill.
 ## Rules
 
 - Do not implement anything during proposal
+- Ask the scene questions in every proposal, author the scene before the delta
+  spec whenever the change touches user-observable behavior, and never invent an
+  actor flow to fill one
 - Do not pause for user confirmation or question resolution during proposal
 - Keep all change artifacts in strict YAML structures
 - Document ambiguity in `questions.yaml` instead of guessing

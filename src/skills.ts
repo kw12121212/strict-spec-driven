@@ -13,7 +13,9 @@ import { parseFrontmatter, validateFrontmatterFields, validateLegacyReferences }
 import { validateRetiredSkillList } from "./skills/package-names.js";
 import {
   EXPECTED_SCRIPT_SYMLINK,
+  hasStrictSkillNamePrefix,
   makeDiagnostic,
+  STRICT_SKILL_NAME_PREFIX_EXPECTATION,
   type SkillPackagingDiagnostic,
   type SkillPackagingValidationResult,
 } from "./skills/model.js";
@@ -61,17 +63,13 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
   for (const skillName of skillNames) {
     const skillDir = path.join(skillsRoot, skillName);
     const skillPath = path.join("skills", skillName, "SKILL.md");
-    if (
-      !skillName.startsWith("strict-spec-") &&
-      !skillName.startsWith("strict-roadmap-") &&
-      !skillName.startsWith("strict-tech-")
-    ) {
+    if (!hasStrictSkillNamePrefix(skillName)) {
       diagnostics.push(
         makeDiagnostic(
           "skill.directory.legacy_name",
           path.join("skills", skillName),
           "skill directory must use strict prefix",
-          "strict-spec-*, strict-roadmap-*, or strict-tech-*",
+          STRICT_SKILL_NAME_PREFIX_EXPECTATION,
           skillName,
         ),
       );

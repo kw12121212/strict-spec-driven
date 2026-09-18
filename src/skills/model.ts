@@ -46,6 +46,33 @@ export const STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET =
   "stop immediately and tell the user to run `/strict-spec-init`";
 export const STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";
 
+/**
+ * The name prefixes a bundled strict skill family may use.
+ *
+ * Four checks decide whether a strict skill name is recognized — the skill directory scan, the
+ * marketplace entry scan, the workflow-state guidance scope, and the delegated-procedure owner
+ * pattern below — and each one used to carry its own copy of this list. A family added to three of
+ * the four is accepted by three checks and reported as a legacy name by the fourth, which is a
+ * packaging failure that reads as a typo. The list lives here so adding a family is one edit and
+ * every check sees it at once.
+ */
+export const STRICT_SKILL_NAME_PREFIXES = [
+  "strict-spec-",
+  "strict-roadmap-",
+  "strict-tech-",
+  "strict-scene-",
+] as const;
+
+/** The registered family prefixes as an operator-facing expectation, e.g. `strict-spec-*, ...`. */
+export const STRICT_SKILL_NAME_PREFIX_EXPECTATION = STRICT_SKILL_NAME_PREFIXES
+  .map((prefix) => `${prefix}*`)
+  .join(", ");
+
+/** Whether a skill or marketplace entry name carries a registered strict family prefix. */
+export function hasStrictSkillNamePrefix(name: string): boolean {
+  return STRICT_SKILL_NAME_PREFIXES.some((prefix) => name.startsWith(prefix));
+}
+
 export type SkillContentExpectation = {
   requiredCommands: Record<string, string>;
   requiredHeadings: string[];
@@ -388,6 +415,54 @@ export const REVIEW_INDEPENDENCE_SNIPPETS: ReadonlyArray<RequirementInterrogatio
   },
 ];
 
+export const SCENE_FIRST_ROUTING_HEADING = "## Scene-First Requirement Routing";
+
+/**
+ * The gate a scene-aware lifecycle skill must name, rather than restate.
+ *
+ * The rule itself lives in the verify implementation, which already emits the remedy command, so a
+ * skill that reproduced the rule would go stale the moment the diagnostic's wording changed. What
+ * these pin is that the skill sends its reader to the diagnostic rather than to a copy of it.
+ */
+export const SCENE_COVERAGE_DIAGNOSTIC_SNIPPET =
+  "naming neither a covering requirement nor an explicit no-coverage reason";
+export const SCENE_COVERAGE_REMEDY_SNIPPET = "diagnostic names the runnable command";
+
+/** The read-only command every scene-aware skill reaches coverage state through. */
+export const SCENE_STATUS_COMMAND = `${COMMAND_PREFIX} scene-status`;
+
+/** The change-scoped scene authoring command, declared separately from the generate usage line. */
+export const SCENE_DELTA_GENERATE_COMMAND =
+  `${COMMAND_PREFIX} generate <change-name> delta-scene --<named-args>`;
+
+/**
+ * What the scene-first routing procedure must state, checked on the skill that owns it.
+ *
+ * The milestone this came from exists because an author asked for requirements immediately skips
+ * who acts, what must already hold, and what happens when the main flow fails. Each element below
+ * is one of those skipped questions or one of the two rules that keep the routing honest — author
+ * the scene first, and never fill the artifact with an invented flow — so a skill that kept the
+ * heading while dropping the substance fails rather than passes.
+ */
+export const SCENE_FIRST_ROUTING_SNIPPETS: ReadonlyArray<{ snippet: string; element: string }> = [
+  { snippet: "before any requirement is drafted", element: "that the scene questions come before any requirement" },
+  { snippet: "who acts", element: "the actor question" },
+  { snippet: "what must already be true", element: "the precondition question" },
+  { snippet: "step by ordered step", element: "the ordered main-flow question" },
+  { snippet: "what triggers each exception flow", element: "the exception-flow question" },
+  { snippet: "Author the scene before the delta spec", element: "the scene-before-requirement authoring order" },
+  { snippet: "`scene-state`", element: "the scene artifact kind the routing writes" },
+  { snippet: "record why no scene applies", element: "what a purely technical change records instead of a scene" },
+  {
+    snippet: "triggered by the presence of a scene, never by the presence of a spec",
+    element: "that scene checking is triggered by a scene rather than by a spec",
+  },
+  {
+    snippet: "Do not invent an actor flow to fill the artifact",
+    element: "the ban on inventing a flow to satisfy the artifact",
+  },
+];
+
 export const DELEGATED_PROCEDURES_HEADING = "## Delegated Procedures";
 
 /**
@@ -399,8 +474,12 @@ export const DELEGATED_PROCEDURES_HEADING = "## Delegated Procedures";
  * class so a typo produces no match — and therefore an unrecognized-obligation diagnostic — instead
  * of silently resolving to a neighbouring id.
  */
-export const DELEGATION_DECLARATION_PATTERN =
-  /^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+`(strict-(?:spec|roadmap|tech)-[a-z0-9]+(?:-[a-z0-9]+)*)`/gm;
+export const DELEGATION_DECLARATION_PATTERN = new RegExp(
+  String.raw`^[-*]\s*([a-z0-9]+(?:-[a-z0-9]+)*):\s*owned by\s+\`((?:`
+  + STRICT_SKILL_NAME_PREFIXES.join("|")
+  + String.raw`)[a-z0-9]+(?:-[a-z0-9]+)*)\``,
+  "gm",
+);
 
 /**
  * The literal line a skill writes to declare one delegation, so a delegating skill can pin its own
@@ -444,6 +523,12 @@ export const DELEGABLE_OBLIGATIONS: Record<string, DelegableObligation> = {
     element: "the requirement-interrogation guidance",
     ownerHeading: REQUIREMENT_INTERROGATION_HEADING,
     ownerSnippets: REQUIREMENT_INTERROGATION_SNIPPETS,
+    waivedSnippets: [],
+  },
+  "scene-first-routing": {
+    element: "the scene-first requirement-routing guidance",
+    ownerHeading: SCENE_FIRST_ROUTING_HEADING,
+    ownerSnippets: SCENE_FIRST_ROUTING_SNIPPETS,
     waivedSnippets: [],
   },
   "review-independence": {
@@ -601,13 +686,18 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      "generate-delta-scene": SCENE_DELTA_GENERATE_COMMAND,
+      "scene-status": SCENE_STATUS_COMMAND,
       ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules"],
+    requiredHeadings: ["## Steps", "## Rules", SCENE_FIRST_ROUTING_HEADING],
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-auto",
+      // Propose owns scene-first routing, so its substance is pinned here rather than only through
+      // the owner check, which fires only while some other skill still declares the delegation.
+      ...SCENE_FIRST_ROUTING_SNIPPETS.map((expectation) => expectation.snippet),
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
       "strict-roadmap-recommend",
       PROPOSE_MILESTONE_SELECTOR_SNIPPET,
@@ -636,12 +726,16 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
       apply: `${COMMAND_PREFIX} apply <change-name>`,
+      "scene-status": SCENE_STATUS_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
     requiredSnippets: [
       ".strict-spec-driven/",
       "harness-plan",
+      SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
+      SCENE_COVERAGE_REMEDY_SNIPPET,
+      "never a waiver to invent",
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
       SAMPLE_SHOW_LOOKUP_SNIPPET,
@@ -659,6 +753,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
   "strict-spec-review": {
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      "scene-status": SCENE_STATUS_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
@@ -666,6 +761,10 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ".strict-spec-driven/",
       "harness-plan",
       "direct code review evidence",
+      SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
+      // Review's scene obligation is the judgment the gate cannot make, so what is pinned is the
+      // hollow-waiver check rather than the gate rule the gate already enforces.
+      "a way to silence a gap",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       CURRENT_CHANGE_TECH_SYNC_SNIPPET,
@@ -696,6 +795,10 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ARCHIVE_DECISION_REPORT_SNIPPET,
       NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,
+      // Archive's scene obligation is to say the merge happens and that an absent scenes directory
+      // is not a blocker, which is the same shape as the delta-spec statement beside it.
+      "merge strict YAML delta scenes into",
+      "the change merges no scene and the recorded scenes are left untouched",
     ],
     forbiddenSnippets: [
       "any change to roadmap state caused by archive",
@@ -706,6 +809,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      "generate-delta-scene": SCENE_DELTA_GENERATE_COMMAND,
+      "scene-status": SCENE_STATUS_COMMAND,
       apply: `${COMMAND_PREFIX} apply <change-name>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       ready: READY_COMMAND,
@@ -716,6 +821,12 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-ship <change-name>",
+      delegationDeclaration("scene-first-routing", "strict-spec-propose"),
+      SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
+      SCENE_COVERAGE_REMEDY_SNIPPET,
+      // Auto fixes safe blockers unattended, so it is the one skill that must be told which
+      // blocker fix is not safe: writing a waiver to clear the diagnostic.
+      "not a safe blocker fix",
       AUTO_TARGETED_CONTEXT_RESET_SNIPPET,
       AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
       AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
@@ -1000,6 +1111,8 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      "generate-delta-scene": SCENE_DELTA_GENERATE_COMMAND,
+      "scene-status": SCENE_STATUS_COMMAND,
       ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
@@ -1013,6 +1126,7 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
       // restore the text without dropping the line and the restatement check fails. The task-order
       // pin matters most, because that check excuses a delegating skill entirely.
       delegationDeclaration("requirement-interrogation", "strict-spec-propose"),
+      delegationDeclaration("scene-first-routing", "strict-spec-propose"),
       delegationDeclaration("change-intake-gate", "strict-spec-propose"),
       delegationDeclaration("spec-artifact-routing", "strict-spec-propose"),
       delegationDeclaration("delta-artifact-authoring", "strict-spec-propose"),
@@ -1034,9 +1148,35 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
   "strict-spec-sync-specs": {
     requiredCommands: {
       "spec-edit": `${COMMAND_PREFIX} spec-edit <spec-id> [--spec-path <path>] --<named-args>`,
+      "scene-status": SCENE_STATUS_COMMAND,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/specs/", "INDEX.yaml"],
+    requiredSnippets: [
+      ".strict-spec-driven/specs/",
+      "INDEX.yaml",
+      // A recorded scene turns a drift question into a located comparison, and a project with no
+      // scene must be told the scan is unchanged rather than left to infer it.
+      "A step reported as covered names the requirement that is supposed to describe it",
+      "A project recording no scene produces nothing here",
+    ],
+  },
+  "strict-scene-edit": {
+    requiredCommands: {
+      "scene-edit": `${COMMAND_PREFIX} scene-edit <scene-id>`,
+      "scene-status": SCENE_STATUS_COMMAND,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/scenes/",
+      // The interrogation is why this package exists rather than a thin wrapper over one command,
+      // and the two coverage rules are what stop a scene being filled in to look complete.
+      "who acts",
+      "what must already be true",
+      "step by ordered step",
+      "what triggers each exception flow",
+      "Never invent a covering reference to silence a coverage gap",
+      "Never hand-edit scene or scene-index YAML",
+    ],
   },
 };
 

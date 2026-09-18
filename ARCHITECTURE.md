@@ -292,6 +292,21 @@ Reads every registered technical standard and reports the standards, their rules
 
 - `src/cli/tech-status.ts`
 
+### Scene Store and Coverage (`scene-coverage`)
+
+Owns the scene artifact family: authoring and reconciling live scenes and the scene index, reporting each flow step as covered, waived, or unresolved, and reporting the coverage gaps that block ready and verify when a change's delta scenes leave a step uncovered.
+
+**Boundaries**
+
+- Coverage references are declared on the scene side only; no main spec or requirement is modified to record that a scene covers it.
+- Checking is triggered by the presence of a scene, never by the presence of a spec, so a repository holding no scene produces no diagnostic.
+
+**Depends on:** `schema-validation`
+
+**Implementation**
+
+- `src/scenes.ts`
+
 ## Data Flows
 
 ### Change Lifecycle (`change-lifecycle-flow`)
@@ -411,7 +426,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | Spec | ID | Requirements |
 | --- | --- | --- |
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 230 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 234 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 126 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
 | [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 |
@@ -467,6 +482,7 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `roadmap-commands-do-not-write-change-artifacts` — Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/; when a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
 - **MUST** `roadmap-dependency-targets-resolve-against-one-universe` — Every roadmap consumer that decides whether a planned-change depends_on target exists MUST resolve it against the shared universe of active planned-change ids unioned with the ids loaded from the roadmap archive, obtained from the loader that already computes that set. A consumer MUST NOT build its own dependency-target universe from active roadmap state alone, and MUST NOT re-derive archived membership by parsing archived artifacts.
 - **SHOULD** `archive-merge-failures-surface-in-verify` — A merge that archive performs across more than one artifact family SHOULD be fully evaluated by verify, so a merge archive would refuse is rejected before archive writes any family. Archive applies its family merges in sequence without a transaction spanning them, so a refusal raised inside a later stage leaves the earlier stages already written and the change still active.
+- **SHOULD** `shared-name-classification-registry` — When more than one check classifies a name against the same family of allowed values — skill name prefixes, artifact kinds, categories, or status values — those checks SHOULD resolve the family from one exported registry rather than each carrying its own literal copy, and any operator-facing expected value SHOULD render from that registry rather than restating the members.
 
 ### [YAML-First Artifact Authoring](.strict-spec-driven/tech/yaml-first-artifacts.yaml) (`yaml-first-artifacts`) — architecture
 

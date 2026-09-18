@@ -55,7 +55,7 @@ risks:
   - Scene-first routing touches propose, brainstorm, apply, review, sync-specs, archive, and auto, where per-skill content checks and line budgets constrain what can be added
   - Cross-spec-area coverage references complicate the archive merge conflict rules for scenes
   - A new artifact family adds a large amount of src code at once, and the blocking coverage gate measures src line coverage against a fixed threshold, so thin tests on new code fail the gate as a coverage number rather than as a located test failure
-status: proposed
+status: complete
 notes:
   - Coverage references are declared on the scene side only, as a step naming a spec id and requirement id, so main-spec artifacts and every existing spec stay untouched
   - The scene schema makes actors, preconditions, main flow, and exception flows required fields, because the reported failure is authors skipping those questions rather than forgetting to write them down

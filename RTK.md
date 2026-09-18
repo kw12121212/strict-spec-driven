@@ -38,6 +38,31 @@ Skills may remain Markdown `SKILL.md` files because they are part of the Agent
 Skills packaging format. Skill behavior should be updated only when required to
 describe YAML artifact contracts accurately.
 
+## Scene-First Requirement Routing
+
+A change that touches user-observable behavior answers the scene questions
+before a requirement is drafted: who acts and what each actor does, what must
+already be true before the main flow begins, what happens step by ordered step
+when nothing goes wrong, and what can go wrong, what triggers each exception
+flow, and what happens then. The scene is then written down as a delta scene
+under the change, before the delta spec, so each requirement is derived from a
+flow step rather than recalled.
+
+The scene is mandatory as a question and optional as an artifact. A purely
+technical change — a refactor, build or test tooling, repository maintenance, an
+architecture constraint, a script, or skill guidance — has no actor flow to
+describe, and records why no scene applies instead of inventing one.
+
+Every flow step declares either the requirements covering it or an explicit
+reason it is deliberately covered by none, and one step may name covering
+requirements across several spec areas. Once a change carries a delta scene,
+`ready` and `verify` block on a step naming neither, and the diagnostic names
+the runnable command that records it. Checking is triggered by the presence of a
+scene, never by the presence of a spec, so a repository holding no scene
+observes no new diagnostic. Survey coverage with `strict-spec-cli scene-status`,
+author a live scene outside a change with `strict-spec-cli scene-edit`, and a
+change-scoped one with `strict-spec-cli generate <change-name> delta-scene`.
+
 ## CLI-Only YAML Authoring
 
 CLI code owns YAML shape and filesystem mutation for every repository-owned

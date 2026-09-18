@@ -1,0 +1,54 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: route-requirements-through-scenes
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: A project adopting this workflow has no entry point from scene to requirement. An author is asked for requirements immediately, skips describing who acts, under what preconditions, and what happens when the main flow fails, and the resulting requirement set has systematic holes. This affects every author proposing a change through the bundled skills, in this repository and in external projects.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'The three planned changes before this one have completed: the scene artifact contract and its registrations landed, the scene CLI surface landed, and the archive merge with coverage gating landed. The milestone ordered the work contract-first so that skill and documentation routing lands last and never names a capability the CLI does not yet provide. That condition is now met, and this planned change is the one that delivers the reported need.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Route requirement authoring through scenes in the bundled skills and the operator documentation: create the standalone bundled scene-editing skill the milestone intake settled, make the proposal and brainstorm skills interrogate the scene for actors, preconditions, main flow, and exception flows before any requirement is drafted and author the scene before the delta spec, make apply, review, sync-specs, archive, and auto recognize scenes and their coverage state, register the new skill on the packaged-skill enumeration surfaces, update README, QUICKSTART, AGENTS.md, and RTK.md in both languages, and regenerate ARCHITECTURE.md. Every skill edit is constrained by the shipped skill checks and per-skill line budgets.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No scene renderer and no generated-document registration, per the recorded milestone decision. No change to the main-spec schema or to the shape of an existing main spec requirement. No requirement that existing specs, this repository, or existing external projects author scenes. No workflow config switch that turns scene coverage checking on or off. No change to legacy migration semantics beyond confirming migration never creates an empty scenes directory. No change to the scene schema, the scene CLI surface, the archive merge rules, or the coverage-gap diagnostics, which all landed earlier in this milestone.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: The shipped skill validation command reports the proposal and brainstorm skills declaring the scene artifact kind and the scene-before-requirement authoring order, so the entry point is verified rather than assumed. A standalone scene-editing skill is installed and discoverable alongside the spec-editing and technical-standard editing skills. The operator documentation in both languages routes requirement authoring through scenes, and ARCHITECTURE.md reflects it. Legacy migration is confirmed to create no empty scenes directory, and the coverage gate passes at the declared threshold.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: scene-edit-skill-package-name
+    question: Should the new standalone scene-editing skill package be named strict-spec-scene-edit?
+    context: 'Impact: this affects the proposal scope and the implementation files, not the spec delta. The package name is written into the skills directory, the skills marketplace file, the agent-guidance entry in the YAML mutation inventory, the validate-skills expectation map, and the operator documentation in both languages, and it becomes an installed slash command for every external project, so renaming it later means retiring a name rather than editing one. Recommendation: use strict-spec-scene-edit, which follows the existing strict-spec-spec-edit and strict-tech-edit naming and keeps the scene family discoverable next to the spec-editing skill. Options: strict-spec-scene-edit, which matches the established pattern; strict-scene-edit, which reads as its own family and matches the independence of the scene artifact family from main specs; or another name the requester prefers.'
+    answer: Name the package strict-scene-edit. The requester chose the standalone family name over strict-spec-scene-edit, because it reads as its own family and matches the independence of the scene artifact family from main specs. This adds a fourth skill family prefix, so the marketplace family field, the install and uninstall surfaces, and the documentation must present strict-scene as a family alongside strict-spec, strict-tech, and strict-roadmap.
+    status: resolved
+    answered_by: human
+  - id: scene-first-interrogation-strength
+    question: When the proposal skill interrogates the scene first, must every change author a scene, or may a purely technical change proceed with a recorded reason and no scene?
+    context: 'Impact: this affects the proposal scope, the implementation files for the proposal and brainstorm skills, and the tests, but not the spec delta shape. The milestone records that scene checking is triggered by the presence of a scene and never by the presence of a spec, so external adoption stays incremental and the upgrade is not breaking; a hard requirement to author a scene for every change would contradict that and would also force a scene onto refactor, tooling, and repository-maintenance changes that describe no actor flow. Recommendation: interrogate the scene first and author one whenever the change touches user-observable behavior, and let a purely technical change proceed without a scene after the skill records why no scene applies, which keeps the entry point mandatory as a question while leaving the artifact optional. Options: always require a scene; require a scene only for behavior-affecting changes with a recorded reason otherwise; or make scene authoring an offered step the author may decline silently.'
+    answer: Interrogate the scene first in every case, author a scene whenever the change touches user-observable behavior, and let a purely technical change proceed without a scene once the skill records why no scene applies. The entry point is mandatory as a question while the artifact stays optional, which keeps the milestone's incremental-adoption premise that scene checking is triggered by the presence of a scene and never by the presence of a spec.
+    status: resolved
+    answered_by: human

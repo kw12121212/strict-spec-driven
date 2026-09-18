@@ -27,6 +27,8 @@ lesson-create: strict-spec-cli lesson-create --title <text> --category <category
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
+generate-delta-scene: strict-spec-cli generate <change-name> delta-scene --<named-args>
+scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]
 apply: strict-spec-cli apply <change-name>
 verify: strict-spec-cli verify <change-name>
 ready: strict-spec-cli ready <change-name>
@@ -42,6 +44,7 @@ owning skill's procedure at the step that needs it; how it is loaded is whatever
 the running harness provides.
 
 - requirement-interrogation: owned by `strict-spec-propose`
+- scene-first-routing: owned by `strict-spec-propose`
 - change-intake-gate: owned by `strict-spec-propose`
 - spec-artifact-routing: owned by `strict-spec-propose`
 - task-list-authoring: owned by `strict-spec-propose`
@@ -86,7 +89,7 @@ followed stops the run exactly as an inline one would.
 
 Every mutation of repository-owned YAML in this skill goes through the strict
 CLI. This skill writes `change-planning-state`, `change-delta-state`,
-`spec-state`, `tech-state`, `lessons-state`. Before the first mutation run
+`spec-state`, `tech-state`, `scene-state`, `lessons-state`. Before the first mutation run
 `strict-spec-cli yaml-authoring-protocol <artifact-kind>` for each of them:
 that command reports the ordered authoring steps, the owning command for each
 operation, and the bundled schema and example keys with their cache-resolved
@@ -145,11 +148,13 @@ run `init` from this skill.
 
 4. **Propose or resume the change** — if the strict change does not exist yet,
    scaffold with `propose` and author its planning artifacts by following the
-   delegated change-intake-gate, spec-artifact-routing, delta-artifact-authoring,
-   and task-list-authoring procedures. Keep or add a
+   delegated scene-first-routing, change-intake-gate, spec-artifact-routing,
+   delta-artifact-authoring,
+   and task-list-authoring procedures, authoring the scene before the delta spec
+   it is covered by. Keep or add a
    dedicated lint Testing task before full unit or regression test tasks when the project has a runnable lint command. If a prior workflow step such as `/strict-roadmap-recommend`
    already created a populated change directory containing proposal, design,
-   tasks, questions, and any needed delta spec or delta tech artifacts,
+   tasks, questions, and any needed delta spec, delta scene, or delta tech artifacts,
    resume the existing populated strict change scaffold without regenerating planning artifacts
    or running `propose` again.
    For roadmap-backed scaffolds, preserve selected planned-change provenance as intake evidence
@@ -206,7 +211,14 @@ run `init` from this skill.
    ```bash
    strict-spec-cli verify <change-name>
    ```
-   Fix safe blockers automatically, then rerun verification.
+   Fix safe blockers automatically, then rerun verification. When the change
+   carries delta scenes, verification blocks on a flow step naming neither a
+   covering requirement nor an explicit no-coverage reason, and the diagnostic
+   names the runnable command that records it; run
+   `strict-spec-cli scene-status --scene <scene-id>` to see the coverage state of
+   the whole scene rather than one step at a time. Record the coverage that is
+   real and raise a missing requirement as a finding — a no-coverage reason
+   written to clear the diagnostic is not a safe blocker fix.
 
 9. **Review code quality** — this workflow implements and reviews the same
    change, so follow the delegated review-independence procedure rather than

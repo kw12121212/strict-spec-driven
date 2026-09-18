@@ -118,7 +118,7 @@ bun run install-strict-skills
 
 两个安装器还会删除本仓库已退役的技能。安装过程只做添加，因此在旧检出之上升级曾会把所有已删除的技能永久留在机器上，继续提供一个已经无法解析的斜杠命令。退役名单记录在 `retired-skills.json` 中——它无法从名字前缀推导，因为部分退役包早于当前的命名家族——每次安装都会把该名单交给 `skills` CLI，由它从其管理的所有 agent 目录中移除。卸载同样会显式列出打包的和已退役的技能，原因相同：不给名字时 `skills` CLI 会打开交互式选择菜单，而非交互式会话对它不会作出任何选择。
 
-### Skills：`strict-spec-*` 和 `strict-roadmap-*`
+### Skills：`strict-spec-*`、`strict-roadmap-*` 和 `strict-scene-*`
 
 Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中使用斜杠命令名称调用它们：
 
@@ -151,6 +151,12 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-roadmap-plan` | 创建或重构路线图 |
 | `/strict-roadmap-transition` | 执行一次路线图状态迁移：`pause`、`resume`、`defer`、`refine`、`move`、`reopen`、`archive` 或 `sync` |
 | `/strict-roadmap-reorder` | 修改某个活动里程碑在路线图中的顺序位置 |
+
+**严格场景 Skills**（`strict-scene-*`）：
+
+| 斜杠命令 | 用途 |
+|---|---|
+| `/strict-scene-edit` | 编写或修正一个场景：参与者、前置条件、主流程、异常流程，以及每个步骤的覆盖情况 |
 
 路线图文档描述了首选的拆分文件协作模型：保持里程碑文件和 `INDEX.yaml` 低变动率，将日常路线图工作存储在 `.strict-spec-driven/roadmap/planned-changes/` 中，在合并或归档交接后重新运行 `roadmap-sync`，并将外部跟踪器引用视为可选上下文而非必需的真实来源。
 
@@ -200,6 +206,25 @@ strict-spec-cli generate <change-name> questions --resolve requirement-problem \
 | CLI | 第一次编写 questions、`ready` 诊断 | 问题存在、已被回答、带有归属 |
 | Skills | 四个 skill 提示词中的提问技术，由 `validate-skills` 强制 | 一次问一条、每条带具体猜测、提问前先解释、推回时说明理由 |
 | 都不管 | — | agent 是否真的认真拷问过。这是判断，无法检查；记录 `answered_by: assumption` 让糊弄留下痕迹，而不是阻止它 |
+
+## 场景优先的需求路由
+
+需求拷问确立的是*需要*，场景优先路由确立的是*这个需要发生在什么情境中*，它运行在上下两道门禁之间——因为缺少它写出的需求集合会有空洞，而这些空洞在需求本身里是看不见的。
+
+`/strict-spec-propose`、`/strict-spec-brainstorm` 和 `/strict-spec-auto` 会在每一次提议中询问四个问题，无论变更最终是什么：谁在行动、每个参与者做什么；主流程开始前必须已经成立的是什么；一切顺利时逐步发生什么；可能出什么问题、每条异常流程由什么触发、之后会发生什么。被直接索要需求的作者会跳过这四问而毫无察觉，因为需求里没有任何东西会记录那个从未被问出的问题。
+
+场景是**提问强制、工件可选**的。当变更触及用户可观察行为时，场景要被写下来——作为变更下的 delta scene，写在 delta spec 之前，这样每条需求都是从流程步骤推导出来的，而不是凭记忆回想的。当变更是纯技术性的——重构、构建或测试工具链、仓库维护、架构约束、脚本或技能指引——没有参与者流程可描述，技能会记录「为何不适用场景」，而不是编造一个。
+
+每个流程步骤都要声明覆盖它的需求，或者一条明确的「刻意不被覆盖」的理由；一个步骤可以跨多个规范领域指名覆盖需求。一旦变更携带了 delta scene，`ready` 和 `verify` 会在两者皆无的步骤上以非零退出，诊断信息会给出记录覆盖的可运行命令：
+
+```bash
+strict-spec-cli scene-status --scene <scene-id>
+strict-spec-cli generate <change-name> delta-scene --target-scene <scene-id> \
+  --operation MODIFIED --step <step-id> --action "..." \
+  --covered-by <spec-id>:<requirement-id>
+```
+
+检查由场景的存在触发，绝不由规范的存在触发。没有记录任何场景的项目不会看到新的诊断，也不会多出必填字段，因此采纳场景是增量的，升级 CLI 不是破坏性变更。场景存放在 `.strict-spec-driven/scenes/<area>/`，在变更之外用 `/strict-scene-edit` 编辑；当变更携带 delta scene 时，`archive` 会把它们合并进该存储。
 
 ## 变更接收问题门
 

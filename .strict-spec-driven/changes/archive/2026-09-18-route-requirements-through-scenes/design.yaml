@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: route-requirements-through-scenes
+approach:
+  - Add one new bundled skill package that owns live scene authoring, then edit the seven lifecycle skills that must route through it, then extend the validate-skills expectation model so each edit is enforced by the shipped checker rather than by prose alone.
+  - Register the new package on the two enumeration surfaces that are not derived from the skills/ directory listing, leaving the installer's derived name list untouched.
+  - Update the external-facing documentation for both languages last, so no document names a capability before the skill and the checker agree it exists.
+decisions:
+  scene-edit-skill-package:
+    decision: Ship live scene authoring as a standalone bundled skill package named strict-scene-edit, owning the scene-edit and scene-status commands.
+    rationale: 'The requester settled the packaging question in the milestone intake: a standalone skill is symmetric with the standalone technical-standard editing skill already packaged, and it keeps scene authoring discoverable for an external project instead of hiding it behind a spec-first name. The requester then chose strict-scene-edit over strict-spec-scene-edit, because the name should read as its own family and match the independence of the scene artifact family from main specs. The cost accepted is a fourth family prefix that the marketplace family field, the install and uninstall surfaces, and the documentation must present alongside strict-spec, strict-tech, and strict-roadmap.'
+  interrogation-stays-in-propose-and-brainstorm:
+    decision: Keep scene-first interrogation inside the strict-spec-propose and strict-spec-brainstorm skills, and let the new skill own only live scene editing.
+    rationale: Interrogation is the intake step of proposing work, and moving it into a separate skill would make the entry point reachable only by an author who already knows scenes exist, which is exactly the author this milestone cannot rely on.
+  scene-before-delta-spec-ordering:
+    decision: Place the scene authoring step before the delta-spec authoring step in the proposal and brainstorm step order.
+    rationale: The reported failure is that a requirement set is recalled rather than derived. Authoring the scene first makes the requirement set fall out of the flow steps, and the coverage gate then has a scene to measure against instead of reporting nothing.
+  enforce-routing-through-validate-skills:
+    decision: Express every skill edit as a validate-skills expectation for the affected package rather than as prose the checker does not read.
+    rationale: The milestone records a done criterion that the shipped skill validation command reports the proposal and brainstorm skills declaring the scene artifact kind and the scene-before-requirement authoring order, so the routing must be verified rather than assumed.
+  lifecycle-skills-delegate-to-scene-status:
+    decision: Have the apply, review, sync-specs, archive, and auto skills name scene-status and the coverage-gap diagnostic as the source of scene coverage state instead of restating the gating rules.
+    rationale: A delegating skill that restates a delegated procedure fails a shipped skill check, and the per-skill line budgets leave no room to duplicate the gate rules in five packages.
+  no-scene-renderer:
+    decision: Add no scene renderer, no generated scene document, no banner contract, and no generated-documents registration.
+    rationale: 'The requester settled this in the milestone intake: a project is expected to accumulate many scenes, so a per-scene rendered document produces a large document set with little readership and one more staleness surface to keep in sync.'
+  scene-interrogation-strength:
+    decision: Interrogate the scene in every proposal, require a scene whenever the change touches user-observable behavior, and let a purely technical change proceed once the skill records why no scene applies.
+    rationale: The requester chose this over requiring a scene for every change and over leaving scene authoring silently skippable. It keeps the entry point mandatory as a question, which is the failure this milestone exists to fix, while leaving the artifact optional so refactor, tooling, and repository-maintenance changes are not forced to invent an actor flow. It also preserves the milestone premise that scene checking is triggered by the presence of a scene and never by the presence of a spec.
+alternatives:
+  - option: Fold scene authoring into the existing strict-spec-spec-edit skill instead of shipping a new package.
+    reason: It hides scene authoring behind a spec-first name, which is the same discovery failure this milestone exists to fix, and it contradicts the requester's recorded packaging answer.
+  - option: Add the scene guidance as skill prose without extending the validate-skills expectations.
+    reason: The guidance would then be free to regress silently, and the milestone's done criterion that the shipped skill validation command reports the declared scene routing would go unmet.
+  - option: Introduce a workflow config switch so a project can opt out of scene-first routing.
+    reason: The milestone puts such a switch out of scope, and checking is already triggered by the presence of a scene, so opting out is achieved by authoring no scene.
+risks:
+  - Seven skill packages are edited at once under per-skill content checks and line budgets, so an addition that reads naturally can still fail a budget and force the wording to be compressed rather than expanded.
+  - The new package name appears in the marketplace file, the inventory agent-guidance entry, the validate-skills expectation map, and the documentation, and a missed registration fails a shipped MUST check rather than degrading quietly.
+  - The dangling-reference scan over skills/ rejects guidance naming an unpackaged skill, so the documentation and the cross-skill references must land in an order where the new package already exists.
+  - This change adds little src code relative to its documentation and skill surface, so the blocking coverage gate at threshold 78 can still fail if the new validate-skills expectations are exercised thinly.

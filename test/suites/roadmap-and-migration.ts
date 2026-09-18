@@ -5905,6 +5905,16 @@ try {
     ),
     "migrate still reports initialized strict scaffold assets",
   );
+  // The legacy workflow has no scene artifact to convert, and the scene index contract requires at
+  // least one scene, so a scaffolded-but-empty scenes directory would be an invalid store that
+  // every later scene command has to special-case. Migration must leave it absent instead.
+  context.assert(
+    !existsSync(path.join(migrateHappyDir, ".strict-spec-driven", "scenes"))
+      && !migrateHappyJson.converted.some(
+        (artifact: { targetPath: string }) => artifact.targetPath.startsWith(".strict-spec-driven/scenes"),
+      ),
+    "migrate creates no scenes directory and reports no scene artifact for a legacy workspace",
+  );
   context.assert(
     migrateHappyJson.converted.some(
       (artifact: { sourcePath?: string; kind: string }) =>

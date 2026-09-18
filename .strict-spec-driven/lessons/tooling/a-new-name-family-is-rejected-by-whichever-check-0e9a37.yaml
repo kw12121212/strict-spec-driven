@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-new-name-family-is-rejected-by-whichever-check-0e9a37
+  title: A new name family is rejected by whichever check kept its own copy of the allowed prefixes
+category: tooling
+status: active
+created_at: '2026-09-18T07:37:01.446Z'
+updated_at: '2026-09-18T07:37:01.446Z'
+context: 'Adding the standalone scene-editing skill package meant introducing a fourth skill-name family, strict-scene-. The package validated nowhere: the skill directory scan, the marketplace entry scan, the workflow-state guidance scope, and the delegated-procedure owner pattern each carried their own literal list of the three existing prefixes, and each list had to be found before the new family was recognized anywhere.'
+observation: Nothing named the set of places that classify a name, so the sites were found only by grepping for one of the existing prefixes. Three of the four also duplicated the operator-facing expected value 'strict-spec-*, strict-roadmap-*, or strict-tech-*', so a family added to some sites and not others would have produced a diagnostic reading like a typo rather than like a missing registration.
+takeaway: Before adding a member to a named family - a skill prefix, an artifact kind, a category, a status enum - grep for an existing member and treat every hit as a site that must be updated or must start reading a shared registry. Extracting the list into one exported constant, and rendering the diagnostic's expected value from it, turns the next addition into a single edit.
+applies_when: A change adds a new member to a family whose existing members appear as literals in validation, packaging, or classification code
+occurrences:
+  - origin: route-requirements-through-scenes
+    date: '2026-09-18'
+    evidence: src/skills/model.ts STRICT_SKILL_NAME_PREFIXES, consumed by src/skills.ts, src/skills/fs-checks.ts, src/skills/content.ts, and DELEGATION_DECLARATION_PATTERN

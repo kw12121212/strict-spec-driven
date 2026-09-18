@@ -28,6 +28,7 @@ lesson-status: strict-spec-cli lesson-status [--category <category>]
 
 **Handled by CLI scripts**
 - merge strict YAML delta specs into main specs during archive
+- merge strict YAML delta scenes into `.strict-spec-driven/scenes/` and regenerate the scene index
 - regenerate `.strict-spec-driven/specs/INDEX.yaml`
 - reconcile `.strict-spec-driven/roadmap/` milestone and index status when archive changes roadmap-derived completion state
 - move the change directory into `.strict-spec-driven/changes/archive/`
@@ -44,7 +45,7 @@ lesson-status: strict-spec-cli lesson-status [--category <category>]
 
 Every mutation of repository-owned YAML in this skill goes through the strict
 CLI. This skill writes `change-planning-state`, `change-delta-state`,
-`spec-state`, `tech-state`. Before the first mutation run `strict-spec-cli
+`spec-state`, `tech-state`, `scene-state`. Before the first mutation run `strict-spec-cli
 yaml-authoring-protocol <artifact-kind>` for each of them: that command reports
 the ordered authoring steps, the owning command for each operation, and the
 bundled schema and example keys with their cache-resolved paths, bound to the
@@ -126,6 +127,16 @@ run `init` from this skill.
      continue directly to archive
    - otherwise proceed
 
+5b. **Check for scene impact** — inspect
+    `.strict-spec-driven/changes/<name>/scenes/`.
+    - if it is absent or empty, the change merges no scene and the recorded
+      scenes are left untouched
+    - otherwise the archive command merges those delta scenes into
+      `.strict-spec-driven/scenes/` and regenerates the scene index in the same
+      transaction. Step 4's verification already blocked an uncovered flow step,
+      so nothing is re-derived here; note which scenes will be merged so the
+      summary can report them.
+
 6. **Archive the change** — use the raw command only as the deterministic
    verification, delta-merge, index-regeneration, roadmap-reconciliation, and
    change-move mechanism:
@@ -136,6 +147,7 @@ run `init` from this skill.
 7. **Confirm the result** — summarize:
     - the archive destination
     - the strict main specs that were updated
+    - the recorded scenes the archive command merged, if any
     - any roadmap files the archive command reconciled
     - the tech-sync decision applied at step 2, or that the checkpoint found
       nothing uncovered

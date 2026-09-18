@@ -225,6 +225,17 @@ components:
     mapping:
       implementation:
         - src/cli/tech-status.ts
+  scene-coverage:
+    title: Scene Store and Coverage
+    responsibility: 'Owns the scene artifact family: authoring and reconciling live scenes and the scene index, reporting each flow step as covered, waived, or unresolved, and reporting the coverage gaps that block ready and verify when a change''s delta scenes leave a step uncovered.'
+    boundaries:
+      - Coverage references are declared on the scene side only; no main spec or requirement is modified to record that a scene covers it.
+      - Checking is triggered by the presence of a scene, never by the presence of a spec, so a repository holding no scene produces no diagnostic.
+    depends_on:
+      - schema-validation
+    mapping:
+      implementation:
+        - src/scenes.ts
 data_flows:
   change-lifecycle-flow:
     title: Change Lifecycle

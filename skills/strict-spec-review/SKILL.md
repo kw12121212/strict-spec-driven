@@ -19,6 +19,7 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 modify: strict-spec-cli modify [change-name|archive-dir]
+scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]
 verify: strict-spec-cli verify <change-name>
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
@@ -115,6 +116,8 @@ run `init` from this skill.
    - `design.yaml`
    - `questions.yaml`
    - every strict YAML delta spec in `changes/<name>/specs/`
+   - every strict YAML delta scene in `changes/<name>/scenes/`, if present,
+     which states the situation the requirements were derived from
    - every strict YAML delta tech artifact in `changes/<name>/tech/`, if present
 
    Write down the problem, the observable outcome, the non-goals and
@@ -163,7 +166,15 @@ run `init` from this skill.
      unjustified or incorrect standard change as a MUST FIX finding.
 
 8. **Check spec alignment** — confirm the implementation and tests match the
-   strict YAML delta specs and do not violate `unchanged_behavior`.
+   strict YAML delta specs and do not violate `unchanged_behavior`. When the
+   change carries delta scenes, also run
+   `strict-spec-cli scene-status --scene <scene-id>` for each one and read the
+   coverage state of every flow step. `verify` already blocks a step naming
+   neither a covering requirement nor an explicit no-coverage reason, so what
+   review adds is judgment the gate cannot apply: whether a recorded
+   no-coverage reason is a real decision rather than a way to silence a gap, and
+   whether a covering requirement genuinely covers the step it is attached to. A
+   hollow waiver or a mismatched covering reference is a MUST FIX finding.
 
 9. **Fix safe in-scope findings** — if review finds MUST FIX issues that are
    safe to repair within the current strict change scope, make those fixes
