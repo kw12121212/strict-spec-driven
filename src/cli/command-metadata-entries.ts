@@ -2279,7 +2279,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     group: "roadmap",
     summary: "Recommend the next roadmap-backed planned change to work on.",
     mcpDescription: "Recommend the next strict roadmap change.",
-    usage: "Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>] [--allow-unrefined]\n",
+    usage: "Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>] [--allow-unrefined] [--create]\n",
     arguments: [],
     flags: [
       { name: "--details", arity: "boolean", description: "Return the full candidate evaluation instead of the summary." },
@@ -2290,18 +2290,25 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         description:
           "Select work owned by a milestone awaiting refinement, which --milestone otherwise refuses. Supply this only as a deliberate human decision; an agent must report the refusal rather than adding the flag itself.",
       },
+      {
+        name: "--create",
+        arity: "boolean",
+        description:
+          "When a planned change is recommended, also create its empty strict change container, named exactly the recommended planned change id, and report it as createdChange. Writes nothing for any other status. Without this flag the command is read-only.",
+      },
     ],
     output: {
       format: "json",
-      keys: ["valid", "status", "warnings", "diagnostics", "recommendation", "refineAction", "candidateSummary", "blockers", "detailsCommand"],
-      description: "A JSON recommendation summary, or the full result with --details.",
+      keys: ["valid", "status", "warnings", "diagnostics", "recommendation", "refineAction", "candidateSummary", "blockers", "detailsCommand", "createdChange"],
+      description: "A JSON recommendation summary, or the full result with --details. createdChange is present only with --create: the created change's name, changeDir, specsDir, and whether it was newly created, or null when nothing was created.",
     },
     exitCodes: [
-      { code: 0, meaning: "A planned change was recommended." },
-      { code: 1, meaning: "Usage error, no planned change could be recommended, or a milestone awaiting refinement was selected without --allow-unrefined." },
+      { code: 0, meaning: "A planned change was recommended, and with --create its change container was created." },
+      { code: 1, meaning: "Usage error, no planned change could be recommended, a milestone awaiting refinement was selected without --allow-unrefined, or --create could not reserve the recommended change container." },
     ],
     notes: [
       "Recommendation follows strict roadmap order. When the earliest-ordered incomplete milestone declares awaiting_refinement, status is 'refine-milestone' and refineAction names that milestone instead of returning implementation work from later milestones; pausing it releases those candidates.",
+      "--create crosses the same name, collision, and two-active-change checks as propose and writes only the change directory and its empty specs/ directory; author each planning artifact afterwards with generate <createdChange.name>. A refused reservation changes nothing and is reported as a diagnostic naming the rerun command.",
     ],
   },
 

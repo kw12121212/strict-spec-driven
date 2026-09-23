@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-coverage-gate-resolved-against-archived-specs-342dff
+  title: A coverage gate resolved against archived specs rejects the requirements a change adds
+category: tooling
+status: active
+created_at: '2026-09-23T07:35:47.418Z'
+updated_at: '2026-09-23T07:35:47.418Z'
+context: Scene coverage in ready and verify resolved covered_by references only against the recorded main specs, while the propose guidance and the diagnostic's own remedy told authors to add the missing requirement to the change.
+observation: A delta scene citing a requirement its own delta spec ADDs could never pass ready or verify; the remedy the diagnostic named did not clear it, and no earlier change had exercised a scene step covered by a newly added requirement.
+takeaway: A gate that runs during an active change must resolve references against the state archive will produce — main artifacts overlaid with the change's own deltas, adds included and removals excluded — and its remedy must be tested by applying it and watching the diagnostic clear.
+applies_when: A ready, verify, or archive gate resolves ids or references a change may itself add, modify, or remove through its delta artifacts, or a diagnostic names a remedy that has never been applied in a test.
+occurrences:
+  - origin: create-change-from-roadmap-recommendation
+    date: '2026-09-23'
+    evidence: src/scenes.ts loadSpecRequirements ignored changes/<name>/specs; fixed by overlayChangeSpecRequirements with test/suites/scenes.ts added-resolves and removed-does-not-resolve cases.

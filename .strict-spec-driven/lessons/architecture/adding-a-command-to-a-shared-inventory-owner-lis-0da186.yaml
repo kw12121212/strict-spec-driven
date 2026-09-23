@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: adding-a-command-to-a-shared-inventory-owner-lis-0da186
+  title: Adding a command to a shared inventory owner list claims every operation for it
+category: architecture
+status: active
+created_at: '2026-09-23T07:35:47.666Z'
+updated_at: '2026-09-23T07:35:47.666Z'
+context: roadmap-recommend --create gained the ability to reserve an empty change container, and was registered as a CLI owner of the change-planning-state family in the YAML mutation inventory.
+observation: The family's cli_owners list is shared by create, update, named_remove, and delete, and it feeds help projections and the MCP tool description, so the read-only roadmap_recommend MCP tool began advertising planning-artifact writes and the operation-matrix test failed.
+takeaway: Before adding a command to an inventory owner list, check every operation and every surface the list is projected onto; a command that touches a family's filesystem without authoring its YAML belongs in a reference side effect, not in the owner list.
+applies_when: A change gives an existing command, especially a read-only or MCP read-exposed one, a new write that touches an artifact family's directory, and the inventory or command metadata is being updated to record it.
+occurrences:
+  - origin: create-change-from-roadmap-recommendation
+    date: '2026-09-23'
+    evidence: inventory/yaml-mutation-surfaces.yaml change-planning-state cli_owners; src/mcp/inventory.ts renders the owners into tool descriptions; test/suites/yaml-operation-matrix.ts owner check.

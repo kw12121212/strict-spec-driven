@@ -1,0 +1,47 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: create-change-from-roadmap-recommendation
+approach:
+  - roadmap-recommend gains a boolean --create flag. After the recommendation is computed, and only when its status is recommended, the command reserves the change container through the same reserveChangeContainer boundary propose uses (rejectPopulated), named exactly recommendation.changeName, and adds a createdChange object {name, changeDir, specsDir, created} to both the summary and --details JSON. Every other status writes nothing and reports createdChange null. A reservation failure (invalid name, populated collision, full active-change limit) leaves the filesystem unchanged, reports createdChange null with a diagnostic carrying the reservation message, and exits 1. Without --create the output keys and behavior are byte-identical to today.
+  - generate proposal loads the active roadmap with loadRoadmap and resolves planned changes by planned_change.id. When --milestone/--planned-change are supplied, the write is refused before any file changes unless a planned change with that id exists, its planned_change.milestone equals --milestone, and its id equals the change name; each refusal names the planned change, the change, and the corrective command. When neither flag is supplied and the proposal records no link, a planned change whose id equals the change name supplies the link with its owning milestone. An existing link is preserved untouched.
+  - The planned-change id authoring pattern in roadmap/author.ts is replaced by the canonical CHANGE_NAME_PATTERN exported from scaffold.ts, so every newly authored planned change id is a valid change name. Existing planned-change files are not revalidated.
+  - The strict-roadmap-recommend skill scaffolds by running roadmap-recommend --create (with --milestone when a hint was given) and uses createdChange.name for every later generate call; strict-spec-propose milestone mode does the same and drops the caller-chosen-name exception. Both drop the manual propose step for roadmap-backed work.
+  - 'collectSceneCoverageDiagnostics builds its requirement universe from the recorded main specs and then overlays the change''s delta specs: each delta''s target_spec gains its ADDED and MODIFIED requirement ids and loses its REMOVED ids, and a delta creating a new spec contributes its target spec id. scene-status, which runs outside any change, keeps resolving against the main specs only.'
+decisions:
+  create-lives-on-recommend:
+    decision: The creation entry point is a --create flag on roadmap-recommend rather than a propose flag or a new command.
+    rationale: 'The requester chose it so recommendation and creation are one step and the agent never handles the name. It conflicts with the MUST rule roadmap-commands-do-not-write-change-artifacts, so this change carries a delta tech MODIFIED rule that admits exactly one exception: roadmap-recommend --create may reserve an empty change container named after the recommended planned change id, and no roadmap command may write a planning artifact.'
+  reuse-reservation-boundary:
+    decision: The create flag reserves the container through reserveChangeContainer with rejectPopulated, the boundary propose and generate already cross.
+    rationale: One boundary keeps the name rule, collision rule, and two-active-change limit identical across every creation path, as the scaffold module documents.
+  create-follows-recommendation-eligibility:
+    decision: The create flag creates only the recommended planned change and never evaluates eligibility itself.
+    rationale: The recommendation already excludes planned changes that are archived, active, ambiguous, mismatched, paused, awaiting refinement, or dependency-blocked, which covers the requested refusal of missing, complete, and already active planned changes; a second eligibility rule would drift.
+  link-guard-refuses:
+    decision: A supplied roadmap link that names an absent planned change, the wrong milestone, or a planned change id different from the change name is a hard write refusal.
+    rationale: Roadmap state matches by directory name, so any link that disagrees with the name is a guaranteed later reconciliation failure; the requester chose rejection over a warning. The refusal is thrown before the write so the artifact-writes-validate-and-commit-atomically rule holds.
+  link-inference-only-when-unlinked:
+    decision: Link inference runs only when no roadmap flag is supplied and no link is recorded, and matches the change name against active planned-change ids.
+    rationale: It never overrides recorded state, so artifact-writes-are-non-destructive holds; a change named after a planned change is already matched by roadmap status, so recording the link agrees with derived state rather than creating it.
+  planned-change-id-uses-change-name-pattern:
+    decision: roadmap-generate validates planned-change ids with the CHANGE_NAME_PATTERN exported from scaffold.ts.
+    rationale: shared-name-classification-registry (SHOULD) prefers one exported source over two literals; the looser pattern admitted ids such as a--b that can never become a change name.
+  mcp-surface-unchanged:
+    decision: The MCP roadmap_recommend tool stays read-only and passes no create flag.
+    rationale: Adding a write path to a tool declared read-only would falsify its safety claim; the requester excluded an MCP entry point from scope, and propose_change already covers change creation on MCP.
+  no-new-scene:
+    decision: The existing scene roadmap-backed-change-reaches-archive is modified rather than a new scene authored.
+    rationale: Its scaffold step already describes this situation; the delta scene rewrites that step to the CLI-derived name and adds an exception flow for a refused mismatched link.
+  scene-coverage-overlays-change-deltas:
+    decision: Scene coverage inside a change resolves against the main specs overlaid with that change's delta specs.
+    rationale: The requester chose to fix the defect inside this change. Archive merges specs before scenes, so the overlay is exactly the state the merged scene will be checked against; resolving against main specs alone contradicted the diagnostic's own remedy and the propose guidance that steps may cite requirements the change adds.
+  recommend-is-not-a-planning-owner:
+    decision: roadmap-recommend is not listed as a change-planning-state CLI owner; the inventory records the container reservation as a reference side effect instead.
+    rationale: The inventory's owner list is shared by create, update, named_remove, and delete of proposal, design, tasks, and questions, and the MCP read-only tool description renders it, so listing roadmap-recommend would claim writes the delta tech rule forbids and falsify the read-only tool's safety claim. The container holds no YAML, like the directory propose creates.
+  empty-container-is-not-an-artifact:
+    decision: The container --create reserves is the same directory propose creates, not an artifact, so artifact-creation-persists-meaningful-state-only is not engaged.
+    rationale: That MUST rule forbids writing blank YAML documents and empty artifact containers; the change directory and its specs directory hold no YAML and are the reservation propose already performs, and --create writes no proposal, design, tasks, or questions file until generate supplies real content.
+alternatives: []
+risks: []

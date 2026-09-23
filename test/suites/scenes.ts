@@ -1046,6 +1046,76 @@ export async function runSceneMergeAndCoverageSuite(context: TestContext): Promi
   }
 
   {
+    // A step may cite the requirement its own change adds: archive merges specs before scenes, so
+    // coverage is resolved against the main specs as the change's delta specs will leave them.
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);
+      writeArchivableChange(root, "adds-covering-requirement");
+      const addedDelta = cli([
+        "generate", "adds-covering-requirement", "delta-spec", "--target-spec", "commerce-spec",
+        "--operation", "ADDED", "--requirement", "receipt-is-sent", "--strength", "MUST",
+        "--statement", "The system MUST send a receipt.",
+        "--scenario", "receipt", "--given", "a paid order", "--when", "payment completes", "--then", "a receipt is sent",
+      ], { cwd: root });
+      context.assert(addedDelta.status === 0, "the covering requirement is added by the change's delta spec", addedDelta.stderr);
+      const createdSpec = cli([
+        "generate", "adds-covering-requirement", "delta-spec", "--target-spec", "shipping-spec",
+        "--title", "Shipping", "--new-spec-path", ".strict-spec-driven/specs/shipping-spec.yaml",
+        "--operation", "ADDED", "--requirement", "parcel-is-labelled", "--strength", "MUST",
+        "--statement", "The system MUST label the parcel.",
+        "--scenario", "label", "--given", "a paid order", "--when", "it ships", "--then", "the parcel is labelled",
+      ], { cwd: root });
+      context.assert(createdSpec.status === 0, "a spec the change creates is authored as a delta", createdSpec.stderr);
+      cli(newCheckoutSceneArgs("adds-covering-requirement", [
+        "--step", "receipt", "--action", "The shopper receives a receipt", "--covered-by", "commerce-spec:receipt-is-sent",
+        "--step", "ship", "--action", "The order ships", "--covered-by", "shipping-spec:parcel-is-labelled",
+      ]), { cwd: root });
+
+      const verified = cli(["verify", "adds-covering-requirement"], { cwd: root });
+      context.assert(
+        verified.status === 0,
+        "a step covered by a requirement the same change adds, or by one in a spec it creates, passes verify",
+        verified.stdout.trim(),
+      );
+      const readied = cli(["ready", "adds-covering-requirement"], { cwd: root });
+      context.assert(readied.status === 0, "the same references pass ready", readied.stdout.trim());
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
+    const root = makeWorkspace();
+    try {
+      writeMainSpec(root, "commerce-spec", ["payment-is-taken", "refund-is-issued"]);
+      writeArchivableChange(root, "removes-covering-requirement");
+      const removedDelta = cli([
+        "generate", "removes-covering-requirement", "delta-spec", "--target-spec", "commerce-spec",
+        "--operation", "REMOVED", "--requirement", "refund-is-issued", "--reason", "Refunds moved to the returns spec",
+      ], { cwd: root });
+      context.assert(removedDelta.status === 0, "the change's delta spec removes a recorded requirement", removedDelta.stderr);
+      cli(newCheckoutSceneArgs("removes-covering-requirement", [
+        "--step", "refund", "--action", "The shopper is refunded", "--covered-by", "commerce-spec:refund-is-issued",
+      ]), { cwd: root });
+
+      const verified = cli(["verify", "removes-covering-requirement"], { cwd: root });
+      context.assert(verified.status !== 0, "a step covered by a requirement the same change removes fails verify");
+      const gap = (JSON.parse(verified.stdout) as { diagnostics: Array<Record<string, string>> }).diagnostics
+        .find((entry) => entry.fieldPath === "$.main_flow.refund");
+      context.assert(
+        gap?.message.includes("commerce-spec:refund-is-issued") === true,
+        "the gap names the removed requirement as the reference that failed to resolve",
+        gap?.message,
+      );
+      const readied = cli(["ready", "removes-covering-requirement"], { cwd: root });
+      context.assert(readied.status !== 0, "ready refuses the same removed reference");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  {
     const root = makeWorkspace();
     try {
       writeMainSpec(root, "commerce-spec", ["payment-is-taken"]);

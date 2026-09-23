@@ -9,6 +9,7 @@ import {
   TASK_SECTION_SELECTORS,
 } from "../propose-generation.js";
 import { buildSeededRequirementQuestions } from "../requirement-questions.js";
+import { loadRoadmap } from "../roadmap/load.js";
 import { parseYamlDocument } from "../yaml.js";
 import { commitYamlMutation } from "../yaml-mutation.js";
 import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
@@ -393,12 +394,73 @@ function buildProposalInput(rootDir: string, changeName: string, flags: FlagMap)
   if (milestone || plannedChange) {
     if (!milestone) throw new Error("missing required argument --milestone");
     if (!plannedChange) throw new Error("missing required argument --planned-change");
+    assertRoadmapLinkMatchesChange(rootDir, changeName, milestone, plannedChange);
     input.roadmap = { milestone, planned_change: plannedChange };
   } else if (existing.roadmap) {
     input.roadmap = existing.roadmap;
+  } else {
+    const matching = inferRoadmapMilestone(rootDir, changeName);
+    if (matching !== undefined) input.roadmap = { milestone: matching, planned_change: changeName };
   }
 
   return input;
+}
+
+/**
+ * Maps each active planned-change id to the milestones that own it. Roadmap status derives a
+ * planned change's state from the change directory named after it, so this is the only join a
+ * proposal link can agree or disagree with. A roadmap that is absent or unreadable yields nothing,
+ * and an id recorded more than once keeps every owner so no caller picks one arbitrarily.
+ */
+function activePlannedChangeOwners(rootDir: string): Map<string, string[]> {
+  const owners = new Map<string, string[]>();
+  for (const plannedChange of loadRoadmap(rootDir).plannedChanges) {
+    const { id, milestone } = plannedChange.artifact.planned_change;
+    owners.set(id, [...(owners.get(id) ?? []), milestone]);
+  }
+  return owners;
+}
+
+/** The single milestone owning a planned change named exactly like the change, if there is one. */
+function inferRoadmapMilestone(rootDir: string, changeName: string): string | undefined {
+  const owners = activePlannedChangeOwners(rootDir).get(changeName);
+  return owners?.length === 1 ? owners[0] : undefined;
+}
+
+/**
+ * Refuses a roadmap link roadmap status could never reconcile: one naming a planned change the
+ * active roadmap does not record or records more than once, a planned change other than the one
+ * this change is named after, or a milestone that does not own it. The name is checked before the
+ * milestone so a milestone remedy is offered only when following it can succeed. The refusal is
+ * thrown before anything is written.
+ */
+function assertRoadmapLinkMatchesChange(rootDir: string, changeName: string, milestone: string, plannedChange: string): void {
+  const owners = activePlannedChangeOwners(rootDir).get(plannedChange);
+  if (owners === undefined) {
+    throw new Error(
+      `planned change '${plannedChange}' is not recorded in the active roadmap, so change '${changeName}' cannot link to it; `
+      + "read the planned-change ids from 'strict-spec-cli roadmap-status', or create the change from the recommended planned change with 'strict-spec-cli roadmap-recommend --create'",
+    );
+  }
+  if (owners.length > 1) {
+    throw new Error(
+      `planned change '${plannedChange}' is recorded more than once in the active roadmap (milestones ${owners.map((owner) => `'${owner}'`).join(", ")}), so no link to it can be reconciled; `
+      + "run 'strict-spec-cli roadmap-status' to locate the duplicate files and remove one with 'strict-spec-cli roadmap-delete-planned-change', then record the link again",
+    );
+  }
+  const [owner] = owners;
+  if (plannedChange !== changeName) {
+    throw new Error(
+      `change name '${changeName}' must equal the planned change id '${plannedChange}' it links to, because roadmap status matches changes by directory name; `
+      + `create a correctly named change with 'strict-spec-cli roadmap-recommend --milestone ${owner} --create'`,
+    );
+  }
+  if (owner !== milestone) {
+    throw new Error(
+      `planned change '${plannedChange}' is owned by milestone '${owner}', not '${milestone}'; `
+      + `record the link with 'strict-spec-cli generate ${changeName} proposal --milestone ${owner} --planned-change ${plannedChange}'`,
+    );
+  }
 }
 
 function existingDesignInput(rootDir: string, changeName: string): GenerationInputRecord {

@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -476,6 +476,216 @@ try {
   );
 } finally {
   rmSync(roadmapScopedRecommendDir, { recursive: true, force: true });
+}
+
+context.section("[17a] roadmap-recommend --create and proposal roadmap links");
+
+const roadmapCreateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-create-"));
+try {
+  const changesDir = path.join(roadmapCreateDir, ".strict-spec-driven", "changes");
+  const listChanges = (): string[] => existsSync(changesDir) ? readdirSync(changesDir).sort() : [];
+  writeRoadmapMilestoneArtifact(roadmapCreateDir, "0001-first.yaml", {
+    id: "0001-first",
+    title: "First Milestone",
+    goal: "Hold two eligible planned changes.",
+    status: "planned",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapCreateDir, "0002-second.yaml", {
+    id: "0002-second",
+    title: "Second Milestone",
+    goal: "Own a planned change a link can misattribute.",
+    status: "planned",
+    plannedChanges: [],
+  });
+  for (const [id, milestone] of [["first-ready", "0001-first"], ["second-ready", "0001-first"], ["later-ready", "0002-second"]]) {
+    writeStandalonePlannedChangeArtifact(roadmapCreateDir, `planned-changes/${milestone}-${id}.yaml`, {
+      id,
+      milestone,
+      status: "planned",
+      summary: `Planned work ${id}.`,
+      details: `Standalone details for ${id}.`,
+      depends_on: [],
+    });
+  }
+  writeRoadmapIndexArtifact(roadmapCreateDir, [
+    { id: "0001-first", title: "First Milestone", path: "roadmap/milestones/0001-first.yaml", status: "planned" },
+    { id: "0002-second", title: "Second Milestone", path: "roadmap/milestones/0002-second.yaml", status: "planned" },
+  ]);
+
+  const readOnly = cli(["roadmap-recommend"], { cwd: roadmapCreateDir });
+  const readOnlyJson = JSON.parse(readOnly.stdout.trim());
+  context.assert(
+    readOnly.status === 0 && !("createdChange" in readOnlyJson) && listChanges().length === 0,
+    "roadmap-recommend without --create creates no change and reports no createdChange key",
+    readOnly.stdout.trim(),
+  );
+
+  const noCandidate = cli(["roadmap-recommend", "--milestone", "missing-milestone", "--create"], { cwd: roadmapCreateDir });
+  const noCandidateJson = JSON.parse(noCandidate.stdout.trim());
+  context.assert(
+    noCandidate.status !== 0 && noCandidateJson.status === "no-candidate" && noCandidateJson.createdChange === null && listChanges().length === 0,
+    "roadmap-recommend --create writes nothing and reports createdChange null when nothing is recommended",
+    noCandidate.stdout.trim(),
+  );
+
+  const created = cli(["roadmap-recommend", "--create"], { cwd: roadmapCreateDir });
+  const createdJson = JSON.parse(created.stdout.trim());
+  const createdSpecsDir = path.join(changesDir, "first-ready", "specs");
+  context.assert(
+    created.status === 0
+      && createdJson.status === "recommended"
+      && createdJson.recommendation?.id === "first-ready"
+      && createdJson.createdChange?.name === "first-ready"
+      && createdJson.createdChange?.changeDir === ".strict-spec-driven/changes/first-ready"
+      && createdJson.createdChange?.created === true,
+    "roadmap-recommend --create creates the change named exactly after the recommended planned change id",
+    created.stdout.trim(),
+  );
+  context.assert(
+    existsSync(createdSpecsDir)
+      && readdirSync(createdSpecsDir).length === 0
+      && readdirSync(path.join(changesDir, "first-ready")).join(",") === "specs",
+    "the created change holds only an empty specs directory and no planning artifact",
+  );
+
+  const detailed = cli(["roadmap-recommend", "--details", "--create"], { cwd: roadmapCreateDir });
+  const detailedJson = JSON.parse(detailed.stdout.trim());
+  context.assert(
+    detailed.status === 0 && detailedJson.recommendation?.id === "second-ready" && detailedJson.createdChange?.name === "second-ready"
+      && Array.isArray(detailedJson.candidates),
+    "roadmap-recommend --details --create reports createdChange alongside the full candidate detail",
+    detailed.stdout.trim(),
+  );
+
+  const limited = cli(["roadmap-recommend", "--milestone", "0002-second", "--create"], { cwd: roadmapCreateDir });
+  const limitedJson = JSON.parse(limited.stdout.trim());
+  context.assert(
+    limited.status !== 0
+      && limitedJson.status === "recommended"
+      && limitedJson.recommendation?.id === "later-ready"
+      && limitedJson.createdChange === null
+      && limitedJson.diagnostics.some((entry: { message: string }) =>
+        entry.message.includes("limit of two active changes")
+          && entry.message.includes("'strict-spec-cli archive first-ready' or 'strict-spec-cli cancel first-ready'")
+          && entry.message.includes("'strict-spec-cli archive second-ready' or 'strict-spec-cli cancel second-ready'")
+          && entry.message.includes("rerun 'strict-spec-cli roadmap-recommend --milestone 0002-second --create'"))
+      && !existsSync(path.join(changesDir, "later-ready")),
+    "roadmap-recommend --create refuses when the active-change limit is full, names the reason and rerun command, and creates nothing",
+    limited.stdout.trim(),
+  );
+
+  const proposalArgs = (changeName: string, extra: string[] = []): string[] => [
+    "generate", changeName, "proposal", "--what", `Deliver ${changeName}.`, "--why", "Roadmap work.", ...extra,
+  ];
+  const proposalPath = (changeName: string): string => path.join(changesDir, changeName, "proposal.yaml");
+  type ProposalLink = { roadmap?: { milestone: string; planned_change: string } };
+
+  const inferred = cli(proposalArgs("first-ready"), { cwd: roadmapCreateDir });
+  const inferredProposal = yamlModule.parseYamlFile<ProposalLink>(proposalPath("first-ready"));
+  context.assert(
+    inferred.status === 0 && inferredProposal.roadmap?.milestone === "0001-first" && inferredProposal.roadmap?.planned_change === "first-ready",
+    "generate proposal records the roadmap link of the planned change the change is named after when no link is supplied",
+    inferred.stderr.trim(),
+  );
+
+  const proposalBeforeRefusal = readFileSync(proposalPath("first-ready"), "utf8");
+  const wrongMilestone = cli(proposalArgs("first-ready", ["--milestone", "0002-second", "--planned-change", "first-ready"]), { cwd: roadmapCreateDir });
+  context.assert(
+    wrongMilestone.status !== 0
+      && wrongMilestone.stderr.includes("owned by milestone '0001-first'")
+      && wrongMilestone.stderr.includes("--milestone 0001-first --planned-change first-ready")
+      && readFileSync(proposalPath("first-ready"), "utf8") === proposalBeforeRefusal,
+    "generate proposal refuses a link naming a milestone that does not own the planned change, names the corrected command, and leaves the proposal unchanged",
+    wrongMilestone.stderr.trim(),
+  );
+
+  const otherPlannedChange = cli(proposalArgs("first-ready", ["--milestone", "0001-first", "--planned-change", "second-ready"]), { cwd: roadmapCreateDir });
+  context.assert(
+    otherPlannedChange.status !== 0
+      && otherPlannedChange.stderr.includes("must equal the planned change id 'second-ready'")
+      && otherPlannedChange.stderr.includes("'strict-spec-cli roadmap-recommend --milestone 0001-first --create'")
+      && readFileSync(proposalPath("first-ready"), "utf8") === proposalBeforeRefusal,
+    "generate proposal refuses a link to a planned change other than the one the change is named after and leaves the proposal unchanged",
+    otherPlannedChange.stderr.trim(),
+  );
+
+  const absent = cli(proposalArgs("second-ready", ["--milestone", "0001-first", "--planned-change", "ghost-work"]), { cwd: roadmapCreateDir });
+  context.assert(
+    absent.status !== 0 && absent.stderr.includes("'ghost-work' is not recorded in the active roadmap") && !existsSync(proposalPath("second-ready")),
+    "generate proposal refuses a link to a planned change the active roadmap does not record and writes no proposal",
+    absent.stderr.trim(),
+  );
+
+  const matching = cli(proposalArgs("second-ready", ["--milestone", "0001-first", "--planned-change", "second-ready"]), { cwd: roadmapCreateDir });
+  const matchingProposal = yamlModule.parseYamlFile<ProposalLink>(proposalPath("second-ready"));
+  context.assert(
+    matching.status === 0 && matchingProposal.roadmap?.milestone === "0001-first" && matchingProposal.roadmap?.planned_change === "second-ready",
+    "generate proposal records a link whose planned change matches the change name and milestone",
+    matching.stderr.trim(),
+  );
+
+  // Ownership moves while the link stays recorded: a later flag-free write must keep the recorded
+  // link rather than re-infer it, because inference only fills an absent link.
+  writeStandalonePlannedChangeArtifact(roadmapCreateDir, "planned-changes/0001-first-second-ready.yaml", {
+    id: "second-ready",
+    milestone: "0002-second",
+    status: "planned",
+    summary: "Planned work second-ready.",
+    details: "Standalone details for second-ready.",
+    depends_on: [],
+  });
+  const preserved = cli(proposalArgs("second-ready", ["--in", "More scope."]), { cwd: roadmapCreateDir });
+  const preservedProposal = yamlModule.parseYamlFile<ProposalLink>(proposalPath("second-ready"));
+  context.assert(
+    preserved.status === 0 && preservedProposal.roadmap?.milestone === "0001-first",
+    "generate proposal without roadmap flags preserves a recorded roadmap link",
+    preserved.stderr.trim(),
+  );
+
+  rmSync(path.join(changesDir, "second-ready"), { recursive: true, force: true });
+  const unmatched = cli(proposalArgs("standalone-work"), { cwd: roadmapCreateDir });
+  const unmatchedProposal = yamlModule.parseYamlFile<ProposalLink>(proposalPath("standalone-work"));
+  context.assert(
+    unmatched.status === 0 && unmatchedProposal.roadmap === undefined,
+    "generate proposal records no roadmap link for a change whose name matches no planned change",
+    unmatched.stderr.trim(),
+  );
+
+  const doubledHyphen = cli([
+    "roadmap-generate", "planned-change", "--milestone", "0001-first", "--id", "alpha--feature",
+    "--summary", "Doubled hyphen id.", "--details", "Never a valid change name.",
+  ], { cwd: roadmapCreateDir });
+  const plannedChangeFiles = readdirSync(path.join(roadmapCreateDir, ".strict-spec-driven", "roadmap", "planned-changes"));
+  context.assert(
+    doubledHyphen.status !== 0
+      && doubledHyphen.stdout.includes("$.planned_change.id")
+      && !plannedChangeFiles.some((name) => name.includes("alpha--feature")),
+    "roadmap-generate refuses a planned change id that is not a valid change name and writes no file",
+    `${doubledHyphen.stdout.trim()} ${doubledHyphen.stderr.trim()}`,
+  );
+
+  // A duplicated id cannot be reconciled by roadmap status, so neither the guard nor inference may
+  // pick one of its owners.
+  writeStandalonePlannedChangeArtifact(roadmapCreateDir, "planned-changes/0002-second-first-ready.yaml", {
+    id: "first-ready",
+    milestone: "0002-second",
+    status: "planned",
+    summary: "Duplicated planned work.",
+    details: "Duplicate of first-ready.",
+    depends_on: [],
+  });
+  const proposalBeforeDuplicate = readFileSync(proposalPath("first-ready"), "utf8");
+  const duplicated = cli(proposalArgs("first-ready", ["--milestone", "0001-first", "--planned-change", "first-ready"]), { cwd: roadmapCreateDir });
+  context.assert(
+    duplicated.status !== 0
+      && duplicated.stderr.includes("recorded more than once in the active roadmap")
+      && readFileSync(proposalPath("first-ready"), "utf8") === proposalBeforeDuplicate,
+    "generate proposal refuses a link to a planned change id the active roadmap records more than once and leaves the proposal unchanged",
+    duplicated.stderr.trim(),
+  );
+} finally {
+  rmSync(roadmapCreateDir, { recursive: true, force: true });
 }
 
 const roadmapOrderingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-ordering-"));

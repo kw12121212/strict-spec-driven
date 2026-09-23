@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: create-change-from-roadmap-recommendation
+  status: proposed
+summary:
+  what:
+    - Add a --create flag to roadmap-recommend that, only when a planned change is recommended, creates an empty strict change container named exactly the recommended planned change id and reports it in the JSON output.
+    - Make generate proposal reject a --milestone/--planned-change link unless the planned change exists in the active roadmap, is owned by that milestone, and its id equals the change name.
+    - Make generate proposal record the roadmap link itself when no link is supplied or recorded and the change name equals an active planned change id.
+    - Tighten the planned-change id authoring rule to the change-name rule, and route the roadmap-backed skills through roadmap-recommend --create without a caller-chosen change name.
+    - Make scene coverage during an active change resolve covering requirements against the main specs as the change's own delta specs would leave them, so a scene step covered by a requirement the change adds is not reported unresolved.
+  why:
+    - 'Roadmap state derives planned-change status only from change directory names, so an agent that names a roadmap-backed change differently from its planned change id leaves the planned change unmatched: after archive it never becomes complete, its milestone never closes, and dependent work stays blocked.'
+    - Letting the CLI derive the name from the recommendation removes the agent from the naming step, and the proposal-link guard catches a mismatch on any other path before it reaches archive.
+    - The scene coverage gate resolved covering references only against recorded main specs, so a change whose scene names the requirement it adds could never pass ready or verify, although the diagnostic's own remedy is to add that requirement to the change.
+scope:
+  in:
+    - roadmap-recommend --create flag, its JSON createdChange output, command metadata, and help
+    - generate proposal roadmap-link consistency guard and roadmap-link inference
+    - roadmap-generate planned-change id pattern aligned with the change-name pattern
+    - strict-roadmap-recommend and strict-spec-propose skill guidance, including removal of the caller-chosen-name exception
+    - delta tech narrowing roadmap-commands-do-not-write-change-artifacts to allow the empty container that --create reserves
+    - delta scene for roadmap-backed-change-reaches-archive and delta specs for roadmap and CLI behavior
+    - scene coverage resolution in src/scenes.ts against main specs merged with the change's delta specs
+    - yaml-mutation inventory side-effect note recording that roadmap-recommend --create reserves an empty change container without owning any planning artifact
+  out:
+    - Changing roadmap status, sync, or recommend matching to read proposal roadmap links instead of change directory names
+    - Repairing planned changes already stranded by an earlier name mismatch
+    - A roadmap-recommend --create entry point on the MCP tool surface
+    - Writing any planning artifact from roadmap-recommend --create
+unchanged_behavior:
+  - roadmap-recommend without --create stays read-only and its JSON output keys, statuses, and exit codes are unchanged.
+  - Standalone propose <change-name> and generate proposal without roadmap flags on a change whose name matches no planned change behave exactly as before.
+  - Roadmap status, sync, and archive reconciliation continue to match changes to planned changes by change directory name.
+  - An existing proposal roadmap link is preserved when generate proposal runs without roadmap flags.
+  - Existing planned-change files whose ids already exist are not re-validated or rewritten by the tightened authoring rule.
+  - scene-status, which runs outside any change, keeps resolving covering references against the recorded main specs only.

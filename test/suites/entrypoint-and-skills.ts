@@ -1137,9 +1137,26 @@ context.assert(
       && normalizedProposeSkillContent.includes("strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>")
       && normalizedProposeSkillContent.includes("treat the command's selected planned change as authoritative")
       && normalizedProposeSkillContent.includes("before reading broad roadmap context")
-      && normalizedProposeSkillContent.includes("--milestone <milestone-id> --planned-change <planned-change-id>")
+      && normalizedProposeSkillContent.includes("--milestone <milestone-id> --planned-change <change-name>")
       && !normalizedProposeSkillContent.includes("If the user asks to source a change from the roadmap, stop and tell them to use"),
     "strict-spec-propose sources a named milestone through roadmap-recommend instead of refusing roadmap-backed work",
+  );
+  // Roadmap status matches a change to its planned change by directory name alone, so both
+  // roadmap-backed scaffolding paths must let the recommendation name the change.
+  context.assert(
+    normalizedProposeSkillContent.includes("strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create")
+      && normalizedProposeSkillContent.includes("`createdChange.name`")
+      && !normalizedProposeSkillContent.includes("the change name unless the user gave one")
+      && normalizedRoadmapRecommendSkillContent.includes("run `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create`")
+      && normalizedRoadmapRecommendSkillContent.includes("Without a user roadmap hint, run `strict-spec-cli roadmap-recommend --create`")
+      && normalizedRoadmapRecommendSkillContent.includes("The change is created in the same call that recommends it")
+      && normalizedProposeSkillContent.includes("The change is created in the same call that recommends it")
+      && !normalizedRoadmapRecommendSkillContent.includes("Run the same command as step 1 with `--create` added")
+      && !normalizedProposeSkillContent.includes("Then obtain the planned change from the command that owns selection:")
+      && normalizedRoadmapRecommendSkillContent.includes("Use `createdChange.name` as `<change-name>` in every later command")
+      && !roadmapRecommendSkillContent.includes("propose: strict-spec-cli propose <change-name>")
+      && !roadmapRecommendSkillContent.includes("strict-spec-cli propose <change-name>"),
+    "roadmap-backed skill guidance creates the change in the recommending roadmap-recommend --create call and never takes a caller-chosen change name",
   );
   context.assert(
     normalizedProposeSkillContent.includes("When no planned change comes back, report the reason and stop.")
@@ -2890,6 +2907,88 @@ try {
   );
 } finally {
   rmSync(invalidMilestoneModeRoot, { recursive: true, force: true });
+}
+
+// Both roadmap-backed skills create the change in the call that recommends it. The probe strips each
+// pinned sentence from the real packages, restores each retired two-call wording, and drives the
+// same validator the shipped validate-skills command runs, so the passing text assertions above are
+// backed by an observed failure rather than by restating the predicate.
+const singleCallRoot = mkdtempSync(path.join(os.tmpdir(), "strict-spec-single-recommend-call-"));
+try {
+  const SINGLE_CALL_PHRASE = "The change is created in the same call that recommends it";
+  const NO_SECOND_CALL_PHRASE = "do not run `roadmap-recommend` again";
+  const RECOMMEND_STEP_ONE_PHRASE = "then run `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create`. Without a user roadmap hint, run `strict-spec-cli roadmap-recommend --create`";
+  const SECOND_CALL_PHRASE = "Run the same command as step 1 with `--create` added";
+  const READ_ONLY_SELECTION_PHRASE = "Then obtain the planned change from the command that owns selection:";
+  // Phrases wrap across lines in the packages, so each is removed wherever its words appear with any
+  // whitespace between them, leaving the frontmatter and every other line intact.
+  const strip = (content: string, phrases: readonly string[]): string => phrases.reduce(
+    (current, phrase) => current.replace(
+      new RegExp(phrase.split(/\s+/).map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+"), "g"),
+      "",
+    ),
+    content,
+  );
+  for (const [skillName, content] of [
+    [
+      "strict-roadmap-recommend",
+      `${strip(readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8"), [SINGLE_CALL_PHRASE, NO_SECOND_CALL_PHRASE, RECOMMEND_STEP_ONE_PHRASE])}\n${SECOND_CALL_PHRASE}\n`,
+    ],
+    [
+      "strict-spec-propose",
+      `${strip(readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8"), [SINGLE_CALL_PHRASE, NO_SECOND_CALL_PHRASE])}\n${READ_ONLY_SELECTION_PHRASE}\n`,
+    ],
+  ] as const) {
+    const skillDir = path.join(singleCallRoot, "skills", skillName);
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(path.join(skillDir, "SKILL.md"), content, "utf8");
+  }
+  writeFileSync(
+    path.join(singleCallRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [
+          { name: "strict-roadmap-recommend", family: "strict-roadmap" },
+          { name: "strict-spec-propose", family: "strict-spec" },
+        ],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const singleCallResult = skillValidationModule.validateStrictSkillPackaging(singleCallRoot);
+  const describe = singleCallResult.diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.path}:${diagnostic.expected ?? diagnostic.actual ?? ""}`).join(", ");
+  for (const [code, skillPath, field, phrase] of [
+    ["skill.roadmap.required_snippet.missing", "skills/strict-roadmap-recommend/SKILL.md", "expected", SINGLE_CALL_PHRASE],
+    ["skill.roadmap.required_snippet.missing", "skills/strict-roadmap-recommend/SKILL.md", "expected", NO_SECOND_CALL_PHRASE],
+    ["skill.roadmap.required_snippet.missing", "skills/strict-roadmap-recommend/SKILL.md", "expected", RECOMMEND_STEP_ONE_PHRASE],
+    ["skill.roadmap.forbidden_snippet.present", "skills/strict-roadmap-recommend/SKILL.md", "actual", SECOND_CALL_PHRASE],
+    ["skill.core.required_snippet.missing", "skills/strict-spec-propose/SKILL.md", "expected", SINGLE_CALL_PHRASE],
+    ["skill.core.required_snippet.missing", "skills/strict-spec-propose/SKILL.md", "expected", NO_SECOND_CALL_PHRASE],
+    ["skill.core.forbidden_snippet.present", "skills/strict-spec-propose/SKILL.md", "actual", READ_ONLY_SELECTION_PHRASE],
+  ] as const) {
+    context.assert(
+      singleCallResult.diagnostics.some(
+        (diagnostic) => diagnostic.code === code && diagnostic.path === skillPath && diagnostic[field] === phrase,
+      ),
+      `validate-skills reports ${code} for '${phrase}' in ${skillPath}`,
+      describe,
+    );
+  }
+  const singleCallCli = cli(["validate-skills"], { cwd: singleCallRoot });
+  context.assert(
+    singleCallCli.status !== 0
+      && singleCallCli.stdout.includes("skills/strict-roadmap-recommend/SKILL.md")
+      && singleCallCli.stdout.includes("skills/strict-spec-propose/SKILL.md"),
+    "validate-skills CLI exits non-zero naming both skills when either drops the single recommending call",
+    singleCallCli.stdout.trim(),
+  );
+} finally {
+  rmSync(singleCallRoot, { recursive: true, force: true });
 }
 
 const invalidSharedSchemaGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-guidance-invalid-"));

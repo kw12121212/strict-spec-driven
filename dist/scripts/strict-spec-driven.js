@@ -12230,6 +12230,7 @@ artifact_families:
     reference_side_effects:
       - Task state controls apply, verify, review, and archive gates.
       - Proposal roadmap links reconcile planned-change status during archive.
+      - roadmap-recommend --create reserves an empty change container through src/scaffold.ts named after the recommended planned change id; it writes no planning artifact, so it is not an owner of this family.
     cli_owners:
       - propose
       - generate
@@ -19844,7 +19845,7 @@ var COMMAND_METADATA_ENTRIES = {
     group: "roadmap",
     summary: "Recommend the next roadmap-backed planned change to work on.",
     mcpDescription: "Recommend the next strict roadmap change.",
-    usage: `Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>] [--allow-unrefined]
+    usage: `Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>] [--allow-unrefined] [--create]
 `,
     arguments: [],
     flags: [
@@ -19854,19 +19855,25 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--allow-unrefined",
         arity: "boolean",
         description: "Select work owned by a milestone awaiting refinement, which --milestone otherwise refuses. Supply this only as a deliberate human decision; an agent must report the refusal rather than adding the flag itself."
+      },
+      {
+        name: "--create",
+        arity: "boolean",
+        description: "When a planned change is recommended, also create its empty strict change container, named exactly the recommended planned change id, and report it as createdChange. Writes nothing for any other status. Without this flag the command is read-only."
       }
     ],
     output: {
       format: "json",
-      keys: ["valid", "status", "warnings", "diagnostics", "recommendation", "refineAction", "candidateSummary", "blockers", "detailsCommand"],
-      description: "A JSON recommendation summary, or the full result with --details."
+      keys: ["valid", "status", "warnings", "diagnostics", "recommendation", "refineAction", "candidateSummary", "blockers", "detailsCommand", "createdChange"],
+      description: "A JSON recommendation summary, or the full result with --details. createdChange is present only with --create: the created change's name, changeDir, specsDir, and whether it was newly created, or null when nothing was created."
     },
     exitCodes: [
-      { code: 0, meaning: "A planned change was recommended." },
-      { code: 1, meaning: "Usage error, no planned change could be recommended, or a milestone awaiting refinement was selected without --allow-unrefined." }
+      { code: 0, meaning: "A planned change was recommended, and with --create its change container was created." },
+      { code: 1, meaning: "Usage error, no planned change could be recommended, a milestone awaiting refinement was selected without --allow-unrefined, or --create could not reserve the recommended change container." }
     ],
     notes: [
-      "Recommendation follows strict roadmap order. When the earliest-ordered incomplete milestone declares awaiting_refinement, status is 'refine-milestone' and refineAction names that milestone instead of returning implementation work from later milestones; pausing it releases those candidates."
+      "Recommendation follows strict roadmap order. When the earliest-ordered incomplete milestone declares awaiting_refinement, status is 'refine-milestone' and refineAction names that milestone instead of returning implementation work from later milestones; pausing it releases those candidates.",
+      "--create crosses the same name, collision, and two-active-change checks as propose and writes only the change directory and its empty specs/ directory; author each planning artifact afterwards with generate <createdChange.name>. A refused reservation changes nothing and is reported as a diagnostic naming the rerun command."
     ]
   },
   "roadmap-archive": {
@@ -21921,8 +21928,8 @@ function runPropose(argv) {
 }
 
 // src/cli/cmd-generation.ts
-import { existsSync as existsSync12, readFileSync as readFileSync11, readdirSync as readdirSync3 } from "fs";
-import path12 from "path";
+import { existsSync as existsSync14, readFileSync as readFileSync13, readdirSync as readdirSync4 } from "fs";
+import path15 from "path";
 
 // src/requirement-questions.ts
 var CANONICAL_REQUIREMENT_QUESTIONS = [
@@ -21967,8 +21974,900 @@ function buildSeededRequirementQuestions() {
   }));
 }
 
-// src/cli/cmd-generation.ts
+// src/roadmap/load.ts
+import { existsSync as existsSync13, readFileSync as readFileSync12, statSync as statSync8 } from "fs";
+import path14 from "path";
+
+// src/roadmap/model.ts
 var STRICT_WORKFLOW_DIR4 = ".strict-spec-driven";
+var ROADMAP_DIR = `${STRICT_WORKFLOW_DIR4}/roadmap`;
+var ROADMAP_INDEX_PATH = `${ROADMAP_DIR}/INDEX.yaml`;
+var ROADMAP_MILESTONES_DIR = `${ROADMAP_DIR}/milestones`;
+var ROADMAP_ARCHIVE_DIR = `${ROADMAP_DIR}/archive`;
+var ROADMAP_ARCHIVE_MILESTONES_DIR = `${ROADMAP_ARCHIVE_DIR}/milestones`;
+var ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR = `${ROADMAP_ARCHIVE_DIR}/planned-changes`;
+var DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "blocked", "complete"];
+var DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"];
+var RETIRED_MILESTONE_STATUS = "active";
+var RETIRED_MILESTONE_STATUS_MESSAGE = `milestone status '${RETIRED_MILESTONE_STATUS}' is retired and is read as 'proposed'; run strict-spec-cli roadmap-sync to rewrite it`;
+var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
+var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
+var PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
+var MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE = "planned change dependency is missing from roadmap planned-change sources";
+function canonicalPlannedChangeFileName(milestoneId, plannedChangeId) {
+  if (plannedChangeId === milestoneId || plannedChangeId.startsWith(`${milestoneId}-`)) {
+    return `${plannedChangeId}.yaml`;
+  }
+  return `${milestoneId}-${plannedChangeId}.yaml`;
+}
+var DEFAULT_MILESTONE_INTAKE_QUESTIONS = [
+  {
+    id: "objective",
+    question: "What observable outcome should this milestone deliver?",
+    context: "Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.",
+    impact: "Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.",
+    recommendation: "Answer with one user- or operator-observable outcome that can be checked after the milestone is complete."
+  },
+  {
+    id: "scope-boundary",
+    question: "What is included in this milestone, and what is explicitly out of scope?",
+    context: "The roadmap already has scope.in and scope.out fields, but the boundary decision must be called out as a required clarification.",
+    impact: "Unclear scope affects planned-change ownership, milestone splitting, and whether later changes silently expand scope.",
+    recommendation: "Use the milestone scope fields as evidence and keep unrelated work out of this milestone."
+  },
+  {
+    id: "done-criteria",
+    question: "What concrete evidence proves this milestone is done?",
+    context: "Done criteria need to be verifiable rather than aspirational.",
+    impact: "Weak done criteria affect roadmap review, archive readiness, and follow-up change prioritization.",
+    recommendation: "Name the observable behavior, validation command, documentation, or archived planned changes that prove completion."
+  },
+  {
+    id: "work-decomposition",
+    question: "What standalone planned changes are needed to deliver this milestone?",
+    context: "Roadmap recommendation works from planned-change artifacts, not from hidden prose inside the milestone.",
+    impact: "Missing decomposition affects proposal generation and can block roadmap-backed automatic implementation.",
+    recommendation: "Create focused standalone planned-change files with actionable summary, details, dependencies, and status."
+  },
+  {
+    id: "dependencies-and-blockers",
+    question: "What dependencies or blockers must be resolved before this milestone can progress?",
+    context: "Dependencies may come from other milestones, active changes, services, credentials, or external decisions.",
+    impact: "Unknown blockers affect ordering, roadmap recommendation eligibility, and implementation handoff.",
+    recommendation: "Record known dependencies in dependencies and preserve unresolved blockers in milestone notes or planned-change detail."
+  },
+  {
+    id: "risks",
+    question: "What compatibility, data, security, privacy, performance, release, or rollback risks could change the plan?",
+    context: "Roadmap milestones often establish the risk surface before individual strict changes are proposed.",
+    impact: "Unidentified risks affect scope, technical standards, tests, release sequencing, and rollback planning.",
+    recommendation: "Record concrete risks in risks and keep mitigations small enough to map into planned changes."
+  },
+  {
+    id: "verification-evidence",
+    question: "How will milestone work be verified across implementation, tests, docs, and workflow artifacts?",
+    context: "The change-intake gate requires a proof plan before implementation begins.",
+    impact: "Missing verification affects planned-change testing tasks and archive confidence.",
+    recommendation: "Identify the relevant test suite, validation command, documentation check, or manual evidence expected for child changes."
+  },
+  {
+    id: "technical-standards",
+    question: "Which existing technical standards apply, or does this milestone require a new standard?",
+    context: "Technical rules live under .strict-spec-driven/tech/ and must be known before changes are implemented.",
+    impact: "Unclear standards affect implementation files, tests, and whether a child change needs a delta-tech artifact.",
+    recommendation: "List applicable standards or record a follow-up to add or update a technical standard when the milestone needs one."
+  }
+];
+function cloneDefaultMilestoneIntakeQuestions() {
+  return DEFAULT_MILESTONE_INTAKE_QUESTIONS.map((question) => ({ ...question }));
+}
+
+// src/roadmap/shared.ts
+import { existsSync as existsSync12, readdirSync as readdirSync3, statSync as statSync7 } from "fs";
+import path13 from "path";
+
+// src/diagnostics.ts
+import path12 from "node:path";
+function toPosix3(value) {
+  return value.split(path12.sep).join("/");
+}
+function buildDeterministicSortKey(parts) {
+  return parts.map((part) => part == null ? "" : String(part)).join("|");
+}
+function sortByDeterministicKey(values, getParts) {
+  return values.sort((left, right) => {
+    const leftKey = buildDeterministicSortKey(getParts(left));
+    const rightKey = buildDeterministicSortKey(getParts(right));
+    return leftKey.localeCompare(rightKey);
+  });
+}
+
+// src/roadmap/shared.ts
+function normalizeRepoRelativePath3(rootDir, absolutePath) {
+  return toPosix3(path13.relative(rootDir, absolutePath));
+}
+function resolveStrictWorkflowPath(rootDir, workflowRelativePath) {
+  const normalized = toPosix3(workflowRelativePath);
+  if (normalized.startsWith(`${STRICT_WORKFLOW_DIR4}/`)) {
+    return path13.join(rootDir, normalized);
+  }
+  return path13.join(rootDir, STRICT_WORKFLOW_DIR4, normalized);
+}
+function ensureTrailingNewline(value) {
+  return value.endsWith(`
+`) ? value : `${value}
+`;
+}
+function makeDiagnostic(source, artifactPath, fieldPath, message, expected, actual) {
+  return { source, artifactPath, fieldPath, message, expected, actual };
+}
+function sortDiagnostics(diagnostics) {
+  return sortByDeterministicKey(diagnostics, (diagnostic) => [
+    diagnostic.source,
+    diagnostic.artifactPath,
+    diagnostic.fieldPath,
+    diagnostic.message,
+    diagnostic.expected ?? "",
+    diagnostic.actual ?? ""
+  ]);
+}
+function diagnosticKey(diagnostic) {
+  return [
+    diagnostic.source,
+    diagnostic.artifactPath,
+    diagnostic.fieldPath,
+    diagnostic.message,
+    diagnostic.expected ?? "",
+    diagnostic.actual ?? ""
+  ].join("\x00");
+}
+function isRepairableRoadmapDiagnostic(diagnostic) {
+  return diagnostic.source === "reference" && diagnostic.message === MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE || isRetiredMilestoneStatusDiagnostic(diagnostic);
+}
+function isRetiredMilestoneStatusDiagnostic(diagnostic) {
+  return diagnostic.source === "schema" && diagnostic.message === RETIRED_MILESTONE_STATUS_MESSAGE && diagnostic.actual === RETIRED_MILESTONE_STATUS;
+}
+function partitionRepairableDiagnostics(diagnostics) {
+  const blocking = [];
+  const repairable = [];
+  for (const diagnostic of diagnostics) {
+    if (isRepairableRoadmapDiagnostic(diagnostic))
+      repairable.push(diagnostic);
+    else
+      blocking.push(diagnostic);
+  }
+  return { blocking, repairable };
+}
+function isRecord2(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function listYamlFiles2(directoryPath) {
+  if (!existsSync12(directoryPath) || !statSync7(directoryPath).isDirectory()) {
+    return [];
+  }
+  const files = [];
+  function walk(currentPath) {
+    const entries = readdirSync3(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const fullPath = path13.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+      if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+        files.push(fullPath);
+      }
+    }
+  }
+  walk(directoryPath);
+  return files;
+}
+function isRepoRelativePath(value) {
+  if (path13.isAbsolute(value))
+    return false;
+  const normalized = path13.posix.normalize(toPosix3(value));
+  return normalized !== ".." && !normalized.startsWith("../");
+}
+function isDeclaredRoadmapStatus(value) {
+  return typeof value === "string" && DECLARED_ROADMAP_STATUSES.includes(value);
+}
+function normalizeMilestoneStatus(status) {
+  return status === "planned" ? "proposed" : status;
+}
+function isDeclaredPlannedChangeStatus(value) {
+  return typeof value === "string" && DECLARED_PLANNED_CHANGE_STATUSES.includes(value);
+}
+function readYamlFile(filePath) {
+  return parseYamlFile(filePath);
+}
+
+// src/roadmap/validate.ts
+var MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
+var QUESTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+var DECLARED_ROADMAP_STATUS_LIST = DECLARED_ROADMAP_STATUSES.join(", ");
+function resolveMilestoneStatusValue(rawStatus, artifactPath, fieldPath, diagnostics) {
+  if (isDeclaredRoadmapStatus(rawStatus)) {
+    return rawStatus;
+  }
+  if (rawStatus === RETIRED_MILESTONE_STATUS) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, RETIRED_MILESTONE_STATUS_MESSAGE, DECLARED_ROADMAP_STATUS_LIST, RETIRED_MILESTONE_STATUS));
+    return "proposed";
+  }
+  diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "unsupported milestone status", DECLARED_ROADMAP_STATUS_LIST, String(rawStatus)));
+  return null;
+}
+function validateString(parent, key, artifactPath, fieldPath, diagnostics) {
+  const value = parent[key];
+  if (typeof value !== "string" || value.length === 0) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "value must be a non-empty string", "non-empty string", String(value)));
+    return null;
+  }
+  return value;
+}
+function validateStringArray(parent, key, artifactPath, fieldPath, diagnostics) {
+  const value = parent[key];
+  if (!Array.isArray(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "value must be a string sequence", "string[]", String(value)));
+    return null;
+  }
+  const result = [];
+  for (const [index, entry] of value.entries()) {
+    if (typeof entry !== "string" || entry.length === 0) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}[${index}]`, "sequence item must be a non-empty string", "non-empty string", String(entry)));
+      continue;
+    }
+    result.push(entry);
+  }
+  return result;
+}
+function validateOptionalString(parent, key, artifactPath, fieldPath, diagnostics) {
+  if (!(key in parent) || parent[key] === undefined)
+    return;
+  return validateString(parent, key, artifactPath, fieldPath, diagnostics);
+}
+function validateOptionalStringArray(parent, key, artifactPath, fieldPath, diagnostics) {
+  if (!(key in parent) || parent[key] === undefined)
+    return;
+  return validateStringArray(parent, key, artifactPath, fieldPath, diagnostics);
+}
+function extractKeyedMapKey(obj) {
+  const keys = Object.keys(obj);
+  return keys.length === 1 ? keys[0] : null;
+}
+function validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics) {
+  const value = artifact.intake_questions;
+  if (!Array.isArray(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must be a non-empty sequence", "non-empty sequence", String(value)));
+    return null;
+  }
+  if (value.length === 0) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must contain at least one question", "one or more intake question entries", "empty sequence"));
+    return null;
+  }
+  const result = [];
+  const seenIds = new Set;
+  for (const [index, entry] of value.entries()) {
+    const fieldPath = `$.intake_questions[${index}]`;
+    if (!isRecord2(entry)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "intake question must be a mapping", "mapping", typeof entry));
+      continue;
+    }
+    const id = validateString(entry, "id", artifactPath, `${fieldPath}.id`, diagnostics);
+    const question = validateString(entry, "question", artifactPath, `${fieldPath}.question`, diagnostics);
+    const context = validateString(entry, "context", artifactPath, `${fieldPath}.context`, diagnostics);
+    const impact = validateString(entry, "impact", artifactPath, `${fieldPath}.impact`, diagnostics);
+    const recommendation = validateString(entry, "recommendation", artifactPath, `${fieldPath}.recommendation`, diagnostics);
+    if (id) {
+      if (!QUESTION_ID_PATTERN.test(id)) {
+        diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "intake question id must be kebab-case", "kebab-case id", id));
+      } else if (seenIds.has(id)) {
+        diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "duplicate intake question id", "unique intake question id", id));
+      }
+      seenIds.add(id);
+    }
+    if (id && question && context && impact && recommendation && QUESTION_ID_PATTERN.test(id)) {
+      result.push({ id, question, context, impact, recommendation });
+    }
+  }
+  return result.length > 0 ? result : null;
+}
+function validateRoadmapIndexArtifact(artifact, artifactPath, diagnostics) {
+  if (!isRecord2(artifact)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "artifact must be a YAML mapping", "mapping", typeof artifact));
+    return null;
+  }
+  if (artifact.schema !== ROADMAP_INDEX_SCHEMA_ID) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", ROADMAP_INDEX_SCHEMA_ID, String(artifact.schema)));
+  }
+  if (artifact.schema_version !== 2) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "2", String(artifact.schema_version)));
+  }
+  if (artifact.artifact_type !== "roadmap_index") {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.artifact_type", "artifact_type mismatch", "roadmap_index", String(artifact.artifact_type)));
+  }
+  const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
+  const rawMilestones = artifact.milestones;
+  if (!isRecord2(rawMilestones)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestones", "milestones must be a keyed mapping", "keyed mapping", String(rawMilestones)));
+    return null;
+  }
+  const milestones = [];
+  const seenIds = new Set;
+  for (const [key, value] of Object.entries(rawMilestones)) {
+    if (!MILESTONE_ID_PATTERN.test(key)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone key must be kebab-case with optional NNNN- legacy prefix", "kebab-case or NNNN-kebab-case", key));
+      continue;
+    }
+    if (!isRecord2(value)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone entry must be a mapping", "mapping", typeof value));
+      continue;
+    }
+    if (seenIds.has(key)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "duplicate milestone id", "unique milestone id", key));
+      continue;
+    }
+    seenIds.add(key);
+    const title = validateString(value, "title", artifactPath, `$.milestones.${key}.title`, diagnostics);
+    const milestonePath = validateString(value, "path", artifactPath, `$.milestones.${key}.path`, diagnostics);
+    const statusValue = resolveMilestoneStatusValue(value.status, artifactPath, `$.milestones.${key}.status`, diagnostics);
+    if (milestonePath && !isRepoRelativePath(milestonePath)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}.path`, "milestone path must be repo-relative", "repo-relative path", milestonePath));
+    }
+    if (!title || !milestonePath || statusValue === null) {
+      continue;
+    }
+    milestones.push({
+      id: key,
+      title,
+      path: milestonePath,
+      status: statusValue
+    });
+  }
+  if (!schemaFile) {
+    return null;
+  }
+  return {
+    schema: ROADMAP_INDEX_SCHEMA_ID,
+    schema_version: 2,
+    artifact_type: "roadmap_index",
+    schema_file: schemaFile,
+    milestones
+  };
+}
+function validatePlannedChangeEntry(value, changeKey, artifactPath, fieldPath, diagnostics) {
+  if (!isRecord2(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "planned change entry must be a mapping", "mapping", typeof value));
+    return null;
+  }
+  const summary = validateString(value, "summary", artifactPath, `${fieldPath}.summary`, diagnostics);
+  const details = validateString(value, "details", artifactPath, `${fieldPath}.details`, diagnostics);
+  const dependsOn = validateStringArray(value, "depends_on", artifactPath, `${fieldPath}.depends_on`, diagnostics);
+  const statusValue = value.status;
+  if (!isDeclaredPlannedChangeStatus(statusValue)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "unsupported planned change status", "planned, complete", String(statusValue)));
+  }
+  if (!summary || !details || !dependsOn || !isDeclaredPlannedChangeStatus(statusValue)) {
+    return null;
+  }
+  return {
+    status: statusValue,
+    summary,
+    details,
+    depends_on: dependsOn
+  };
+}
+function validateBlockedMetadata(value, artifactPath, fieldPath, diagnostics) {
+  if (!isRecord2(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "blocked must be a mapping", "mapping", typeof value));
+    return null;
+  }
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (key !== "status" && key !== "reason") {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported blocked metadata field", "status or reason", key));
+      valid = false;
+    }
+  }
+  if (typeof value.status !== "boolean") {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "blocked status must be a boolean", "boolean", String(value.status)));
+    valid = false;
+  }
+  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
+  if (reason === null)
+    valid = false;
+  if (!valid)
+    return null;
+  return {
+    status: value.status,
+    ...typeof reason === "string" ? { reason } : {}
+  };
+}
+function validatePausedMetadata(value, artifactPath, fieldPath, diagnostics) {
+  if (!isRecord2(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "paused must be a mapping", "mapping", typeof value));
+    return null;
+  }
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (key !== "status" && key !== "reason" && key !== "paused_on") {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported paused metadata field", "status, reason, or paused_on", key));
+      valid = false;
+    }
+  }
+  if (value.status !== true) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "paused.status must be the literal boolean true", "true", String(value.status)));
+    valid = false;
+  }
+  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
+  if (reason === null)
+    valid = false;
+  const pausedOn = validateOptionalString(value, "paused_on", artifactPath, `${fieldPath}.paused_on`, diagnostics);
+  if (pausedOn === null)
+    valid = false;
+  if (!valid)
+    return null;
+  return {
+    status: true,
+    ...typeof reason === "string" ? { reason } : {},
+    ...typeof pausedOn === "string" ? { paused_on: pausedOn } : {}
+  };
+}
+function validateAwaitingRefinementMetadata(value, artifactPath, fieldPath, diagnostics) {
+  if (!isRecord2(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "awaiting_refinement must be a mapping", "mapping", typeof value));
+    return null;
+  }
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (key !== "status" && key !== "reason" && key !== "deferred_on") {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported awaiting_refinement metadata field", "status, reason, or deferred_on", key));
+      valid = false;
+    }
+  }
+  if (value.status !== true) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "awaiting_refinement.status must be the literal boolean true", "true", String(value.status)));
+    valid = false;
+  }
+  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
+  if (reason === null)
+    valid = false;
+  const deferredOn = validateOptionalString(value, "deferred_on", artifactPath, `${fieldPath}.deferred_on`, diagnostics);
+  if (deferredOn === null)
+    valid = false;
+  if (!valid)
+    return null;
+  return {
+    status: true,
+    ...typeof reason === "string" ? { reason } : {},
+    ...typeof deferredOn === "string" ? { deferred_on: deferredOn } : {}
+  };
+}
+function validateExternalRefsMetadata(value, artifactPath, fieldPath, diagnostics) {
+  if (!Array.isArray(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "external_refs must be a sequence", "external reference[]", String(value)));
+    return null;
+  }
+  const result = [];
+  let valid = true;
+  for (const [index, entry] of value.entries()) {
+    const entryPath = `${fieldPath}[${index}]`;
+    if (!isRecord2(entry)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, entryPath, "external reference must be a mapping", "mapping", typeof entry));
+      valid = false;
+      continue;
+    }
+    for (const key of Object.keys(entry)) {
+      if (key !== "label" && key !== "target") {
+        diagnostics.push(makeDiagnostic("schema", artifactPath, `${entryPath}.${key}`, "unsupported external reference field", "label or target", key));
+        valid = false;
+      }
+    }
+    const label = validateString(entry, "label", artifactPath, `${entryPath}.label`, diagnostics);
+    const target = validateString(entry, "target", artifactPath, `${entryPath}.target`, diagnostics);
+    if (!label || !target) {
+      valid = false;
+      continue;
+    }
+    result.push({ label, target });
+  }
+  return valid ? result : null;
+}
+function validateTeamMetadata(value, artifactPath, diagnostics) {
+  if (!isRecord2(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.team", "team must be a mapping", "mapping", typeof value));
+    return null;
+  }
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (!["owner", "reviewers", "blocked", "labels", "external_refs"].includes(key)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.team.${key}`, "unsupported team metadata field", "owner, reviewers, blocked, labels, or external_refs", key));
+      valid = false;
+    }
+  }
+  const owner = validateOptionalString(value, "owner", artifactPath, "$.team.owner", diagnostics);
+  const reviewers = validateOptionalStringArray(value, "reviewers", artifactPath, "$.team.reviewers", diagnostics);
+  const labels = validateOptionalStringArray(value, "labels", artifactPath, "$.team.labels", diagnostics);
+  const blocked = "blocked" in value && value.blocked !== undefined ? validateBlockedMetadata(value.blocked, artifactPath, "$.team.blocked", diagnostics) : undefined;
+  const externalRefs = "external_refs" in value && value.external_refs !== undefined ? validateExternalRefsMetadata(value.external_refs, artifactPath, "$.team.external_refs", diagnostics) : undefined;
+  if (owner === null || reviewers === null || labels === null || blocked === null || externalRefs === null) {
+    valid = false;
+  }
+  if (!valid)
+    return null;
+  return {
+    ...typeof owner === "string" ? { owner } : {},
+    ...Array.isArray(reviewers) ? { reviewers } : {},
+    ...blocked && typeof blocked.status === "boolean" ? { blocked } : {},
+    ...Array.isArray(labels) ? { labels } : {},
+    ...Array.isArray(externalRefs) ? { external_refs: externalRefs } : {}
+  };
+}
+function validateStandalonePlannedChangeArtifact(artifact, artifactPath, diagnostics) {
+  if (!isRecord2(artifact)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "artifact must be a YAML mapping", "mapping", typeof artifact));
+    return null;
+  }
+  if (artifact.schema !== PLANNED_CHANGE_SCHEMA_ID) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", PLANNED_CHANGE_SCHEMA_ID, String(artifact.schema)));
+  }
+  if (artifact.schema_version !== 1) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "1", String(artifact.schema_version)));
+  }
+  if (artifact.artifact_type !== "planned_change") {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.artifact_type", "artifact_type mismatch", "planned_change", String(artifact.artifact_type)));
+  }
+  const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
+  const summary = validateString(artifact, "summary", artifactPath, "$.summary", diagnostics);
+  const details = validateString(artifact, "details", artifactPath, "$.details", diagnostics);
+  const dependsOn = validateStringArray(artifact, "depends_on", artifactPath, "$.depends_on", diagnostics);
+  const statusValue = artifact.status;
+  if (!isDeclaredPlannedChangeStatus(statusValue)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.status", "unsupported planned change status", "planned, complete", String(statusValue)));
+  }
+  const rawPlannedChange = artifact.planned_change;
+  let plannedChange = null;
+  if (!isRecord2(rawPlannedChange)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.planned_change", "planned_change must be a mapping", "mapping", typeof rawPlannedChange));
+  } else {
+    const id = validateString(rawPlannedChange, "id", artifactPath, "$.planned_change.id", diagnostics);
+    const milestone = validateString(rawPlannedChange, "milestone", artifactPath, "$.planned_change.milestone", diagnostics);
+    if (id && milestone) {
+      plannedChange = { id, milestone };
+    }
+  }
+  const extensions = artifact.extensions;
+  if (extensions !== undefined && !isRecord2(extensions)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.extensions", "extensions must be a mapping", "mapping", typeof extensions));
+  }
+  const team = "team" in artifact && artifact.team !== undefined ? validateTeamMetadata(artifact.team, artifactPath, diagnostics) : undefined;
+  if (!schemaFile || !summary || !details || !dependsOn || !plannedChange || !isDeclaredPlannedChangeStatus(statusValue) || team === null) {
+    return null;
+  }
+  return {
+    schema: PLANNED_CHANGE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "planned_change",
+    schema_file: schemaFile,
+    planned_change: plannedChange,
+    status: statusValue,
+    summary,
+    details,
+    depends_on: dependsOn,
+    ...team !== undefined ? { team } : {},
+    ...isRecord2(extensions) ? { extensions } : {}
+  };
+}
+function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
+  if (!isRecord2(artifact)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "artifact must be a YAML mapping", "mapping", typeof artifact));
+    return null;
+  }
+  if (artifact.schema !== ROADMAP_MILESTONE_SCHEMA_ID) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", ROADMAP_MILESTONE_SCHEMA_ID, String(artifact.schema)));
+  }
+  if (artifact.schema_version !== 2) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "2", String(artifact.schema_version)));
+  }
+  if (artifact.artifact_type !== "roadmap_milestone") {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.artifact_type", "artifact_type mismatch", "roadmap_milestone", String(artifact.artifact_type)));
+  }
+  const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
+  const goal = validateString(artifact, "goal", artifactPath, "$.goal", diagnostics);
+  const order = "order" in artifact && artifact.order !== undefined ? (() => {
+    if (!Number.isInteger(artifact.order)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.order", "order must be an integer", "integer", String(artifact.order)));
+      return null;
+    }
+    return artifact.order;
+  })() : undefined;
+  const doneCriteria = validateStringArray(artifact, "done_criteria", artifactPath, "$.done_criteria", diagnostics);
+  const intakeQuestions = validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics);
+  const dependencies = validateStringArray(artifact, "dependencies", artifactPath, "$.dependencies", diagnostics);
+  const risks = validateStringArray(artifact, "risks", artifactPath, "$.risks", diagnostics);
+  const notes = validateStringArray(artifact, "notes", artifactPath, "$.notes", diagnostics);
+  const details = "details" in artifact && artifact.details !== undefined ? (() => {
+    if (typeof artifact.details !== "string") {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.details", "value must be a string", "string", typeof artifact.details));
+      return null;
+    }
+    return artifact.details;
+  })() : undefined;
+  const statusValue = resolveMilestoneStatusValue(artifact.status, artifactPath, "$.status", diagnostics);
+  const pausedState = "paused" in artifact && artifact.paused !== undefined ? (() => {
+    if (artifact.paused === null) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.paused", "paused must be a mapping", "mapping", "null"));
+      return null;
+    }
+    return validatePausedMetadata(artifact.paused, artifactPath, "$.paused", diagnostics);
+  })() : undefined;
+  const awaitingRefinementState = "awaiting_refinement" in artifact && artifact.awaiting_refinement !== undefined ? (() => {
+    if (artifact.awaiting_refinement === null) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.awaiting_refinement", "awaiting_refinement must be a mapping", "mapping", "null"));
+      return null;
+    }
+    return validateAwaitingRefinementMetadata(artifact.awaiting_refinement, artifactPath, "$.awaiting_refinement", diagnostics);
+  })() : undefined;
+  const rawMilestone = artifact.milestone;
+  let milestone = null;
+  if (!isRecord2(rawMilestone)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must be a keyed mapping", "keyed mapping", typeof rawMilestone));
+  } else {
+    const milestoneKey = extractKeyedMapKey(rawMilestone);
+    if (!milestoneKey) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must contain exactly one keyed entry", "single keyed entry", `${Object.keys(rawMilestone).length} keys`));
+    } else if (!MILESTONE_ID_PATTERN.test(milestoneKey)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone key must be kebab-case with optional NNNN- legacy prefix", "kebab-case or NNNN-kebab-case", milestoneKey));
+    } else {
+      const milestoneValue = rawMilestone[milestoneKey];
+      if (!isRecord2(milestoneValue)) {
+        diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone value must be a mapping", "mapping", typeof milestoneValue));
+      } else {
+        const milestoneTitle = validateString(milestoneValue, "title", artifactPath, `$.milestone.${milestoneKey}.title`, diagnostics);
+        if (milestoneTitle) {
+          milestone = {
+            id: milestoneKey,
+            title: milestoneTitle
+          };
+        }
+      }
+    }
+  }
+  const rawScope = artifact.scope;
+  let scope = null;
+  if (!isRecord2(rawScope)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.scope", "scope must be a mapping", "mapping", typeof rawScope));
+  } else {
+    const scopeIn = validateStringArray(rawScope, "in", artifactPath, "$.scope.in", diagnostics);
+    const scopeOut = validateStringArray(rawScope, "out", artifactPath, "$.scope.out", diagnostics);
+    if (scopeIn && scopeOut) {
+      scope = { in: scopeIn, out: scopeOut };
+    }
+  }
+  const rawPlannedChanges = artifact.planned_changes;
+  if (!isRecord2(rawPlannedChanges)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.planned_changes", "planned_changes must be a keyed mapping", "keyed mapping", String(rawPlannedChanges)));
+    return null;
+  }
+  const plannedChanges = {};
+  const seenIds = new Set;
+  for (const [changeKey, changeValue] of Object.entries(rawPlannedChanges)) {
+    if (seenIds.has(changeKey)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.planned_changes.${changeKey}`, "duplicate planned change id", "unique planned change id", changeKey));
+      continue;
+    }
+    seenIds.add(changeKey);
+    const parsed = validatePlannedChangeEntry(changeValue, changeKey, artifactPath, `$.planned_changes.${changeKey}`, diagnostics);
+    if (parsed) {
+      plannedChanges[changeKey] = parsed;
+    }
+  }
+  const plannedChangeIds = new Set(Object.keys(plannedChanges));
+  const plannedChangeKeys = Object.keys(plannedChanges);
+  for (const [changeKey, entry] of Object.entries(plannedChanges)) {
+    for (const [dependsOnIndex, dependsOn] of entry.depends_on.entries()) {
+      if (dependsOn === changeKey) {
+        diagnostics.push(makeDiagnostic("semantic", artifactPath, `$.planned_changes.${changeKey}.depends_on[${dependsOnIndex}]`, "planned change cannot depend on itself", "different planned change id", dependsOn));
+        continue;
+      }
+      if (!plannedChangeIds.has(dependsOn)) {
+        diagnostics.push(makeDiagnostic("reference", artifactPath, `$.planned_changes.${changeKey}.depends_on[${dependsOnIndex}]`, "planned change dependency is missing from this milestone", "$.planned_changes keys", dependsOn));
+      }
+    }
+  }
+  const visiting = new Set;
+  const visited = new Set;
+  const reportedCycles = new Set;
+  function visit(id, trail) {
+    if (visiting.has(id)) {
+      const cycleStart = trail.indexOf(id);
+      const cycle = [...trail.slice(cycleStart), id];
+      const cycleKey = cycle.join("->");
+      if (reportedCycles.has(cycleKey))
+        return;
+      reportedCycles.add(cycleKey);
+      diagnostics.push(makeDiagnostic("semantic", artifactPath, `$.planned_changes.${id}.depends_on`, "planned change dependencies must be acyclic", "acyclic dependency graph", cycle.join(" -> ")));
+      return;
+    }
+    if (visited.has(id))
+      return;
+    visiting.add(id);
+    const entry = plannedChanges[id];
+    for (const dependsOn of entry?.depends_on ?? []) {
+      if (plannedChangeIds.has(dependsOn) && dependsOn !== id) {
+        visit(dependsOn, [...trail, id]);
+      }
+    }
+    visiting.delete(id);
+    visited.add(id);
+  }
+  for (const changeKey of plannedChangeKeys) {
+    visit(changeKey, []);
+  }
+  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || statusValue === null) {
+    return null;
+  }
+  return {
+    schema: ROADMAP_MILESTONE_SCHEMA_ID,
+    schema_version: 2,
+    artifact_type: "roadmap_milestone",
+    schema_file: schemaFile,
+    milestone,
+    ...typeof order === "number" ? { order } : {},
+    goal,
+    scope,
+    done_criteria: doneCriteria,
+    intake_questions: intakeQuestions,
+    planned_changes: plannedChanges,
+    dependencies,
+    risks,
+    status: statusValue,
+    ...pausedState ? { paused: pausedState } : {},
+    ...awaitingRefinementState ? { awaiting_refinement: awaitingRefinementState } : {},
+    notes,
+    details: details ?? undefined
+  };
+}
+
+// src/roadmap/load.ts
+function isInsideDirectory(filePath, directoryPath) {
+  const relativePath = path14.relative(directoryPath, filePath);
+  return relativePath.length > 0 && !relativePath.startsWith("..") && !path14.isAbsolute(relativePath);
+}
+function listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir) {
+  return listYamlFiles2(roadmapDir).filter((filePath) => {
+    if (filePath === indexPath)
+      return false;
+    if (isInsideDirectory(filePath, milestonesDir))
+      return false;
+    if (isInsideDirectory(filePath, archiveDir))
+      return false;
+    return true;
+  });
+}
+function appendLegacyInlinePlannedChangeDiagnostic(artifactPath, plannedChangeIds, diagnostics) {
+  diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_changes", "inline milestone planned_changes are no longer supported; run the materialization form of the strict-roadmap-transition skill's sync operation (repository equivalent: `node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes`) to convert them into standalone planned-change files", "empty mapping after materialization", plannedChangeIds.join(", ")));
+}
+function loadRoadmap(rootDir, options = {}) {
+  const warnings = [];
+  const diagnostics = [];
+  const roadmapDir = path14.join(rootDir, ROADMAP_DIR);
+  const archiveDir = path14.join(rootDir, ROADMAP_ARCHIVE_DIR);
+  const indexPath = path14.join(rootDir, ROADMAP_INDEX_PATH);
+  const milestonesDir = path14.join(rootDir, ROADMAP_MILESTONES_DIR);
+  if (!existsSync13(roadmapDir) || !statSync8(roadmapDir).isDirectory()) {
+    diagnostics.push(makeDiagnostic("schema", ROADMAP_DIR, "$", "strict roadmap directory not found", ROADMAP_DIR, "missing"));
+    return { warnings, diagnostics, indexArtifact: null, milestones: [], plannedChanges: [] };
+  }
+  let indexArtifact = null;
+  if (existsSync13(indexPath)) {
+    try {
+      indexArtifact = validateRoadmapIndexArtifact(readYamlFile(indexPath), ROADMAP_INDEX_PATH, diagnostics);
+    } catch (error) {
+      const yamlDetails = getYamlParseDetails(error);
+      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+      diagnostics.push({
+        ...makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "failed to parse roadmap index YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+        ...yamlDiagnosticDetails
+      });
+    }
+  } else {
+    diagnostics.push(makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "roadmap index is missing", ROADMAP_INDEX_PATH, "missing"));
+  }
+  const milestoneFiles = listYamlFiles2(milestonesDir);
+  if (milestoneFiles.length === 0) {
+    warnings.push("roadmap/milestones/ is empty");
+  }
+  const milestones = [];
+  for (const absolutePath of milestoneFiles) {
+    const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
+    try {
+      const raw = readFileSync12(absolutePath, "utf8");
+      const artifact = validateMilestoneArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
+      if (!artifact)
+        continue;
+      const inlinePlannedChangeIds = Object.keys(artifact.planned_changes);
+      if (!options.allowInlinePlannedChanges && inlinePlannedChangeIds.length > 0) {
+        appendLegacyInlinePlannedChangeDiagnostic(artifactPath, inlinePlannedChangeIds, diagnostics);
+      }
+      const relativeMilestonePath = toPosix3(path14.relative(milestonesDir, absolutePath));
+      milestones.push({
+        absolutePath,
+        artifactPath,
+        file: path14.basename(relativeMilestonePath),
+        relativeMilestonePath,
+        repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
+        raw,
+        artifact
+      });
+    } catch (error) {
+      const yamlDetails = getYamlParseDetails(error);
+      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+      diagnostics.push({
+        ...makeDiagnostic("schema", artifactPath, "$", "failed to parse roadmap milestone YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+        ...yamlDiagnosticDetails
+      });
+    }
+  }
+  const plannedChanges = [];
+  for (const absolutePath of listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir)) {
+    const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
+    try {
+      const raw = readFileSync12(absolutePath, "utf8");
+      const artifact = validateStandalonePlannedChangeArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
+      if (!artifact)
+        continue;
+      const relativeRoadmapPath = toPosix3(path14.relative(roadmapDir, absolutePath));
+      plannedChanges.push({
+        absolutePath,
+        artifactPath,
+        file: path14.basename(relativeRoadmapPath),
+        relativeRoadmapPath,
+        repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
+        raw,
+        artifact
+      });
+    } catch (error) {
+      const yamlDetails = getYamlParseDetails(error);
+      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+      diagnostics.push({
+        ...makeDiagnostic("schema", artifactPath, "$", "failed to parse roadmap planned-change YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+        ...yamlDiagnosticDetails
+      });
+    }
+  }
+  return {
+    warnings,
+    diagnostics: sortDiagnostics(diagnostics),
+    indexArtifact,
+    milestones,
+    plannedChanges
+  };
+}
+function loadArchivedPlannedChangeIds(rootDir) {
+  const archivePlannedChangesDir = path14.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
+  const ids = new Set;
+  if (!existsSync13(archivePlannedChangesDir) || !statSync8(archivePlannedChangesDir).isDirectory()) {
+    return ids;
+  }
+  for (const absolutePath of listYamlFiles2(archivePlannedChangesDir)) {
+    try {
+      const parsed = readYamlFile(absolutePath);
+      if (!isRecord2(parsed))
+        continue;
+      const plannedChange = parsed.planned_change;
+      if (!isRecord2(plannedChange))
+        continue;
+      const id = plannedChange.id;
+      if (typeof id === "string" && id.length > 0) {
+        ids.add(id);
+      }
+    } catch {}
+  }
+  return ids;
+}
+
+// src/cli/cmd-generation.ts
+var STRICT_WORKFLOW_DIR5 = ".strict-spec-driven";
 var BOOLEAN_FLAGS = new Set(["delete"]);
 function usage() {
   return getCommandUsage("generate");
@@ -21999,8 +22898,8 @@ function resolveStringValue(value, rootDir) {
   if (!value.startsWith("@") || value === "@") {
     return value;
   }
-  const inputPath = path12.resolve(rootDir, value.slice(1));
-  return readFileSync11(inputPath, "utf8");
+  const inputPath = path15.resolve(rootDir, value.slice(1));
+  return readFileSync13(inputPath, "utf8");
 }
 var PROPOSAL_ARGUMENTS = [
   "what",
@@ -22068,14 +22967,14 @@ function uniqueStrings(input) {
   }
   return output;
 }
-function isRecord2(value) {
+function isRecord3(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function readYamlIfExists(rootDir, repoRelativePath) {
-  const absolutePath = path12.join(rootDir, repoRelativePath);
-  if (!existsSync12(absolutePath))
+  const absolutePath = path15.join(rootDir, repoRelativePath);
+  if (!existsSync14(absolutePath))
     return;
-  return parseYamlDocument(readFileSync11(absolutePath, "utf8"), { source: repoRelativePath });
+  return parseYamlDocument(readFileSync13(absolutePath, "utf8"), { source: repoRelativePath });
 }
 function deepEqual(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
@@ -22119,7 +23018,7 @@ function mergeDeltaRequirement(collection, requirementId, incoming, session) {
     collection[requirementId] = incoming;
     return;
   }
-  if (!isRecord2(existing)) {
+  if (!isRecord3(existing)) {
     collection[requirementId] = incoming;
     return;
   }
@@ -22130,8 +23029,8 @@ function mergeDeltaRequirement(collection, requirementId, incoming, session) {
       throw new Error(`duplicate delta requirement '${requirementId}' has conflicting ${fieldName}`);
     }
   }
-  const existingScenarios = isRecord2(existing.scenarios) ? existing.scenarios : {};
-  const incomingScenarios = isRecord2(incoming.scenarios) ? incoming.scenarios : {};
+  const existingScenarios = isRecord3(existing.scenarios) ? existing.scenarios : {};
+  const incomingScenarios = isRecord3(incoming.scenarios) ? incoming.scenarios : {};
   const mergedScenarios = { ...existingScenarios };
   for (const [scenarioId, steps] of Object.entries(incomingScenarios)) {
     const existingSteps = mergedScenarios[scenarioId];
@@ -22162,11 +23061,11 @@ function upsertListItem(collection, item, id, fieldName, session) {
   return next;
 }
 function existingProposalInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/proposal.yaml`);
-  const summary = isRecord2(artifact?.summary) ? artifact.summary : {};
-  const scope = isRecord2(artifact?.scope) ? artifact.scope : {};
-  const change = isRecord2(artifact?.change) ? artifact.change : {};
-  const roadmap = isRecord2(artifact?.roadmap) ? artifact.roadmap : undefined;
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/proposal.yaml`);
+  const summary = isRecord3(artifact?.summary) ? artifact.summary : {};
+  const scope = isRecord3(artifact?.scope) ? artifact.scope : {};
+  const change = isRecord3(artifact?.change) ? artifact.change : {};
+  const roadmap = isRecord3(artifact?.roadmap) ? artifact.roadmap : undefined;
   return {
     what: Array.isArray(summary.what) ? summary.what : [],
     why: Array.isArray(summary.why) ? summary.why : [],
@@ -22225,17 +23124,50 @@ function buildProposalInput(rootDir, changeName, flags) {
       throw new Error("missing required argument --milestone");
     if (!plannedChange)
       throw new Error("missing required argument --planned-change");
+    assertRoadmapLinkMatchesChange(rootDir, changeName, milestone, plannedChange);
     input.roadmap = { milestone, planned_change: plannedChange };
   } else if (existing.roadmap) {
     input.roadmap = existing.roadmap;
+  } else {
+    const matching = inferRoadmapMilestone(rootDir, changeName);
+    if (matching !== undefined)
+      input.roadmap = { milestone: matching, planned_change: changeName };
   }
   return input;
 }
+function activePlannedChangeOwners(rootDir) {
+  const owners = new Map;
+  for (const plannedChange of loadRoadmap(rootDir).plannedChanges) {
+    const { id, milestone } = plannedChange.artifact.planned_change;
+    owners.set(id, [...owners.get(id) ?? [], milestone]);
+  }
+  return owners;
+}
+function inferRoadmapMilestone(rootDir, changeName) {
+  const owners = activePlannedChangeOwners(rootDir).get(changeName);
+  return owners?.length === 1 ? owners[0] : undefined;
+}
+function assertRoadmapLinkMatchesChange(rootDir, changeName, milestone, plannedChange) {
+  const owners = activePlannedChangeOwners(rootDir).get(plannedChange);
+  if (owners === undefined) {
+    throw new Error(`planned change '${plannedChange}' is not recorded in the active roadmap, so change '${changeName}' cannot link to it; ` + "read the planned-change ids from 'strict-spec-cli roadmap-status', or create the change from the recommended planned change with 'strict-spec-cli roadmap-recommend --create'");
+  }
+  if (owners.length > 1) {
+    throw new Error(`planned change '${plannedChange}' is recorded more than once in the active roadmap (milestones ${owners.map((owner) => `'${owner}'`).join(", ")}), so no link to it can be reconciled; ` + "run 'strict-spec-cli roadmap-status' to locate the duplicate files and remove one with 'strict-spec-cli roadmap-delete-planned-change', then record the link again");
+  }
+  const [owner] = owners;
+  if (plannedChange !== changeName) {
+    throw new Error(`change name '${changeName}' must equal the planned change id '${plannedChange}' it links to, because roadmap status matches changes by directory name; ` + `create a correctly named change with 'strict-spec-cli roadmap-recommend --milestone ${owner} --create'`);
+  }
+  if (owner !== milestone) {
+    throw new Error(`planned change '${plannedChange}' is owned by milestone '${owner}', not '${milestone}'; ` + `record the link with 'strict-spec-cli generate ${changeName} proposal --milestone ${owner} --planned-change ${plannedChange}'`);
+  }
+}
 function existingDesignInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/design.yaml`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/design.yaml`);
   return {
     approach: Array.isArray(artifact?.approach) ? artifact.approach : [],
-    decisions: isRecord2(artifact?.decisions) ? artifact.decisions : {},
+    decisions: isRecord3(artifact?.decisions) ? artifact.decisions : {},
     alternatives: Array.isArray(artifact?.alternatives) ? artifact.alternatives : [],
     risks: Array.isArray(artifact?.risks) ? artifact.risks : []
   };
@@ -22246,7 +23178,7 @@ function buildDesignInput(rootDir, changeName, flags) {
   const input = existingDesignInput(rootDir, changeName);
   let approach = uniqueStrings([...Array.isArray(input.approach) ? input.approach : [], ...values(flags, "approach")]);
   let risks = uniqueStrings([...Array.isArray(input.risks) ? input.risks : [], ...values(flags, "risk")]);
-  const decisions = isRecord2(input.decisions) ? input.decisions : {};
+  const decisions = isRecord3(input.decisions) ? input.decisions : {};
   const decisionIds = values(flags, "decision");
   const decisionTexts = values(flags, "decision-text");
   const rationales = values(flags, "rationale");
@@ -22292,7 +23224,7 @@ function buildDesignInput(rootDir, changeName, flags) {
 var QUESTION_KIND_VALUES2 = ["requirement", "technical"];
 var ANSWERED_BY_VALUES2 = ["human", "roadmap", "assumption"];
 function isRequirementQuestion(entry) {
-  return isRecord2(entry) && entry.kind === "requirement";
+  return isRecord3(entry) && entry.kind === "requirement";
 }
 function withQuestionAttribution(entry, item, inheritedFrom) {
   const kind = item.questionKind ?? (typeof inheritedFrom?.kind === "string" ? inheritedFrom.kind : undefined);
@@ -22367,7 +23299,7 @@ function parseQuestionCommandInput(argv, rootDir) {
   return input;
 }
 function existingQuestionsInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/questions.yaml`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/questions.yaml`);
   if (!artifact) {
     return { open: buildSeededRequirementQuestions(), resolved: [] };
   }
@@ -22417,7 +23349,7 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
       if (!item.answer)
         throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
       const existingOpen = open.find((candidate) => candidate.id === item.id);
-      const existingRecord = isRecord2(existingOpen) ? existingOpen : undefined;
+      const existingRecord = isRecord3(existingOpen) ? existingOpen : undefined;
       const question = item.question ?? (typeof existingRecord?.question === "string" ? existingRecord.question : undefined);
       const context = item.context ?? (typeof existingRecord?.context === "string" ? existingRecord.context : undefined);
       if (!question)
@@ -22535,10 +23467,10 @@ function parseTaskCommandInput(argv, rootDir, changeName) {
   return input;
 }
 function existingTaskListInput(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/tasks.yaml`);
-  const gates = isRecord2(artifact?.testing_gates) ? artifact.testing_gates : {};
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/tasks.yaml`);
+  const gates = isRecord3(artifact?.testing_gates) ? artifact.testing_gates : {};
   return {
-    sections: isRecord2(artifact?.sections) ? artifact.sections : {},
+    sections: isRecord3(artifact?.sections) ? artifact.sections : {},
     testing_gates: {
       validation_task: typeof gates.validation_task === "string" ? gates.validation_task : "",
       unit_test_task: typeof gates.unit_test_task === "string" ? gates.unit_test_task : ""
@@ -22546,14 +23478,14 @@ function existingTaskListInput(rootDir, changeName) {
   };
 }
 function completedTaskIds(rootDir, changeName) {
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/tasks.yaml`);
-  const sections = isRecord2(artifact?.sections) ? artifact.sections : {};
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/tasks.yaml`);
+  const sections = isRecord3(artifact?.sections) ? artifact.sections : {};
   const completed = [];
   for (const sectionTasks of Object.values(sections)) {
-    if (!isRecord2(sectionTasks))
+    if (!isRecord3(sectionTasks))
       continue;
     for (const [taskId, task] of Object.entries(sectionTasks)) {
-      if (isRecord2(task) && task.status === "complete")
+      if (isRecord3(task) && task.status === "complete")
         completed.push(taskId);
     }
   }
@@ -22561,7 +23493,7 @@ function completedTaskIds(rootDir, changeName) {
 }
 function findTaskSection(sections, taskId) {
   for (const [sectionName, sectionTasks] of Object.entries(sections)) {
-    if (isRecord2(sectionTasks) && Object.prototype.hasOwnProperty.call(sectionTasks, taskId)) {
+    if (isRecord3(sectionTasks) && Object.prototype.hasOwnProperty.call(sectionTasks, taskId)) {
       return sectionName;
     }
   }
@@ -22595,8 +23527,8 @@ function placeTaskInSection(sectionTasks, taskId, anchorId, side) {
 function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
   const commandInput = parseTaskCommandInput(argv, rootDir, changeName);
   const input = existingTaskListInput(rootDir, changeName);
-  const sections = isRecord2(input.sections) ? input.sections : {};
-  const gates = isRecord2(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
+  const sections = isRecord3(input.sections) ? input.sections : {};
+  const gates = isRecord3(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
   for (const taskId of commandInput.removals) {
     const holdingSection = findTaskSection(sections, taskId);
     if (holdingSection === undefined) {
@@ -22622,8 +23554,8 @@ function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
     if (existingSection !== undefined && existingSection !== group.section) {
       throw new Error(`task id '${group.id}' already exists in section '${existingSection}'; remove it there before moving it to '${group.section}'`);
     }
-    const sectionTasks = isRecord2(sections[group.section]) ? sections[group.section] : {};
-    const existingTask = isRecord2(sectionTasks[group.id]) ? sectionTasks[group.id] : undefined;
+    const sectionTasks = isRecord3(sections[group.section]) ? sections[group.section] : {};
+    const existingTask = isRecord3(sectionTasks[group.id]) ? sectionTasks[group.id] : undefined;
     if (existingTask === undefined && !group.text) {
       throw new Error(`missing required argument --text for new task '${group.id}'`);
     }
@@ -22653,14 +23585,14 @@ function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
 }
 function normalizeDeltaSpecRelativePath2(relativePath) {
   let normalized = relativePath.replaceAll("\\", "/");
-  const strictSpecsPrefix = `${STRICT_WORKFLOW_DIR4}/specs/`;
+  const strictSpecsPrefix = `${STRICT_WORKFLOW_DIR5}/specs/`;
   if (normalized.startsWith(strictSpecsPrefix)) {
     normalized = normalized.slice(strictSpecsPrefix.length);
   }
   return normalized;
 }
 function readSpecIndexPathForTarget2(rootDir, targetSpec) {
-  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/specs/INDEX.yaml`);
+  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/specs/INDEX.yaml`);
   const match = (index?.specs ?? []).find((candidate) => candidate.id === targetSpec);
   return typeof match?.path === "string" ? normalizeDeltaSpecRelativePath2(match.path) : undefined;
 }
@@ -22675,16 +23607,16 @@ function resolveDeltaExistingPath(rootDir, targetSpec, specPath) {
 }
 function existingDeltaInput(rootDir, changeName, targetSpec, specPath) {
   const relativeSpecPath = resolveDeltaExistingPath(rootDir, targetSpec, specPath);
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/specs/${relativeSpecPath}`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/specs/${relativeSpecPath}`);
   if (!artifact) {
     return emptyDeltaInput(targetSpec, relativeSpecPath);
   }
   const input = {
     target_spec: artifact.target_spec ?? targetSpec,
     spec_path: relativeSpecPath,
-    operations: isRecord2(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
+    operations: isRecord3(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
   };
-  if (isRecord2(artifact.spec)) {
+  if (isRecord3(artifact.spec)) {
     input.spec = artifact.spec;
   }
   return input;
@@ -22851,10 +23783,10 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
     input.spec = { title: commandInput.title, path: commandInput.newSpecPath };
   }
   const session = newWriteSession();
-  const operations = isRecord2(input.operations) ? input.operations : {};
+  const operations = isRecord3(input.operations) ? input.operations : {};
   for (const requirementId of commandInput.removedRequirements) {
     for (const operationMap of Object.values(operations)) {
-      if (isRecord2(operationMap))
+      if (isRecord3(operationMap))
         removeKeyedItem(operationMap, requirementId);
     }
   }
@@ -22866,10 +23798,10 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
     const requirementId = target.slice(0, separatorAt);
     const scenarioId = target.slice(separatorAt + 1);
     for (const operationMap of Object.values(operations)) {
-      if (!isRecord2(operationMap))
+      if (!isRecord3(operationMap))
         continue;
       const requirement = operationMap[requirementId];
-      if (isRecord2(requirement) && isRecord2(requirement.scenarios)) {
+      if (isRecord3(requirement) && isRecord3(requirement.scenarios)) {
         removeKeyedItem(requirement.scenarios, scenarioId);
       }
     }
@@ -22878,7 +23810,7 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
     if (!["ADDED", "MODIFIED", "REMOVED"].includes(requirement.operation)) {
       throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
     }
-    const operationMap = isRecord2(operations[requirement.operation]) ? operations[requirement.operation] : {};
+    const operationMap = isRecord3(operations[requirement.operation]) ? operations[requirement.operation] : {};
     if (requirement.operation === "REMOVED") {
       if (!requirement.reason)
         throw new Error(`missing required argument --reason for removed requirement '${requirement.id}'`);
@@ -22919,14 +23851,14 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
 }
 function normalizeDeltaTechRelativePath2(relativePath) {
   let normalized = relativePath.replaceAll("\\", "/");
-  const strictTechPrefix = `${STRICT_WORKFLOW_DIR4}/tech/`;
+  const strictTechPrefix = `${STRICT_WORKFLOW_DIR5}/tech/`;
   if (normalized.startsWith(strictTechPrefix)) {
     normalized = normalized.slice(strictTechPrefix.length);
   }
   return normalized;
 }
 function readTechIndexPathForTarget2(rootDir, targetStandard) {
-  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/tech/INDEX.yaml`);
+  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/tech/INDEX.yaml`);
   const match = (index?.standards ?? []).find((candidate) => candidate.id === targetStandard);
   return typeof match?.path === "string" ? normalizeDeltaTechRelativePath2(match.path) : undefined;
 }
@@ -22948,16 +23880,16 @@ function emptyDeltaTechInput(targetStandard, techPath) {
 }
 function existingDeltaTechInput(rootDir, changeName, targetStandard, techPath) {
   const relativeTechPath = resolveDeltaTechExistingPath(rootDir, targetStandard, techPath);
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/tech/${relativeTechPath}`);
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/tech/${relativeTechPath}`);
   if (!artifact) {
     return emptyDeltaTechInput(targetStandard, relativeTechPath);
   }
   const input = {
     target_standard: artifact.target_standard ?? targetStandard,
     tech_path: relativeTechPath,
-    operations: isRecord2(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
+    operations: isRecord3(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
   };
-  if (isRecord2(artifact.standard)) {
+  if (isRecord3(artifact.standard)) {
     input.standard = artifact.standard;
   }
   return input;
@@ -23099,10 +24031,10 @@ function buildDeltaTechInputFromArgs(rootDir, changeName, argv) {
     }
     input.standard = { title: commandInput.title, category: commandInput.category };
   }
-  const operations = isRecord2(input.operations) ? input.operations : {};
+  const operations = isRecord3(input.operations) ? input.operations : {};
   for (const ruleId of commandInput.removedRules) {
     for (const operationMap of Object.values(operations)) {
-      if (isRecord2(operationMap))
+      if (isRecord3(operationMap))
         removeKeyedItem(operationMap, ruleId);
     }
   }
@@ -23110,7 +24042,7 @@ function buildDeltaTechInputFromArgs(rootDir, changeName, argv) {
     if (!["ADDED", "MODIFIED", "REMOVED"].includes(rule.operation)) {
       throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
     }
-    const operationMap = isRecord2(operations[rule.operation]) ? operations[rule.operation] : {};
+    const operationMap = isRecord3(operations[rule.operation]) ? operations[rule.operation] : {};
     if (rule.operation === "REMOVED") {
       if (!rule.reason)
         throw new Error(`missing required argument --reason for removed rule '${rule.id}'`);
@@ -23310,18 +24242,18 @@ function parseDeltaSceneCommandInput(argv, rootDir) {
   return input;
 }
 function resolveDeltaSceneRelativePath(rootDir, changeName, targetScene, declaredArea) {
-  const changeScenesDir = path12.join(rootDir, STRICT_WORKFLOW_DIR4, "changes", changeName, "scenes");
-  if (existsSync12(changeScenesDir)) {
-    for (const areaName of readdirSync3(changeScenesDir).sort()) {
-      if (existsSync12(path12.join(changeScenesDir, areaName, `${targetScene}.yaml`)))
+  const changeScenesDir = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "changes", changeName, "scenes");
+  if (existsSync14(changeScenesDir)) {
+    for (const areaName of readdirSync4(changeScenesDir).sort()) {
+      if (existsSync14(path15.join(changeScenesDir, areaName, `${targetScene}.yaml`)))
         return `${areaName}/${targetScene}.yaml`;
     }
   }
-  const indexPath = path12.join(rootDir, STRICT_WORKFLOW_DIR4, "scenes", "INDEX.yaml");
-  if (existsSync12(indexPath)) {
-    const index = parseYamlDocument(readFileSync11(indexPath, "utf8"), { source: indexPath });
+  const indexPath = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "scenes", "INDEX.yaml");
+  if (existsSync14(indexPath)) {
+    const index = parseYamlDocument(readFileSync13(indexPath, "utf8"), { source: indexPath });
     for (const [area, scenes] of Object.entries(index.areas ?? {})) {
-      if (isRecord2(scenes) && Object.prototype.hasOwnProperty.call(scenes, targetScene))
+      if (isRecord3(scenes) && Object.prototype.hasOwnProperty.call(scenes, targetScene))
         return `${area}/${targetScene}.yaml`;
     }
   }
@@ -23343,12 +24275,12 @@ function buildDeltaSceneInputFromArgs(rootDir, changeName, argv) {
     throw new Error(`scene '${targetScene}' is already recorded, so a delta may not restate its actors or preconditions; ` + `edit them directly with 'strict-spec-cli scene-edit ${targetScene} --actor <name> --role <text> --precondition <text>'`);
   }
   const relativePath = resolveDeltaSceneRelativePath(rootDir, changeName, targetScene, commandInput.area);
-  const existing = relativePath === undefined ? undefined : readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR4}/changes/${changeName}/scenes/${relativePath}`);
+  const existing = relativePath === undefined ? undefined : readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR5}/changes/${changeName}/scenes/${relativePath}`);
   const input = {
     target_scene: targetScene,
-    operations: existing && isRecord2(existing.operations) ? existing.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
+    operations: existing && isRecord3(existing.operations) ? existing.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
   };
-  const sceneBlock = existing && isRecord2(existing.scene) ? { ...existing.scene } : {};
+  const sceneBlock = existing && isRecord3(existing.scene) ? { ...existing.scene } : {};
   if (commandInput.title !== undefined)
     sceneBlock.title = commandInput.title;
   if (commandInput.area !== undefined)
@@ -23379,15 +24311,15 @@ function buildDeltaSceneInputFromArgs(rootDir, changeName, argv) {
     }
     input.scene = sceneBlock;
   }
-  const operations = isRecord2(input.operations) ? input.operations : {};
+  const operations = isRecord3(input.operations) ? input.operations : {};
   const session = newWriteSession();
   for (const reference of commandInput.removedSteps) {
     const separator = reference.indexOf(":");
     for (const operationMap of Object.values(operations)) {
-      if (!isRecord2(operationMap))
+      if (!isRecord3(operationMap))
         continue;
       if (separator === -1) {
-        if (!isRecord2(operationMap.main_flow))
+        if (!isRecord3(operationMap.main_flow))
           continue;
         removeKeyedItem(operationMap.main_flow, reference);
         if (Object.keys(operationMap.main_flow).length === 0)
@@ -23395,11 +24327,11 @@ function buildDeltaSceneInputFromArgs(rootDir, changeName, argv) {
         continue;
       }
       const flows = operationMap.exception_flows;
-      if (!isRecord2(flows))
+      if (!isRecord3(flows))
         continue;
       const flowId = reference.slice(0, separator);
       const flow = flows[flowId];
-      if (!isRecord2(flow) || !isRecord2(flow.steps))
+      if (!isRecord3(flow) || !isRecord3(flow.steps))
         continue;
       removeKeyedItem(flow.steps, reference.slice(separator + 1));
       if (Object.keys(flow.steps).length === 0)
@@ -23414,15 +24346,15 @@ function buildDeltaSceneInputFromArgs(rootDir, changeName, argv) {
     }
   }
   function operationMapFor(operation) {
-    const existingMap = isRecord2(operations[operation]) ? operations[operation] : {};
+    const existingMap = isRecord3(operations[operation]) ? operations[operation] : {};
     operations[operation] = existingMap;
     return existingMap;
   }
   function exceptionFlowFor(operation, flowId) {
     const operationMap = operationMapFor(operation);
-    const flows = isRecord2(operationMap.exception_flows) ? operationMap.exception_flows : {};
+    const flows = isRecord3(operationMap.exception_flows) ? operationMap.exception_flows : {};
     operationMap.exception_flows = flows;
-    const flow = isRecord2(flows[flowId]) ? flows[flowId] : {};
+    const flow = isRecord3(flows[flowId]) ? flows[flowId] : {};
     flows[flowId] = flow;
     return flow;
   }
@@ -23460,12 +24392,12 @@ function buildDeltaSceneInputFromArgs(rootDir, changeName, argv) {
     }
     const container = step.flowId === undefined ? (() => {
       const operationMap = operationMapFor(step.operation);
-      const mainFlow = isRecord2(operationMap.main_flow) ? operationMap.main_flow : {};
+      const mainFlow = isRecord3(operationMap.main_flow) ? operationMap.main_flow : {};
       operationMap.main_flow = mainFlow;
       return mainFlow;
     })() : (() => {
       const flow = exceptionFlowFor(step.operation, step.flowId);
-      const steps = isRecord2(flow.steps) ? flow.steps : {};
+      const steps = isRecord3(flow.steps) ? flow.steps : {};
       flow.steps = steps;
       return steps;
     })();
@@ -23480,7 +24412,7 @@ var DELETE_REFUSALS = {
   proposal: "proposal.yaml is required for every change and is merged rather than rebuilt; restate the fields you want to change instead"
 };
 function resolveDeleteTarget(rootDir, changeName, artifact, flags) {
-  const changeDir = `${STRICT_WORKFLOW_DIR4}/changes/${changeName}`;
+  const changeDir = `${STRICT_WORKFLOW_DIR5}/changes/${changeName}`;
   if (artifact === "delta-spec") {
     const targetSpec = requiredOne(flags, "target-spec");
     return `${changeDir}/specs/${resolveDeltaExistingPath(rootDir, targetSpec, optionalOne(flags, "spec-path"))}`;
@@ -23525,8 +24457,8 @@ function runArtifactDelete(rootDir, changeName, artifact, argv) {
     }
   }
   const artifactPath = resolveDeleteTarget(rootDir, changeName, artifact, flags);
-  const absolutePath = path12.join(rootDir, artifactPath);
-  const deleted = existsSync12(absolutePath);
+  const absolutePath = path15.join(rootDir, artifactPath);
+  const deleted = existsSync14(absolutePath);
   if (deleted) {
     const mutation = commitYamlMutation({
       rootDir,
@@ -23534,7 +24466,7 @@ function runArtifactDelete(rootDir, changeName, artifact, argv) {
         artifactFamily: artifact === "delta-spec" || artifact === "delta-tech" || artifact === "delta-scene" ? "change-delta-state" : "change-planning-state",
         artifactId: `${changeName}/${artifact}`,
         schemaId: DELETE_SCHEMA_IDS[artifact],
-        familyRoot: path12.join(rootDir, STRICT_WORKFLOW_DIR4, "changes", changeName),
+        familyRoot: path15.join(rootDir, STRICT_WORKFLOW_DIR5, "changes", changeName),
         absolutePath,
         operation: "delete"
       }]
@@ -23611,8 +24543,8 @@ import { existsSync as existsSync23, rmSync as rmSync4, statSync as statSync13 }
 import path24 from "path";
 
 // src/apply.ts
-import { existsSync as existsSync13, readFileSync as readFileSync12 } from "fs";
-import path13 from "path";
+import { existsSync as existsSync15, readFileSync as readFileSync14 } from "fs";
+import path16 from "path";
 function applyTask(tasksYamlContent) {
   const artifact = parseYamlDocument(tasksYamlContent);
   let totalTasks = 0;
@@ -23649,14 +24581,14 @@ function applyTask(tasksYamlContent) {
   };
 }
 function readChangeTasks(rootDir, changeName) {
-  const tasksPath = path13.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
-  if (!existsSync13(tasksPath)) {
+  const tasksPath = path16.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
+  if (!existsSync15(tasksPath)) {
     throw new Error(`change '${changeName}' not found`);
   }
-  return readFileSync12(tasksPath, "utf8");
+  return readFileSync14(tasksPath, "utf8");
 }
 function writeChangeTasks(rootDir, changeName, content) {
-  const tasksPath = path13.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
+  const tasksPath = path16.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
   const artifactPath = `.strict-spec-driven/changes/${changeName}/tasks.yaml`;
   const candidate = parseYamlDocument(content, { source: artifactPath });
   const mutation = commitYamlMutation({
@@ -23665,7 +24597,7 @@ function writeChangeTasks(rootDir, changeName, content) {
       artifactFamily: "change-planning-state",
       artifactId: `${changeName}/tasks`,
       schemaId: "task_list",
-      familyRoot: path13.join(rootDir, ".strict-spec-driven", "changes", changeName),
+      familyRoot: path16.join(rootDir, ".strict-spec-driven", "changes", changeName),
       absolutePath: tasksPath,
       operation: "update",
       candidate,
@@ -23701,898 +24633,6 @@ import path22 from "path";
 import { existsSync as existsSync18, statSync as statSync10 } from "fs";
 import path19 from "path";
 
-// src/roadmap/model.ts
-var STRICT_WORKFLOW_DIR5 = ".strict-spec-driven";
-var ROADMAP_DIR = `${STRICT_WORKFLOW_DIR5}/roadmap`;
-var ROADMAP_INDEX_PATH = `${ROADMAP_DIR}/INDEX.yaml`;
-var ROADMAP_MILESTONES_DIR = `${ROADMAP_DIR}/milestones`;
-var ROADMAP_ARCHIVE_DIR = `${ROADMAP_DIR}/archive`;
-var ROADMAP_ARCHIVE_MILESTONES_DIR = `${ROADMAP_ARCHIVE_DIR}/milestones`;
-var ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR = `${ROADMAP_ARCHIVE_DIR}/planned-changes`;
-var DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "blocked", "complete"];
-var DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"];
-var RETIRED_MILESTONE_STATUS = "active";
-var RETIRED_MILESTONE_STATUS_MESSAGE = `milestone status '${RETIRED_MILESTONE_STATUS}' is retired and is read as 'proposed'; run strict-spec-cli roadmap-sync to rewrite it`;
-var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
-var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
-var PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
-var MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE = "planned change dependency is missing from roadmap planned-change sources";
-function canonicalPlannedChangeFileName(milestoneId, plannedChangeId) {
-  if (plannedChangeId === milestoneId || plannedChangeId.startsWith(`${milestoneId}-`)) {
-    return `${plannedChangeId}.yaml`;
-  }
-  return `${milestoneId}-${plannedChangeId}.yaml`;
-}
-var DEFAULT_MILESTONE_INTAKE_QUESTIONS = [
-  {
-    id: "objective",
-    question: "What observable outcome should this milestone deliver?",
-    context: "Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.",
-    impact: "Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.",
-    recommendation: "Answer with one user- or operator-observable outcome that can be checked after the milestone is complete."
-  },
-  {
-    id: "scope-boundary",
-    question: "What is included in this milestone, and what is explicitly out of scope?",
-    context: "The roadmap already has scope.in and scope.out fields, but the boundary decision must be called out as a required clarification.",
-    impact: "Unclear scope affects planned-change ownership, milestone splitting, and whether later changes silently expand scope.",
-    recommendation: "Use the milestone scope fields as evidence and keep unrelated work out of this milestone."
-  },
-  {
-    id: "done-criteria",
-    question: "What concrete evidence proves this milestone is done?",
-    context: "Done criteria need to be verifiable rather than aspirational.",
-    impact: "Weak done criteria affect roadmap review, archive readiness, and follow-up change prioritization.",
-    recommendation: "Name the observable behavior, validation command, documentation, or archived planned changes that prove completion."
-  },
-  {
-    id: "work-decomposition",
-    question: "What standalone planned changes are needed to deliver this milestone?",
-    context: "Roadmap recommendation works from planned-change artifacts, not from hidden prose inside the milestone.",
-    impact: "Missing decomposition affects proposal generation and can block roadmap-backed automatic implementation.",
-    recommendation: "Create focused standalone planned-change files with actionable summary, details, dependencies, and status."
-  },
-  {
-    id: "dependencies-and-blockers",
-    question: "What dependencies or blockers must be resolved before this milestone can progress?",
-    context: "Dependencies may come from other milestones, active changes, services, credentials, or external decisions.",
-    impact: "Unknown blockers affect ordering, roadmap recommendation eligibility, and implementation handoff.",
-    recommendation: "Record known dependencies in dependencies and preserve unresolved blockers in milestone notes or planned-change detail."
-  },
-  {
-    id: "risks",
-    question: "What compatibility, data, security, privacy, performance, release, or rollback risks could change the plan?",
-    context: "Roadmap milestones often establish the risk surface before individual strict changes are proposed.",
-    impact: "Unidentified risks affect scope, technical standards, tests, release sequencing, and rollback planning.",
-    recommendation: "Record concrete risks in risks and keep mitigations small enough to map into planned changes."
-  },
-  {
-    id: "verification-evidence",
-    question: "How will milestone work be verified across implementation, tests, docs, and workflow artifacts?",
-    context: "The change-intake gate requires a proof plan before implementation begins.",
-    impact: "Missing verification affects planned-change testing tasks and archive confidence.",
-    recommendation: "Identify the relevant test suite, validation command, documentation check, or manual evidence expected for child changes."
-  },
-  {
-    id: "technical-standards",
-    question: "Which existing technical standards apply, or does this milestone require a new standard?",
-    context: "Technical rules live under .strict-spec-driven/tech/ and must be known before changes are implemented.",
-    impact: "Unclear standards affect implementation files, tests, and whether a child change needs a delta-tech artifact.",
-    recommendation: "List applicable standards or record a follow-up to add or update a technical standard when the milestone needs one."
-  }
-];
-function cloneDefaultMilestoneIntakeQuestions() {
-  return DEFAULT_MILESTONE_INTAKE_QUESTIONS.map((question) => ({ ...question }));
-}
-
-// src/roadmap/shared.ts
-import { existsSync as existsSync14, readdirSync as readdirSync4, statSync as statSync7 } from "fs";
-import path15 from "path";
-
-// src/diagnostics.ts
-import path14 from "node:path";
-function toPosix3(value) {
-  return value.split(path14.sep).join("/");
-}
-function buildDeterministicSortKey(parts) {
-  return parts.map((part) => part == null ? "" : String(part)).join("|");
-}
-function sortByDeterministicKey(values, getParts) {
-  return values.sort((left, right) => {
-    const leftKey = buildDeterministicSortKey(getParts(left));
-    const rightKey = buildDeterministicSortKey(getParts(right));
-    return leftKey.localeCompare(rightKey);
-  });
-}
-
-// src/roadmap/shared.ts
-function normalizeRepoRelativePath3(rootDir, absolutePath) {
-  return toPosix3(path15.relative(rootDir, absolutePath));
-}
-function resolveStrictWorkflowPath(rootDir, workflowRelativePath) {
-  const normalized = toPosix3(workflowRelativePath);
-  if (normalized.startsWith(`${STRICT_WORKFLOW_DIR5}/`)) {
-    return path15.join(rootDir, normalized);
-  }
-  return path15.join(rootDir, STRICT_WORKFLOW_DIR5, normalized);
-}
-function ensureTrailingNewline(value) {
-  return value.endsWith(`
-`) ? value : `${value}
-`;
-}
-function makeDiagnostic(source, artifactPath, fieldPath, message, expected, actual) {
-  return { source, artifactPath, fieldPath, message, expected, actual };
-}
-function sortDiagnostics(diagnostics) {
-  return sortByDeterministicKey(diagnostics, (diagnostic) => [
-    diagnostic.source,
-    diagnostic.artifactPath,
-    diagnostic.fieldPath,
-    diagnostic.message,
-    diagnostic.expected ?? "",
-    diagnostic.actual ?? ""
-  ]);
-}
-function diagnosticKey(diagnostic) {
-  return [
-    diagnostic.source,
-    diagnostic.artifactPath,
-    diagnostic.fieldPath,
-    diagnostic.message,
-    diagnostic.expected ?? "",
-    diagnostic.actual ?? ""
-  ].join("\x00");
-}
-function isRepairableRoadmapDiagnostic(diagnostic) {
-  return diagnostic.source === "reference" && diagnostic.message === MISSING_PLANNED_CHANGE_DEPENDENCY_MESSAGE || isRetiredMilestoneStatusDiagnostic(diagnostic);
-}
-function isRetiredMilestoneStatusDiagnostic(diagnostic) {
-  return diagnostic.source === "schema" && diagnostic.message === RETIRED_MILESTONE_STATUS_MESSAGE && diagnostic.actual === RETIRED_MILESTONE_STATUS;
-}
-function partitionRepairableDiagnostics(diagnostics) {
-  const blocking = [];
-  const repairable = [];
-  for (const diagnostic of diagnostics) {
-    if (isRepairableRoadmapDiagnostic(diagnostic))
-      repairable.push(diagnostic);
-    else
-      blocking.push(diagnostic);
-  }
-  return { blocking, repairable };
-}
-function isRecord3(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-function listYamlFiles2(directoryPath) {
-  if (!existsSync14(directoryPath) || !statSync7(directoryPath).isDirectory()) {
-    return [];
-  }
-  const files = [];
-  function walk(currentPath) {
-    const entries = readdirSync4(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
-    for (const entry of entries) {
-      const fullPath = path15.join(currentPath, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-        continue;
-      }
-      if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        files.push(fullPath);
-      }
-    }
-  }
-  walk(directoryPath);
-  return files;
-}
-function isRepoRelativePath(value) {
-  if (path15.isAbsolute(value))
-    return false;
-  const normalized = path15.posix.normalize(toPosix3(value));
-  return normalized !== ".." && !normalized.startsWith("../");
-}
-function isDeclaredRoadmapStatus(value) {
-  return typeof value === "string" && DECLARED_ROADMAP_STATUSES.includes(value);
-}
-function normalizeMilestoneStatus(status) {
-  return status === "planned" ? "proposed" : status;
-}
-function isDeclaredPlannedChangeStatus(value) {
-  return typeof value === "string" && DECLARED_PLANNED_CHANGE_STATUSES.includes(value);
-}
-function readYamlFile(filePath) {
-  return parseYamlFile(filePath);
-}
-
-// src/roadmap/load.ts
-import { existsSync as existsSync15, readFileSync as readFileSync14, statSync as statSync8 } from "fs";
-import path16 from "path";
-
-// src/roadmap/validate.ts
-var MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
-var QUESTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
-var DECLARED_ROADMAP_STATUS_LIST = DECLARED_ROADMAP_STATUSES.join(", ");
-function resolveMilestoneStatusValue(rawStatus, artifactPath, fieldPath, diagnostics) {
-  if (isDeclaredRoadmapStatus(rawStatus)) {
-    return rawStatus;
-  }
-  if (rawStatus === RETIRED_MILESTONE_STATUS) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, RETIRED_MILESTONE_STATUS_MESSAGE, DECLARED_ROADMAP_STATUS_LIST, RETIRED_MILESTONE_STATUS));
-    return "proposed";
-  }
-  diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "unsupported milestone status", DECLARED_ROADMAP_STATUS_LIST, String(rawStatus)));
-  return null;
-}
-function validateString(parent, key, artifactPath, fieldPath, diagnostics) {
-  const value = parent[key];
-  if (typeof value !== "string" || value.length === 0) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "value must be a non-empty string", "non-empty string", String(value)));
-    return null;
-  }
-  return value;
-}
-function validateStringArray(parent, key, artifactPath, fieldPath, diagnostics) {
-  const value = parent[key];
-  if (!Array.isArray(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "value must be a string sequence", "string[]", String(value)));
-    return null;
-  }
-  const result = [];
-  for (const [index, entry] of value.entries()) {
-    if (typeof entry !== "string" || entry.length === 0) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}[${index}]`, "sequence item must be a non-empty string", "non-empty string", String(entry)));
-      continue;
-    }
-    result.push(entry);
-  }
-  return result;
-}
-function validateOptionalString(parent, key, artifactPath, fieldPath, diagnostics) {
-  if (!(key in parent) || parent[key] === undefined)
-    return;
-  return validateString(parent, key, artifactPath, fieldPath, diagnostics);
-}
-function validateOptionalStringArray(parent, key, artifactPath, fieldPath, diagnostics) {
-  if (!(key in parent) || parent[key] === undefined)
-    return;
-  return validateStringArray(parent, key, artifactPath, fieldPath, diagnostics);
-}
-function extractKeyedMapKey(obj) {
-  const keys = Object.keys(obj);
-  return keys.length === 1 ? keys[0] : null;
-}
-function validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics) {
-  const value = artifact.intake_questions;
-  if (!Array.isArray(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must be a non-empty sequence", "non-empty sequence", String(value)));
-    return null;
-  }
-  if (value.length === 0) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must contain at least one question", "one or more intake question entries", "empty sequence"));
-    return null;
-  }
-  const result = [];
-  const seenIds = new Set;
-  for (const [index, entry] of value.entries()) {
-    const fieldPath = `$.intake_questions[${index}]`;
-    if (!isRecord3(entry)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "intake question must be a mapping", "mapping", typeof entry));
-      continue;
-    }
-    const id = validateString(entry, "id", artifactPath, `${fieldPath}.id`, diagnostics);
-    const question = validateString(entry, "question", artifactPath, `${fieldPath}.question`, diagnostics);
-    const context = validateString(entry, "context", artifactPath, `${fieldPath}.context`, diagnostics);
-    const impact = validateString(entry, "impact", artifactPath, `${fieldPath}.impact`, diagnostics);
-    const recommendation = validateString(entry, "recommendation", artifactPath, `${fieldPath}.recommendation`, diagnostics);
-    if (id) {
-      if (!QUESTION_ID_PATTERN.test(id)) {
-        diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "intake question id must be kebab-case", "kebab-case id", id));
-      } else if (seenIds.has(id)) {
-        diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "duplicate intake question id", "unique intake question id", id));
-      }
-      seenIds.add(id);
-    }
-    if (id && question && context && impact && recommendation && QUESTION_ID_PATTERN.test(id)) {
-      result.push({ id, question, context, impact, recommendation });
-    }
-  }
-  return result.length > 0 ? result : null;
-}
-function validateRoadmapIndexArtifact(artifact, artifactPath, diagnostics) {
-  if (!isRecord3(artifact)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "artifact must be a YAML mapping", "mapping", typeof artifact));
-    return null;
-  }
-  if (artifact.schema !== ROADMAP_INDEX_SCHEMA_ID) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", ROADMAP_INDEX_SCHEMA_ID, String(artifact.schema)));
-  }
-  if (artifact.schema_version !== 2) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "2", String(artifact.schema_version)));
-  }
-  if (artifact.artifact_type !== "roadmap_index") {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.artifact_type", "artifact_type mismatch", "roadmap_index", String(artifact.artifact_type)));
-  }
-  const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
-  const rawMilestones = artifact.milestones;
-  if (!isRecord3(rawMilestones)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestones", "milestones must be a keyed mapping", "keyed mapping", String(rawMilestones)));
-    return null;
-  }
-  const milestones = [];
-  const seenIds = new Set;
-  for (const [key, value] of Object.entries(rawMilestones)) {
-    if (!MILESTONE_ID_PATTERN.test(key)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone key must be kebab-case with optional NNNN- legacy prefix", "kebab-case or NNNN-kebab-case", key));
-      continue;
-    }
-    if (!isRecord3(value)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone entry must be a mapping", "mapping", typeof value));
-      continue;
-    }
-    if (seenIds.has(key)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "duplicate milestone id", "unique milestone id", key));
-      continue;
-    }
-    seenIds.add(key);
-    const title = validateString(value, "title", artifactPath, `$.milestones.${key}.title`, diagnostics);
-    const milestonePath = validateString(value, "path", artifactPath, `$.milestones.${key}.path`, diagnostics);
-    const statusValue = resolveMilestoneStatusValue(value.status, artifactPath, `$.milestones.${key}.status`, diagnostics);
-    if (milestonePath && !isRepoRelativePath(milestonePath)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestones.${key}.path`, "milestone path must be repo-relative", "repo-relative path", milestonePath));
-    }
-    if (!title || !milestonePath || statusValue === null) {
-      continue;
-    }
-    milestones.push({
-      id: key,
-      title,
-      path: milestonePath,
-      status: statusValue
-    });
-  }
-  if (!schemaFile) {
-    return null;
-  }
-  return {
-    schema: ROADMAP_INDEX_SCHEMA_ID,
-    schema_version: 2,
-    artifact_type: "roadmap_index",
-    schema_file: schemaFile,
-    milestones
-  };
-}
-function validatePlannedChangeEntry(value, changeKey, artifactPath, fieldPath, diagnostics) {
-  if (!isRecord3(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "planned change entry must be a mapping", "mapping", typeof value));
-    return null;
-  }
-  const summary = validateString(value, "summary", artifactPath, `${fieldPath}.summary`, diagnostics);
-  const details = validateString(value, "details", artifactPath, `${fieldPath}.details`, diagnostics);
-  const dependsOn = validateStringArray(value, "depends_on", artifactPath, `${fieldPath}.depends_on`, diagnostics);
-  const statusValue = value.status;
-  if (!isDeclaredPlannedChangeStatus(statusValue)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "unsupported planned change status", "planned, complete", String(statusValue)));
-  }
-  if (!summary || !details || !dependsOn || !isDeclaredPlannedChangeStatus(statusValue)) {
-    return null;
-  }
-  return {
-    status: statusValue,
-    summary,
-    details,
-    depends_on: dependsOn
-  };
-}
-function validateBlockedMetadata(value, artifactPath, fieldPath, diagnostics) {
-  if (!isRecord3(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "blocked must be a mapping", "mapping", typeof value));
-    return null;
-  }
-  let valid = true;
-  for (const key of Object.keys(value)) {
-    if (key !== "status" && key !== "reason") {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported blocked metadata field", "status or reason", key));
-      valid = false;
-    }
-  }
-  if (typeof value.status !== "boolean") {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "blocked status must be a boolean", "boolean", String(value.status)));
-    valid = false;
-  }
-  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
-  if (reason === null)
-    valid = false;
-  if (!valid)
-    return null;
-  return {
-    status: value.status,
-    ...typeof reason === "string" ? { reason } : {}
-  };
-}
-function validatePausedMetadata(value, artifactPath, fieldPath, diagnostics) {
-  if (!isRecord3(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "paused must be a mapping", "mapping", typeof value));
-    return null;
-  }
-  let valid = true;
-  for (const key of Object.keys(value)) {
-    if (key !== "status" && key !== "reason" && key !== "paused_on") {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported paused metadata field", "status, reason, or paused_on", key));
-      valid = false;
-    }
-  }
-  if (value.status !== true) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "paused.status must be the literal boolean true", "true", String(value.status)));
-    valid = false;
-  }
-  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
-  if (reason === null)
-    valid = false;
-  const pausedOn = validateOptionalString(value, "paused_on", artifactPath, `${fieldPath}.paused_on`, diagnostics);
-  if (pausedOn === null)
-    valid = false;
-  if (!valid)
-    return null;
-  return {
-    status: true,
-    ...typeof reason === "string" ? { reason } : {},
-    ...typeof pausedOn === "string" ? { paused_on: pausedOn } : {}
-  };
-}
-function validateAwaitingRefinementMetadata(value, artifactPath, fieldPath, diagnostics) {
-  if (!isRecord3(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "awaiting_refinement must be a mapping", "mapping", typeof value));
-    return null;
-  }
-  let valid = true;
-  for (const key of Object.keys(value)) {
-    if (key !== "status" && key !== "reason" && key !== "deferred_on") {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported awaiting_refinement metadata field", "status, reason, or deferred_on", key));
-      valid = false;
-    }
-  }
-  if (value.status !== true) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "awaiting_refinement.status must be the literal boolean true", "true", String(value.status)));
-    valid = false;
-  }
-  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
-  if (reason === null)
-    valid = false;
-  const deferredOn = validateOptionalString(value, "deferred_on", artifactPath, `${fieldPath}.deferred_on`, diagnostics);
-  if (deferredOn === null)
-    valid = false;
-  if (!valid)
-    return null;
-  return {
-    status: true,
-    ...typeof reason === "string" ? { reason } : {},
-    ...typeof deferredOn === "string" ? { deferred_on: deferredOn } : {}
-  };
-}
-function validateExternalRefsMetadata(value, artifactPath, fieldPath, diagnostics) {
-  if (!Array.isArray(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "external_refs must be a sequence", "external reference[]", String(value)));
-    return null;
-  }
-  const result = [];
-  let valid = true;
-  for (const [index, entry] of value.entries()) {
-    const entryPath = `${fieldPath}[${index}]`;
-    if (!isRecord3(entry)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, entryPath, "external reference must be a mapping", "mapping", typeof entry));
-      valid = false;
-      continue;
-    }
-    for (const key of Object.keys(entry)) {
-      if (key !== "label" && key !== "target") {
-        diagnostics.push(makeDiagnostic("schema", artifactPath, `${entryPath}.${key}`, "unsupported external reference field", "label or target", key));
-        valid = false;
-      }
-    }
-    const label = validateString(entry, "label", artifactPath, `${entryPath}.label`, diagnostics);
-    const target = validateString(entry, "target", artifactPath, `${entryPath}.target`, diagnostics);
-    if (!label || !target) {
-      valid = false;
-      continue;
-    }
-    result.push({ label, target });
-  }
-  return valid ? result : null;
-}
-function validateTeamMetadata(value, artifactPath, diagnostics) {
-  if (!isRecord3(value)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.team", "team must be a mapping", "mapping", typeof value));
-    return null;
-  }
-  let valid = true;
-  for (const key of Object.keys(value)) {
-    if (!["owner", "reviewers", "blocked", "labels", "external_refs"].includes(key)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.team.${key}`, "unsupported team metadata field", "owner, reviewers, blocked, labels, or external_refs", key));
-      valid = false;
-    }
-  }
-  const owner = validateOptionalString(value, "owner", artifactPath, "$.team.owner", diagnostics);
-  const reviewers = validateOptionalStringArray(value, "reviewers", artifactPath, "$.team.reviewers", diagnostics);
-  const labels = validateOptionalStringArray(value, "labels", artifactPath, "$.team.labels", diagnostics);
-  const blocked = "blocked" in value && value.blocked !== undefined ? validateBlockedMetadata(value.blocked, artifactPath, "$.team.blocked", diagnostics) : undefined;
-  const externalRefs = "external_refs" in value && value.external_refs !== undefined ? validateExternalRefsMetadata(value.external_refs, artifactPath, "$.team.external_refs", diagnostics) : undefined;
-  if (owner === null || reviewers === null || labels === null || blocked === null || externalRefs === null) {
-    valid = false;
-  }
-  if (!valid)
-    return null;
-  return {
-    ...typeof owner === "string" ? { owner } : {},
-    ...Array.isArray(reviewers) ? { reviewers } : {},
-    ...blocked && typeof blocked.status === "boolean" ? { blocked } : {},
-    ...Array.isArray(labels) ? { labels } : {},
-    ...Array.isArray(externalRefs) ? { external_refs: externalRefs } : {}
-  };
-}
-function validateStandalonePlannedChangeArtifact(artifact, artifactPath, diagnostics) {
-  if (!isRecord3(artifact)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "artifact must be a YAML mapping", "mapping", typeof artifact));
-    return null;
-  }
-  if (artifact.schema !== PLANNED_CHANGE_SCHEMA_ID) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", PLANNED_CHANGE_SCHEMA_ID, String(artifact.schema)));
-  }
-  if (artifact.schema_version !== 1) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "1", String(artifact.schema_version)));
-  }
-  if (artifact.artifact_type !== "planned_change") {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.artifact_type", "artifact_type mismatch", "planned_change", String(artifact.artifact_type)));
-  }
-  const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
-  const summary = validateString(artifact, "summary", artifactPath, "$.summary", diagnostics);
-  const details = validateString(artifact, "details", artifactPath, "$.details", diagnostics);
-  const dependsOn = validateStringArray(artifact, "depends_on", artifactPath, "$.depends_on", diagnostics);
-  const statusValue = artifact.status;
-  if (!isDeclaredPlannedChangeStatus(statusValue)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.status", "unsupported planned change status", "planned, complete", String(statusValue)));
-  }
-  const rawPlannedChange = artifact.planned_change;
-  let plannedChange = null;
-  if (!isRecord3(rawPlannedChange)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.planned_change", "planned_change must be a mapping", "mapping", typeof rawPlannedChange));
-  } else {
-    const id = validateString(rawPlannedChange, "id", artifactPath, "$.planned_change.id", diagnostics);
-    const milestone = validateString(rawPlannedChange, "milestone", artifactPath, "$.planned_change.milestone", diagnostics);
-    if (id && milestone) {
-      plannedChange = { id, milestone };
-    }
-  }
-  const extensions = artifact.extensions;
-  if (extensions !== undefined && !isRecord3(extensions)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.extensions", "extensions must be a mapping", "mapping", typeof extensions));
-  }
-  const team = "team" in artifact && artifact.team !== undefined ? validateTeamMetadata(artifact.team, artifactPath, diagnostics) : undefined;
-  if (!schemaFile || !summary || !details || !dependsOn || !plannedChange || !isDeclaredPlannedChangeStatus(statusValue) || team === null) {
-    return null;
-  }
-  return {
-    schema: PLANNED_CHANGE_SCHEMA_ID,
-    schema_version: 1,
-    artifact_type: "planned_change",
-    schema_file: schemaFile,
-    planned_change: plannedChange,
-    status: statusValue,
-    summary,
-    details,
-    depends_on: dependsOn,
-    ...team !== undefined ? { team } : {},
-    ...isRecord3(extensions) ? { extensions } : {}
-  };
-}
-function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
-  if (!isRecord3(artifact)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "artifact must be a YAML mapping", "mapping", typeof artifact));
-    return null;
-  }
-  if (artifact.schema !== ROADMAP_MILESTONE_SCHEMA_ID) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", ROADMAP_MILESTONE_SCHEMA_ID, String(artifact.schema)));
-  }
-  if (artifact.schema_version !== 2) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "2", String(artifact.schema_version)));
-  }
-  if (artifact.artifact_type !== "roadmap_milestone") {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.artifact_type", "artifact_type mismatch", "roadmap_milestone", String(artifact.artifact_type)));
-  }
-  const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
-  const goal = validateString(artifact, "goal", artifactPath, "$.goal", diagnostics);
-  const order = "order" in artifact && artifact.order !== undefined ? (() => {
-    if (!Number.isInteger(artifact.order)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.order", "order must be an integer", "integer", String(artifact.order)));
-      return null;
-    }
-    return artifact.order;
-  })() : undefined;
-  const doneCriteria = validateStringArray(artifact, "done_criteria", artifactPath, "$.done_criteria", diagnostics);
-  const intakeQuestions = validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics);
-  const dependencies = validateStringArray(artifact, "dependencies", artifactPath, "$.dependencies", diagnostics);
-  const risks = validateStringArray(artifact, "risks", artifactPath, "$.risks", diagnostics);
-  const notes = validateStringArray(artifact, "notes", artifactPath, "$.notes", diagnostics);
-  const details = "details" in artifact && artifact.details !== undefined ? (() => {
-    if (typeof artifact.details !== "string") {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.details", "value must be a string", "string", typeof artifact.details));
-      return null;
-    }
-    return artifact.details;
-  })() : undefined;
-  const statusValue = resolveMilestoneStatusValue(artifact.status, artifactPath, "$.status", diagnostics);
-  const pausedState = "paused" in artifact && artifact.paused !== undefined ? (() => {
-    if (artifact.paused === null) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.paused", "paused must be a mapping", "mapping", "null"));
-      return null;
-    }
-    return validatePausedMetadata(artifact.paused, artifactPath, "$.paused", diagnostics);
-  })() : undefined;
-  const awaitingRefinementState = "awaiting_refinement" in artifact && artifact.awaiting_refinement !== undefined ? (() => {
-    if (artifact.awaiting_refinement === null) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.awaiting_refinement", "awaiting_refinement must be a mapping", "mapping", "null"));
-      return null;
-    }
-    return validateAwaitingRefinementMetadata(artifact.awaiting_refinement, artifactPath, "$.awaiting_refinement", diagnostics);
-  })() : undefined;
-  const rawMilestone = artifact.milestone;
-  let milestone = null;
-  if (!isRecord3(rawMilestone)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must be a keyed mapping", "keyed mapping", typeof rawMilestone));
-  } else {
-    const milestoneKey = extractKeyedMapKey(rawMilestone);
-    if (!milestoneKey) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must contain exactly one keyed entry", "single keyed entry", `${Object.keys(rawMilestone).length} keys`));
-    } else if (!MILESTONE_ID_PATTERN.test(milestoneKey)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone key must be kebab-case with optional NNNN- legacy prefix", "kebab-case or NNNN-kebab-case", milestoneKey));
-    } else {
-      const milestoneValue = rawMilestone[milestoneKey];
-      if (!isRecord3(milestoneValue)) {
-        diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone value must be a mapping", "mapping", typeof milestoneValue));
-      } else {
-        const milestoneTitle = validateString(milestoneValue, "title", artifactPath, `$.milestone.${milestoneKey}.title`, diagnostics);
-        if (milestoneTitle) {
-          milestone = {
-            id: milestoneKey,
-            title: milestoneTitle
-          };
-        }
-      }
-    }
-  }
-  const rawScope = artifact.scope;
-  let scope = null;
-  if (!isRecord3(rawScope)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.scope", "scope must be a mapping", "mapping", typeof rawScope));
-  } else {
-    const scopeIn = validateStringArray(rawScope, "in", artifactPath, "$.scope.in", diagnostics);
-    const scopeOut = validateStringArray(rawScope, "out", artifactPath, "$.scope.out", diagnostics);
-    if (scopeIn && scopeOut) {
-      scope = { in: scopeIn, out: scopeOut };
-    }
-  }
-  const rawPlannedChanges = artifact.planned_changes;
-  if (!isRecord3(rawPlannedChanges)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.planned_changes", "planned_changes must be a keyed mapping", "keyed mapping", String(rawPlannedChanges)));
-    return null;
-  }
-  const plannedChanges = {};
-  const seenIds = new Set;
-  for (const [changeKey, changeValue] of Object.entries(rawPlannedChanges)) {
-    if (seenIds.has(changeKey)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.planned_changes.${changeKey}`, "duplicate planned change id", "unique planned change id", changeKey));
-      continue;
-    }
-    seenIds.add(changeKey);
-    const parsed = validatePlannedChangeEntry(changeValue, changeKey, artifactPath, `$.planned_changes.${changeKey}`, diagnostics);
-    if (parsed) {
-      plannedChanges[changeKey] = parsed;
-    }
-  }
-  const plannedChangeIds = new Set(Object.keys(plannedChanges));
-  const plannedChangeKeys = Object.keys(plannedChanges);
-  for (const [changeKey, entry] of Object.entries(plannedChanges)) {
-    for (const [dependsOnIndex, dependsOn] of entry.depends_on.entries()) {
-      if (dependsOn === changeKey) {
-        diagnostics.push(makeDiagnostic("semantic", artifactPath, `$.planned_changes.${changeKey}.depends_on[${dependsOnIndex}]`, "planned change cannot depend on itself", "different planned change id", dependsOn));
-        continue;
-      }
-      if (!plannedChangeIds.has(dependsOn)) {
-        diagnostics.push(makeDiagnostic("reference", artifactPath, `$.planned_changes.${changeKey}.depends_on[${dependsOnIndex}]`, "planned change dependency is missing from this milestone", "$.planned_changes keys", dependsOn));
-      }
-    }
-  }
-  const visiting = new Set;
-  const visited = new Set;
-  const reportedCycles = new Set;
-  function visit(id, trail) {
-    if (visiting.has(id)) {
-      const cycleStart = trail.indexOf(id);
-      const cycle = [...trail.slice(cycleStart), id];
-      const cycleKey = cycle.join("->");
-      if (reportedCycles.has(cycleKey))
-        return;
-      reportedCycles.add(cycleKey);
-      diagnostics.push(makeDiagnostic("semantic", artifactPath, `$.planned_changes.${id}.depends_on`, "planned change dependencies must be acyclic", "acyclic dependency graph", cycle.join(" -> ")));
-      return;
-    }
-    if (visited.has(id))
-      return;
-    visiting.add(id);
-    const entry = plannedChanges[id];
-    for (const dependsOn of entry?.depends_on ?? []) {
-      if (plannedChangeIds.has(dependsOn) && dependsOn !== id) {
-        visit(dependsOn, [...trail, id]);
-      }
-    }
-    visiting.delete(id);
-    visited.add(id);
-  }
-  for (const changeKey of plannedChangeKeys) {
-    visit(changeKey, []);
-  }
-  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || statusValue === null) {
-    return null;
-  }
-  return {
-    schema: ROADMAP_MILESTONE_SCHEMA_ID,
-    schema_version: 2,
-    artifact_type: "roadmap_milestone",
-    schema_file: schemaFile,
-    milestone,
-    ...typeof order === "number" ? { order } : {},
-    goal,
-    scope,
-    done_criteria: doneCriteria,
-    intake_questions: intakeQuestions,
-    planned_changes: plannedChanges,
-    dependencies,
-    risks,
-    status: statusValue,
-    ...pausedState ? { paused: pausedState } : {},
-    ...awaitingRefinementState ? { awaiting_refinement: awaitingRefinementState } : {},
-    notes,
-    details: details ?? undefined
-  };
-}
-
-// src/roadmap/load.ts
-function isInsideDirectory(filePath, directoryPath) {
-  const relativePath = path16.relative(directoryPath, filePath);
-  return relativePath.length > 0 && !relativePath.startsWith("..") && !path16.isAbsolute(relativePath);
-}
-function listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir) {
-  return listYamlFiles2(roadmapDir).filter((filePath) => {
-    if (filePath === indexPath)
-      return false;
-    if (isInsideDirectory(filePath, milestonesDir))
-      return false;
-    if (isInsideDirectory(filePath, archiveDir))
-      return false;
-    return true;
-  });
-}
-function appendLegacyInlinePlannedChangeDiagnostic(artifactPath, plannedChangeIds, diagnostics) {
-  diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_changes", "inline milestone planned_changes are no longer supported; run the materialization form of the strict-roadmap-transition skill's sync operation (repository equivalent: `node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes`) to convert them into standalone planned-change files", "empty mapping after materialization", plannedChangeIds.join(", ")));
-}
-function loadRoadmap(rootDir, options = {}) {
-  const warnings = [];
-  const diagnostics = [];
-  const roadmapDir = path16.join(rootDir, ROADMAP_DIR);
-  const archiveDir = path16.join(rootDir, ROADMAP_ARCHIVE_DIR);
-  const indexPath = path16.join(rootDir, ROADMAP_INDEX_PATH);
-  const milestonesDir = path16.join(rootDir, ROADMAP_MILESTONES_DIR);
-  if (!existsSync15(roadmapDir) || !statSync8(roadmapDir).isDirectory()) {
-    diagnostics.push(makeDiagnostic("schema", ROADMAP_DIR, "$", "strict roadmap directory not found", ROADMAP_DIR, "missing"));
-    return { warnings, diagnostics, indexArtifact: null, milestones: [], plannedChanges: [] };
-  }
-  let indexArtifact = null;
-  if (existsSync15(indexPath)) {
-    try {
-      indexArtifact = validateRoadmapIndexArtifact(readYamlFile(indexPath), ROADMAP_INDEX_PATH, diagnostics);
-    } catch (error) {
-      const yamlDetails = getYamlParseDetails(error);
-      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
-      diagnostics.push({
-        ...makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "failed to parse roadmap index YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
-        ...yamlDiagnosticDetails
-      });
-    }
-  } else {
-    diagnostics.push(makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "roadmap index is missing", ROADMAP_INDEX_PATH, "missing"));
-  }
-  const milestoneFiles = listYamlFiles2(milestonesDir);
-  if (milestoneFiles.length === 0) {
-    warnings.push("roadmap/milestones/ is empty");
-  }
-  const milestones = [];
-  for (const absolutePath of milestoneFiles) {
-    const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
-    try {
-      const raw = readFileSync14(absolutePath, "utf8");
-      const artifact = validateMilestoneArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
-      if (!artifact)
-        continue;
-      const inlinePlannedChangeIds = Object.keys(artifact.planned_changes);
-      if (!options.allowInlinePlannedChanges && inlinePlannedChangeIds.length > 0) {
-        appendLegacyInlinePlannedChangeDiagnostic(artifactPath, inlinePlannedChangeIds, diagnostics);
-      }
-      const relativeMilestonePath = toPosix3(path16.relative(milestonesDir, absolutePath));
-      milestones.push({
-        absolutePath,
-        artifactPath,
-        file: path16.basename(relativeMilestonePath),
-        relativeMilestonePath,
-        repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
-        raw,
-        artifact
-      });
-    } catch (error) {
-      const yamlDetails = getYamlParseDetails(error);
-      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
-      diagnostics.push({
-        ...makeDiagnostic("schema", artifactPath, "$", "failed to parse roadmap milestone YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
-        ...yamlDiagnosticDetails
-      });
-    }
-  }
-  const plannedChanges = [];
-  for (const absolutePath of listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir)) {
-    const artifactPath = normalizeRepoRelativePath3(rootDir, absolutePath);
-    try {
-      const raw = readFileSync14(absolutePath, "utf8");
-      const artifact = validateStandalonePlannedChangeArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
-      if (!artifact)
-        continue;
-      const relativeRoadmapPath = toPosix3(path16.relative(roadmapDir, absolutePath));
-      plannedChanges.push({
-        absolutePath,
-        artifactPath,
-        file: path16.basename(relativeRoadmapPath),
-        relativeRoadmapPath,
-        repoRelativePath: normalizeRepoRelativePath3(rootDir, absolutePath),
-        raw,
-        artifact
-      });
-    } catch (error) {
-      const yamlDetails = getYamlParseDetails(error);
-      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
-      diagnostics.push({
-        ...makeDiagnostic("schema", artifactPath, "$", "failed to parse roadmap planned-change YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
-        ...yamlDiagnosticDetails
-      });
-    }
-  }
-  return {
-    warnings,
-    diagnostics: sortDiagnostics(diagnostics),
-    indexArtifact,
-    milestones,
-    plannedChanges
-  };
-}
-function loadArchivedPlannedChangeIds(rootDir) {
-  const archivePlannedChangesDir = path16.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
-  const ids = new Set;
-  if (!existsSync15(archivePlannedChangesDir) || !statSync8(archivePlannedChangesDir).isDirectory()) {
-    return ids;
-  }
-  for (const absolutePath of listYamlFiles2(archivePlannedChangesDir)) {
-    try {
-      const parsed = readYamlFile(absolutePath);
-      if (!isRecord3(parsed))
-        continue;
-      const plannedChange = parsed.planned_change;
-      if (!isRecord3(plannedChange))
-        continue;
-      const id = plannedChange.id;
-      if (typeof id === "string" && id.length > 0) {
-        ids.add(id);
-      }
-    } catch {}
-  }
-  return ids;
-}
-
 // src/roadmap/status.ts
 import { existsSync as existsSync16, readdirSync as readdirSync5, statSync as statSync9 } from "fs";
 import path17 from "path";
@@ -24616,7 +24656,7 @@ function sortMilestonesByRoadmapOrder(milestones) {
   return milestones.slice().sort(compareMilestonesByRoadmapOrder);
 }
 function getChangeStateIndex(rootDir) {
-  const changesDir = path17.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
+  const changesDir = path17.join(rootDir, STRICT_WORKFLOW_DIR4, "changes");
   const active = new Set;
   const archived = new Set;
   if (!existsSync16(changesDir) || !statSync9(changesDir).isDirectory()) {
@@ -26246,6 +26286,44 @@ function loadSpecRequirements(rootDir) {
   }
   return universe;
 }
+function overlayChangeSpecRequirements(universe, changeDir) {
+  const overlaid = new Map([...universe].map(([specId, requirementIds]) => [specId, new Set(requirementIds)]));
+  const specsDir = path20.join(changeDir, "specs");
+  if (!existsSync19(specsDir) || !statSync11(specsDir).isDirectory())
+    return overlaid;
+  const deltaPaths = [];
+  const walk = (current) => {
+    for (const name of readdirSync6(current).sort()) {
+      const full = path20.join(current, name);
+      if (statSync11(full).isDirectory())
+        walk(full);
+      else if (name.endsWith(".yaml") || name.endsWith(".yml"))
+        deltaPaths.push(full);
+    }
+  };
+  walk(specsDir);
+  for (const deltaPath of deltaPaths) {
+    let delta;
+    try {
+      delta = parseYamlFile(deltaPath);
+    } catch {
+      continue;
+    }
+    if (typeof delta?.target_spec !== "string")
+      continue;
+    const requirementIds = overlaid.get(delta.target_spec) ?? new Set;
+    const idsOf = (operation) => {
+      const entries = delta.operations?.[operation];
+      return entries !== null && typeof entries === "object" && !Array.isArray(entries) ? Object.keys(entries) : [];
+    };
+    for (const id of [...idsOf("ADDED"), ...idsOf("MODIFIED")])
+      requirementIds.add(id);
+    for (const id of idsOf("REMOVED"))
+      requirementIds.delete(id);
+    overlaid.set(delta.target_spec, requirementIds);
+  }
+  return overlaid;
+}
 function describeStep(flow, stepId, step, universe) {
   const coveredBy = (step.covered_by ?? []).map((reference) => ({
     ...reference,
@@ -26302,7 +26380,7 @@ function collectSceneCoverageDiagnostics(rootDir, changeDir, changeName) {
       message: `the change's delta scenes cannot be merged, so scene coverage cannot be checked: ${error instanceof Error ? error.message : String(error)}`
     }];
   }
-  const universe = loadSpecRequirements(rootDir);
+  const universe = overlayChangeSpecRequirements(loadSpecRequirements(rootDir), changeDir);
   const diagnostics = [];
   for (const scene of plan.targeted) {
     const sceneDiagnostics = [];
@@ -26334,7 +26412,7 @@ function collectSceneCoverageDiagnostics(rootDir, changeDir, changeName) {
           artifactPath: scene.repoPath,
           fieldPath,
           message: `step '${stepId}' in ${flowLabel(flowId)} of scene '${scene.id}' names covering requirement(s) that do not ` + `resolve: ${unresolved.map((reference) => `${reference.spec_id}:${reference.requirement_id}`).join(", ")}; ` + `correct the reference with '${remedy}', reading the recorded spec ids and requirement ids from ` + `${SPEC_INDEX_PATH2} and the spec file it names, or add the missing requirement to this change with ` + `'strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement <text>'`,
-          expected: "covering requirements that resolve against the recorded main specs",
+          expected: "covering requirements that resolve against the recorded main specs as this change's delta specs leave them",
           actual: unresolved.map((reference) => `${reference.spec_id}:${reference.requirement_id}`).join(", ")
         });
       }
@@ -29139,7 +29217,6 @@ function generateRoadmapMilestone(rootDir, input) {
     milestones: syncResult.milestones
   };
 }
-var PLANNED_CHANGE_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 var PLANNED_CHANGES_DIRNAME = "planned-changes";
 var PLANNED_CHANGE_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
 function findExistingPlannedChange(plannedChanges, id) {
@@ -29224,8 +29301,8 @@ function buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics) 
 function generateRoadmapPlannedChange(rootDir, input) {
   const diagnostics = [];
   const plannedChangesDir = `${ROADMAP_DIR}/${PLANNED_CHANGES_DIRNAME}`;
-  if (!PLANNED_CHANGE_ID_PATTERN.test(input.id)) {
-    diagnostics.push(makeDiagnostic("schema", plannedChangesDir, "$.planned_change.id", "planned change id must be kebab-case", "kebab-case id", input.id));
+  if (!CHANGE_NAME_PATTERN.test(input.id)) {
+    diagnostics.push(makeDiagnostic("schema", plannedChangesDir, "$.planned_change.id", "planned change id must be a valid strict change name: kebab-case with single hyphens between lowercase letters and numbers", "kebab-case id with single hyphens", input.id));
   }
   if (input.status !== undefined && !isDeclaredPlannedChangeStatus(input.status)) {
     diagnostics.push(makeDiagnostic("schema", plannedChangesDir, "$.status", "unsupported planned change status", "planned, complete", input.status));
@@ -30688,7 +30765,7 @@ function runRoadmapGenerate(argv) {
   }
 }
 function parseRoadmapRecommendArgs(argv) {
-  const result = { includeDetails: false, allowUnrefined: false };
+  const result = { includeDetails: false, allowUnrefined: false, create: false };
   for (let index = 0;index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--details") {
@@ -30701,6 +30778,12 @@ function parseRoadmapRecommendArgs(argv) {
       if (result.allowUnrefined)
         throw new Error("--allow-unrefined may only be supplied once");
       result.allowUnrefined = true;
+      continue;
+    }
+    if (token === "--create") {
+      if (result.create)
+        throw new Error("--create may only be supplied once");
+      result.create = true;
       continue;
     }
     if (token === "--milestone") {
@@ -30742,8 +30825,43 @@ function runRoadmapRecommend(argv) {
     milestoneId: args.milestoneId,
     allowUnrefined: args.allowUnrefined
   });
-  writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
-  return result.status === "recommended" ? 0 : 1;
+  if (!args.create) {
+    writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
+    return result.status === "recommended" ? 0 : 1;
+  }
+  const creation = createRecommendedChange(result, args);
+  const reported = creation.diagnostic === undefined ? result : { ...result, valid: false, diagnostics: [...result.diagnostics, creation.diagnostic] };
+  const output = args.includeDetails ? reported : summarizeRoadmapRecommendation(reported, args);
+  writeJson({ ...output, createdChange: creation.createdChange });
+  return result.status === "recommended" && creation.createdChange !== null ? 0 : 1;
+}
+function createRecommendedChange(result, args) {
+  if (result.status !== "recommended" || result.recommendation === null) {
+    return { createdChange: null };
+  }
+  const changeName = result.recommendation.changeName;
+  const rerun = [
+    "strict-spec-cli roadmap-recommend",
+    ...args.milestoneId === undefined ? [] : [`--milestone ${args.milestoneId}`],
+    ...args.allowUnrefined ? ["--allow-unrefined"] : [],
+    "--create"
+  ].join(" ");
+  const refuse = (message) => ({
+    createdChange: null,
+    diagnostic: makeDiagnostic("semantic", `.strict-spec-driven/changes/${changeName}`, "$", message, "a reservable change container named after the recommended planned change", changeName)
+  });
+  if (!CHANGE_NAME_PATTERN.test(changeName)) {
+    const milestoneId = result.recommendation.milestone.id;
+    return refuse(`recommended planned change id '${changeName}' is not a valid strict change name (kebab-case with single hyphens); ` + `replace it with 'strict-spec-cli roadmap-delete-planned-change ${changeName}' and ` + `'strict-spec-cli roadmap-generate planned-change --milestone ${milestoneId} --id <valid-id> --summary <text> --details <text>', then rerun '${rerun}'`);
+  }
+  try {
+    return { createdChange: { name: changeName, ...initializeStrictChangeScaffold(process.cwd(), changeName) } };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    const blocking = listActiveChangeNames(process.cwd()).filter((name) => name !== changeName);
+    const release = blocking.length >= MAX_ACTIVE_CHANGE_COUNT ? ` Free a slot by finishing or dropping one active change: ${blocking.map((name) => `'strict-spec-cli archive ${name}' or 'strict-spec-cli cancel ${name}'`).join("; ")}.` : "";
+    return refuse(`could not create change '${changeName}' for the recommended planned change: ${reason}.${release} Then rerun '${rerun}'`);
+  }
 }
 function runRoadmapArchive(argv) {
   if (handleHelpRequest("roadmap-archive", argv)) {
@@ -35849,7 +35967,15 @@ var ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
 var ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose";
 var PROPOSE_MILESTONE_SELECTOR_SNIPPET = "Resolve the selector to exactly one milestone id";
 var PROPOSE_MILESTONE_RECOMMEND_SNIPPET = "roadmap-recommend --milestone";
-var PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET = "--milestone <milestone-id> --planned-change <planned-change-id>";
+var PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET = "--milestone <milestone-id> --planned-change <change-name>";
+var PROPOSE_MILESTONE_CREATE_SNIPPET = "roadmap-recommend --milestone <resolved-milestone-id> --create";
+var ROADMAP_CREATE_SNIPPET = "then run `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create`. Without a user roadmap hint, run `strict-spec-cli roadmap-recommend --create`";
+var ROADMAP_CREATED_CHANGE_NAME_SNIPPET = "Use `createdChange.name` as `<change-name>` in every later command";
+var ROADMAP_CREATE_IN_RECOMMENDING_CALL_SNIPPET = "The change is created in the same call that recommends it";
+var ROADMAP_SECOND_CREATING_CALL_SNIPPET = "Run the same command as step 1 with `--create` added";
+var ROADMAP_NO_SECOND_CALL_SNIPPET = "do not run `roadmap-recommend` again";
+var PROPOSE_READ_ONLY_SELECTION_SNIPPET = "Then obtain the planned change from the command that owns selection:";
+var CALLER_CHOSEN_ROADMAP_CHANGE_NAME_SNIPPET = "the change name unless the user gave one";
 var PROPOSE_MILESTONE_BLOCKER_SNIPPET = "When no planned change comes back, report the reason and stop.";
 var PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET = "do not add `--allow-unrefined`";
 var AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
@@ -36198,6 +36324,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
       ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
       PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET,
+      PROPOSE_MILESTONE_CREATE_SNIPPET,
+      ROADMAP_CREATE_IN_RECOMMENDING_CALL_SNIPPET,
+      ROADMAP_NO_SECOND_CALL_SNIPPET,
       PROPOSE_MILESTONE_BLOCKER_SNIPPET,
       PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
@@ -36212,7 +36341,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
       "proposal review",
-      "If the user asks to source a change from the roadmap, stop and tell them to use"
+      "If the user asks to source a change from the roadmap, stop and tell them to use",
+      CALLER_CHOSEN_ROADMAP_CHANGE_NAME_SNIPPET,
+      PROPOSE_READ_ONLY_SELECTION_SNIPPET
     ]
   },
   "strict-spec-apply": {
@@ -36465,13 +36596,16 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
-      propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
       ready: READY_COMMAND
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
+      ROADMAP_CREATE_SNIPPET,
+      ROADMAP_CREATED_CHANGE_NAME_SNIPPET,
+      ROADMAP_CREATE_IN_RECOMMENDING_CALL_SNIPPET,
+      ROADMAP_NO_SECOND_CALL_SNIPPET,
       ROADMAP_DETAILS_GUIDANCE_SNIPPET,
       ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
       ROADMAP_ACTIVE_CONFLICT_SNIPPET,
@@ -36485,7 +36619,7 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "/strict-spec-auto"
     ],
-    forbiddenSnippets: ["proposal review"]
+    forbiddenSnippets: ["proposal review", `${COMMAND_PREFIX} propose <change-name>`, ROADMAP_SECOND_CREATING_CALL_SNIPPET]
   },
   "strict-roadmap-review": {
     requiredCommands: {

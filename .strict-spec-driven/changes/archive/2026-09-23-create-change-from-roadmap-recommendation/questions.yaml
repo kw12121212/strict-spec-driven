@@ -1,0 +1,72 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: create-change-from-roadmap-recommendation
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: Establishes the need before scope. Roadmap state matches changes to planned changes by directory name only.
+    answer: When an AI agent scaffolds a roadmap-backed change it chooses the change name itself and often names it differently from the planned change id, which breaks later roadmap synchronization for the workflow operator.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Defines the definition of done.
+    answer: The change name is produced by the CLI from the recommended planned change rather than by the agent, and a mismatched roadmap link is refused when written, so an archived roadmap-backed change always marks its planned change complete.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now; what was the last concrete occurrence?
+    context: Tests whether the trigger is real and which path to guard first.
+    answer: A roadmap-backed change was archived and the roadmap did not mark its planned change complete because the change name differed from the planned change id.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Bounds scope.
+    answer: Roadmap matching stays by change directory name; historical stranded planned changes are not repaired; standalone propose is unaffected; roadmap-recommend without --create keeps its current read-only behavior and output.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: What should roadmap-recommend --create produce?
+    context: 'Two readings: an empty container only, or a container plus a linked proposal stub.'
+    answer: Only an empty change container, like propose; the agent then authors the proposal with generate, and generate records the roadmap link automatically.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: command-form
+    question: Which command form creates the change from the planned change?
+    context: Options were propose --planned-change, a new roadmap-propose command, or roadmap-recommend --create. The latter two conflict with the MUST rule roadmap-commands-do-not-write-change-artifacts.
+    answer: roadmap-recommend --create; the conflicting technical standard is narrowed through a delta tech artifact in this change.
+    status: resolved
+    answered_by: human
+  - id: link-guard
+    question: How should generate proposal handle a --planned-change that does not match the change?
+    context: Options were hard rejection, warning only, or no guard.
+    answer: Hard rejection when the planned change is absent from the active roadmap, is not owned by the given milestone, or its id differs from the change name, naming the corrective command.
+    status: resolved
+    answered_by: human
+  - id: create-eligibility
+    question: Which planned-change states must creation refuse?
+    context: Options were refusing missing and completed planned changes, recommend-equivalent strictness, or existence only.
+    answer: Refuse missing, already archived or complete, and already active planned changes; an incomplete dependency alone does not refuse. With --create creation follows the recommendation, which already excludes archived and active planned changes.
+    status: resolved
+    answered_by: human
+  - id: extra-scope
+    question: Which additional tightenings are in scope?
+    context: 'Offered: tighten the planned-change id rule, infer the roadmap link in generate proposal, remove the caller-chosen-name exception in strict-spec-propose.'
+    answer: All three.
+    status: resolved
+    answered_by: human
+  - id: scene-coverage-ignores-change-requirements
+    question: Scene coverage resolves covered_by only against recorded main specs, so steps covered by requirements this change ADDs never resolve and ready/verify block. How should this change proceed?
+    context: 'Defect in src/scenes.ts loadSpecRequirements: the requirement universe ignores the change''s own delta specs, although the diagnostic''s own remedy is to ADD the requirement in this change. Impact: blocks ready, verify, and archive for this change; affects implementation files (src/scenes.ts, possibly scene-status) and tests. Recommendation: fix it inside this change — resolve coverage against the main specs merged with the change''s delta specs (ADDED and MODIFIED ids included, REMOVED ids excluded) — adding a delta-spec requirement and regression test. Alternative: pause, fix it as a separate bugfix change first, then resume. Waiving or mis-attributing coverage is not an option.'
+    answer: 'Fix it inside this change: scene coverage resolves against the main specs merged with the change''s own delta specs, with a delta-spec requirement and regression test.'
+    status: resolved
+    answered_by: human

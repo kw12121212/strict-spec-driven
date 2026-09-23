@@ -154,7 +154,25 @@ const ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` du
  */
 const PROPOSE_MILESTONE_SELECTOR_SNIPPET = "Resolve the selector to exactly one milestone id";
 const PROPOSE_MILESTONE_RECOMMEND_SNIPPET = "roadmap-recommend --milestone";
-const PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET = "--milestone <milestone-id> --planned-change <planned-change-id>";
+const PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET = "--milestone <milestone-id> --planned-change <change-name>";
+/**
+ * Roadmap status matches a change to its planned change by directory name alone, so a
+ * roadmap-backed change is created by the recommendation command, which names it after the planned
+ * change id, and never under a name the agent or the request chose.
+ */
+const PROPOSE_MILESTONE_CREATE_SNIPPET = "roadmap-recommend --milestone <resolved-milestone-id> --create";
+const ROADMAP_CREATE_SNIPPET = "then run `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create`. Without a user roadmap hint, run `strict-spec-cli roadmap-recommend --create`";
+const ROADMAP_CREATED_CHANGE_NAME_SNIPPET = "Use `createdChange.name` as `<change-name>` in every later command";
+/**
+ * No human decision sits between recommending and creating, so both roadmap-backed skills carry
+ * --create on the recommendation call itself; a second creating call could create a different
+ * planned change from the one the agent explained if state moved in between.
+ */
+const ROADMAP_CREATE_IN_RECOMMENDING_CALL_SNIPPET = "The change is created in the same call that recommends it";
+const ROADMAP_SECOND_CREATING_CALL_SNIPPET = "Run the same command as step 1 with `--create` added";
+const ROADMAP_NO_SECOND_CALL_SNIPPET = "do not run `roadmap-recommend` again";
+const PROPOSE_READ_ONLY_SELECTION_SNIPPET = "Then obtain the planned change from the command that owns selection:";
+const CALLER_CHOSEN_ROADMAP_CHANGE_NAME_SNIPPET = "the change name unless the user gave one";
 const PROPOSE_MILESTONE_BLOCKER_SNIPPET = "When no planned change comes back, report the reason and stop.";
 const PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET = "do not add `--allow-unrefined`";
 const AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
@@ -705,6 +723,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
       ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
       PROPOSE_MILESTONE_ROADMAP_LINK_SNIPPET,
+      PROPOSE_MILESTONE_CREATE_SNIPPET,
+      ROADMAP_CREATE_IN_RECOMMENDING_CALL_SNIPPET,
+      ROADMAP_NO_SECOND_CALL_SNIPPET,
       PROPOSE_MILESTONE_BLOCKER_SNIPPET,
       PROPOSE_MILESTONE_NO_ALLOW_UNREFINED_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
@@ -720,6 +741,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
       "proposal review",
       "If the user asks to source a change from the roadmap, stop and tell them to use",
+      CALLER_CHOSEN_ROADMAP_CHANGE_NAME_SNIPPET,
+      PROPOSE_READ_ONLY_SELECTION_SNIPPET,
     ],
   },
   "strict-spec-apply": {
@@ -987,13 +1010,16 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
-      propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
       ready: READY_COMMAND,
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
+      ROADMAP_CREATE_SNIPPET,
+      ROADMAP_CREATED_CHANGE_NAME_SNIPPET,
+      ROADMAP_CREATE_IN_RECOMMENDING_CALL_SNIPPET,
+      ROADMAP_NO_SECOND_CALL_SNIPPET,
       ROADMAP_DETAILS_GUIDANCE_SNIPPET,
       ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
       ROADMAP_ACTIVE_CONFLICT_SNIPPET,
@@ -1007,7 +1033,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "/strict-spec-auto",
     ],
-    forbiddenSnippets: ["proposal review"],
+    forbiddenSnippets: ["proposal review", `${COMMAND_PREFIX} propose <change-name>`, ROADMAP_SECOND_CREATING_CALL_SNIPPET],
   },
   "strict-roadmap-review": {
     requiredCommands: {

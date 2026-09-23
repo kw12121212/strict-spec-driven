@@ -855,6 +855,48 @@ function loadSpecRequirements(rootDir: string): SpecRequirementUniverse {
   return universe;
 }
 
+/**
+ * Overlays a change's delta specs onto the main-spec universe, producing the requirement set the
+ * main specs will hold once the change archives. Archive merges specs before scenes, so this is the
+ * state a merged scene step is actually checked against: a requirement the change adds or modifies
+ * resolves, including one in a spec the change creates, and one it removes does not. An unreadable
+ * delta contributes nothing, because verify already reports it as a schema failure of its own.
+ */
+function overlayChangeSpecRequirements(universe: SpecRequirementUniverse, changeDir: string): SpecRequirementUniverse {
+  const overlaid: SpecRequirementUniverse = new Map(
+    [...universe].map(([specId, requirementIds]) => [specId, new Set(requirementIds)]),
+  );
+  const specsDir = path.join(changeDir, "specs");
+  if (!existsSync(specsDir) || !statSync(specsDir).isDirectory()) return overlaid;
+  const deltaPaths: string[] = [];
+  const walk = (current: string): void => {
+    for (const name of readdirSync(current).sort()) {
+      const full = path.join(current, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (name.endsWith(".yaml") || name.endsWith(".yml")) deltaPaths.push(full);
+    }
+  };
+  walk(specsDir);
+  for (const deltaPath of deltaPaths) {
+    let delta: { target_spec?: unknown; operations?: Record<string, unknown> };
+    try {
+      delta = parseYamlFile(deltaPath);
+    } catch {
+      continue;
+    }
+    if (typeof delta?.target_spec !== "string") continue;
+    const requirementIds = overlaid.get(delta.target_spec) ?? new Set<string>();
+    const idsOf = (operation: string): string[] => {
+      const entries = delta.operations?.[operation];
+      return entries !== null && typeof entries === "object" && !Array.isArray(entries) ? Object.keys(entries) : [];
+    };
+    for (const id of [...idsOf("ADDED"), ...idsOf("MODIFIED")]) requirementIds.add(id);
+    for (const id of idsOf("REMOVED")) requirementIds.delete(id);
+    overlaid.set(delta.target_spec, requirementIds);
+  }
+  return overlaid;
+}
+
 function describeStep(
   flow: string,
   stepId: string,
@@ -934,7 +976,7 @@ export function collectSceneCoverageDiagnostics(
     }];
   }
 
-  const universe = loadSpecRequirements(rootDir);
+  const universe = overlayChangeSpecRequirements(loadSpecRequirements(rootDir), changeDir);
   const diagnostics: ValidationDiagnostic[] = [];
   for (const scene of plan.targeted) {
     const sceneDiagnostics: ValidationDiagnostic[] = [];
@@ -979,7 +1021,7 @@ export function collectSceneCoverageDiagnostics(
             + `correct the reference with '${remedy}', reading the recorded spec ids and requirement ids from `
             + `${SPEC_INDEX_PATH} and the spec file it names, or add the missing requirement to this change with `
             + `'strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement <text>'`,
-          expected: "covering requirements that resolve against the recorded main specs",
+          expected: "covering requirements that resolve against the recorded main specs as this change's delta specs leave them",
           actual: unresolved.map((reference) => `${reference.spec_id}:${reference.requirement_id}`).join(", "),
         });
       }

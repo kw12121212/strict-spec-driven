@@ -23,16 +23,20 @@ rules:
       - Non-contract refactors that preserve existing schema, spec, and tech behavior need no artifact update.
   roadmap-commands-do-not-write-change-artifacts:
     strength: MUST
-    statement: Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/; when a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
-    rationale: 'Roadmap state and change state are separate domains reconciled by derivation: change state is derived from change directory names, and roadmap commands own only roadmap artifacts. A roadmap command that reached into a change directory would make roadmap operations partially bypass the change workflow''s own validation, apply, and verify gates, and would let a single command mutate two contracts whose consistency the workflow checks independently. Reporting the drift keeps the repair inside the change workflow that owns it.'
+    statement: 'Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/, with one exception: roadmap-recommend --create MAY reserve an empty change container — the change directory and its empty specs directory, holding no file — named exactly the planned change id it recommends, through the same reservation boundary propose uses. No roadmap command may write a planning, delta, or scene artifact. When a roadmap operation leaves a change artifact''s roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.'
+    rationale: 'Roadmap state and change state are separate domains reconciled by derivation: change state is derived from change directory names, and roadmap commands own only roadmap artifacts. A roadmap command that wrote change artifacts would let roadmap operations bypass the change workflow''s validation, apply, and verify gates. Reserving an empty container is the one write that serves derivation rather than bypassing it: the directory name is the join key roadmap status matches on, and letting the command that selected the planned change also name the container removes the agent-chosen name that stranded planned changes after archive. The container holds no artifact, so every gate the change workflow owns still applies to everything written into it.'
     enforcement:
       method: review
-      detail: Reviewers reject roadmap command implementations that write, rename, or delete files under .strict-spec-driven/changes/, and require a reported warning naming the repair command instead.
+      detail: Reviewers reject roadmap command implementations that write, rename, or delete files under .strict-spec-driven/changes/, other than roadmap-recommend --create reserving an empty container through reserveChangeContainer, and require a reported warning naming the repair command instead.
     examples:
       good:
         - roadmap-move-planned-change warns that an active strict change still records the previous milestone and names the generate proposal command that refreshes the linkage.
+        - roadmap-recommend --create reserves .strict-spec-driven/changes/<recommended-id>/specs/ and reports it, leaving proposal authoring to generate.
       bad:
         - A roadmap command silently rewriting proposal.yaml roadmap.milestone for an active change while moving its planned change.
+        - roadmap-recommend --create writing a proposal.yaml seeded from the planned-change summary.
+    exceptions:
+      - roadmap-recommend --create reserving an empty change container named after the recommended planned change id.
   roadmap-dependency-targets-resolve-against-one-universe:
     strength: MUST
     statement: Every roadmap consumer that decides whether a planned-change depends_on target exists MUST resolve it against the shared universe of active planned-change ids unioned with the ids loaded from the roadmap archive, obtained from the loader that already computes that set. A consumer MUST NOT build its own dependency-target universe from active roadmap state alone, and MUST NOT re-derive archived membership by parsing archived artifacts.
@@ -73,3 +77,17 @@ rules:
         - Each check repeating name.startsWith("strict-spec-") || name.startsWith("strict-roadmap-") and its own literal "strict-spec-*, strict-roadmap-*, or strict-tech-*" expected value.
     exceptions:
       - A family whose members are classified at exactly one site needs no registry; extract one when the second consumer appears.
+  active-change-gates-resolve-against-post-archive-state:
+    strength: SHOULD
+    statement: A ready, verify, or archive gate that resolves ids or references during an active change SHOULD resolve them against the state archive will produce — the recorded main artifacts overlaid with that change's own delta artifacts, with added and modified entries present and removed entries absent — rather than against the recorded main artifacts alone.
+    rationale: 'A change legitimately cites what it introduces: a scene step covered by a requirement its own delta spec adds is the normal scene-first flow. A gate resolving against archived state alone rejects exactly that, and its named remedy of adding the requirement to the change cannot clear it, so the change can never archive. Archive merges specs before scenes, so the overlay is the state the merged artifact is checked against.'
+    enforcement:
+      method: test
+      detail: For scene coverage this is overlayChangeSpecRequirements in src/scenes.ts, proven by test/suites/scenes.ts cases where an added requirement resolves and a removed one does not. A new gate adds the same pair of cases.
+    examples:
+      good:
+        - verify accepts a scene step covered by a requirement the change's delta spec ADDs, and rejects one covered by a requirement the change REMOVEs.
+      bad:
+        - verify resolves covered_by only against .strict-spec-driven/specs and tells the author to add the missing requirement to the change, which does not clear the diagnostic.
+    exceptions:
+      - Read-only status commands that run outside any change, such as scene-status, resolve against the recorded main artifacts.

@@ -446,3 +446,31 @@ requirements:
         - GIVEN: a legacy Markdown roadmap milestone whose Status section declares 'active'
         - WHEN: strict-spec-cli migrate runs against that legacy workflow
         - THEN: the converted strict milestone declares 'proposed', the migration succeeds, and the converted roadmap validates against the narrowed status enum
+  roadmap-recommend-create-reserves-recommended-change:
+    strength: MUST
+    statement: The system MUST make roadmap-recommend accept a --create flag that, only when the result status is recommended, creates an empty strict change container named exactly the recommended planned change id — the change directory and its empty specs directory, with no planning artifact — through the same name, collision, and active-change-limit checks propose applies, and reports it as createdChange in the JSON output. For any other status the flag MUST create nothing and report createdChange as null. When the container cannot be reserved the command MUST exit non-zero, leave the filesystem unchanged, report createdChange as null, and name the reason in a diagnostic. Without --create the command MUST remain read-only with unchanged output keys.
+    scenarios:
+      create-reserves-container-named-after-recommendation:
+        - GIVEN: a valid roadmap whose first eligible planned change has id alpha-feature and no change named alpha-feature exists
+        - WHEN: roadmap-recommend --create runs
+        - THEN: the command exits zero, .strict-spec-driven/changes/alpha-feature/specs/ exists and holds no file, and the JSON output reports status recommended with createdChange.name alpha-feature
+      create-writes-nothing-without-recommendation:
+        - GIVEN: a valid roadmap with no eligible planned change
+        - WHEN: roadmap-recommend --create runs
+        - THEN: the command exits non-zero with status no-candidate, createdChange is null, and no directory is created under .strict-spec-driven/changes/
+      create-refusal-leaves-state-unchanged:
+        - GIVEN: an eligible planned change is recommended while two active changes already fill the active-change limit
+        - WHEN: roadmap-recommend --create runs
+        - THEN: the command exits non-zero, createdChange is null, a diagnostic names the active-change limit, and no change directory named after the planned change exists
+      recommend-without-create-writes-nothing:
+        - GIVEN: a valid roadmap with an eligible planned change
+        - WHEN: roadmap-recommend runs without --create
+        - THEN: the command exits zero, no change directory is created, and the JSON output carries no createdChange key
+  roadmap-planned-change-id-is-a-valid-change-name:
+    strength: MUST
+    statement: The system MUST make roadmap-generate refuse to author a planned change whose id does not satisfy the strict change-name rule, so every newly authored planned change id can be used unchanged as a change name; the refusal MUST leave the roadmap unchanged. Planned-change files already recorded are not revalidated by this rule.
+    scenarios:
+      generate-refuses-id-that-is-not-a-change-name:
+        - GIVEN: a valid roadmap milestone
+        - WHEN: roadmap-generate authors a planned change with id alpha--feature
+        - THEN: the command exits non-zero with a diagnostic on planned_change.id and no planned-change file is written

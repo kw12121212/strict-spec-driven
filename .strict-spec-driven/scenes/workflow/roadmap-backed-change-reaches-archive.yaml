@@ -27,7 +27,7 @@ main_flow:
       - spec_id: cli-foundation
         requirement_id: cli-roadmap-recommend-command
   scaffold:
-    action: The agent creates the change container and authors its proposal, design, tasks, and questions through named CLI arguments, with the roadmap milestone and planned change recorded on the proposal.
+    action: The agent asks the recommendation command to create the change container, which names it exactly after the recommended planned change id, and then authors its proposal, design, tasks, and questions through named CLI arguments, with the roadmap milestone and planned change recorded on the proposal.
     covered_by:
       - spec_id: cli-foundation
         requirement_id: cli-propose-populates-artifacts-from-structured-input
@@ -35,6 +35,12 @@ main_flow:
         requirement_id: cli-propose-generation-uses-named-arguments
       - spec_id: cli-foundation
         requirement_id: cli-propose-roadmap-backed-guidance
+      - spec_id: roadmap-domain-behavior
+        requirement_id: roadmap-recommend-create-reserves-recommended-change
+      - spec_id: cli-foundation
+        requirement_id: cli-generate-proposal-infers-roadmap-link
+      - spec_id: cli-foundation
+        requirement_id: cli-roadmap-backed-guidance-creates-change-through-recommend
   record-delta:
     action: The agent records the change's spec impact as a delta artifact whose operations address requirements by stable id.
     covered_by:
@@ -128,3 +134,21 @@ exception_flows:
             requirement_id: cli-archive-requires-verified-change-state
           - spec_id: cli-foundation
             requirement_id: cli-verify-emits-deterministic-json-output
+  mismatched-roadmap-link:
+    trigger: The agent records a roadmap link naming a planned change that is absent from the roadmap, is owned by another milestone, or has an id different from the change name.
+    steps:
+      refuse-mismatched-link:
+        action: The proposal write is refused, the proposal is left unchanged, and the diagnostic names the planned change, the change, and the command that records a consistent link.
+        covered_by:
+          - spec_id: cli-foundation
+            requirement_id: cli-generate-proposal-roadmap-link-must-match-change
+          - spec_id: cli-foundation
+            requirement_id: cli-generate-proposal-refuses-duplicated-planned-change-link
+  create-cannot-reserve:
+    trigger: The recommended change container cannot be reserved because active changes already fill the limit or a populated change of that name exists.
+    steps:
+      refuse-create:
+        action: The recommendation command exits non-zero, creates nothing, and reports why the container could not be reserved alongside the recommendation.
+        covered_by:
+          - spec_id: roadmap-domain-behavior
+            requirement_id: roadmap-recommend-create-reserves-recommended-change

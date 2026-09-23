@@ -224,6 +224,7 @@ artifact_families:
     reference_side_effects:
       - Task state controls apply, verify, review, and archive gates.
       - Proposal roadmap links reconcile planned-change status during archive.
+      - roadmap-recommend --create reserves an empty change container through src/scaffold.ts named after the recommended planned change id; it writes no planning artifact, so it is not an owner of this family.
     cli_owners:
       - propose
       - generate

@@ -1,0 +1,17 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: create-change-in-the-recommending-call
+approach:
+  - strict-roadmap-recommend step 1 runs roadmap-recommend [--milestone <id>] --create and branches on status exactly as before; the recommended branch additionally checks createdChange and, when it is null, surfaces the reservation diagnostic and stops. Step 3 explains the already-created change, and step 4 only authors the planning artifacts into createdChange.name. strict-spec-propose milestone mode runs roadmap-recommend --milestone <id> --create once and reads createdChange from that result.
+  - The validator pins a shared sentence stating the change is created in the same call that recommends it in both skills, replacing the recommend skill's pinned wording that assumed a second call.
+decisions:
+  single-creating-call:
+    decision: The first recommendation call carries --create.
+    rationale: 'No human decision sits between recommending and creating: the step 3 checkpoint explicitly does not stop for confirmation. One call removes a step and guarantees the created change is the one explained, which two calls separated by roadmap or change-state movement cannot.'
+  no-scene:
+    decision: No delta scene is authored.
+    rationale: The recorded scene step 'scaffold' already says the agent asks the recommendation command to create the change container; merging the calls changes how many calls precede it, not the actors, preconditions, or ordered steps.
+alternatives: []
+risks: []

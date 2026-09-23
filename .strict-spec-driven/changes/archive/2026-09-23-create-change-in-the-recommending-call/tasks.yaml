@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: create-change-in-the-recommending-call
+sections:
+  Implementation:
+    impl-recommend-skill:
+      text: Rewrite strict-roadmap-recommend step 1 to run roadmap-recommend --create, add the createdChange null handling to the recommended branch, and reduce step 4 to artifact authoring.
+      status: complete
+    impl-propose-skill:
+      text: Merge the strict-spec-propose milestone-mode recommendation and creation into one roadmap-recommend --milestone <id> --create call.
+      status: complete
+    impl-validator:
+      text: Update src/skills/model.ts required snippets for the single-call wording in both skills and update test/suites/entrypoint-and-skills.ts, proving the new snippet with a negative validate-skills run.
+      status: complete
+  Testing:
+    test-lint:
+      text: Run the TypeScript lint check.
+      status: complete
+      command: bun run lint
+    test-skills:
+      text: Validate bundled skills through the shipped command.
+      status: complete
+      command: bun run validate-skills
+    test-regression:
+      text: Run the complete project regression with the coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict-spec-cli verify create-change-in-the-recommending-call.
+      status: complete
+testing_gates:
+  validation_task: test-lint
+  unit_test_task: test-regression

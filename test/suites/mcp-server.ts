@@ -203,6 +203,14 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(toolNames.includes("check_workflow_state"), "MCP read tools include workflow state check");
   context.assert(toolNames.includes("ready_change"), "MCP read tools include change readiness");
   context.assert(toolNames.includes("roadmap_recommend"), "MCP read tools include roadmap recommendation");
+  // roadmap-recommend --create only reserves an empty change container, so the read-only tool must
+  // not inherit a planning-artifact write claim from the mutation inventory.
+  const roadmapRecommendTool = toolsModule.READ_ONLY_TOOL_DEFINITIONS.find((tool) => tool.name === "roadmap_recommend");
+  context.assert(
+    roadmapRecommendTool !== undefined && !roadmapRecommendTool.description.includes("Writes YAML artifact kinds"),
+    "MCP roadmap_recommend read tool advertises no YAML write",
+    roadmapRecommendTool?.description,
+  );
   context.assert(toolNames.includes("harness_logs"), "MCP read tools include bounded harness logs");
   const mutatingToolNames = toolsModule.MUTATING_TOOL_DEFINITIONS.map((tool) => tool.name);
   context.assert(mutatingToolNames.includes("init_workflow"), "MCP mutating tools include workflow init");

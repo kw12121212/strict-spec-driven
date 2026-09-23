@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: create-change-in-the-recommending-call
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: Establishes the need.
+    answer: The requester observed that the recommend skill can obtain and create the change with --create from the start, so the current two-call flow costs an extra step.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Definition of done.
+    answer: The roadmap-backed skills recommend and create the change in one roadmap-recommend --create call; the separate scaffolding call is gone.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now?
+    context: Trigger.
+    answer: 'The requester reviewed the skill flow immediately after --create shipped and asked for the merge (reply: 改吧).'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Bounds scope.
+    answer: No CLI behavior change; the proposal the requester approved limited edits to the two skills, the validator snippets, and tests.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended?
+    context: Merge the calls in both roadmap-backed skills or only in strict-roadmap-recommend.
+    answer: 'Both skills, as proposed: strict-roadmap-recommend step 1 and strict-spec-propose milestone mode.'
+    status: resolved
+    kind: requirement
+    answered_by: human

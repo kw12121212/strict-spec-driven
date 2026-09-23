@@ -426,14 +426,14 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | Spec | ID | Requirements |
 | --- | --- | --- |
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 234 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 238 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 126 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
 | [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 10 |
-| [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 27 |
+| [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 29 |
 | [Sessions Domain Behavior](.strict-spec-driven/specs/sessions/domain-behavior.yaml) | `sessions-domain-behavior` | 5 |
 | [SOP Domain Behavior](.strict-spec-driven/specs/sop/domain-behavior.yaml) | `sop-domain-behavior` | 6 |
 | [Testing Coverage Gate](.strict-spec-driven/specs/testing/coverage-gate.yaml) | `testing-coverage-gate` | 4 |
@@ -479,10 +479,11 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 ### [Workflow Scope Discipline](.strict-spec-driven/tech/workflow-scope-discipline.yaml) (`workflow-scope-discipline`) — architecture
 
 - **MUST** `contract-first-scope-changes` — When a change alters a workflow contract — a registered schema, a main or delta spec, or a technical standard — the corresponding strict artifact MUST be updated first; implementation code MUST NOT silently widen workflow scope ahead of the contract it depends on.
-- **MUST** `roadmap-commands-do-not-write-change-artifacts` — Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/; when a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
+- **MUST** `roadmap-commands-do-not-write-change-artifacts` — Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/, with one exception: roadmap-recommend --create MAY reserve an empty change container — the change directory and its empty specs directory, holding no file — named exactly the planned change id it recommends, through the same reservation boundary propose uses. No roadmap command may write a planning, delta, or scene artifact. When a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
 - **MUST** `roadmap-dependency-targets-resolve-against-one-universe` — Every roadmap consumer that decides whether a planned-change depends_on target exists MUST resolve it against the shared universe of active planned-change ids unioned with the ids loaded from the roadmap archive, obtained from the loader that already computes that set. A consumer MUST NOT build its own dependency-target universe from active roadmap state alone, and MUST NOT re-derive archived membership by parsing archived artifacts.
 - **SHOULD** `archive-merge-failures-surface-in-verify` — A merge that archive performs across more than one artifact family SHOULD be fully evaluated by verify, so a merge archive would refuse is rejected before archive writes any family. Archive applies its family merges in sequence without a transaction spanning them, so a refusal raised inside a later stage leaves the earlier stages already written and the change still active.
 - **SHOULD** `shared-name-classification-registry` — When more than one check classifies a name against the same family of allowed values — skill name prefixes, artifact kinds, categories, or status values — those checks SHOULD resolve the family from one exported registry rather than each carrying its own literal copy, and any operator-facing expected value SHOULD render from that registry rather than restating the members.
+- **SHOULD** `active-change-gates-resolve-against-post-archive-state` — A ready, verify, or archive gate that resolves ids or references during an active change SHOULD resolve them against the state archive will produce — the recorded main artifacts overlaid with that change's own delta artifacts, with added and modified entries present and removed entries absent — rather than against the recorded main artifacts alone.
 
 ### [YAML-First Artifact Authoring](.strict-spec-driven/tech/yaml-first-artifacts.yaml) (`yaml-first-artifacts`) — architecture
 

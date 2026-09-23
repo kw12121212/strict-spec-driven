@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
 import path from "path";
+import { CHANGE_NAME_PATTERN } from "../scaffold.js";
 import { stringifyYamlDocument } from "../yaml.js";
 import {
   canonicalPlannedChangeFileName,
@@ -493,7 +494,6 @@ export function generateRoadmapMilestone(
   };
 }
 
-const PLANNED_CHANGE_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 const PLANNED_CHANGES_DIRNAME = "planned-changes";
 const PLANNED_CHANGE_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
 
@@ -629,14 +629,16 @@ export function generateRoadmapPlannedChange(
 ): RoadmapPlannedChangeAuthorResult {
   const diagnostics: RoadmapDiagnostic[] = [];
   const plannedChangesDir = `${ROADMAP_DIR}/${PLANNED_CHANGES_DIRNAME}`;
-  if (!PLANNED_CHANGE_ID_PATTERN.test(input.id)) {
+  // A planned change id becomes the change directory name its change is matched by, so it is held
+  // to the change-name rule itself rather than to a looser kebab-case literal of its own.
+  if (!CHANGE_NAME_PATTERN.test(input.id)) {
     diagnostics.push(
       makeDiagnostic(
         "schema",
         plannedChangesDir,
         "$.planned_change.id",
-        "planned change id must be kebab-case",
-        "kebab-case id",
+        "planned change id must be a valid strict change name: kebab-case with single hyphens between lowercase letters and numbers",
+        "kebab-case id with single hyphens",
         input.id,
       ),
     );

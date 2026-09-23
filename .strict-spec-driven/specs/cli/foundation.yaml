@@ -3413,3 +3413,59 @@ requirements:
         - GIVEN: a bundled skill package directory whose name carries none of the registered family prefixes
         - WHEN: strict skill package validation runs
         - THEN: the command exits non-zero and reports a legacy-name diagnostic naming the registered family prefixes
+  cli-generate-proposal-roadmap-link-must-match-change:
+    strength: MUST
+    statement: The system MUST make generate proposal refuse a supplied --milestone and --planned-change link unless the active roadmap records a planned change with that id, that planned change is owned by the named milestone, and its id equals the change name. A refusal MUST leave every pre-existing file unchanged and MUST name the planned change, the change, and the runnable command that records a consistent link.
+    scenarios:
+      link-to-absent-planned-change-is-refused:
+        - GIVEN: change alpha-feature exists and the active roadmap records no planned change alpha-feature
+        - WHEN: generate alpha-feature proposal runs with --milestone m1 --planned-change alpha-feature
+        - THEN: the command exits non-zero naming alpha-feature as absent from the roadmap and no proposal.yaml is written
+      link-to-wrong-milestone-is-refused:
+        - GIVEN: change alpha-feature exists and planned change alpha-feature is owned by milestone m1
+        - WHEN: generate alpha-feature proposal runs with --milestone m2 --planned-change alpha-feature
+        - THEN: the command exits non-zero naming m1 as the owning milestone and the proposal is left unchanged
+      link-to-other-planned-change-is-refused:
+        - GIVEN: change alpha-renamed exists and planned change alpha-feature is owned by milestone m1
+        - WHEN: generate alpha-renamed proposal runs with --milestone m1 --planned-change alpha-feature
+        - THEN: the command exits non-zero, states that the change name must equal the planned change id, names roadmap-recommend --create as the command that creates a correctly named change, and writes no proposal
+      matching-link-is-recorded:
+        - GIVEN: change alpha-feature exists and planned change alpha-feature is owned by milestone m1
+        - WHEN: generate alpha-feature proposal runs with --milestone m1 --planned-change alpha-feature
+        - THEN: the command exits zero and proposal.yaml records roadmap.milestone m1 and roadmap.planned_change alpha-feature
+  cli-generate-proposal-infers-roadmap-link:
+    strength: MUST
+    statement: The system MUST make generate proposal record the roadmap link itself when neither --milestone nor --planned-change is supplied, the proposal records no roadmap link, and the active roadmap records a planned change whose id equals the change name, taking the milestone from that planned change. A recorded roadmap link MUST be preserved unchanged, and a change whose name matches no planned change MUST receive no link.
+    scenarios:
+      infers-link-from-matching-name:
+        - GIVEN: change alpha-feature has no proposal and planned change alpha-feature is owned by milestone m1
+        - WHEN: generate alpha-feature proposal runs with --what and --why only
+        - THEN: proposal.yaml records roadmap.milestone m1 and roadmap.planned_change alpha-feature
+      recorded-link-is-preserved:
+        - GIVEN: the proposal of change alpha-feature already records a roadmap link
+        - WHEN: generate alpha-feature proposal runs without roadmap flags
+        - THEN: the recorded roadmap link is unchanged
+      unmatched-name-records-no-link:
+        - GIVEN: change standalone-work matches no planned change id
+        - WHEN: generate standalone-work proposal runs without roadmap flags
+        - THEN: proposal.yaml carries no roadmap field
+  cli-roadmap-backed-guidance-creates-change-through-recommend:
+    strength: MUST
+    statement: The system MUST make the strict-roadmap-recommend and strict-spec-propose skill guidance create a roadmap-backed change by running roadmap-recommend with --create as the recommendation call itself, so the call that selects the planned change is the call that creates its change, and use the createdChange name it reports for every later command. The guidance MUST NOT direct a second roadmap-recommend call to create the change, and MUST NOT direct the agent to choose, derive, or accept from the request a change name for roadmap-backed work or to scaffold it with propose.
+    scenarios:
+      roadmap-backed-guidance-uses-recommend-create:
+        - GIVEN: the strict-roadmap-recommend and strict-spec-propose skill files are inspected
+        - WHEN: their roadmap-backed scaffolding steps are reviewed
+        - THEN: each directs the agent to run roadmap-recommend --create and to use createdChange.name, and neither offers a caller-chosen change name for roadmap-backed work
+      roadmap-backed-guidance-creates-in-the-recommending-call:
+        - GIVEN: the strict-roadmap-recommend and strict-spec-propose skill files are validated through the shipped validate-skills command
+        - WHEN: either skill omits the statement that the change is created in the same call that recommends it, or still directs a separate creating call
+        - THEN: validate-skills exits non-zero naming the skill file and the missing or forbidden text
+  cli-generate-proposal-refuses-duplicated-planned-change-link:
+    strength: MUST
+    statement: The system MUST make generate proposal refuse a supplied roadmap link to a planned change id the active roadmap records more than once, naming the owning milestones and the commands that locate and remove the duplicate, and MUST NOT infer a roadmap link from such an id.
+    scenarios:
+      duplicated-planned-change-link-is-refused:
+        - GIVEN: the active roadmap records planned change first-ready in milestones m1 and m2 and change first-ready exists
+        - WHEN: generate first-ready proposal runs with --milestone m1 --planned-change first-ready
+        - THEN: the command exits non-zero stating the planned change is recorded more than once and the proposal is left unchanged

@@ -18,6 +18,15 @@ import { pauseMilestone, resumeMilestone } from "../roadmap/pause.js";
 import { deferMilestoneRefinement, refineMilestone } from "../roadmap/refinement.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { renumberRoadmapMilestones, reorderRoadmapMilestone, type RoadmapReorderInput } from "../roadmap/order.js";
+import { makeDiagnostic } from "../roadmap/shared.js";
+import type { RoadmapDiagnostic } from "../roadmap/model.js";
+import {
+  CHANGE_NAME_PATTERN,
+  initializeStrictChangeScaffold,
+  listActiveChangeNames,
+  MAX_ACTIVE_CHANGE_COUNT,
+  type StrictChangeScaffoldResult,
+} from "../scaffold.js";
 import { handleHelpRequest } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeOut, writeUsage } from "./output.js";
@@ -43,7 +52,10 @@ type RoadmapRecommendArgs = {
   includeDetails: boolean;
   milestoneId?: string;
   allowUnrefined: boolean;
+  create: boolean;
 };
+
+type CreatedChange = StrictChangeScaffoldResult & { name: string };
 
 function summarizeRoadmapRecommendation(result: RoadmapRecommendResult, args: RoadmapRecommendArgs): unknown {
   const skippedByCode: Record<string, number> = {};
@@ -375,7 +387,7 @@ export function runRoadmapGenerate(argv: string[]): number {
 }
 
 function parseRoadmapRecommendArgs(argv: string[]): RoadmapRecommendArgs {
-  const result: RoadmapRecommendArgs = { includeDetails: false, allowUnrefined: false };
+  const result: RoadmapRecommendArgs = { includeDetails: false, allowUnrefined: false, create: false };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--details") {
@@ -386,6 +398,11 @@ function parseRoadmapRecommendArgs(argv: string[]): RoadmapRecommendArgs {
     if (token === "--allow-unrefined") {
       if (result.allowUnrefined) throw new Error("--allow-unrefined may only be supplied once");
       result.allowUnrefined = true;
+      continue;
+    }
+    if (token === "--create") {
+      if (result.create) throw new Error("--create may only be supplied once");
+      result.create = true;
       continue;
     }
     if (token === "--milestone") {
@@ -426,8 +443,71 @@ export function runRoadmapRecommend(argv: string[]): number {
     milestoneId: args.milestoneId,
     allowUnrefined: args.allowUnrefined,
   });
-  writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
-  return result.status === "recommended" ? 0 : 1;
+  if (!args.create) {
+    writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
+    return result.status === "recommended" ? 0 : 1;
+  }
+
+  const creation = createRecommendedChange(result, args);
+  const reported = creation.diagnostic === undefined
+    ? result
+    : { ...result, valid: false, diagnostics: [...result.diagnostics, creation.diagnostic] };
+  const output = args.includeDetails ? reported : summarizeRoadmapRecommendation(reported, args) as Record<string, unknown>;
+  writeJson({ ...output, createdChange: creation.createdChange });
+  return result.status === "recommended" && creation.createdChange !== null ? 0 : 1;
+}
+
+/**
+ * Reserves the change container for the recommended planned change, named by the recommendation
+ * rather than by the caller, so the directory name roadmap status matches on cannot drift from the
+ * planned change id. It crosses the same reservation boundary propose does, and writes nothing when
+ * no planned change was recommended or the reservation is refused.
+ */
+function createRecommendedChange(
+  result: RoadmapRecommendResult,
+  args: RoadmapRecommendArgs,
+): { createdChange: CreatedChange | null; diagnostic?: RoadmapDiagnostic } {
+  if (result.status !== "recommended" || result.recommendation === null) {
+    return { createdChange: null };
+  }
+  const changeName = result.recommendation.changeName;
+  const rerun = [
+    "strict-spec-cli roadmap-recommend",
+    ...(args.milestoneId === undefined ? [] : [`--milestone ${args.milestoneId}`]),
+    ...(args.allowUnrefined ? ["--allow-unrefined"] : []),
+    "--create",
+  ].join(" ");
+  const refuse = (message: string): { createdChange: null; diagnostic: RoadmapDiagnostic } => ({
+    createdChange: null,
+    diagnostic: makeDiagnostic(
+      "semantic",
+      `.strict-spec-driven/changes/${changeName}`,
+      "$",
+      message,
+      "a reservable change container named after the recommended planned change",
+      changeName,
+    ),
+  });
+  // Planned-change files recorded before the id rule matched the change-name rule can carry an id
+  // no change directory may use, so the remedy is to replace the planned change, not the name.
+  if (!CHANGE_NAME_PATTERN.test(changeName)) {
+    const milestoneId = result.recommendation.milestone.id;
+    return refuse(
+      `recommended planned change id '${changeName}' is not a valid strict change name (kebab-case with single hyphens); `
+      + `replace it with 'strict-spec-cli roadmap-delete-planned-change ${changeName}' and `
+      + `'strict-spec-cli roadmap-generate planned-change --milestone ${milestoneId} --id <valid-id> --summary <text> --details <text>', then rerun '${rerun}'`,
+    );
+  }
+  try {
+    return { createdChange: { name: changeName, ...initializeStrictChangeScaffold(process.cwd(), changeName) } };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    const blocking = listActiveChangeNames(process.cwd()).filter((name) => name !== changeName);
+    const release = blocking.length >= MAX_ACTIVE_CHANGE_COUNT
+      ? ` Free a slot by finishing or dropping one active change: ${blocking.map((name) => `'strict-spec-cli archive ${name}' or 'strict-spec-cli cancel ${name}'`).join("; ")}.`
+      : "";
+    return refuse(`could not create change '${changeName}' for the recommended planned change: ${reason}.${release} Then rerun '${rerun}'`);
+  }
 }
 
 export function runRoadmapArchive(argv: string[]): number {

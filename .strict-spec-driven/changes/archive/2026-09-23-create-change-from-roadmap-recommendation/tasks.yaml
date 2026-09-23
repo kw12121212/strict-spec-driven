@@ -1,0 +1,58 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: create-change-from-roadmap-recommendation
+sections:
+  Implementation:
+    impl-scene-coverage-overlay:
+      text: Overlay the change's delta-spec requirement ids (ADDED/MODIFIED added, REMOVED removed, created specs included) onto the main-spec requirement universe in collectSceneCoverageDiagnostics, leaving scene-status unchanged, and add regression tests for the added-resolves and removed-does-not-resolve scenarios.
+      status: complete
+    impl-inventory-owner:
+      text: Record in inventory/yaml-mutation-surfaces.yaml, through inventory-edit, that roadmap-recommend --create reserves an empty change container without becoming a change-planning-state owner, so the read-only MCP roadmap_recommend tool advertises no write.
+      status: complete
+    impl-recommend-create:
+      text: 'Add --create to roadmap-recommend: parse the flag, reserve the recommended change container through reserveChangeContainer with rejectPopulated only for status recommended, report createdChange in summary and --details output, and exit 1 with a diagnostic when reservation fails.'
+      status: complete
+    impl-recommend-metadata:
+      text: Document --create, the createdChange output key, and the exit-code change in the roadmap-recommend command-metadata entry, keeping the MCP roadmap_recommend tool read-only.
+      status: complete
+    impl-proposal-link-guard:
+      text: In generate proposal, refuse a supplied roadmap link whose planned change is absent from the active roadmap, owned by another milestone, or has an id different from the change name, naming the corrective command.
+      status: complete
+    impl-proposal-link-inference:
+      text: In generate proposal, record the roadmap link from the active planned change whose id equals the change name when no roadmap flag is supplied and no link is recorded.
+      status: complete
+    impl-planned-change-id-pattern:
+      text: Replace PLANNED_CHANGE_ID_PATTERN in src/roadmap/author.ts with the CHANGE_NAME_PATTERN exported from src/scaffold.ts.
+      status: complete
+    impl-skill-guidance:
+      text: Update skills/strict-roadmap-recommend/SKILL.md and skills/strict-spec-propose/SKILL.md to scaffold roadmap-backed changes through roadmap-recommend --create, use createdChange.name, and drop the caller-chosen-name exception; regenerate embedded templates through the build.
+      status: complete
+    impl-tests:
+      text: Add regression tests for roadmap-recommend --create (created, no-candidate, limit refusal, read-only default), the proposal link guard and inference, the planned-change id rule, and the skill guidance.
+      status: complete
+  Testing:
+    test-lint:
+      text: Run the TypeScript lint check.
+      status: complete
+      command: bun run lint
+    test-inventory:
+      text: Run the YAML mutation inventory check.
+      status: complete
+      command: bun run check:yaml-inventory
+    test-skills:
+      text: Validate bundled skills through the shipped command.
+      status: complete
+      command: bun run validate-skills
+    test-regression:
+      text: Run the complete project regression with the coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict-spec-cli verify create-change-from-roadmap-recommendation and confirm the delta scene coverage and delta merges are clean.
+      status: complete
+testing_gates:
+  validation_task: test-lint
+  unit_test_task: test-regression

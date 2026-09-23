@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: create-change-in-the-recommending-call
+  status: proposed
+summary:
+  what:
+    - Make the strict-roadmap-recommend skill run roadmap-recommend with --create in its first recommendation call, so the same call that selects the planned change creates its change, and drop the second call from the scaffold step.
+    - Make the strict-spec-propose milestone mode run roadmap-recommend --milestone <id> --create once instead of a read-only call followed by a creating call.
+    - Pin the single-call guidance in the shipped skill validator and its tests.
+  why:
+    - The skills called roadmap-recommend twice — once to recommend and once with --create to scaffold — with no human decision between the calls, because the checkpoint between them does not stop for confirmation. The extra call is a wasted step, and if roadmap or change state moves between the two calls the second can create a different planned change from the one the agent explained.
+scope:
+  in:
+    - skills/strict-roadmap-recommend/SKILL.md step 1 and step 4
+    - skills/strict-spec-propose/SKILL.md roadmap-backed milestone mode
+    - src/skills/model.ts required snippets and test/suites/entrypoint-and-skills.ts assertions
+  out:
+    - Any change to roadmap-recommend or --create CLI behavior, output, or exit codes
+    - Changes to the status branches roadmap-error, refine-milestone, and no-candidate beyond noting that they create nothing
+unchanged_behavior:
+  - roadmap-recommend and --create CLI behavior is unchanged.
+  - The skills still branch on status, still never add --allow-unrefined on their own, and still use createdChange.name for every later command.
+  - The roadmap-error, refine-milestone, and no-candidate branches still stop without scaffolding.

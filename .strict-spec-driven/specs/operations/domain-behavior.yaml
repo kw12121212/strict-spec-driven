@@ -156,16 +156,24 @@ requirements:
         - THEN: the command exits non-zero naming both delta scene paths, the scene id, and the colliding step id, and no main scene file and no scene index entry is written
   operations-scene-coverage-gap-gate:
     strength: MUST
-    statement: The system MUST fail both ready and verify with a coverage-gap diagnostic when a scene flow step in scope names neither a covering requirement nor an explicit no-coverage reason, or names a covering requirement whose spec id or requirement id does not resolve, and MUST likewise fail both when merging the change's delta scenes would leave a targeted scene failing the main scene schema, so archive refuses before it merges anything rather than partway through. The scope during an active change is the full result of merging the change's delta scenes onto the main scenes those deltas target, so a step the change inherits unchanged from a targeted main scene is in scope while a main scene the change does not touch is not. Every such diagnostic MUST name the scene, MUST name the runnable remedy command with the identifiers it already knows substituted in, and MUST name the source to consult for any identifier the author must still supply. Checking MUST be triggered by the presence of a scene artifact, so a repository holding no scene observes no new diagnostic and no new required field.
+    statement: 'The system MUST fail both ready and verify with a coverage-gap diagnostic when a scene flow step in scope names neither a covering requirement nor an explicit no-coverage reason, or names a covering requirement whose spec id or requirement id does not resolve, and MUST likewise fail both when merging the change''s delta scenes would leave a targeted scene failing the main scene schema, so archive refuses before it merges anything rather than partway through. During an active change a covering reference resolves against the recorded main specs as that change''s delta specs would leave them after archive: a requirement the change adds or modifies resolves, including one in a spec the change creates, and a requirement the change removes does not. The scope during an active change is the full result of merging the change''s delta scenes onto the main scenes those deltas target, so a step the change inherits unchanged from a targeted main scene is in scope while a main scene the change does not touch is not. Every such diagnostic MUST name the scene, MUST name the runnable remedy command with the identifiers it already knows substituted in, and MUST name the source to consult for any identifier the author must still supply. Checking MUST be triggered by the presence of a scene artifact, so a repository holding no scene observes no new diagnostic and no new required field.'
     scenarios:
       uncovered-step-blocks-ready-and-verify:
         - GIVEN: a change carrying a delta scene whose flow step names neither a covering requirement nor a no-coverage reason
         - WHEN: ready runs and verify runs
         - THEN: both commands exit non-zero and report the same coverage-gap diagnostic naming the scene, the flow, and the step
       unresolvable-covering-reference-blocks-both-gates:
-        - GIVEN: a scene flow step naming a covering requirement whose spec id or requirement id does not resolve to a recorded main spec requirement
+        - GIVEN: a scene flow step naming a covering requirement whose spec id or requirement id resolves neither to a recorded main spec requirement nor to a requirement the change's delta specs add or modify
         - WHEN: ready runs and verify runs
         - THEN: both commands exit non-zero and report the unresolvable reference, naming the spec id and requirement id that failed to resolve
+      requirement-added-by-the-change-resolves:
+        - GIVEN: a change whose delta scene step is covered by a requirement that only the same change's delta spec ADDs
+        - WHEN: ready runs and verify runs
+        - THEN: neither command reports that reference as unresolved
+      requirement-removed-by-the-change-does-not-resolve:
+        - GIVEN: a change whose delta scene step is covered by a recorded main spec requirement that the same change's delta spec REMOVEs
+        - WHEN: ready runs and verify runs
+        - THEN: both commands exit non-zero reporting that reference as unresolved
       diagnostic-names-its-runnable-remedy:
         - GIVEN: a coverage-gap diagnostic for an uncovered step
         - WHEN: the author reads the diagnostic

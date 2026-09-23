@@ -20,8 +20,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-status: strict-spec-cli roadmap-status
-roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>] [--allow-unrefined]
-propose: strict-spec-cli propose <change-name>
+roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>] [--allow-unrefined] [--create]
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
 ```
@@ -55,7 +54,7 @@ a milestone selector before running the recommendation command.
 - If the hint matches zero milestones or more than one milestone, stop and
   report the ambiguity. Do not manually choose a planned change.
 - After resolving the hint to exactly one milestone id, run
-  `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>` and
+  `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create` and
   treat that scripted result as authoritative.
 
 ## CLI-Only YAML Authoring Protocol
@@ -131,10 +130,15 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
-1. **Obtain the scripted recommendation first** — if the user supplied a roadmap
-   hint, resolve it with the Roadmap Hint Parameters rules, then run
-   `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>`.
-   Without a user roadmap hint, run `strict-spec-cli roadmap-recommend`. Run the
+1. **Obtain the scripted recommendation and its change first** — if the user
+   supplied a roadmap hint, resolve it with the Roadmap Hint Parameters rules,
+   then run
+   `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create`.
+   Without a user roadmap hint, run `strict-spec-cli roadmap-recommend --create`.
+   The change is created in the same call that recommends it: `--create` makes
+   the command create the empty change container, named exactly the
+   recommended planned change id, only when it recommends one, so the planned
+   change you explain is the change that exists. Run the
    scripted recommendation command before reading broad roadmap context,
    selecting work, or opening candidate planned-change files, and treat the
    command's selected planned change as authoritative for the recommendation
@@ -163,7 +167,13 @@ run `init` from this skill.
      `strict-spec-cli roadmap-recommend --details` or
      `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --details`
      and surface the full `candidates[].skipReasons`.
-   - `"recommended"` — proceed to step 2 with the returned recommendation.
+   - `"recommended"` — check `createdChange`. When it is `null`, the change
+     could not be created — for example because active changes already fill
+     the limit; surface the command's diagnostics, which name the reason, the
+     commands that free a slot, and the rerun command, then stop, without
+     falling back to `propose` or inventing another name. Otherwise
+     `createdChange.name` is `<change-name>`; proceed to step 2.
+   The other three statuses create nothing.
    Do not manually choose among planned changes; branch on `status`
    instead of manually choosing among planned changes. Use the returned
    recommendation `path` to open the exact standalone planned-change file you
@@ -192,8 +202,9 @@ run `init` from this skill.
    scope, specs, implementation, tests, dependencies, or technical standards,
    record blocking questions rather than guessing.
 
-3. **Present a checkpoint before scaffolding** — summarize:
-   - the proposed change name
+3. **Present a checkpoint before populating the change** — summarize:
+   - the change name, which is `createdChange.name` — the planned change id
+     itself — and never a name you choose
    - the milestone it comes from
    - the standalone planned-change file path from the scripted recommendation result
    - why it is the best next step
@@ -204,17 +215,21 @@ run `init` from this skill.
    implementation/test/spec impact, dependency uncertainty, or technical
    standard uncertainty.
    Do not stop for human confirmation here — use the checkpoint only to explain
-   the recommendation before creating the scaffold.
+   the recommendation and the change step 1 created before populating it.
 
-4. **Scaffold the recommended change immediately** — run:
-   ```bash
-   strict-spec-cli propose <change-name>
-   ```
-   Then populate normal strict change artifacts under
+4. **Populate the created change immediately** — step 1 already created
+   the change; do not run `roadmap-recommend` again. Use `createdChange.name` as
+   `<change-name>` in every later command. Roadmap status matches a change to
+   its planned change by directory name alone, so a change named anything else
+   is never marked complete when it archives.
+   Populate normal strict change artifacts under
    `.strict-spec-driven/changes/<change-name>/` in this exact order. Generate
    every supported artifact, including `tasks.yaml`, with direct named
    arguments, and do not create JSON payload files.
-   - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
+   - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <change-name>`
+     — the planned change id and the change name are the same value, and the
+     command refuses a link whose planned change is absent, owned by another
+     milestone, or named differently from the change
    - `strict-spec-cli generate <change-name> design --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`, **one invocation per task** so no task list is hand-written:
      - read `strict-spec-cli generate --help --json` (or `--help`) first.

@@ -26,7 +26,7 @@ check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 roadmap-status: strict-spec-cli roadmap-status
-roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]
+roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>] [--create]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
 generate-delta-scene: strict-spec-cli generate <change-name> delta-scene --<named-args>
@@ -251,11 +251,17 @@ for that resolution only:
 - zero matches, or more than one, is a blocker: report the ambiguity and stop
   rather than picking a milestone
 
-Then obtain the planned change from the command that owns selection:
+Then obtain the planned change, and its change, from the command that owns
+selection:
 
 ```bash
-strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>
+strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --create
 ```
+
+The change is created in the same call that recommends it: `--create` makes the
+command create the empty change container, named exactly after the recommended
+planned change id rather than by you or by the request, only when it recommends
+one.
 
 Roadmap order, dependency resolution, pauses, and awaiting-refinement handling
 all live in that command, so treat the command's selected planned change as
@@ -265,12 +271,20 @@ planned-change artifact and its owning milestone, and carry that planned
 change's `summary`, `details`, `depends_on`, and labels forward as change-intake
 evidence instead of re-asking what they already answer.
 
-Scaffold exactly one recommended planned change as a normal strict change, and
-record the roadmap link when generating the proposal so archive can reconcile
-the planned change:
+That one `--create` call scaffolds exactly one recommended planned change as a
+normal strict change, so do not run `roadmap-recommend` again. Use the reported
+`createdChange.name` as `<change-name>` for every later command, in place of the
+`propose` call in step 3. Roadmap status matches a
+change to its planned change by directory name alone, so a roadmap-backed
+change named anything else is never marked complete when it archives. When
+`createdChange` is `null`, report the command's diagnostics and stop rather than
+falling back to `propose`. Record the roadmap link when generating the proposal
+so archive can reconcile the planned change; the command refuses a link whose
+planned change is absent, owned by another milestone, or named differently from
+the change:
 
 ```bash
-strict-spec-cli generate <change-name> proposal --what "..." --why "..." --milestone <milestone-id> --planned-change <planned-change-id>
+strict-spec-cli generate <change-name> proposal --what "..." --why "..." --milestone <milestone-id> --planned-change <change-name>
 ```
 
 **When no planned change comes back, report the reason and stop.** A
@@ -293,8 +307,8 @@ run `init` from this skill.
 
 1. **Determine the proposal mode and the change name** — when the request names
    a milestone, follow the roadmap-backed milestone mode above before anything
-   else; the planned change it selects supplies the scope, and its id supplies
-   the change name unless the user gave one. Without a milestone selector this
+   else; the planned change it selects supplies the scope, and its id is the
+   change name, whatever name the request suggests. Without a milestone selector this
    is a standalone proposal: use the user-provided kebab-case name when it
    already exists, and otherwise derive one from the request and scope.
    `/strict-roadmap-recommend` still owns whole-roadmap selection, where no
@@ -336,7 +350,9 @@ run `init` from this skill.
      proposal artifacts. If any required answer is still missing, carry it as an
      open question rather than guessing.
 
-3. **Scaffold the change** — run:
+3. **Scaffold the change** — for a standalone proposal, run the command below;
+   a roadmap-backed proposal was already created by `roadmap-recommend --create`
+   in the milestone mode above, so skip it:
    ```bash
    strict-spec-cli propose <change-name>
    ```

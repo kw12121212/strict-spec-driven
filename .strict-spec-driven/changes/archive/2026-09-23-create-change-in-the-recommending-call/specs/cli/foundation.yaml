@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-roadmap-backed-guidance-creates-change-through-recommend:
+      strength: MUST
+      statement: The system MUST make the strict-roadmap-recommend and strict-spec-propose skill guidance create a roadmap-backed change by running roadmap-recommend with --create as the recommendation call itself, so the call that selects the planned change is the call that creates its change, and use the createdChange name it reports for every later command. The guidance MUST NOT direct a second roadmap-recommend call to create the change, and MUST NOT direct the agent to choose, derive, or accept from the request a change name for roadmap-backed work or to scaffold it with propose.
+      scenarios:
+        roadmap-backed-guidance-uses-recommend-create:
+          - GIVEN: the strict-roadmap-recommend and strict-spec-propose skill files are inspected
+          - WHEN: their roadmap-backed scaffolding steps are reviewed
+          - THEN: each directs the agent to run roadmap-recommend --create and to use createdChange.name, and neither offers a caller-chosen change name for roadmap-backed work
+        roadmap-backed-guidance-creates-in-the-recommending-call:
+          - GIVEN: the strict-roadmap-recommend and strict-spec-propose skill files are validated through the shipped validate-skills command
+          - WHEN: either skill omits the statement that the change is created in the same call that recommends it, or still directs a separate creating call
+          - THEN: validate-skills exits non-zero naming the skill file and the missing or forbidden text
+  REMOVED: {}
