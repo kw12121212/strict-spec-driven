@@ -1,0 +1,34 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: recommend-fresh-context-review
+  status: proposed
+summary:
+  what:
+    - 'Recommend, in the strict-spec-review Review Independence section, that the whole review be handed to a sub-agent started with a fresh context when the running harness provides one: the sub-agent reconstructs the requirement, reads the changed files, records per-item verdicts, and returns only the verdict table and findings, while the implementing agent keeps fixes, regression reruns, the lesson outcome, and archive.'
+    - 'State that the recommendation is optional: without such a capability, or when the operator prefers otherwise, the review runs in the current context under the same two stances and standard.'
+    - Reword the strict-spec-auto review step and the strict-spec-review steps so reading the changed files is the reviewer duty, whether that reviewer is the sub-agent or the current agent, and give the strict-spec-bugfix review step the same optional recommendation.
+    - Make validate-skills require the recommendation, its optionality, and the reviewer read-only boundary as review-independence elements, and as required content of the bugfix skill, so the guidance cannot be silently dropped.
+  why:
+    - The agent that implemented a change reviews it in the same context, remembers why the code took its shape, and so the two-stance split is only self-discipline and a clean report comes too easily.
+    - Review reads many files and diffs, bloating the implementing context that later steps such as archive still run in.
+    - Commonly used agent runtimes now provide sub-agents, so a fresh-context reviewer is available to recommend.
+scope:
+  in:
+    - 'skills/strict-spec-review/SKILL.md: add the fresh-context reviewer recommendation, its briefing and read-only boundary, and its optionality to Review Independence; mark which steps run inside the reviewer and where the implementing agent resumes.'
+    - 'skills/strict-spec-auto/SKILL.md step 9 and skills/strict-spec-bugfix/SKILL.md step 10: name the recommendation and make file reading the reviewer duty.'
+    - 'test/suites/entrypoint-and-skills.ts: prove removing either phrase from the bugfix skill fails validate-skills; the existing per-element removal probes cover the review skill and the auto delegation.'
+    - 'Delta spec for cli-foundation: modify cli-review-independence-skill-content-validation to list the two new elements and add a requirement for the bugfix recommendation check.'
+    - 'src/skills/model.ts: add the recommendation, optionality, and read-only snippets to REVIEW_INDEPENDENCE_SNIPPETS and to the strict-spec-bugfix required snippets.'
+  out:
+    - Making a sub-agent review mandatory, or blocking or erroring when none is available.
+    - Naming any specific harness tool or AI product as the way to start a sub-agent.
+    - Any new or changed strict-spec-cli command, including a review command.
+    - Bringing strict-spec-bugfix under the full review-independence contract or its delegation.
+unchanged_behavior:
+  - The two stances, the three verdict values, the review checklist, and every archive gate in strict-spec-review, strict-spec-auto, and strict-spec-bugfix keep their current meaning, and a sub-agent reviews to the same standard.
+  - When the running harness offers no sub-agent capability the in-context review proceeds exactly as before without a new blocker or diagnostic.
+  - strict-spec-auto keeps delegating review-independence to strict-spec-review, and every existing review-independence element and diagnostic code is still required and reported.
+  - No strict-spec-cli command, flag, or command metadata changes, and skill handoffs still name no harness tool.

@@ -1,0 +1,57 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+operations:
+  ADDED:
+    cli-bugfix-review-fresh-context-recommendation-validation:
+      strength: MUST
+      statement: The validate-skills command MUST reject the bugfix skill package when its guidance omits the recommendation to hand its review to a sub-agent started with a fresh context when the running harness provides one, the statement that this recommendation is not a requirement, or the rule that such a reviewer edits no file, and MUST report a deterministic diagnostic that names the bugfix skill package path and the missing guidance.
+      scenarios:
+        bugfix-without-recommendation-is-rejected:
+          - GIVEN: the bugfix skill package with the fresh-context sub-agent recommendation removed
+          - WHEN: validate-skills runs
+          - THEN: the command exits non-zero and a diagnostic names the bugfix skill package path and the missing recommendation
+        bugfix-without-optionality-is-rejected:
+          - GIVEN: the bugfix skill package with the statement that the recommendation is not a requirement removed
+          - WHEN: validate-skills runs
+          - THEN: the command exits non-zero and a diagnostic names the bugfix skill package path and the missing optionality statement
+        bugfix-with-recommendation-passes:
+          - GIVEN: the bugfix skill package stating both the recommendation and its optionality
+          - WHEN: validate-skills runs
+          - THEN: no diagnostic about the recommendation is reported for that package
+        bugfix-without-read-only-boundary-is-rejected:
+          - GIVEN: the bugfix skill package with the rule that the fresh-context reviewer edits no file removed
+          - WHEN: validate-skills runs
+          - THEN: the command exits non-zero and a diagnostic names the bugfix skill package path and the missing read-only boundary
+  MODIFIED:
+    cli-review-independence-skill-content-validation:
+      strength: MUST
+      statement: The validate-skills command MUST reject a strict skill package for review or auto that neither states the required review-independence guidance nor declares a checked delegation to the skill that owns it. Stating it means carrying the review-independence section, the planning artifacts and delta specs the requirement is reconstructed from, the rule that the reconstruction completes before any implementation file, diff, or test file is read, the duty to write down a numbered list of acceptance items during that reconstruction, the prohibition on deriving the requirement from the implementation, the outside-reviewer stance rule, the three verdict values satisfied, not satisfied, and unprovable from evidence, the duty to attach an implementation reference and a test reference to each verdict, the rule that a blanket claim of matching the proposal is not a substitute for per-item verdicts, the rule that an unprovable verdict on a MUST-strength requirement is a MUST FIX finding that blocks the archive recommendation, the recommendation to hand the review to a sub-agent started with a fresh context when the running harness provides one, the statement that this recommendation is not a requirement, and the rule that such a reviewer edits no file. Delegating it means naming the owning skill as authoritative for that guidance, and is accepted only when the delegation-target check confirms the named skill itself states every one of those elements. The command MUST report deterministic path-specific diagnostics that name the offending skill package and the element that is neither stated nor covered by an accepted delegation.
+      scenarios:
+        review-guidance-delegation-is-accepted-when-the-owner-covers-it:
+          - GIVEN: the auto skill package declares that review-independence guidance is owned by the review skill and that skill states every required element
+          - WHEN: validate-skills runs
+          - THEN: the package is accepted without carrying the elements inline
+        review-guidance-delegation-is-rejected-when-the-owner-omits-an-element:
+          - GIVEN: the auto skill package declares that review-independence guidance is owned by a skill that omits at least one required element
+          - WHEN: validate-skills runs
+          - THEN: the command rejects the package and names the delegating skill, the owning skill, and the uncovered element
+        review-skill-missing-section-is-rejected:
+          - GIVEN: a review-capable strict skill package whose guidance omits the review-independence section and declares no delegation for it
+          - WHEN: strict skill packaging validation runs
+          - THEN: the command exits non-zero and a diagnostic names that skill package path and reports the missing review-independence section
+        review-skill-missing-element-is-rejected:
+          - GIVEN: a review-capable strict skill package that carries the review-independence section but omits the reconstruct-before-reading-implementation rule, the outside-reviewer stance rule, one of the three verdict values, the evidence-reference duty, or the archive-blocking rule for an unprovable MUST-strength requirement, and declares no delegation for it
+          - WHEN: strict skill packaging validation runs
+          - THEN: the command exits non-zero and one diagnostic per omission names the offending skill package path and the missing element
+        aligned-review-skills-pass:
+          - GIVEN: both review-capable strict skill packages document the review-independence section and every required element
+          - WHEN: strict skill packaging validation runs
+          - THEN: no review-independence diagnostic is reported and the existing skill content diagnostics are unchanged
+        review-skill-missing-fresh-context-guidance-is-rejected:
+          - GIVEN: a review-capable strict skill package that carries the review-independence section but omits the fresh-context sub-agent recommendation, the statement that the recommendation is not a requirement, or the rule that the reviewer edits no file, and declares no delegation for it
+          - WHEN: strict skill packaging validation runs
+          - THEN: the command exits non-zero, a diagnostic names the offending skill package path and the missing element, and a diagnostic names each skill delegating review independence to it together with the uncovered element
+  REMOVED: {}

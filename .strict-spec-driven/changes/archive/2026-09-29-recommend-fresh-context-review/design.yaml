@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: recommend-fresh-context-review
+approach:
+  - 'Strict-spec-review stays the single owner of the recommendation: a Fresh-context reviewer paragraph inside Review Independence recommends handing the whole review to a sub-agent started with a fresh context, briefed only with the change name and this procedure, reading and reporting without editing, and returning the verdict table and findings; it closes with the sentence that this is a recommendation, not a requirement. Strict-spec-auto inherits it through its existing review-independence delegation, and its step 9 names it. Strict-spec-bugfix, which is outside the review-independence contract, states the same two phrases in its own review step.'
+  - 'The check reuses existing machinery: two new REVIEW_INDEPENDENCE_SNIPPETS entries are enforced on the review section, on the auto delegation through the delegation-target check, and by the existing per-element removal probes; the same two snippets join the bugfix required snippets and gain a focused removal probe.'
+decisions:
+  no-scene-for-skill-guidance:
+    decision: Record no delta scene for this change.
+    rationale: The change edits skill guidance and a skill content check; it has no user-observable actor flow, which the scene-first routing names as the technical-only case where the reason is recorded instead of an invented scene.
+  recommendation-owned-by-review:
+    decision: State the recommendation once in strict-spec-review Review Independence and let strict-spec-auto reach it through its existing delegation.
+    rationale: The delegation-target check already requires the owner to state every review-independence element, so adding the elements there enforces the auto skill without restating guidance the no-restatement rule would reject.
+  bugfix-states-phrases-without-delegation:
+    decision: Give strict-spec-bugfix the recommendation as required snippets in its core expectations rather than a review-independence delegation.
+    rationale: The requester asked bugfix to carry the same sub-agent recommendation, not the full two-stance contract; a delegation would pull the reconstruction and verdict duties into bugfix review, which the proposal keeps out of scope.
+  whole-review-in-sub-agent:
+    decision: The sub-agent performs requirement reconstruction, file reading, verdicts, and findings; fixes, reruns, lesson outcome, and archive stay with the implementing agent.
+    rationale: 'The requester chose this split: reconstruction in a fresh context also escapes the author view, while keeping writes in the implementing agent stops the reviewer from becoming the author of the fixes it would then judge.'
+  generic-capability-wording:
+    decision: Describe the capability only as a sub-agent started with a fresh context that the running harness may provide.
+    rationale: The skill-handoff-names-no-harness-mechanism rule and the named-product check forbid tying guidance to one harness, and the requester confirmed no tool name should appear.
+  briefing-excludes-implementation-account:
+    decision: Instruct that the sub-agent is briefed with the change name and the review procedure, never with an account of how the change was implemented.
+    rationale: A briefing that explains the code carries the author seat into the fresh context and defeats the reason for starting one.
+alternatives:
+  - option: Make a sub-agent review mandatory whenever the harness offers one.
+    reason: The requester explicitly asked for a recommendation only, and a mandatory rule would fail runs on harnesses that cannot report the capability.
+  - option: Hand only stance two to the sub-agent after the implementing agent writes the reconstruction.
+    reason: The reconstruction would still be written from the author seat, which is half the bias the change exists to remove; the requester rejected this option.
+risks:
+  - New snippets must appear unwrapped in strict-spec-review, or the per-element removal probe reports literal and normalized counts that differ.
+  - A reviewer sub-agent that edits files would blur the reviewer and author roles; the guidance must state the read-only boundary explicitly.
+  - Only the recommendation, optionality, and read-only phrases are pinned; the briefing rule, work split, and step resume markers remain unpinned guidance a later edit could drop without a failing check.

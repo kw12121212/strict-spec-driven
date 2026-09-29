@@ -386,6 +386,20 @@ export const REVIEW_INDEPENDENCE_SKILLS = [
 export const REVIEW_INDEPENDENCE_HEADING = "## Review Independence";
 
 /**
+ * The optional fresh-context reviewer: handing the review to a sub-agent that never saw it written.
+ *
+ * The recommendation, its optionality, and the reviewer's read-only boundary are pinned together.
+ * The recommendation alone would let a later edit harden it into a rule that blocks every harness
+ * without the capability; the optionality alone would read as a waiver of something no longer
+ * stated; and a reviewer that edits files becomes the author of the fixes it judges. The bugfix
+ * skill states the same phrases outside the review-independence contract, so they are shared
+ * rather than restated per skill.
+ */
+export const FRESH_CONTEXT_REVIEWER_SNIPPET = "a sub-agent started with a fresh context";
+export const FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET = "This is a recommendation, not a requirement";
+export const FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET = "edits no file";
+
+/**
  * The elements the review-independence guidance must carry, checked per review-capable skill.
  *
  * Every snippet is a phrase the guidance states rather than a command name it references, because a
@@ -430,6 +444,17 @@ export const REVIEW_INDEPENDENCE_SNIPPETS: ReadonlyArray<RequirementInterrogatio
   {
     snippet: "blocks the archive recommendation",
     element: "the rule that an unprovable verdict on a MUST-strength requirement blocks the archive recommendation",
+  },
+  {
+    snippet: FRESH_CONTEXT_REVIEWER_SNIPPET,
+    element: "the recommendation to hand the review to a fresh-context sub-agent where the running harness provides one",
+  },
+  {
+    snippet: FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET,
+    element: "the statement that the fresh-context reviewer is a recommendation rather than a requirement",
+  },  {
+    snippet: FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET,
+    element: "the read-only boundary of the fresh-context reviewer",
   },
 ];
 
@@ -910,6 +935,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",
+      FRESH_CONTEXT_REVIEWER_SNIPPET,
+      FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET,
+      FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET,
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,

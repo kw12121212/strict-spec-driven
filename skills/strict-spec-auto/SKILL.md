@@ -221,12 +221,13 @@ run `init` from this skill.
    written to clear the diagnostic is not a safe blocker fix.
 
 9. **Review code quality** — this workflow implements and reviews the same
-   change, so follow the delegated review-independence procedure rather than
-   reviewing from the seat that wrote the code. Read every changed
-   implementation and test file yourself, including the files named by delta
-   specs, `git status --short`, the relevant tracked diff, and any untracked
-   source, test, documentation, or strict workflow files that belong to the
-   change. Do not call a `strict-spec-cli review` command and do not treat
+   change, so follow the delegated review-independence procedure, including
+   its fresh-context reviewer recommendation, rather than reviewing from the
+   seat that wrote the code. The reviewer — that fresh-context sub-agent when
+   one is used, otherwise you — reads every changed implementation and test
+   file, including the files named by delta specs, `git status --short`, the
+   relevant tracked diff, and any untracked source, test, documentation, or
+   strict workflow files that belong to the change. Do not call a `strict-spec-cli review` command and do not treat
    deterministic validation as code review evidence. Evaluate correctness, spec
    alignment, `unchanged_behavior`, test coverage and assertions, error
    handling, edge cases, security, performance, maintainability, user-visible

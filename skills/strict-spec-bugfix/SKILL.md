@@ -243,8 +243,15 @@ run `init` from this skill.
     ```bash
     strict-spec-cli verify <change-name>
     ```
-    Read the changed implementation, tests, strict artifacts, relevant main
-    specs, and tracked diff yourself. Check correctness, spec alignment,
+    When the running harness provides it, hand this review to
+    a sub-agent started with a fresh context, briefed with the change name and
+    this step rather than an account of the fix; it reads and reports,
+    edits no file, and you keep the fixes and reruns that follow.
+    This is a recommendation, not a requirement: without such a capability, or
+    when the operator prefers otherwise, review in the current context to the
+    same standard. The reviewer reads the
+    changed implementation, tests, strict artifacts, relevant main specs, and
+    tracked diff directly. Check correctness, spec alignment,
     unchanged behavior, regression assertions, error handling, and technical
     standard compliance. Automatically fix safe in-scope review findings and
     rerun strict verification plus the configured complete regression command

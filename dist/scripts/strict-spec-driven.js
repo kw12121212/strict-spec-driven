@@ -34772,6 +34772,9 @@ var REVIEW_INDEPENDENCE_SKILLS = [
   "strict-spec-auto"
 ];
 var REVIEW_INDEPENDENCE_HEADING = "## Review Independence";
+var FRESH_CONTEXT_REVIEWER_SNIPPET = "a sub-agent started with a fresh context";
+var FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET = "This is a recommendation, not a requirement";
+var FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET = "edits no file";
 var REVIEW_INDEPENDENCE_SNIPPETS = [
   {
     snippet: "Read only `proposal.yaml`, `design.yaml`, `questions.yaml`, and the delta specs",
@@ -34808,6 +34811,18 @@ var REVIEW_INDEPENDENCE_SNIPPETS = [
   {
     snippet: "blocks the archive recommendation",
     element: "the rule that an unprovable verdict on a MUST-strength requirement blocks the archive recommendation"
+  },
+  {
+    snippet: FRESH_CONTEXT_REVIEWER_SNIPPET,
+    element: "the recommendation to hand the review to a fresh-context sub-agent where the running harness provides one"
+  },
+  {
+    snippet: FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET,
+    element: "the statement that the fresh-context reviewer is a recommendation rather than a requirement"
+  },
+  {
+    snippet: FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET,
+    element: "the read-only boundary of the fresh-context reviewer"
   }
 ];
 var SCENE_FIRST_ROUTING_HEADING = "## Scene-First Requirement Routing";
@@ -35190,6 +35205,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       PROPOSAL_CHECKPOINT_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "direct review",
+      FRESH_CONTEXT_REVIEWER_SNIPPET,
+      FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET,
+      FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET,
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       REGRESSION_EVIDENCE_CARVE_OUT_SNIPPET,

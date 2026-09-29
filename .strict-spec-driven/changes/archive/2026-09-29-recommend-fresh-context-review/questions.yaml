@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: recommend-fresh-context-review
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: Establishes the need the change serves; asked of the requester because code cannot show what a person wants.
+    answer: 'Both of two problems (requester chose "both"): the agent that implemented a change reviews it in the same context, so it remembers why the code took its shape and the two-stance Review Independence split is only self-discipline, making a clean report too easy; and the review reads many files and diffs, bloating the implementing context that later steps such as archive still run in.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Defines what the review phase looks like once solved, including which work moves and which stays.
+    answer: When the running harness can start a sub-agent, the whole review (requirement reconstruction from planning artifacts, reading the changed files, per-item verdicts, findings) is handed to a fresh-context sub-agent that returns only a report; fixes, regression reruns, the lesson outcome, and archive stay with the main (implementing) agent.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: Tests whether the trigger is real and sets priority.
+    answer: 'No incident: the commonly used agent runtimes now support sub-agents, so the capability is available to use; doing nothing still works, only with lower review quality.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Bounds the change; each confirmed item becomes unchanged behavior.
+    answer: Not mandatory (a recommendation only). Skills name no specific harness tool, only a generic sub-agent/fresh-context capability. When no sub-agent is available the existing in-context two-stance review runs unchanged, without blocking or erroring. The review standard (two stances, three verdicts, checklist, archive gates) is unchanged and a sub-agent reviews to the same standard. No strict-spec-cli command is added or changed, and no review command is introduced.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which review surfaces does the request cover?
+    context: strict-spec-review owns Review Independence, strict-spec-auto delegates to it, validate-skills checks its required elements, and strict-spec-bugfix has its own simplified review step outside that contract.
+    answer: Cover strict-spec-review and strict-spec-auto with a validate-skills check that keeps the recommendation from being silently dropped, and also give strict-spec-bugfix review step the same sub-agent recommendation.
+    status: resolved
+    kind: requirement
+    answered_by: human

@@ -95,6 +95,21 @@ blocks the archive recommendation
 until a test or an explicit human decision resolves it. On any other acceptance
 item it is a SHOULD FIX finding that must be reported but does not block.
 
+**Fresh-context reviewer.** When the running harness provides it, hand the
+review to a sub-agent started with a fresh context. It carries no memory of
+writing the change, and its file reading stays out of the implementing context
+that the later steps still run in. Brief it with the change name and this
+skill's procedure, never with an account of how the change was implemented: a
+briefing that explains the code carries the author's seat into the fresh
+context. The reviewer performs steps 3 through 8 from repository evidence
+alone, edits no file, and returns the step 6 verdict table with its findings
+and any convention candidate for step 11; the implementing agent then resumes
+at step 9 and keeps the fixes, the reruns, the lesson outcome, and the archive
+decision.
+This is a recommendation, not a requirement: when no such capability is
+available, or the operator prefers otherwise, perform the review in the current
+context under the same two stances. The review standard is the same either way.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -110,8 +125,9 @@ run `init` from this skill.
    ```
    If verification reports blockers, stop and resolve them before review.
 
-3. **Reconstruct the requirement** — stance one from Review Independence. Read
-   only:
+3. **Reconstruct the requirement** — stance one from Review Independence. When
+   a fresh-context reviewer is used, steps 3 through 8 run inside it and this
+   skill resumes at step 9 with its report. Read only:
    - `proposal.yaml`
    - `design.yaml`
    - `questions.yaml`
@@ -277,6 +293,9 @@ run `init` from this skill.
   reading the implementation, and report a verdict with evidence for every
   acceptance item
 - Read every changed file before commenting on it
+- Prefer a fresh-context reviewer for steps 3 through 8 where the running
+  harness provides one, and review in the current context to the same standard
+  where it does not
 - Do not call or rely on a `strict-spec-cli review` command
 - Do not recommend archive without explicit direct code review evidence
 - Automatically fix safe in-scope review findings before archive

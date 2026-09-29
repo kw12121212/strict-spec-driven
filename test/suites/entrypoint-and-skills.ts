@@ -5127,6 +5127,9 @@ type SkillsModelModule = {
   REVIEW_INDEPENDENCE_HEADING: string;
   REVIEW_INDEPENDENCE_SKILLS: ReadonlyArray<string>;
   REVIEW_INDEPENDENCE_SNIPPETS: ReadonlyArray<{ snippet: string; element: string }>;
+  FRESH_CONTEXT_REVIEWER_SNIPPET: string;
+  FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET: string;
+  FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET: string;
 };
 const skillsModel = (await loadDistModule("skills/model.js")) as SkillsModelModule;
 
@@ -5384,6 +5387,18 @@ for (const reviewSkill of statingReviewSkills) {
       `removing ${element} from ${reviewSkill} makes validate-skills report that element missing`,
       `status ${elementRemoved.status}; ${describeDiagnostics(elementRemoved.diagnostics)}`,
     );
+    // The same edit leaves every skill that delegates review independence to this one uncovered, so
+    // each delegator must be named with the element it lost, not just the owner.
+    for (const delegator of skillsModel.REVIEW_INDEPENDENCE_SKILLS.filter((name) => !statingReviewSkills.includes(name))) {
+      context.assert(
+        elementRemoved.diagnostics.some((diagnostic) =>
+          diagnostic.code === "skill.delegation.owner.element.missing"
+          && diagnostic.path === `skills/${delegator}/SKILL.md`
+          && diagnostic.expected === snippet),
+        `removing ${element} from ${reviewSkill} makes validate-skills report ${delegator}'s delegation uncovered for that element`,
+        describeDiagnostics(elementRemoved.diagnostics),
+      );
+    }
   }
 }
 
@@ -5399,6 +5414,40 @@ context.assert(
   "a skill outside the review-independence list is not brought into scope by review-shaped prose",
   describeDiagnostics(ungovernedProbe.diagnostics),
 );
+
+// strict-spec-bugfix sits outside the review-independence contract but carries the same optional
+// fresh-context reviewer recommendation as required content. The review skill's per-element probes
+// above cover both phrases for the governed skills; this covers the one skill that states them
+// without the contract, through the shipped command, against an unmodified control.
+const BUGFIX_SKILL = "strict-spec-bugfix";
+const bugfixReviewSkillText = readFileSync(path.join(ROOT, "skills", BUGFIX_SKILL, "SKILL.md"), "utf8");
+const bugfixReviewControl = validateSkillsOverPackage(BUGFIX_SKILL, bugfixReviewSkillText);
+context.assert(
+  bugfixReviewControl.status === 0 && bugfixReviewControl.diagnostics.length === 0,
+  "the unmodified strict-spec-bugfix skill validates cleanly, so the fresh-context removals below are the only variable",
+  `status ${bugfixReviewControl.status}; ${describeDiagnostics(bugfixReviewControl.diagnostics)}`,
+);
+for (const snippet of [
+  skillsModel.FRESH_CONTEXT_REVIEWER_SNIPPET,
+  skillsModel.FRESH_CONTEXT_REVIEWER_OPTIONAL_SNIPPET,
+  skillsModel.FRESH_CONTEXT_REVIEWER_READ_ONLY_SNIPPET,
+]) {
+  const withoutPhrase = bugfixReviewSkillText.replace(flexibleWhitespace(snippet), "REMOVED");
+  context.assert(
+    withoutPhrase !== bugfixReviewSkillText,
+    `strict-spec-bugfix states '${snippet}', so removing it is a real change`,
+  );
+  const phraseRemoved = validateSkillsOverPackage(BUGFIX_SKILL, withoutPhrase);
+  context.assert(
+    phraseRemoved.status !== 0
+      && phraseRemoved.diagnostics.some((diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === `skills/${BUGFIX_SKILL}/SKILL.md`
+        && diagnostic.expected === snippet),
+    `removing '${snippet}' from strict-spec-bugfix makes validate-skills report it missing and name the skill`,
+    `status ${phraseRemoved.status}; ${describeDiagnostics(phraseRemoved.diagnostics)}`,
+  );
+}
 
 // --- Exception audit -------------------------------------------------------------------------
 // Every check above can be silenced by an exemption, and an exemption that nobody enumerates is

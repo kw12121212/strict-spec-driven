@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+operations:
+  ADDED:
+    shared-guidance-phrases-have-one-constant:
+      strength: SHOULD
+      statement: A guidance phrase that more than one skill-content expectation requires SHOULD be declared once as an exported constant in src/skills/model.ts and referenced by every expectation, contract element list, or delegable obligation that requires it, rather than repeated as a string literal in each.
+      rationale: Two literal copies of the same required phrase can drift apart while each check still passes against its own copy, silently splitting one obligation into two wordings; an exported constant also lets a probe test import the exact phrase the shipped check matches instead of restating it.
+      enforcement:
+        method: review
+        detail: Review of src/skills/model.ts changes confirms a newly required phrase used by more than one expectation is an exported constant, as FRESH_CONTEXT_REVIEWER_SNIPPET is shared by REVIEW_INDEPENDENCE_SNIPPETS and the strict-spec-bugfix required snippets.
+      examples:
+        good:
+          - export const FRESH_CONTEXT_REVIEWER_SNIPPET = "a sub-agent started with a fresh context"; referenced from REVIEW_INDEPENDENCE_SNIPPETS and from the strict-spec-bugfix requiredSnippets.
+        bad:
+          - The same sentence typed as a string literal in two expectations, so an edit to one wording leaves the other check requiring the old text.
+      exceptions:
+        - Short location or command tokens such as .strict-spec-driven/ or a slash-command name, which name where something is rather than state an instruction.
+  MODIFIED: {}
+  REMOVED: {}

@@ -1,0 +1,48 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: recommend-fresh-context-review
+sections:
+  Implementation:
+    review-skill-fresh-context-reviewer:
+      text: Add the fresh-context reviewer recommendation, its briefing rule, read-only boundary, returned report, and optionality to the Review Independence section of skills/strict-spec-review/SKILL.md, and mark in its steps where the reviewer runs and where the implementing agent resumes.
+      status: complete
+    auto-and-bugfix-review-steps:
+      text: Update strict-spec-auto step 9 to name the delegated recommendation and make file reading the reviewer duty, and give strict-spec-bugfix step 10 the same optional recommendation phrases.
+      status: complete
+    enforce-recommendation-snippets:
+      text: Add the recommendation and optionality snippets to REVIEW_INDEPENDENCE_SNIPPETS and to the strict-spec-bugfix required snippets in src/skills/model.ts.
+      status: complete
+    bugfix-recommendation-probe:
+      text: Add a regression probe in test/suites/entrypoint-and-skills.ts proving that removing either phrase from the bugfix skill makes validate-skills fail with a diagnostic naming the bugfix package and the missing snippet, with an unmodified control.
+      status: complete
+  Testing:
+    lint:
+      text: Run the TypeScript lint check.
+      status: complete
+      command: bun run lint > /tmp/lint.log 2>&1; echo EXIT=$?
+    build-and-validate-skills:
+      text: Rebuild and validate the bundled skills.
+      status: complete
+      command: bun run build > /tmp/build.log 2>&1 && strict-spec-cli validate-skills; echo EXIT=$?
+    run-full-suite:
+      text: Run the complete regression suite.
+      status: complete
+      command: bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?; grep -n FAIL /tmp/suite.log
+    coverage-gate:
+      text: Run the configured complete project regression coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage.log 2>&1; echo EXIT=$?
+  Verification:
+    ready-check:
+      text: Confirm the change reports ready.
+      status: complete
+      command: strict-spec-cli ready recommend-fresh-context-review
+    verify-change:
+      text: Run strict verification of the finished change.
+      status: complete
+      command: strict-spec-cli verify recommend-fresh-context-review
+testing_gates:
+  validation_task: build-and-validate-skills
+  unit_test_task: run-full-suite

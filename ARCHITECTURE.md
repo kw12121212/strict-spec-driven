@@ -411,7 +411,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | Spec | ID | Requirements |
 | --- | --- | --- |
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 231 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 232 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
@@ -440,6 +440,7 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `delegable-obligation-checks-accept-a-delegation` — A per-skill content check that governs an obligation the delegation registry declares delegable MUST accept a checked delegation as satisfying it, excusing the delegating skill from stating the guidance inline once the delegation-target check confirms the named owner states every element. The requirement the check enforces MUST carry the same two branches, so the contract and the check agree on what satisfies the obligation. A check that governs a delegable obligation while admitting only inline statement is the defect this rule names, because it forces a delegating skill to restate exactly the procedure the no-restatement rule forbids it from restating.
 - **MUST** `skill-handoff-names-no-harness-mechanism` — A bundled skill that routes an agent to another skill MUST state a plain skill handoff and MUST NOT name a harness tool as the mechanism for reaching it, because how a named skill is loaded belongs to the running harness rather than to the guidance. An automated check MUST fail, naming the offending skill file, the line, and the named mechanism, when a line that routes the reader to a skill also names such a mechanism. Naming a command-line program on a line that routes the reader to no skill is outside the rule.
 - **MUST** `skill-guidance-addresses-a-generic-agent` — Bundled skill guidance MUST address whichever agent is running it and MUST NOT name a specific AI product, in the body or in the frontmatter description, either as a bare mention or as the actor a use-when clause casts. An automated check MUST fail, naming the offending skill file, the line, and the matched text, when such text is present. A clause whose actor is a condition rather than a capitalised product name is outside the rule.
+- **SHOULD** `shared-guidance-phrases-have-one-constant` — A guidance phrase that more than one skill-content expectation requires SHOULD be declared once as an exported constant in src/skills/model.ts and referenced by every expectation, contract element list, or delegable obligation that requires it, rather than repeated as a string literal in each.
 
 ### [TypeScript ESM Baseline](.strict-spec-driven/tech/typescript-esm-baseline.yaml) (`typescript-esm-baseline`) — coding
 
