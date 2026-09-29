@@ -101,37 +101,6 @@ artifact_families:
       - src/design-system.ts
       - src/design-system-author.ts
     validation_command: design-status
-  harness-state:
-    artifact_types:
-      - harness
-      - harness_session
-    path_patterns:
-      - .strict-spec-driven/harness.yaml
-      - .strict-spec-driven/harness-sessions/**/session.yaml
-      - examples/strict-spec-driven/harness.yaml
-      - examples/strict-spec-driven/harness-session.yaml
-      - templates/strict-spec-driven/scaffold/harness.yaml
-      - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
-    ownership: repository-owned
-    validation_owner: templates/strict-spec-driven/schemas/harness.yaml and harness-session.yaml
-    operations:
-      create: cli-owned
-      update: cli-owned
-      named_remove: cli-owned
-      delete: cli-owned
-    reference_side_effects:
-      - Session archive moves the session directory and preserves evidence paths.
-      - Harness script generation writes non-YAML executable outputs.
-    cli_owners:
-      - harness-edit
-      - harness-infer
-      - harness-session
-    direct_write_paths: []
-    evidence:
-      - .strict-spec-driven/harness.yaml
-      - src/harness.ts
-      - src/harness-author.ts
-    validation_command: harness-doctor
   spec-state:
     artifact_types:
       - spec_index
@@ -671,7 +640,6 @@ mutation_surfaces:
   domain-filesystem-writers:
     path_patterns:
       - src/design-system.ts
-      - src/harness.ts
       - src/maintenance.ts
       - src/migrate.ts
       - src/migrate/shared.ts
@@ -685,14 +653,12 @@ mutation_surfaces:
     families:
       - workflow-config
       - design-system-state
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
       - change-delta-state
       - roadmap-state
     evidence:
-      - src/harness.ts
       - src/migrate.ts
   generated-and-rendered-writers:
     path_patterns:
@@ -736,7 +702,6 @@ mutation_surfaces:
       - src/cli/cmd-change.ts
       - src/cli/cmd-design.ts
       - src/cli/cmd-generation.ts
-      - src/cli/cmd-harness.ts
       - src/cli/cmd-lessons.ts
       - src/cli/cmd-migration.ts
       - src/cli/cmd-operations.ts
@@ -759,7 +724,6 @@ mutation_surfaces:
       - workflow-config
       - architecture-state
       - design-system-state
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
@@ -790,7 +754,6 @@ mutation_surfaces:
       - rename
     families:
       - workflow-config
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
@@ -839,7 +802,6 @@ mutation_surfaces:
       - workflow-config
       - architecture-state
       - design-system-state
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
@@ -861,21 +823,15 @@ mutation_surfaces:
       - README.zh.md
       - ROADMAP_GUIDE.md
       - ROADMAP_GUIDE.zh.md
-      - DEBUG_QUICKSTART.md
       - DESIGN_QUICKSTART.md
       - DESIGN_QUICKSTART.zh.md
       - ARCHITECTURE_QUICKSTART.md
       - ARCHITECTURE_QUICKSTART.zh.md
-      - HARNESS.md
-      - HARNESS.zh.md
       - QUICKSTART.md
       - QUICKSTART.zh.md
       - ROADMAP_QUICKSTART.md
       - ROADMAP_QUICKSTART.zh.md
       - RTK.md
-      - DEBUG_QUICKSTART.zh-CN.md
-      - DEBUG_SESSIONS.md
-      - DEBUG_SESSIONS.zh-CN.md
     mechanism: documentation-guidance
     classification: remaining-direct-writer
     operations:

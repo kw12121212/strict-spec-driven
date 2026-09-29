@@ -58,7 +58,7 @@ rules:
       bad:
         - A diagnostic reporting expected 'answered_by human or roadmap' or expected 'resolved or blocked' while naming neither the command nor the flag that sets the field to an accepted value.
     exceptions:
-      - A non-gating advisory warning whose resolution is a human judgement about intent rather than an artifact edit, such as the harness doctor cross-environment port warning, which asks for confirmation that a shared port is intentional and has no command to name.
+      - A non-gating advisory warning whose resolution is a human judgement about intent rather than an artifact edit, which asks the reader to confirm that a flagged condition is intentional and has no command to name.
   skill-guidance-states-each-shared-instruction-once:
     strength: MUST
     statement: 'An instruction that every bundled skill must carry MUST appear at most once per skill file and MUST NOT be restated in a second section of the same file, whichever two sections those are; when one of the copies is the section a shipped check reads, that copy is the one retained and the other MUST be removed rather than shortened, and an automated check MUST fail naming the offending skill when a skill restates it. The rule constrains repetition, not placement: a skill stating the instruction in exactly one section complies regardless of which section that is, and the section that declares the skill''s commands is a reference rather than a statement.'

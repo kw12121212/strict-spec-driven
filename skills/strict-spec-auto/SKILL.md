@@ -300,27 +300,6 @@ run `init` from this skill.
    `/strict-spec-ship <change-name>` as an optional next step for creating a
    focused git commit.
 
-## Harness Guidance
-
-When `.strict-spec-driven/harness.yaml` exists in the project and
-implementation or review requires starting declared components:
-
-1. Run `harness-plan` first and explain the declared long-running commands
-   before starting them.
-2. Use `harness-start` to start declared executable components rather than
-   guessing undeclared startup steps.
-3. Use declared harness targets from the plan when exercising the running
-   application.
-4. Capture evidence consistently using declared evidence labels and harness
-   session evidence identifiers.
-5. Run `harness-stop` to stop all components you started before finishing.
-
-**When NOT to use lifecycle commands:**
-- No `.strict-spec-driven/harness.yaml` declaration exists.
-- Required environment variable values are missing.
-- The user has already provided a running service URL outside the harness
-  declaration.
-
 ## Rules
 
 - The context reset is mandatory

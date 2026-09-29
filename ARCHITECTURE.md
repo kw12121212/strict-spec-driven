@@ -197,21 +197,6 @@ Creates, lists, shows, edits, and validates categorized operator-facing procedur
 - `src/sop-categories.ts`
 - `src/cli/cmd-sops.ts`
 
-### Harness (`harness`)
-
-Infers and validates the project harness declaration, plans and starts and stops declared long-running components, reports their status and logs, and records harness investigation sessions with their evidence.
-
-**Boundaries**
-
-- Starts only components the harness declaration names; it never guesses undeclared startup steps.
-
-**Depends on:** `schema-validation`
-
-**Implementation**
-
-- `src/harness.ts`
-- `src/cli/cmd-harness.ts`
-
 ### Legacy Migration and Maintenance (`migration`)
 
 Converts a legacy Markdown .spec-driven/ directory into strict YAML under .strict-spec-driven/ with a structured migration report, and runs configured maintenance checks over the strict workflow state.
@@ -426,15 +411,13 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | Spec | ID | Requirements |
 | --- | --- | --- |
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 7 |
-| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 238 |
-| [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 126 |
+| [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 231 |
+| [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
-| [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 10 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 10 |
 | [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 29 |
-| [Sessions Domain Behavior](.strict-spec-driven/specs/sessions/domain-behavior.yaml) | `sessions-domain-behavior` | 5 |
 | [SOP Domain Behavior](.strict-spec-driven/specs/sop/domain-behavior.yaml) | `sop-domain-behavior` | 6 |
 | [Testing Coverage Gate](.strict-spec-driven/specs/testing/coverage-gate.yaml) | `testing-coverage-gate` | 4 |
 

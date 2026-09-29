@@ -8,7 +8,7 @@ lesson:
 category: tooling
 status: active
 created_at: '2026-08-05T16:09:04.186Z'
-updated_at: '2026-08-05T16:09:04.186Z'
+updated_at: '2026-09-29T03:56:44.321Z'
 context: Editing inventory/yaml-mutation-surfaces.yaml through the new inventory-edit command, which regenerates src/embedded-templates.ts inside the same transaction, then reading the result back with yaml-surface-list.
 observation: The write committed, the working-tree inventory held the new classifications, the regenerated embedded source held them too, and the standalone inventory checker passed — but yaml-surface-list still reported the old values, because the installed CLI resolves bundled assets from the embedded module compiled into dist/, not from either the working-tree file or its regenerated source.
 takeaway: A bundled asset in this repository exists at three layers — working-tree file, generated embedded source, compiled dist bundle — and a command that regenerates the first two changes nothing a CLI invocation can observe until the build runs. When a write reports success but a read-back command disagrees, suspect the layer the reader actually consumes before suspecting the write.
@@ -17,3 +17,6 @@ occurrences:
   - origin: migrate-bundled-yaml-assets
     date: '2026-08-05'
     evidence: inventory-edit committed the five reclassified families and yaml-surface-list still reported human-only for all four operations until bun run build was rerun, after which it reported cli-owned.
+  - origin: remove-harness-capability
+    date: '2026-09-29'
+    evidence: After schema-edit registry.yaml --remove-entry removed the harness registry entries, schema-edit harness --delete and sample-edit harness --delete still refused with asset-still-referenced naming templates/strict-spec-driven/schemas/registry.yaml; after bun run build the same deletions committed.

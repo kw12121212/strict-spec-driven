@@ -266,20 +266,6 @@ run `init` from this skill.
     Summarize the fixed bug, regression evidence, updated specs, archive
     destination, and any follow-up that remains outside the bugfix scope.
 
-## Harness Guidance
-
-When `.strict-spec-driven/harness.yaml` exists and reproduction or verification
-requires starting declared components:
-
-1. Run `harness-plan` first and explain the declared long-running commands
-   before starting them.
-2. Use `harness-start` to start declared executable components rather than
-   guessing undeclared startup steps.
-3. Use declared harness targets from the plan when reproducing the bug.
-4. Capture evidence consistently using declared evidence labels and harness
-   session evidence identifiers.
-5. Run `harness-stop` to stop all components you started before finishing.
-
 ## Rules
 
 - Use this skill for known bug fixes, not open-ended design or investigation.

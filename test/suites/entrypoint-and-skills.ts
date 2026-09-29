@@ -152,16 +152,6 @@ const expectedCommandOrder = [
   "sample-edit",
   "fixture-edit",
   "inventory-edit",
-  "harness-edit",
-  "harness-infer",
-  "harness-doctor",
-  "harness-plan",
-  "harness-start",
-  "harness-stop",
-  "harness-status",
-  "harness-logs",
-  "harness-scripts",
-  "harness-session",
   "mcp-install",
   "migrate",
   "roadmap-generate",
@@ -1003,9 +993,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const roadmapTransitionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-transition", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const roadmapReviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-review", "SKILL.md"), "utf8");
-  // Both harness skill packages were removed. HARNESS.md now carries the lifecycle ordering they
-  // held, so the assertions they anchored are made against that document rather than dropped.
-  const harnessDocContent = readFileSync(path.join(ROOT, "HARNESS.md"), "utf8");
   const initSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-init", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedApplySkillContent = applySkillContent.replace(/\s+/g, " ");
@@ -1021,7 +1008,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedRoadmapTransitionSkillContent = roadmapTransitionSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapReviewSkillContent = roadmapReviewSkillContent.replace(/\s+/g, " ");
-  const normalizedHarnessDocContent = harnessDocContent.replace(/\s+/g, " ");
   const normalizedInitSkillContent = initSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
   /**
@@ -1430,27 +1416,6 @@ context.assert(
       && normalizedRoadmapReviewSkillContent.includes("owned planned-change `summary`, `details`, `depends_on`, and metadata")
       && normalizedRoadmapReviewSkillContent.includes("Do not record milestone-level intake gaps in change-level `questions.yaml`"),
     "strict-roadmap-review validates all-incomplete milestone, direct-fix, and intake-answer guidance",
-  );
-  context.assert(
-    normalizedHarnessDocContent.includes("harness-infer")
-      && normalizedHarnessDocContent.includes("harness-doctor")
-      && normalizedHarnessDocContent.includes("harness-plan")
-      && normalizedHarnessDocContent.includes("Generates and verifies project-local scripts")
-      && normalizedHarnessDocContent.includes("only environment variable names — never secret values")
-      && normalizedHarnessDocContent.includes("stay disabled until the human confirms them explicitly")
-      && normalizedHarnessDocContent.includes("confirm the development and production environment configurations with a human before writing the file"),
-    "HARNESS.md carries the declaration workflow order and the confirmation and secret boundaries the removed harness-init skill held",
-  );
-  context.assert(
-    normalizedHarnessDocContent.includes("harness-session create")
-      && normalizedHarnessDocContent.includes("harness-session validate")
-      && normalizedHarnessDocContent.includes("harness-start")
-      && normalizedHarnessDocContent.includes("harness-stop")
-      && normalizedHarnessDocContent.includes("human_checkpoints")
-      && normalizedHarnessDocContent.includes("secrets_recorded: false")
-      && normalizedHarnessDocContent.includes("`scripts/harness-*` wrappers")
-      && normalizedHarnessDocContent.includes("Do not create or manage `debug-session` artifacts"),
-    "HARNESS.md carries the session lifecycle, human checkpoints, and secret boundaries the removed harness-session skill held",
   );
   context.assert(
     normalizedInitSkillContent.includes("Ensure AGENTS.md exists")
@@ -3240,12 +3205,7 @@ try {
       "",
       "Before any other step, confirm `.strict-spec-driven/` exists. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "1. Read every changed file and require direct code review evidence.",
-      "2. Confirm harness-plan guidance when harness evidence exists.",
-      "3. Do not call or rely on a `strict-spec-cli review` command.",
-      "",
-      "## Harness Guidance",
-      "",
-      "Use harness-plan to evaluate harness evidence.",
+      "2. Do not call or rely on a `strict-spec-cli review` command.",
       "",
       "## Rules",
       "",
@@ -3285,10 +3245,6 @@ try {
       "",
       "1. Reproduce before fixing the known bug and keep the minimal fix scoped to a failing regression.",
       "2. Run the configured complete project regression command, then declare the lesson outcome and archive.",
-      "",
-      "## Harness Guidance",
-      "",
-      "Use harness-plan when reproduction needs declared components.",
       "",
       "## Rules",
       "",

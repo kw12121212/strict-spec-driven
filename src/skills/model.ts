@@ -752,10 +752,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "scene-status": SCENE_STATUS_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/",
-      "harness-plan",
       SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
       SCENE_COVERAGE_REMEDY_SNIPPET,
       "never a waiver to invent",
@@ -770,8 +769,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "harness-plan"],
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
   },
   "strict-spec-review": {
     requiredCommands: {
@@ -779,10 +778,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "scene-status": SCENE_STATUS_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/",
-      "harness-plan",
       "direct code review evidence",
       SCENE_COVERAGE_DIAGNOSTIC_SNIPPET,
       // Review's scene obligation is the judgment the gate cannot make, so what is pinned is the
@@ -840,7 +838,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       next: NEXT_COMMAND,
       archive: `${COMMAND_PREFIX} archive <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-ship <change-name>",
@@ -857,7 +855,6 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
-      "harness-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
@@ -893,7 +890,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       archive: `${COMMAND_PREFIX} archive <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/",
       BUGFIX_KNOWN_BUG_SNIPPET,

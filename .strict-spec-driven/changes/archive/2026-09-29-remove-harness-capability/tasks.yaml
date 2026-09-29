@@ -1,0 +1,87 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-harness-capability
+sections:
+  Implementation:
+    implement-archive-pruning:
+      text: In src/archive.ts, after merging REMOVED operations, delete a main spec whose requirements map is empty and a technical standard whose rules map is empty, remove any directory the deletion empties, regenerate the spec and tech indexes without them in the same archive operation, report the pruned paths in the archive JSON output, and document the new output keys in the archive command-metadata entry.
+      status: complete
+    delete-own-harness-declaration:
+      text: While the command still exists, delete this repository's .strict-spec-driven/harness.yaml through the harness CLI.
+      status: complete
+      command: strict-spec-cli harness-edit --delete
+    remove-harness-architecture-component:
+      text: Remove the harness component and every relation naming it from .strict-spec-driven/architecture.yaml with architecture-edit --remove-component harness, confirm architecture-status reports no drift, and re-render ARCHITECTURE.md with architecture-generate.
+      status: complete
+    remove-harness-inventory-family:
+      text: Remove the harness-state family and every harness command, MCP, skill, and documentation surface entry from inventory/yaml-mutation-surfaces.yaml with inventory-edit --remove-entry, and update scripts/check-yaml-mutation-inventory.ts so it no longer expects harness surfaces.
+      status: complete
+    remove-harness-bundled-assets:
+      text: Through schema-edit, template-edit, and sample-edit, remove the harness and harness-session registry entries, then delete the harness and harness-session schemas, the scaffold harness.yaml and harness-sessions/session.yaml templates, and the harness and harness-session examples, in that dependency order, and regenerate src/embedded-templates.ts through the build.
+      status: complete
+    remove-harness-cli-surface:
+      text: Delete src/harness.ts, src/harness-author.ts, and src/cli/cmd-harness.ts; unregister the ten harness commands in src/cli/registry.ts and src/strict-spec-cli.ts; remove their entries from src/cli/command-metadata-entries.ts and src/cli/command-metadata.ts; and drop harness.yaml from the init scaffold list in src/scaffold.ts.
+      status: complete
+    remove-harness-mcp-surface:
+      text: Remove the harness tools and the strict://harness/declaration resource from src/mcp/inventory.ts, their handlers from src/mcp/tools.ts and src/mcp/resources.ts, the strict_harness_investigation prompt from src/mcp/prompts.ts, and the confirm forwarding reserved for harness lifecycle commands, keeping the server-boundary confirm check.
+      status: complete
+    remove-harness-skill-guidance:
+      text: Delete the Harness Guidance section from skills/strict-spec-apply, strict-spec-auto, strict-spec-bugfix, strict-spec-review, and strict-spec-verify SKILL.md, and remove the Harness Guidance heading and harness-plan snippets from the required skill content in src/skills/model.ts and src/skills/content.ts, leaving agent-runtime harness wording and src/skills/handoff.ts unchanged.
+      status: complete
+    remove-harness-docs-and-scripts:
+      text: Delete HARNESS.md, HARNESS.zh.md, DEBUG_QUICKSTART.md, DEBUG_QUICKSTART.zh-CN.md, DEBUG_SESSIONS.md, DEBUG_SESSIONS.zh-CN.md, DEV_SESSIONS.md, DEV_SESSIONS.zh.md, and scripts/harness-*; remove harness passages and links from README.md, README.zh.md, QUICKSTART.md, and QUICKSTART.zh.md; and add a harness removal upgrade note inside the README marked retirement block in both languages stating that residual harness.yaml, harness-sessions/, and scripts/harness-* files may be deleted by hand.
+      status: complete
+    remove-harness-tests:
+      text: Delete the harness test suites (harness-lifecycle, harness-infer-doctor, harness-contracts, harness-session, harness-plan, harness-authoring, harness-session-authoring) and fixtures used only by them, unregister them in test/run.ts, and update suites that assert harness presence (MCP server and install, YAML operation matrix, entrypoint and skills, foundation and fixtures, command metadata, authoring protocol, coverage gate) to assert the reduced surface; keep test/fixtures/guidance-skills/strict-spec-fixture-harness-specific-handoff, which exercises the agent-runtime handoff rule.
+      status: complete
+  Testing:
+    test-archive-pruning:
+      text: Add archive regressions proving that a delta removing every requirement of a main spec deletes the spec file and its emptied directory, drops it from the regenerated spec index, and names the path in the archive output; that the same holds for a delta tech removing every rule of a standard; and that partial removals keep the spec or standard.
+      status: complete
+      command: bun run build && bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?
+    test-harness-absence:
+      text: Add regressions proving that each former harness command fails through the ordinary unknown-command path with no alias or retirement message, init writes no harness.yaml or harness-sessions directory, schema-list, template-list, sample-list, and yaml-surface-list report no harness asset or family, the MCP tool, resource, and prompt inventories contain no harness entry, and check-workflow-state, ready, and verify ignore residual harness files.
+      status: complete
+    test-harness-removal-sweep:
+      text: Add a repository-wide sweep test that scans tracked source, skills, operator documentation, templates, examples, inventory, and scripts for tokens unique to the removed capability, excludes .strict-spec-driven/, retired-skills.json, and the README marked retirement block, builds its probe strings at runtime, proves a negative case by feeding inserted content through the same scan function and observing it fire, prints the full survivor list, and asserts that agent-runtime harness wording in skills and src/skills/handoff.ts is not reported.
+      status: complete
+    run-build:
+      text: Rebuild compiled output after the source edits.
+      status: complete
+      command: bun run build
+    run-inventory-check:
+      text: Run the YAML mutation inventory check against the reduced inventory.
+      status: complete
+      command: bun scripts/check-yaml-mutation-inventory.ts
+    run-validate-skills:
+      text: Validate bundled skill packaging after removing the Harness Guidance sections.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-full-suite:
+      text: Run the complete test suite with output redirected and read the runner's own exit status.
+      status: complete
+      command: bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?; grep -n FAIL /tmp/suite.log
+    run-coverage-gate:
+      text: Run the blocking coverage gate at the declared 78 percent line threshold without lowering it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage.log 2>&1; echo EXIT=$?
+  Verification:
+    verify-unchanged-surfaces:
+      text: Confirm with git diff that retired-skills.json, .strict-spec-driven/changes/archive/, completed roadmap artifacts, lessons, src/skills/handoff.ts, the skill-handoff-names-no-harness-mechanism rule, and test-harness wording are unchanged, and that the MCP server still refuses mutating calls without confirm.
+      status: complete
+    verify-merge-preview:
+      text: Confirm that verify evaluates every delta target of this change, that the harness and sessions deltas remove every requirement of their main specs so archive will prune both, and that the delta scene's covering references resolve against the post-archive state.
+      status: complete
+    verify-ready:
+      text: Run the proposal and implementation readiness check for this change.
+      status: complete
+      command: strict-spec-cli ready remove-harness-capability
+    verify-change:
+      text: Run strict verification for this change and resolve every diagnostic before archive.
+      status: complete
+      command: strict-spec-cli verify remove-harness-capability
+testing_gates:
+  validation_task: run-coverage-gate
+  unit_test_task: run-full-suite

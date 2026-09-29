@@ -133,7 +133,6 @@ export function readStrictResourceText(projectRoot: string, uri: string): string
   }
   if (family === "tech" && rest[0] === "index" && rest.length === 1) return readYamlArtifact(projectRoot, "tech/INDEX.yaml");
   if (family === "tech" && rest.length === 1) return readStrictIdFile(projectRoot, "tech", rest[0] ?? "");
-  if (family === "harness" && rest.join("/") === "declaration") return readYamlArtifact(projectRoot, "harness.yaml");
 
   throw new Error(`unknown strict MCP resource URI: ${uri}`);
 }

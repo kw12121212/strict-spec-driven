@@ -8,13 +8,7 @@ import { runDesignSystemDocumentSuite } from "./suites/design-system-document.js
 import { runDesignSystemAuthoringSuite } from "./suites/design-system-authoring.js";
 import { runEntrypointAndSkillsSuite } from "./suites/entrypoint-and-skills.js";
 import { runFoundationAndFixtureSuite } from "./suites/foundation-and-fixtures.js";
-import { runHarnessContractsSuite } from "./suites/harness-contracts.js";
-import { runHarnessInferDoctorSuite } from "./suites/harness-infer-doctor.js";
-import { runHarnessLifecycleSuite } from "./suites/harness-lifecycle.js";
-import { runHarnessPlanSuite } from "./suites/harness-plan.js";
-import { runHarnessSessionSuite } from "./suites/harness-session.js";
-import { runHarnessAuthoringSuite } from "./suites/harness-authoring.js";
-import { runHarnessSessionAuthoringSuite } from "./suites/harness-session-authoring.js";
+import { runHarnessRemovalSuite } from "./suites/harness-removal.js";
 import { runMcpInstallSuite } from "./suites/mcp-install.js";
 import { runMcpServerSuite } from "./suites/mcp-server.js";
 import { runOperationsSuite } from "./suites/operations.js";
@@ -31,13 +25,6 @@ async function main(): Promise<void> {
 
   await runEntrypointAndSkillsSuite(context);
   await runFoundationAndFixtureSuite(context);
-  await runHarnessContractsSuite(context);
-  await runHarnessPlanSuite(context);
-  await runHarnessLifecycleSuite(context);
-  await runHarnessInferDoctorSuite(context);
-  await runHarnessSessionSuite(context);
-  await runHarnessAuthoringSuite(context);
-  await runHarnessSessionAuthoringSuite(context);
   await runChangeLifecycleSuite(context);
   await runRoadmapAndMigrationSuite(context);
   await runSopsSuite(context);
@@ -57,6 +44,7 @@ async function main(): Promise<void> {
   await runYamlAuthoringProtocolSuite(context);
   await runMcpServerSuite(context);
   await runMcpInstallSuite(context);
+  await runHarnessRemovalSuite(context);
   await runCoverageGateSuite(context);
 
   printFinalSummary(context);

@@ -299,32 +299,6 @@ entries:
       notes:
         - Populated lesson categories group conflict-resistant lesson ids and point to canonical category-directory paths.
         - INDEX.yaml remains the only lesson index; category directories do not carry their own indexes.
-  - schema_id: strict-spec-driven/harness/v1
-    schema_version: 1
-    artifact_type: harness
-    artifact_name: harness
-    schema_file: harness.yaml
-    primary_example: ../../../examples/strict-spec-driven/harness.yaml
-    compatibility:
-      status: current
-      introduced_in: 1
-      supersedes: []
-      compatible_with: []
-      notes:
-        - Harness declarations replace development-session artifacts with mixed environment and component operation contracts.
-  - schema_id: strict-spec-driven/harness-session/v1
-    schema_version: 1
-    artifact_type: harness_session
-    artifact_name: harness-session
-    schema_file: harness-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/harness-session.yaml
-    compatibility:
-      status: current
-      introduced_in: 1
-      supersedes: []
-      compatible_with: []
-      notes:
-        - Harness-session artifacts replace debug-session investigation records.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

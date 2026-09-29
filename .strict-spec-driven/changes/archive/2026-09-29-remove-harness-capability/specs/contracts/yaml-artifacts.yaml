@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+operations:
+  ADDED:
+    yaml-delta-tech-archive-prunes-emptied-standards:
+      strength: MUST
+      statement: The system MUST make archive delete a technical standard whose rules a change's delta tech removes entirely, together with any tech directory that deletion leaves empty, regenerate the tech index without it in the same archive operation, and report each pruned standard path in the archive JSON output.
+      scenarios:
+        archive-prunes-fully-removed-standard:
+          - GIVEN: an active change whose delta tech REMOVES every rule of an existing technical standard
+          - WHEN: archive runs for that change
+          - THEN: the standard file and its emptied directory no longer exist, the regenerated tech index no longer lists the standard, and the archive output names the pruned standard path
+        archive-keeps-partially-removed-standard:
+          - GIVEN: an active change whose delta tech REMOVES some but not all rules of an existing technical standard
+          - WHEN: archive runs for that change
+          - THEN: the standard file remains with its surviving rules, the tech index still lists it, and the archive output reports no pruned standard
+        archive-prunes-standard-emptied-by-a-refused-attempt:
+          - GIVEN: an active change whose earlier archive attempt was refused after its delta tech had already emptied a technical standard, so the emptied standard is still on disk
+          - WHEN: archive is retried for that change
+          - THEN: the absent REMOVED rules are skipped, the emptied standard and its emptied directory are deleted, and the archive output names the pruned standard path
+  MODIFIED: {}
+  REMOVED:
+    yaml-harness-artifact-contract:
+      reason: The harness declaration and harness session artifact contracts are retired together with the harness capability, which lies outside the spec-driven workflow boundary.
+    yaml-harness-status-logs-are-descriptive:
+      reason: The harness declaration and harness session artifact contracts are retired together with the harness capability, which lies outside the spec-driven workflow boundary.

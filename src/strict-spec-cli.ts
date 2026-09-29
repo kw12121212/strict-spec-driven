@@ -43,18 +43,6 @@ import {
 } from "./cli/cmd-bundled-assets.js";
 import { runArchitectureEdit, runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
 import { runDesignEdit, runDesignGenerate, runDesignInit, runDesignStatus } from "./cli/cmd-design.js";
-import {
-  runHarnessDoctor,
-  runHarnessEdit,
-  runHarnessInfer,
-  runHarnessLogs,
-  runHarnessPlan,
-  runHarnessScripts,
-  runHarnessSession,
-  runHarnessStart,
-  runHarnessStatus,
-  runHarnessStop,
-} from "./cli/cmd-harness.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
@@ -153,16 +141,6 @@ export const commands = createCliCommandTable({
   "sample-edit": (argv) => runSampleEdit(argv),
   "fixture-edit": (argv) => runFixtureEdit(argv),
   "inventory-edit": (argv) => runInventoryEdit(argv),
-  "harness-edit": (argv) => runHarnessEdit(argv),
-  "harness-infer": (argv) => runHarnessInfer(argv),
-  "harness-doctor": (argv) => runHarnessDoctor(argv),
-  "harness-plan": (argv) => runHarnessPlan(argv),
-  "harness-start": (argv) => runHarnessStart(argv),
-  "harness-stop": (argv) => runHarnessStop(argv),
-  "harness-status": (argv) => runHarnessStatus(argv),
-  "harness-logs": (argv) => runHarnessLogs(argv),
-  "harness-scripts": (argv) => runHarnessScripts(argv),
-  "harness-session": (argv) => runHarnessSession(argv),
   "mcp-install": (argv) => runMcpInstall(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-generate": (argv) => runRoadmapGenerate(argv),

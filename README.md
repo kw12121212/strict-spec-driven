@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-**Documentation:** [Quick Start](QUICKSTART.md) · [Architecture](ARCHITECTURE.md) · [Architecture Quickstart](ARCHITECTURE_QUICKSTART.md) · [UI Design Quickstart](DESIGN_QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [Debug Sessions](DEBUG_SESSIONS.md) · [RTK](RTK.md)
+**Documentation:** [Quick Start](QUICKSTART.md) · [Architecture](ARCHITECTURE.md) · [Architecture Quickstart](ARCHITECTURE_QUICKSTART.md) · [UI Design Quickstart](DESIGN_QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [RTK](RTK.md)
 
 `strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → skill-driven code review → archive) with Agent Skills integration, converting workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
@@ -42,10 +42,9 @@ than silently doing the right thing.
 
 The five skills `/strict-spec-sop`, `/strict-spec-harness-init`,
 `/strict-spec-harness-session`, `/strict-spec-migrate`, and
-`/strict-spec-propose-from-roadmap` were removed the same way. Their CLI
-commands are unchanged — `sop-create` and the other `sop-*` commands, the
-`harness-*` commands, and `migrate` all keep their names, arguments, and
-behavior — so the capabilities remain available through `strict-spec-cli`, and
+`/strict-spec-propose-from-roadmap` were removed the same way. The `sop-*`
+commands and `migrate` are unchanged — they keep their names, arguments, and
+behavior, so those capabilities remain available through `strict-spec-cli` — and
 roadmap-backed proposals are scaffolded by `/strict-roadmap-recommend` when the
 next change is chosen across the whole roadmap, or by `/strict-spec-propose`
 when the request names one milestone.
@@ -67,6 +66,18 @@ reorder, which has its own skill again:
 
 The underlying CLI commands are unchanged: `roadmap-pause`, `roadmap-sync`, and
 the rest keep their names and arguments. Only the skill packaging changed.
+
+The harness capability was removed entirely, because declaring, starting,
+stopping, and logging project services lies outside a spec-driven workflow tool.
+The `harness-edit`, `harness-infer`, `harness-doctor`, `harness-plan`,
+`harness-start`, `harness-stop`, `harness-status`, `harness-logs`,
+`harness-scripts`, and `harness-session` commands are no longer registered and
+fail as unknown commands; `init` no longer scaffolds `harness.yaml`; and the MCP
+server no longer offers harness tools, the `strict://harness/declaration`
+resource, or the `strict_harness_investigation` prompt. No command reads the
+files an earlier version left behind, so `.strict-spec-driven/harness.yaml`,
+`.strict-spec-driven/harness-sessions/`, and generated `scripts/harness-*`
+wrappers can be deleted by hand.
 
 If you installed the skills before this change, reinstall them so the retired
 packages are removed from your skill directory and the merged one is present:
@@ -106,13 +117,6 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `sample-show <name>` | Print a bundled strict YAML sample asset |
 | `template-list` | List bundled template and schema asset keys |
 | `template-show <key>` | Print a bundled template or schema asset |
-| `harness-infer` | Draft a safe harness declaration from repository metadata |
-| `harness-doctor` | Diagnose harness declaration, wrapper, environment, and safety issues |
-| `harness-plan` | Validate and derive a deterministic harness plan |
-| `harness-start` / `harness-stop` | Manage declared executable harness components |
-| `harness-status` / `harness-logs` | Inspect managed harness runtime state and logs |
-| `harness-scripts <generate\|verify>` | Generate or verify project-local `scripts/harness-*` wrappers |
-| `harness-session <create\|validate\|archive>` | Manage structured harness investigation sessions |
 
 ### Installation
 
@@ -333,13 +337,12 @@ Representative resources:
 - `strict://changes/{change}/proposal`
 - `strict://specs/{specId}`
 - `strict://roadmap/planned-changes/{plannedChangeId}`
-- `strict://harness/declaration`
 
 Representative read-only request: ask the MCP client to check strict workflow status. The expected tool call is `check_workflow_state`, which delegates to `strict-spec-cli check-workflow-state` and does not mutate project files.
 
 Representative prompt request: ask for `strict_review_change` with `{ "change": "my-change" }` to get review guidance that keeps verification, direct code review, and complete regression evidence in the workflow.
 
-Mutating tools require explicit confirmation. Every mutating tool enforces a server-side gate: the call must include `confirm: true`, or the MCP server refuses it with a confirmation-required diagnostic and never invokes the strict CLI. Tools such as `propose_change`, `generate_change_artifact`, `mark_next_task_complete`, `roadmap_sync`, and `archive_change` write strict workflow state. `harness_start` and `harness_stop` are lifecycle actions, `archive_change` is release-class because it merges specs and reconciles roadmap state, and `cancel_change` is destructive because it permanently deletes an active change. Tool failures (invalid input, missing confirmation, or a non-zero delegated command) are returned as MCP protocol errors while still carrying the diagnostic JSON envelope.
+Mutating tools require explicit confirmation. Every mutating tool enforces a server-side gate: the call must include `confirm: true`, or the MCP server refuses it with a confirmation-required diagnostic and never invokes the strict CLI. Tools such as `propose_change`, `generate_change_artifact`, `mark_next_task_complete`, `roadmap_sync`, and `archive_change` write strict workflow state. `archive_change` is release-class because it merges specs and reconciles roadmap state, and `cancel_change` is destructive because it permanently deletes an active change. Tool failures (invalid input, missing confirmation, or a non-zero delegated command) are returned as MCP protocol errors while still carrying the diagnostic JSON envelope.
 
 Template resources are enumerable: an MCP client can list resources to discover the concrete `strict://` URIs for existing changes, specs, roadmap milestones, planned changes, and tech standards instead of having to know each identifier in advance.
 
@@ -402,12 +405,6 @@ strict-spec-cli sop-validate
 ```
 
 Each category enforces its own required sections — `sop-category-show <id>` names them before you author.
-
-## Harness
-
-A harness declaration at `.strict-spec-driven/harness.yaml` tells agents and humans how to plan, start, stop, inspect, and investigate mixed project environments. It covers local development and production observability, typed components, dependency order, readiness, logs, status, generated `scripts/harness-*` wrappers, lifecycle safety, evidence, replay, and secret-handling rules.
-
-See [HARNESS.md](HARNESS.md) for the full reference.
 
 ## Migration Boundaries
 

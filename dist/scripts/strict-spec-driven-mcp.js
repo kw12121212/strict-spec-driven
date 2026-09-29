@@ -21476,100 +21476,6 @@ components: {}
 guidance:
   overview: REPLACE WITH the visual identity this interface is built on
 `,
-  "strict-spec-driven/scaffold/harness-sessions/session.yaml": `schema: strict-spec-driven/harness-session/v1
-schema_version: 1
-artifact_type: harness_session
-schema_file: ../../../templates/strict-spec-driven/schemas/harness-session.yaml
-harness_session:
-  id: "{{session_id}}"
-  status: proposed
-harness:
-  declaration: .strict-spec-driven/harness.yaml
-  environment: development
-issue:
-  summary: Describe the failure under investigation.
-  observed_behavior: Describe what actually happens.
-  expected_behavior: Describe what should happen instead.
-selected_components: []
-lifecycle_evidence:
-  plan:
-    command: strict-spec-cli harness-plan --environment development
-    status: not_run
-    evidence: []
-  start:
-    command: strict-spec-cli harness-start --environment development
-    status: not_run
-    evidence: []
-  status:
-    command: strict-spec-cli harness-status
-    status: not_run
-    evidence: []
-  logs: []
-  stop:
-    command: strict-spec-cli harness-stop
-    status: not_run
-    evidence: []
-reproduction:
-  preconditions: []
-  steps:
-    - id: reproduce
-      action: Reproduce the failure.
-      expected: The failure is visible or captured in evidence.
-  expected_failure: Describe the expected failing observation.
-evidence:
-  directory: evidence/
-  entries: []
-hypotheses: []
-findings: []
-human_checkpoints: []
-manual_actions: []
-replay:
-  commands: []
-verification:
-  status: not_started
-  steps: []
-  evidence: []
-`,
-  "strict-spec-driven/scaffold/harness.yaml": `schema: strict-spec-driven/harness/v1
-schema_version: 1
-artifact_type: harness
-schema_file: templates/strict-spec-driven/schemas/harness.yaml
-harness:
-  id: default
-  description: Replace the sample values with this repository's harness environments and components.
-  environments:
-    development:
-      kind: development
-      description: Local development environment.
-      components:
-        app:
-          type: backend
-          description: Replace with the primary local component for this project.
-          working_directory: "."
-          depends_on: []
-          environment:
-            required: []
-            optional: []
-          urls: []
-          ports: []
-          readiness:
-            type: manual
-            timeout_seconds: 60
-            interval_seconds: 5
-            notes:
-              - Replace manual readiness with HTTP or TCP readiness when known.
-          operations:
-            start:
-              mode: manual
-            stop:
-              mode: manual
-            status:
-              mode: manual
-            logs:
-              mode: manual
-          evidence_labels: []
-          unavailable_conditions: []
-`,
   "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v2
 schema_version: 2
 artifact_type: lessons_index
@@ -22656,693 +22562,15 @@ json_schema:
           items:
             type: string
 `,
-  "strict-spec-driven/schemas/harness-session.yaml": `schema: strict-spec-driven/schema/v1
-schema_version: 1
-schema_id: strict-spec-driven/harness-session/v1
-artifact_type: harness_session
-artifact_name: harness-session
-description: Strict YAML harness investigation session artifact.
-example_ref: ../../../examples/strict-spec-driven/harness-session.yaml
-json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
-  type: object
-  additionalProperties: false
-  required:
-    - schema
-    - schema_version
-    - artifact_type
-    - schema_file
-    - harness_session
-    - harness
-    - issue
-    - selected_components
-    - lifecycle_evidence
-    - reproduction
-    - evidence
-    - hypotheses
-    - findings
-    - human_checkpoints
-    - manual_actions
-    - replay
-    - verification
-  properties:
-    schema:
-      type: string
-      const: strict-spec-driven/harness-session/v1
-    schema_version:
-      type: integer
-      const: 1
-    artifact_type:
-      type: string
-      const: harness_session
-    schema_file:
-      type: string
-      minLength: 1
-    harness_session:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - status
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        status:
-          type: string
-          enum:
-            - proposed
-            - reproducing
-            - capturing
-            - localizing
-            - waiting_for_human
-            - verifying
-            - resolved
-            - blocked
-        owner:
-          type: string
-          minLength: 1
-        created_at:
-          type: string
-          format: date-time
-    harness:
-      type: object
-      additionalProperties: false
-      required:
-        - declaration
-        - environment
-      properties:
-        declaration:
-          type: string
-          minLength: 1
-        environment:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    issue:
-      type: object
-      additionalProperties: false
-      required:
-        - summary
-        - observed_behavior
-        - expected_behavior
-      properties:
-        summary:
-          type: string
-          minLength: 1
-        observed_behavior:
-          type: string
-          minLength: 1
-        expected_behavior:
-          type: string
-          minLength: 1
-    selected_components:
-      type: array
-      items:
-        type: string
-        pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    lifecycle_evidence:
-      type: object
-      additionalProperties: false
-      required:
-        - plan
-        - start
-        - status
-        - logs
-        - stop
-      properties:
-        plan:
-          $ref: "#/definitions/command_evidence"
-        start:
-          $ref: "#/definitions/command_evidence"
-        status:
-          $ref: "#/definitions/command_evidence"
-        logs:
-          type: array
-          items:
-            $ref: "#/definitions/command_evidence"
-        stop:
-          $ref: "#/definitions/command_evidence"
-    reproduction:
-      type: object
-      additionalProperties: false
-      required:
-        - preconditions
-        - steps
-        - expected_failure
-      properties:
-        preconditions:
-          type: array
-          items:
-            type: string
-            minLength: 1
-        steps:
-          type: array
-          items:
-            $ref: "#/definitions/step"
-        expected_failure:
-          type: string
-          minLength: 1
-    evidence:
-      type: object
-      additionalProperties: false
-      required:
-        - directory
-        - entries
-      properties:
-        directory:
-          type: string
-          minLength: 1
-        entries:
-          type: array
-          items:
-            $ref: "#/definitions/evidence_entry"
-    hypotheses:
-      type: array
-      items:
-        $ref: "#/definitions/hypothesis"
-    findings:
-      type: array
-      items:
-        $ref: "#/definitions/finding"
-    human_checkpoints:
-      type: array
-      items:
-        $ref: "#/definitions/human_checkpoint"
-    manual_actions:
-      type: array
-      items:
-        $ref: "#/definitions/manual_action"
-    replay:
-      type: object
-      additionalProperties: false
-      required:
-        - commands
-      properties:
-        commands:
-          type: array
-          items:
-            type: string
-            minLength: 1
-    verification:
-      type: object
-      additionalProperties: false
-      required:
-        - status
-        - steps
-        - evidence
-      properties:
-        status:
-          type: string
-          enum:
-            - not_started
-            - passed
-            - failed
-            - blocked
-        steps:
-          type: array
-          items:
-            $ref: "#/definitions/step"
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-  definitions:
-    command_evidence:
-      type: object
-      additionalProperties: false
-      required:
-        - command
-        - status
-        - evidence
-      properties:
-        command:
-          type: string
-          minLength: 1
-        status:
-          type: string
-          enum:
-            - not_run
-            - passed
-            - failed
-            - blocked
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    step:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - action
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        action:
-          type: string
-          minLength: 1
-        expected:
-          type: string
-          minLength: 1
-        target:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    evidence_entry:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - kind
-        - path
-        - description
-        - contains_secrets
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        kind:
-          type: string
-          enum:
-            - log
-            - screenshot
-            - trace
-            - command_output
-            - status
-            - note
-        path:
-          type: string
-          minLength: 1
-        description:
-          type: string
-          minLength: 1
-        contains_secrets:
-          type: boolean
-          const: false
-    hypothesis:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - statement
-        - status
-        - evidence
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        statement:
-          type: string
-          minLength: 1
-        status:
-          type: string
-          enum:
-            - open
-            - supported
-            - rejected
-            - verified
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    finding:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - summary
-        - status
-        - evidence
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        target:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        summary:
-          type: string
-          minLength: 1
-        status:
-          type: string
-          enum:
-            - suspected
-            - confirmed
-            - fixed
-            - wont_fix
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    human_checkpoint:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - reason
-        - requested_action
-        - sensitive
-        - status
-        - resume_condition
-        - evidence_before
-        - evidence_after
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        reason:
-          type: string
-          minLength: 1
-        requested_action:
-          type: string
-          minLength: 1
-        sensitive:
-          type: boolean
-        status:
-          type: string
-          enum:
-            - pending
-            - completed
-            - skipped
-        resume_condition:
-          type: string
-          minLength: 1
-        evidence_before:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        evidence_after:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    manual_action:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - actor
-        - summary
-        - secrets_recorded
-        - status
-        - evidence
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        actor:
-          type: string
-          minLength: 1
-        summary:
-          type: string
-          minLength: 1
-        secrets_recorded:
-          type: boolean
-          const: false
-        status:
-          type: string
-          enum:
-            - planned
-            - completed
-            - skipped
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-`,
-  "strict-spec-driven/schemas/harness.yaml": `schema: strict-spec-driven/schema/v1
-schema_version: 1
-schema_id: strict-spec-driven/harness/v1
-artifact_type: harness
-artifact_name: harness
-description: Strict YAML harness declaration artifact for environments, components, operations, safety, and evidence targets.
-example_ref: ../../../examples/strict-spec-driven/harness.yaml
-json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
-  type: object
-  additionalProperties: false
-  required:
-    - schema
-    - schema_version
-    - artifact_type
-    - schema_file
-    - harness
-  properties:
-    schema:
-      type: string
-      const: strict-spec-driven/harness/v1
-    schema_version:
-      type: integer
-      const: 1
-    artifact_type:
-      type: string
-      const: harness
-    schema_file:
-      type: string
-      minLength: 1
-    harness:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - environments
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        description:
-          type: string
-          minLength: 1
-        environments:
-          type: object
-          minProperties: 1
-          additionalProperties: false
-          patternProperties:
-            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
-              type: object
-              additionalProperties: false
-              required:
-                - kind
-                - components
-              properties:
-                kind:
-                  type: string
-                  enum:
-                    - development
-                    - production
-                description:
-                  type: string
-                  minLength: 1
-                components:
-                  type: object
-                  minProperties: 1
-                  additionalProperties: false
-                  patternProperties:
-                    "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
-                      $ref: "#/definitions/component"
-  definitions:
-    operation:
-      type: object
-      additionalProperties: false
-      description: >-
-        Operation capability metadata for a harness component. Start and stop may be executed when
-        declared as script operations; status and logs are descriptive only and may be omitted.
-      required:
-        - mode
-      properties:
-        mode:
-          type: string
-          enum:
-            - script
-            - readonly
-            - manual
-            - disabled
-        command:
-          type: string
-          minLength: 1
-        requires_confirmation:
-          type: boolean
-        allow_stateful_lifecycle:
-          type: boolean
-      allOf:
-        - if:
-            properties:
-              mode:
-                const: script
-          then:
-            required:
-              - command
-    readiness:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - timeout_seconds
-        - interval_seconds
-      properties:
-        type:
-          type: string
-          enum:
-            - http
-            - tcp
-            - manual
-        url:
-          type: string
-          format: uri
-        port:
-          type: integer
-          minimum: 1
-          maximum: 65535
-        timeout_seconds:
-          type: integer
-          minimum: 1
-        interval_seconds:
-          type: integer
-          minimum: 1
-        notes:
-          type: array
-          items:
-            type: string
-            minLength: 1
-      allOf:
-        - if:
-            properties:
-              type:
-                const: http
-          then:
-            required:
-              - url
-        - if:
-            properties:
-              type:
-                const: tcp
-          then:
-            required:
-              - port
-    component:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - working_directory
-        - depends_on
-        - environment
-        - urls
-        - ports
-        - readiness
-        - operations
-        - evidence_labels
-        - unavailable_conditions
-      properties:
-        type:
-          type: string
-          enum:
-            - frontend
-            - backend
-            - database
-            - cache
-            - worker
-            - queue
-            - object_storage
-            - external_resource
-            - browser
-            - electron
-            - cdp
-        description:
-          type: string
-          minLength: 1
-        working_directory:
-          type: string
-          minLength: 1
-        depends_on:
-          type: array
-          uniqueItems: true
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        environment:
-          type: object
-          additionalProperties: false
-          required:
-            - required
-            - optional
-          properties:
-            required:
-              type: array
-              items:
-                type: string
-                pattern: "^[A-Z][A-Z0-9_]*$"
-            optional:
-              type: array
-              items:
-                type: string
-                pattern: "^[A-Z][A-Z0-9_]*$"
-        urls:
-          type: array
-          items:
-            type: string
-            format: uri
-        ports:
-          type: array
-          items:
-            type: integer
-            minimum: 1
-            maximum: 65535
-        readiness:
-          $ref: "#/definitions/readiness"
-        operations:
-          type: object
-          additionalProperties: false
-          required:
-            - start
-            - stop
-          properties:
-            start:
-              $ref: "#/definitions/operation"
-            stop:
-              $ref: "#/definitions/operation"
-            status:
-              description: >-
-                Optional descriptive metadata. Harness status is reported from runtime state; any
-                declared status operation is never executed.
-              $ref: "#/definitions/operation"
-            logs:
-              description: >-
-                Optional descriptive metadata. Harness logs are read from the captured runtime log
-                file; any declared logs operation is never executed.
-              $ref: "#/definitions/operation"
-        evidence_labels:
-          type: array
-          items:
-            type: string
-            minLength: 1
-        unavailable_conditions:
-          type: array
-          items:
-            type: string
-            minLength: 1
-`,
   "strict-spec-driven/schemas/lesson.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/lesson/v1
 artifact_type: lesson
 artifact_name: lesson
-description: >-
-  Strict YAML lesson artifact capturing reusable engineering experience — the context it arose in,
-  what was observed, the reusable takeaway, and the condition under which the takeaway should be
-  recalled — together with the occurrences that prove recurrence and a lifecycle status of active,
-  promoted, or obsolete. A lesson deliberately carries no RFC 2119 strength and no enforcement
-  mapping; binding rules belong in technical standards, and a lesson general enough to bind is
-  promoted into one.
+description: Strict YAML lesson artifact capturing reusable engineering experience — the context it arose in, what was observed, the reusable takeaway, and the condition under which the takeaway should be recalled — together with the occurrences that prove recurrence and a lifecycle status of active, promoted, or obsolete. A lesson deliberately carries no RFC 2119 strength and no enforcement mapping; binding rules belong in technical standards, and a lesson general enough to bind is promoted into one.
 example_ref: ../../../examples/strict-spec-driven/lesson.yaml
 json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
+  $schema: http://json-schema.org/draft-07/schema#
   type: object
   additionalProperties: false
   required:
@@ -23381,15 +22609,13 @@ json_schema:
       properties:
         id:
           type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
         title:
           type: string
           minLength: 1
     category:
       type: string
-      description: >-
-        Reuses the technical-standard category vocabulary so a lesson and the standard it may be
-        promoted into are filed under the same subject area.
+      description: Reuses the technical-standard category vocabulary so a lesson and the standard it may be promoted into are filed under the same subject area.
       enum:
         - coding
         - architecture
@@ -23403,11 +22629,7 @@ json_schema:
         - ui
     status:
       type: string
-      description: >-
-        active means the lesson still applies and is offered at consumption points. promoted means
-        the lesson became a binding technical-standard rule and is retained for the motivating
-        context that the rule itself omits. obsolete means the lesson no longer holds and was
-        explicitly retired with a recorded reason.
+      description: active means the lesson still applies and is offered at consumption points. promoted means the lesson became a binding technical-standard rule and is retained for the motivating context that the rule itself omits. obsolete means the lesson no longer holds and was explicitly retired with a recorded reason.
       enum:
         - active
         - promoted
@@ -23433,17 +22655,11 @@ json_schema:
     applies_when:
       type: string
       minLength: 1
-      description: >-
-        The condition under which this lesson should be recalled. This is the retrieval key: it is
-        what lets a consumption point surface the lesson to someone who has not read the store, and
-        it is the test for whether a new experience is a recurrence of this lesson or a new one.
+      description: 'The condition under which this lesson should be recalled. This is the retrieval key: it is what lets a consumption point surface the lesson to someone who has not read the store, and it is the test for whether a new experience is a recurrence of this lesson or a new one.'
     occurrences:
       type: array
       minItems: 1
-      description: >-
-        Every recorded encounter with this lesson, oldest first. A recurrence appends an entry
-        rather than creating a second lesson, so the length of this list is the objective evidence
-        for whether the lesson has earned promotion into a binding rule.
+      description: Every recorded encounter with this lesson, oldest first. A recurrence appends an entry rather than creating a second lesson, so the length of this list is the objective evidence for whether the lesson has earned promotion into a binding rule.
       items:
         type: object
         additionalProperties: false
@@ -23455,7 +22671,7 @@ json_schema:
           origin:
             type: string
             minLength: 1
-            description: The change, harness session, or ticket this encounter came from.
+            description: The change or ticket this encounter came from.
           date:
             type: string
             minLength: 1
@@ -23466,9 +22682,7 @@ json_schema:
     promoted_to:
       type: object
       additionalProperties: false
-      description: >-
-        Set only when status is promoted; names the technical standard and rule the lesson became so
-        the binding rule can be traced back to the failure that motivated it.
+      description: Set only when status is promoted; names the technical standard and rule the lesson became so the binding rule can be traced back to the failure that motivated it.
       required:
         - standard
         - rule
@@ -23482,9 +22696,7 @@ json_schema:
     obsoleted_reason:
       type: string
       minLength: 1
-      description: >-
-        Set only when status is obsolete; why the lesson no longer holds — its premise disappeared,
-        a stronger mechanism replaced it, or it was disproven.
+      description: Set only when status is obsolete; why the lesson no longer holds — its premise disappeared, a stronger mechanism replaced it, or it was disproven.
     obsoleted_at:
       type: string
       minLength: 1
@@ -24270,32 +23482,6 @@ entries:
       notes:
         - Populated lesson categories group conflict-resistant lesson ids and point to canonical category-directory paths.
         - INDEX.yaml remains the only lesson index; category directories do not carry their own indexes.
-  - schema_id: strict-spec-driven/harness/v1
-    schema_version: 1
-    artifact_type: harness
-    artifact_name: harness
-    schema_file: harness.yaml
-    primary_example: ../../../examples/strict-spec-driven/harness.yaml
-    compatibility:
-      status: current
-      introduced_in: 1
-      supersedes: []
-      compatible_with: []
-      notes:
-        - Harness declarations replace development-session artifacts with mixed environment and component operation contracts.
-  - schema_id: strict-spec-driven/harness-session/v1
-    schema_version: 1
-    artifact_type: harness_session
-    artifact_name: harness-session
-    schema_file: harness-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/harness-session.yaml
-    compatibility:
-      status: current
-      introduced_in: 1
-      supersedes: []
-      compatible_with: []
-      notes:
-        - Harness-session artifacts replace debug-session investigation records.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry
@@ -26165,192 +25351,6 @@ guidance:
   dont:
     - Do not introduce accent colors outside the declared palette.
 `,
-  "examples/strict-spec-driven/harness-session.yaml": `schema: strict-spec-driven/harness-session/v1
-schema_version: 1
-artifact_type: harness_session
-schema_file: templates/strict-spec-driven/schemas/harness-session.yaml
-harness_session:
-  id: checkout-investigation
-  status: proposed
-  owner: agent
-harness:
-  declaration: .strict-spec-driven/harness.yaml
-  environment: development
-issue:
-  summary: Checkout page fails to load.
-  observed_behavior: The checkout route returns an empty page.
-  expected_behavior: The checkout route renders the checkout form.
-selected_components:
-  - web
-lifecycle_evidence:
-  plan:
-    command: strict-spec-driven harness-plan --environment development --component web
-    status: not_run
-    evidence: []
-  start:
-    command: strict-spec-driven harness-start --environment development --component web
-    status: not_run
-    evidence: []
-  status:
-    command: strict-spec-driven harness-status
-    status: not_run
-    evidence: []
-  logs: []
-  stop:
-    command: strict-spec-driven harness-stop
-    status: not_run
-    evidence: []
-reproduction:
-  preconditions:
-    - Dependencies are installed.
-  steps:
-    - id: open-checkout
-      target: web
-      action: Open the checkout route.
-      expected: The checkout failure is visible.
-  expected_failure: Checkout page is empty.
-evidence:
-  directory: evidence/
-  entries:
-    - id: initial-status
-      kind: status
-      path: evidence/status.json
-      description: Initial harness status output.
-      contains_secrets: false
-hypotheses:
-  - id: route-handler
-    statement: The checkout route handler exits before rendering.
-    status: open
-    evidence:
-      - initial-status
-findings: []
-human_checkpoints: []
-manual_actions:
-  - id: human-login
-    actor: human
-    summary: Human completed login without exposing credentials.
-    secrets_recorded: false
-    status: completed
-    evidence: []
-replay:
-  commands:
-    - strict-spec-driven harness-plan --environment development --component web
-verification:
-  status: not_started
-  steps: []
-  evidence: []
-`,
-  "examples/strict-spec-driven/harness.yaml": `schema: strict-spec-driven/harness/v1
-schema_version: 1
-artifact_type: harness
-schema_file: templates/strict-spec-driven/schemas/harness.yaml
-harness:
-  id: local-web-app
-  description: Example mixed harness declaration with local and production environments.
-  environments:
-    development:
-      kind: development
-      description: Local development environment.
-      components:
-        web:
-          type: backend
-          description: Local web server.
-          working_directory: "."
-          depends_on: []
-          environment:
-            required:
-              - PORT
-            optional:
-              - FEATURE_FLAG
-          urls:
-            - "http://127.0.0.1:3000"
-          ports:
-            - 3000
-          readiness:
-            type: http
-            url: "http://127.0.0.1:3000/health"
-            timeout_seconds: 60
-            interval_seconds: 5
-            notes: []
-          operations:
-            start:
-              mode: script
-              command: bun run dev
-            stop:
-              mode: script
-              command: pkill -f "bun run dev"
-          evidence_labels:
-            - homepage-loaded
-          unavailable_conditions:
-            - Install dependencies before starting the harness.
-        browser:
-          type: browser
-          description: Browser target for smoke evidence.
-          working_directory: "."
-          depends_on:
-            - web
-          environment:
-            required: []
-            optional: []
-          urls:
-            - "http://127.0.0.1:3000"
-          ports: []
-          readiness:
-            type: manual
-            timeout_seconds: 60
-            interval_seconds: 5
-            notes:
-              - Use the declared URL for browser automation.
-          operations:
-            start:
-              mode: manual
-            stop:
-              mode: manual
-            status:
-              mode: readonly
-            logs:
-              mode: disabled
-          evidence_labels:
-            - browser-smoke
-          unavailable_conditions: []
-    production:
-      kind: production
-      description: Read-only production observability.
-      components:
-        web:
-          type: external_resource
-          description: Production web service documented with descriptive read-only status markers.
-          working_directory: "."
-          depends_on: []
-          environment:
-            required:
-              - PROD_STATUS_TOKEN
-            optional: []
-          urls:
-            - "https://example.com"
-          ports: []
-          readiness:
-            type: manual
-            timeout_seconds: 60
-            interval_seconds: 5
-            notes:
-              - Production readiness is verified through runbook status checks.
-          operations:
-            start:
-              mode: disabled
-              requires_confirmation: true
-            stop:
-              mode: disabled
-              requires_confirmation: true
-            status:
-              mode: readonly
-            logs:
-              mode: readonly
-          evidence_labels:
-            - production-status
-          unavailable_conditions:
-            - Production credentials must remain outside YAML.
-`,
   "examples/strict-spec-driven/lesson.yaml": `schema: strict-spec-driven/lesson/v1
 schema_version: 1
 artifact_type: lesson
@@ -26973,37 +25973,6 @@ artifact_families:
       - src/design-system.ts
       - src/design-system-author.ts
     validation_command: design-status
-  harness-state:
-    artifact_types:
-      - harness
-      - harness_session
-    path_patterns:
-      - .strict-spec-driven/harness.yaml
-      - .strict-spec-driven/harness-sessions/**/session.yaml
-      - examples/strict-spec-driven/harness.yaml
-      - examples/strict-spec-driven/harness-session.yaml
-      - templates/strict-spec-driven/scaffold/harness.yaml
-      - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
-    ownership: repository-owned
-    validation_owner: templates/strict-spec-driven/schemas/harness.yaml and harness-session.yaml
-    operations:
-      create: cli-owned
-      update: cli-owned
-      named_remove: cli-owned
-      delete: cli-owned
-    reference_side_effects:
-      - Session archive moves the session directory and preserves evidence paths.
-      - Harness script generation writes non-YAML executable outputs.
-    cli_owners:
-      - harness-edit
-      - harness-infer
-      - harness-session
-    direct_write_paths: []
-    evidence:
-      - .strict-spec-driven/harness.yaml
-      - src/harness.ts
-      - src/harness-author.ts
-    validation_command: harness-doctor
   spec-state:
     artifact_types:
       - spec_index
@@ -27543,7 +26512,6 @@ mutation_surfaces:
   domain-filesystem-writers:
     path_patterns:
       - src/design-system.ts
-      - src/harness.ts
       - src/maintenance.ts
       - src/migrate.ts
       - src/migrate/shared.ts
@@ -27557,14 +26525,12 @@ mutation_surfaces:
     families:
       - workflow-config
       - design-system-state
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
       - change-delta-state
       - roadmap-state
     evidence:
-      - src/harness.ts
       - src/migrate.ts
   generated-and-rendered-writers:
     path_patterns:
@@ -27608,7 +26574,6 @@ mutation_surfaces:
       - src/cli/cmd-change.ts
       - src/cli/cmd-design.ts
       - src/cli/cmd-generation.ts
-      - src/cli/cmd-harness.ts
       - src/cli/cmd-lessons.ts
       - src/cli/cmd-migration.ts
       - src/cli/cmd-operations.ts
@@ -27631,7 +26596,6 @@ mutation_surfaces:
       - workflow-config
       - architecture-state
       - design-system-state
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
@@ -27662,7 +26626,6 @@ mutation_surfaces:
       - rename
     families:
       - workflow-config
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
@@ -27711,7 +26674,6 @@ mutation_surfaces:
       - workflow-config
       - architecture-state
       - design-system-state
-      - harness-state
       - spec-state
       - tech-state
       - change-planning-state
@@ -27733,21 +26695,15 @@ mutation_surfaces:
       - README.zh.md
       - ROADMAP_GUIDE.md
       - ROADMAP_GUIDE.zh.md
-      - DEBUG_QUICKSTART.md
       - DESIGN_QUICKSTART.md
       - DESIGN_QUICKSTART.zh.md
       - ARCHITECTURE_QUICKSTART.md
       - ARCHITECTURE_QUICKSTART.zh.md
-      - HARNESS.md
-      - HARNESS.zh.md
       - QUICKSTART.md
       - QUICKSTART.zh.md
       - ROADMAP_QUICKSTART.md
       - ROADMAP_QUICKSTART.zh.md
       - RTK.md
-      - DEBUG_QUICKSTART.zh-CN.md
-      - DEBUG_SESSIONS.md
-      - DEBUG_SESSIONS.zh-CN.md
     mechanism: documentation-guidance
     classification: remaining-direct-writer
     operations:
@@ -32730,318 +31686,6 @@ var COMMAND_METADATA_ENTRIES = {
       "A step reports an `unavailable` reason instead of a command when the inventory records no CLI owner or validation command for the artifact kind, or when the shared schema cache does not hold the asset; the bundled schema and example keys are still reported in that case."
     ]
   },
-  "harness-infer": {
-    name: "harness-infer",
-    group: "harness",
-    summary: "Draft .strict-spec-driven/harness.yaml from repository metadata without running components.",
-    usage: `Usage: strict-spec-cli harness-infer [--write] [--force]
-`,
-    arguments: [],
-    flags: [
-      { name: "--write", arity: "boolean", description: "Write the inferred harness.yaml instead of only reporting it." },
-      { name: "--force", arity: "boolean", description: "Overwrite an existing harness.yaml when writing." }
-    ],
-    output: {
-      format: "json",
-      keys: ["ok", "diagnostics"],
-      description: "A JSON inference result."
-    },
-    exitCodes: [
-      { code: 0, meaning: "Inference succeeded." },
-      { code: 1, meaning: "Usage error or failed inference." }
-    ]
-  },
-  "harness-edit": {
-    name: "harness-edit",
-    group: "harness",
-    summary: "Create, update, remove named entries from, or safely delete the harness declaration.",
-    mcpDescription: "Mutates the repository-owned harness YAML through named semantic fields and the atomic artifact-aware boundary.",
-    usage: `Usage: strict-spec-cli harness-edit [named fields and removals | --delete]
-`,
-    arguments: [],
-    flags: [
-      { name: "--id", arity: "value", valueLabel: "<id>", description: "Set the harness id; required when creating the declaration." },
-      { name: "--description", arity: "value", valueLabel: "<text>", description: "Set the harness description without replacing other fields." },
-      { name: "--environment", arity: "value", valueLabel: "<id>", description: "Select one environment to create or update." },
-      { name: "--environment-kind", arity: "value", valueLabel: "<development|production>", description: "Set the selected environment kind; required for a new environment." },
-      { name: "--environment-description", arity: "value", valueLabel: "<text>", description: "Set the selected environment description." },
-      { name: "--component-environment", arity: "value", valueLabel: "<id>", description: "Select the environment that owns the component mutation." },
-      { name: "--component", arity: "value", valueLabel: "<id>", description: "Select one component to create or update." },
-      { name: "--component-type", arity: "value", valueLabel: "<type>", description: "Set the component type; required for a new component." },
-      { name: "--component-description", arity: "value", valueLabel: "<text>", description: "Set the selected component description." },
-      { name: "--working-directory", arity: "value", valueLabel: "<path>", description: "Set the selected component working directory." },
-      ...["depends-on", "required-env", "optional-env", "url", "port", "readiness-note", "evidence-label", "unavailable-condition"].map((name) => ({
-        name: `--${name}`,
-        arity: "value",
-        valueLabel: "<value>",
-        description: `Append one ${name.replaceAll("-", " ")} value to the selected component without duplicates.`,
-        repeatable: true,
-        repeatSemantics: "Repeated values append uniquely and never replace the recorded list."
-      })),
-      { name: "--readiness-type", arity: "value", valueLabel: "<http|tcp|manual>", description: "Set readiness type and clear fields that do not apply to the selected type." },
-      { name: "--readiness-url", arity: "value", valueLabel: "<url>", description: "Set the HTTP readiness URL." },
-      { name: "--readiness-port", arity: "value", valueLabel: "<port>", description: "Set the TCP readiness port." },
-      { name: "--readiness-timeout", arity: "value", valueLabel: "<seconds>", description: "Set the positive readiness timeout." },
-      { name: "--readiness-interval", arity: "value", valueLabel: "<seconds>", description: "Set the positive readiness polling interval." },
-      { name: "--operation", arity: "value", valueLabel: "<start|stop|status|logs>", description: "Select one component operation to upsert; requires --operation-mode." },
-      { name: "--operation-mode", arity: "value", valueLabel: "<mode>", description: "Set the selected operation mode." },
-      { name: "--operation-command", arity: "value", valueLabel: "<command>", description: "Set the selected script operation command; use --operation-command=<value> when it begins with a dash." },
-      { name: "--operation-requires-confirmation", arity: "value", valueLabel: "<true|false>", description: "Set whether the selected operation requires confirmation." },
-      { name: "--operation-allow-stateful-lifecycle", arity: "value", valueLabel: "<true|false>", description: "Set the selected operation stateful-lifecycle permission." },
-      ...["environment", "component", "dependency", "required-env", "optional-env", "url", "port", "readiness-note", "evidence-label", "unavailable-condition", "operation"].map((name) => ({
-        name: `--remove-${name}`,
-        arity: "value",
-        valueLabel: name === "environment" ? "<id>" : name === "component" ? "<environment:component>" : "<environment:component:value>",
-        description: `Remove only the exact named ${name.replaceAll("-", " ")} entry.`,
-        repeatable: true,
-        repeatSemantics: "Each occurrence removes one exact semantic target; absent targets are no-ops unless schema validity would be lost."
-      })),
-      { name: "--delete", arity: "boolean", description: "Delete only harness.yaml when no active sessions reference it; cannot be combined with editing flags." }
-    ],
-    output: {
-      format: "json",
-      keys: ["valid", "committed", "exitStatus", "artifactPath", "operation", "changes", "diagnostics"],
-      description: "An artifact-aware mutation result; unchanged repeats commit successfully with changed false."
-    },
-    exitCodes: [
-      { code: 0, meaning: "The complete candidate validated and the requested mutation committed or was an idempotent no-op." },
-      { code: 1, meaning: "Usage, confinement, schema, relationship, lifecycle, or filesystem validation rejected the mutation and preserved prior state." }
-    ],
-    notes: [
-      "New declarations must supply --id plus a schema-valid environment and component in the first invocation.",
-      "Whole-artifact deletion is isolated; generated scripts and active session evidence are never removed implicitly."
-    ]
-  },
-  "harness-doctor": {
-    name: "harness-doctor",
-    group: "harness",
-    summary: "Diagnose and optionally repair the harness declaration.",
-    usage: `Usage: strict-spec-cli harness-doctor [--fix]
-`,
-    arguments: [],
-    flags: [{ name: "--fix", arity: "boolean", description: "Apply the safe repairs the diagnosis identifies." }],
-    output: {
-      format: "json",
-      keys: ["ok", "diagnostics"],
-      description: "A JSON diagnosis result."
-    },
-    exitCodes: [
-      { code: 0, meaning: "The harness declaration is healthy." },
-      { code: 1, meaning: "Usage error or unresolved harness problems." }
-    ]
-  },
-  "harness-plan": {
-    name: "harness-plan",
-    group: "harness",
-    summary: "Report the harness execution plan without starting any component.",
-    mcpDescription: "Report harness execution plan.",
-    usage: `Usage: strict-spec-cli harness-plan [--environment <id>] [--component <id> ...]
-`,
-    arguments: [],
-    flags: [
-      { name: "--environment", arity: "value", valueLabel: "<id>", description: "Select the declared environment to plan." },
-      {
-        name: "--component",
-        arity: "value",
-        valueLabel: "<id>",
-        description: "Restrict the plan to specific declared components.",
-        repeatable: true,
-        repeatSemantics: "Repeat to select several components."
-      }
-    ],
-    output: {
-      format: "json",
-      keys: ["valid", "diagnostics"],
-      description: "A JSON plan describing declared long-running commands."
-    },
-    exitCodes: VALIDITY_EXIT_CODES,
-    notes: ["Run this before harness-start and explain the declared commands before starting them."]
-  },
-  "harness-start": {
-    name: "harness-start",
-    group: "harness",
-    summary: "Start declared harness components.",
-    mcpDescription: "Performs a lifecycle mutation by starting harness-managed project components.",
-    usage: `Usage: strict-spec-cli harness-start [--environment <id>] [--component <id> ...] [--confirm]
-`,
-    arguments: [],
-    flags: [
-      { name: "--environment", arity: "value", valueLabel: "<id>", description: "Select the declared environment to start." },
-      {
-        name: "--component",
-        arity: "value",
-        valueLabel: "<id>",
-        description: "Restrict startup to specific declared components.",
-        repeatable: true,
-        repeatSemantics: "Repeat to select several components."
-      },
-      { name: "--confirm", arity: "boolean", description: "Confirm a lifecycle mutation that starts real processes." }
-    ],
-    output: {
-      format: "json",
-      keys: ["ok", "diagnostics"],
-      description: "A JSON startup result."
-    },
-    exitCodes: [
-      { code: 0, meaning: "The selected components started." },
-      { code: 1, meaning: "Usage error or failed startup." }
-    ]
-  },
-  "harness-stop": {
-    name: "harness-stop",
-    group: "harness",
-    summary: "Stop all harness-managed components.",
-    mcpDescription: "Performs a lifecycle mutation by stopping harness-managed project components.",
-    usage: `Usage: strict-spec-cli harness-stop [--confirm]
-`,
-    arguments: [],
-    flags: [{ name: "--confirm", arity: "boolean", description: "Confirm a lifecycle mutation that stops running processes." }],
-    output: {
-      format: "json",
-      keys: ["ok", "diagnostics"],
-      description: "A JSON shutdown result."
-    },
-    exitCodes: [
-      { code: 0, meaning: "The components stopped." },
-      { code: 1, meaning: "Usage error, component selection arguments, or failed shutdown." }
-    ],
-    notes: ["This command stops every managed component and rejects --environment or --component selection."]
-  },
-  "harness-status": {
-    name: "harness-status",
-    group: "harness",
-    summary: "Report harness runtime status for declared components.",
-    mcpDescription: "Report harness runtime status.",
-    usage: `Usage: strict-spec-cli harness-status
-`,
-    arguments: [],
-    flags: [],
-    output: {
-      format: "json",
-      keys: ["ok", "diagnostics"],
-      description: "A JSON runtime-status result."
-    },
-    exitCodes: [
-      { code: 0, meaning: "Status was reported successfully." },
-      { code: 1, meaning: "Usage error or status could not be determined." }
-    ]
-  },
-  "harness-logs": {
-    name: "harness-logs",
-    group: "harness",
-    summary: "Read bounded logs captured from harness components.",
-    mcpDescription: "Read bounded harness logs.",
-    usage: `Usage: strict-spec-cli harness-logs [component-id] [--tail <n> | --all]
-`,
-    arguments: [
-      {
-        name: "component-id",
-        description: "Declared component whose log should be read; defaults to all captured components.",
-        required: false
-      }
-    ],
-    flags: [
-      { name: "--tail", arity: "value", valueLabel: "<n>", description: "Return only the last n lines." },
-      { name: "--all", arity: "boolean", description: "Return the full captured log instead of a bounded tail." }
-    ],
-    output: {
-      format: "text",
-      description: "Captured log content on stdout, or a JSON error result when the log cannot be read."
-    },
-    exitCodes: [
-      { code: 0, meaning: "Log content was returned." },
-      { code: 1, meaning: "Usage error or the log could not be read." }
-    ],
-    notes: ["--tail and --all are mutually exclusive."]
-  },
-  "harness-scripts": {
-    name: "harness-scripts",
-    group: "harness",
-    summary: "Generate or verify project-local harness scripts.",
-    usage: `Usage: strict-spec-cli harness-scripts <generate|verify>
-`,
-    arguments: [
-      { name: "generate|verify", description: "Whether to write the scripts or check the existing ones.", required: true }
-    ],
-    flags: [],
-    output: {
-      format: "json",
-      keys: ["ok", "diagnostics"],
-      description: "A JSON script generation or verification result."
-    },
-    exitCodes: [
-      { code: 0, meaning: "Scripts were generated or verified successfully." },
-      { code: 1, meaning: "Usage error or failed generation or verification." }
-    ]
-  },
-  "harness-session": {
-    name: "harness-session",
-    group: "harness",
-    summary: "Create, edit, delete, validate, or archive a harness investigation session.",
-    mcpDescription: "Mutates harness investigation YAML and its evidence-safe lifecycle through named semantic operations.",
-    usage: `Usage: strict-spec-cli harness-session <create|edit|delete|validate|archive> <session-id|session.yaml> [named edit fields]
-`,
-    arguments: [
-      { name: "create|edit|delete|validate|archive", description: "The session lifecycle action to perform; delete is refused while evidence is present and archive requires resolved or blocked status.", required: true },
-      { name: "session-id|session.yaml", description: "Session id, or a path to a session.yaml file.", required: true }
-    ],
-    output: {
-      format: "json",
-      keys: ["ok", "diagnostics"],
-      description: "A JSON session lifecycle result."
-    },
-    flags: [
-      ...["status", "owner", "environment", "issue-summary", "observed-behavior", "expected-behavior", "expected-failure", "verification-status"].map((name) => ({
-        name: `--${name}`,
-        arity: "value",
-        valueLabel: "<value>",
-        description: `Edit only the session ${name.replaceAll("-", " ")} field.`
-      })),
-      ...["selected-component", "precondition", "replay-command", "verification-evidence"].map((name) => ({
-        name: `--${name}`,
-        arity: "value",
-        valueLabel: "<value>",
-        description: `Append one ${name.replaceAll("-", " ")} without duplicates.`,
-        repeatable: true,
-        repeatSemantics: "Repeated values append uniquely and preserve the existing list."
-      })),
-      { name: "--step", arity: "value", valueLabel: "<id>", description: "Upsert one reproduction step; requires --step-action." },
-      { name: "--verification-step", arity: "value", valueLabel: "<id>", description: "Upsert one verification step; requires --step-action and cannot accompany --step." },
-      { name: "--step-action", arity: "value", valueLabel: "<text>", description: "Set the selected step action." },
-      { name: "--step-expected", arity: "value", valueLabel: "<text>", description: "Set the selected step expected result." },
-      { name: "--step-target", arity: "value", valueLabel: "<component-id>", description: "Set the selected step component target." },
-      ...["evidence", "evidence-kind", "evidence-path", "evidence-description", "hypothesis", "hypothesis-statement", "hypothesis-status", "finding", "finding-summary", "finding-status", "finding-target", "checkpoint", "checkpoint-reason", "checkpoint-action", "checkpoint-sensitive", "checkpoint-status", "checkpoint-resume", "manual-action", "manual-actor", "manual-summary", "manual-status"].map((name) => ({
-        name: `--${name}`,
-        arity: "value",
-        valueLabel: "<value>",
-        description: `Supply the structured ${name.replaceAll("-", " ")} field for one keyed session entry; all required fields for that entry must be supplied together.`
-      })),
-      ...["hypothesis-evidence", "finding-evidence", "checkpoint-evidence-before", "checkpoint-evidence-after", "manual-evidence"].map((name) => ({
-        name: `--${name}`,
-        arity: "value",
-        valueLabel: "<evidence-id>",
-        description: `Attach one ${name.replaceAll("-", " ")} reference to the selected keyed entry.`,
-        repeatable: true,
-        repeatSemantics: "Repeated references are recorded in invocation order."
-      })),
-      ...["selected-component", "precondition", "step", "verification-step", "evidence", "hypothesis", "finding", "checkpoint", "manual-action", "replay-command", "verification-evidence"].map((name) => ({
-        name: `--remove-${name}`,
-        arity: "value",
-        valueLabel: "<exact-value-or-id>",
-        description: `Remove only the exact named ${name.replaceAll("-", " ")} entry.`,
-        repeatable: true,
-        repeatSemantics: "Each occurrence removes one exact entry and preserves every sibling."
-      }))
-    ],
-    exitCodes: [
-      { code: 0, meaning: "The session action succeeded." },
-      { code: 1, meaning: "Usage, schema, confinement, lifecycle, reference, or filesystem validation rejected the action without partial YAML state." }
-    ],
-    notes: [
-      "Edit flags apply only to the edit action; create remains compatible and writes its schema-valid workflow-required initial state through the shared boundary.",
-      "Delete removes only sessions whose evidence directory is empty; archive is the evidence-preserving terminal operation."
-    ]
-  },
   "mcp-install": {
     name: "mcp-install",
     group: "mcp",
@@ -33661,7 +32305,7 @@ var COMMAND_METADATA_ENTRIES = {
         description: "The condition under which the lesson should be recalled. This is the retrieval key and the test for whether a later experience is a recurrence of this lesson or a new one.",
         required: true
       },
-      { name: "--origin", arity: "value", valueLabel: "<text>", description: "The change, harness session, or ticket this first encounter came from.", required: true },
+      { name: "--origin", arity: "value", valueLabel: "<text>", description: "The change or ticket this first encounter came from.", required: true },
       { name: "--evidence", arity: "value", valueLabel: "<text>", description: "Concrete evidence for the encounter, such as a command, error message, or file.", required: true },
       { name: "--date", arity: "value", valueLabel: "<yyyy-mm-dd>", description: "Encounter date; defaults to today." }
     ],
@@ -33909,12 +32553,23 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics", "rerenderedDocuments", "sceneMergeSummary", "mergedScenes"],
+      keys: [
+        "valid",
+        "diagnostics",
+        "mergeSummary",
+        "mergedSpecs",
+        "techMergeSummary",
+        "mergedStandards",
+        "rerenderedDocuments",
+        "sceneMergeSummary",
+        "mergedScenes"
+      ],
       description: "A JSON archive result describing merged artifacts and reconciled roadmap state."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "An empty specs/ directory is allowed and does not block archive.",
+      "A main spec left with no requirements, or a technical standard left with no rules, after the merge is deleted with any directory the deletion empties, and the spec or tech index is regenerated without it; pruning runs only after every merge succeeds, so a retried archive still prunes it. Each such entry in mergedSpecs or mergedStandards reports pruned true with its path, and mergeSummary.specsPruned and techMergeSummary.standardsPruned count them.",
       "Re-renders any generated document this write staled and names the rewritten paths in rerenderedDocuments; a generated document absent from disk is left absent.",
       "A change carrying delta scenes merges them into .strict-spec-driven/scenes/ and regenerates the scene index in one transaction; two delta scenes stating conflicting content for one step are refused rather than resolved."
     ]
@@ -34108,27 +32763,6 @@ var MCP_READ_ONLY_TOOL_INVENTORY = [
     safety: "read",
     cliCommand: "scene-status",
     mutates: false
-  },
-  {
-    name: "harness_plan",
-    description: mcpToolDescription("harness-plan"),
-    safety: "read",
-    cliCommand: "harness-plan",
-    mutates: false
-  },
-  {
-    name: "harness_status",
-    description: mcpToolDescription("harness-status"),
-    safety: "read",
-    cliCommand: "harness-status",
-    mutates: false
-  },
-  {
-    name: "harness_logs",
-    description: mcpToolDescription("harness-logs"),
-    safety: "read",
-    cliCommand: "harness-logs",
-    mutates: false
   }
 ];
 var MCP_MUTATING_TOOL_INVENTORY = [
@@ -34210,13 +32844,6 @@ var MCP_MUTATING_TOOL_INVENTORY = [
     mutates: true
   },
   {
-    name: "harness_edit",
-    description: mcpToolDescription("harness-edit"),
-    safety: "write",
-    cliCommand: "harness-edit",
-    mutates: true
-  },
-  {
     name: "architecture_edit",
     description: mcpToolDescription("architecture-edit"),
     safety: "write",
@@ -34228,34 +32855,6 @@ var MCP_MUTATING_TOOL_INVENTORY = [
     description: mcpToolDescription("design-edit"),
     safety: "write",
     cliCommand: "design-edit",
-    mutates: true
-  },
-  {
-    name: "harness_start",
-    description: mcpToolDescription("harness-start"),
-    safety: "lifecycle",
-    cliCommand: "harness-start",
-    mutates: true
-  },
-  {
-    name: "harness_stop",
-    description: mcpToolDescription("harness-stop"),
-    safety: "lifecycle",
-    cliCommand: "harness-stop",
-    mutates: true
-  },
-  {
-    name: "harness_session_create",
-    description: mcpToolDescription("harness-session"),
-    safety: "write",
-    cliCommand: "harness-session",
-    mutates: true
-  },
-  {
-    name: "harness_session_mutate",
-    description: mcpToolDescription("harness-session"),
-    safety: "write",
-    cliCommand: "harness-session",
     mutates: true
   }
 ];
@@ -34273,8 +32872,7 @@ var MCP_RESOURCE_INVENTORY = [
   { name: "roadmap_milestone", uri: "strict://roadmap/milestones/{milestoneId}", description: "Strict roadmap milestone.", template: true },
   { name: "roadmap_planned_change", uri: "strict://roadmap/planned-changes/{plannedChangeId}", description: "Strict roadmap planned change.", template: true },
   { name: "tech_index", uri: "strict://tech/index", description: "Strict technical standards index.", template: false },
-  { name: "tech_standard", uri: "strict://tech/{standardId}", description: "Strict technical standard.", template: true },
-  { name: "harness_declaration", uri: "strict://harness/declaration", description: "Strict harness declaration.", template: false }
+  { name: "tech_standard", uri: "strict://tech/{standardId}", description: "Strict technical standard.", template: true }
 ];
 var MCP_PROMPT_INVENTORY = [
   {
@@ -34313,14 +32911,6 @@ var MCP_PROMPT_INVENTORY = [
     arguments: [
       { name: "roadmapItem", description: "Optional planned-change or milestone hint.", required: false }
     ]
-  },
-  {
-    name: "strict_harness_investigation",
-    description: "Guide a structured harness investigation session.",
-    arguments: [
-      { name: "session", description: "Harness session identifier.", required: true },
-      { name: "environment", description: "Optional harness environment.", required: false }
-    ]
   }
 ];
 var MCP_INVENTORY = {
@@ -34344,10 +32934,6 @@ var changeSchema = strictObject({
 });
 var roadmapSchema = strictObject({
   roadmapItem: string2().min(1).optional()
-});
-var harnessSchema = strictObject({
-  session: string2().min(1),
-  environment: string2().min(1).optional()
 });
 function promptInventory(name) {
   const inventory = MCP_PROMPT_INVENTORY.find((candidate) => candidate.name === name);
@@ -34412,13 +32998,6 @@ var MCP_PROMPT_DEFINITIONS = [
     args.roadmapItem ? `User-provided roadmap hint: ${args.roadmapItem}. Resolve exact milestone ids or unambiguous numeric shorthand such as 5 to a milestone id, then run roadmap-recommend --milestone with the resolved id and treat the scripted recommendation as authoritative.` : "Start with roadmap-recommend and treat the scripted recommendation as authoritative.",
     "Scaffold exactly one recommended planned change, link milestone and planned_change metadata, run ready, then continue through strict-spec-auto.",
     "Do not manually choose among roadmap candidates when the script returns a recommendation."
-  ].join(`
-`)),
-  prompt("strict_harness_investigation", harnessSchema, (args) => [
-    `Drive harness session ${String(args.session)} with the strict-spec-cli harness-session command.`,
-    args.environment ? `Target harness environment: ${args.environment}.` : "Select the environment from the harness declaration or user request.",
-    "Run harness-plan before lifecycle commands, use harness-start/status/logs/stop or generated scripts, and record replayable evidence.",
-    "For manual or sensitive steps, use human_checkpoints and manual_actions with secrets_recorded: false; never store secret values."
   ].join(`
 `))
 ];
@@ -34550,8 +33129,6 @@ function readStrictResourceText(projectRoot, uri) {
     return readYamlArtifact(projectRoot, "tech/INDEX.yaml");
   if (family === "tech" && rest.length === 1)
     return readStrictIdFile(projectRoot, "tech", rest[0] ?? "");
-  if (family === "harness" && rest.join("/") === "declaration")
-    return readYamlArtifact(projectRoot, "harness.yaml");
   throw new Error(`unknown strict MCP resource URI: ${uri}`);
 }
 function workflowState(projectRoot) {
@@ -34645,27 +33222,6 @@ var roadmapSyncSchema = strictObject({
   materializePlannedChanges: boolean2().optional(),
   ...confirmField
 });
-var harnessPlanSchema = strictObject({
-  environment: string2().min(1).optional(),
-  components: array(string2().min(1)).optional()
-});
-var harnessLogsSchema = strictObject({
-  component: string2().min(1).optional(),
-  tail: number2().int().positive().optional(),
-  all: boolean2().optional()
-});
-var harnessLifecycleSchema = strictObject({
-  environment: string2().min(1).optional(),
-  components: array(string2().min(1)).optional(),
-  confirm: boolean2().optional()
-});
-var harnessStopSchema = strictObject({
-  confirm: boolean2().optional()
-});
-var harnessSessionCreateSchema = strictObject({
-  session: string2().min(1),
-  ...confirmField
-});
 var artifactAuthorSchema = strictObject({
   args: array(string2().min(1)).min(1),
   ...confirmField
@@ -34678,12 +33234,6 @@ var liveArtifactAuthorSchema = strictObject({
 var sceneStatusSchema = strictObject({
   area: string2().min(1).optional(),
   scene: string2().min(1).optional()
-});
-var harnessSessionMutateSchema = strictObject({
-  action: _enum(["create", "edit", "delete", "archive"]),
-  session: string2().min(1),
-  args: array(string2().min(1)).optional(),
-  ...confirmField
 });
 function command(inventory, toCliArgs, inputSchema = emptySchema) {
   return {
@@ -34721,28 +33271,7 @@ var READ_ONLY_TOOL_DEFINITIONS = [
     if (typeof args.scene === "string")
       cliArgs.push("--scene", args.scene);
     return cliArgs;
-  }, sceneStatusSchema),
-  command(inventoryFor("harness_plan"), (args) => {
-    const cliArgs = ["harness-plan"];
-    if (typeof args.environment === "string")
-      cliArgs.push("--environment", args.environment);
-    if (Array.isArray(args.components)) {
-      for (const component of args.components)
-        cliArgs.push("--component", String(component));
-    }
-    return cliArgs;
-  }, harnessPlanSchema),
-  command(inventoryFor("harness_status"), () => ["harness-status"]),
-  command(inventoryFor("harness_logs"), (args) => {
-    const cliArgs = ["harness-logs"];
-    if (typeof args.component === "string")
-      cliArgs.push(args.component);
-    if (args.all === true)
-      cliArgs.push("--all");
-    if (typeof args.tail === "number")
-      cliArgs.push("--tail", String(args.tail));
-    return cliArgs;
-  }, harnessLogsSchema)
+  }, sceneStatusSchema)
 ];
 var MUTATING_TOOL_DEFINITIONS = [
   command(inventoryFor("init_workflow"), () => ["init"], confirmSchema),
@@ -34774,7 +33303,6 @@ var MUTATING_TOOL_DEFINITIONS = [
   ], liveArtifactAuthorSchema),
   command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeConfirmSchema),
   command(inventoryFor("cancel_change"), (args) => ["cancel", String(args.change)], changeConfirmSchema),
-  command(inventoryFor("harness_edit"), (args) => ["harness-edit", ...Array.isArray(args.args) ? args.args.map(String) : []], artifactAuthorSchema),
   command(inventoryFor("architecture_edit"), (args) => ["architecture-edit", ...Array.isArray(args.args) ? args.args.map(String) : []], artifactAuthorSchema),
   command(inventoryFor("design_edit"), (args) => ["design-edit", ...Array.isArray(args.args) ? args.args.map(String) : []], artifactAuthorSchema),
   command(inventoryFor("roadmap_sync"), (args) => {
@@ -34783,32 +33311,7 @@ var MUTATING_TOOL_DEFINITIONS = [
       cliArgs.push("--materialize-planned-changes");
     return cliArgs;
   }, roadmapSyncSchema),
-  command(inventoryFor("archive_change"), (args) => ["archive", String(args.change)], changeConfirmSchema),
-  command(inventoryFor("harness_start"), (args) => {
-    const cliArgs = ["harness-start"];
-    if (typeof args.environment === "string")
-      cliArgs.push("--environment", args.environment);
-    if (Array.isArray(args.components)) {
-      for (const component of args.components)
-        cliArgs.push("--component", String(component));
-    }
-    if (args.confirm === true)
-      cliArgs.push("--confirm");
-    return cliArgs;
-  }, harnessLifecycleSchema),
-  command(inventoryFor("harness_stop"), (args) => {
-    const cliArgs = ["harness-stop"];
-    if (args.confirm === true)
-      cliArgs.push("--confirm");
-    return cliArgs;
-  }, harnessStopSchema),
-  command(inventoryFor("harness_session_create"), (args) => ["harness-session", "create", String(args.session)], harnessSessionCreateSchema),
-  command(inventoryFor("harness_session_mutate"), (args) => [
-    "harness-session",
-    String(args.action),
-    String(args.session),
-    ...Array.isArray(args.args) ? args.args.map(String) : []
-  ], harnessSessionMutateSchema)
+  command(inventoryFor("archive_change"), (args) => ["archive", String(args.change)], changeConfirmSchema)
 ];
 var MCP_TOOL_DEFINITIONS = [
   ...READ_ONLY_TOOL_DEFINITIONS,

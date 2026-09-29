@@ -26,27 +26,6 @@ const roadmapSyncSchema = z.strictObject({
   materializePlannedChanges: z.boolean().optional(),
   ...confirmField,
 });
-const harnessPlanSchema = z.strictObject({
-  environment: z.string().min(1).optional(),
-  components: z.array(z.string().min(1)).optional(),
-});
-const harnessLogsSchema = z.strictObject({
-  component: z.string().min(1).optional(),
-  tail: z.number().int().positive().optional(),
-  all: z.boolean().optional(),
-});
-const harnessLifecycleSchema = z.strictObject({
-  environment: z.string().min(1).optional(),
-  components: z.array(z.string().min(1)).optional(),
-  confirm: z.boolean().optional(),
-});
-const harnessStopSchema = z.strictObject({
-  confirm: z.boolean().optional(),
-});
-const harnessSessionCreateSchema = z.strictObject({
-  session: z.string().min(1),
-  ...confirmField,
-});
 const artifactAuthorSchema = z.strictObject({
   args: z.array(z.string().min(1)).min(1),
   ...confirmField,
@@ -59,12 +38,6 @@ const liveArtifactAuthorSchema = z.strictObject({
 const sceneStatusSchema = z.strictObject({
   area: z.string().min(1).optional(),
   scene: z.string().min(1).optional(),
-});
-const harnessSessionMutateSchema = z.strictObject({
-  action: z.enum(["create", "edit", "delete", "archive"]),
-  session: z.string().min(1),
-  args: z.array(z.string().min(1)).optional(),
-  ...confirmField,
 });
 
 type ReadToolArgs = Record<string, unknown>;
@@ -131,22 +104,6 @@ export const READ_ONLY_TOOL_DEFINITIONS: McpToolDefinition[] = [
     if (typeof args.scene === "string") cliArgs.push("--scene", args.scene);
     return cliArgs;
   }, sceneStatusSchema),
-  command(inventoryFor("harness_plan"), (args) => {
-    const cliArgs = ["harness-plan"];
-    if (typeof args.environment === "string") cliArgs.push("--environment", args.environment);
-    if (Array.isArray(args.components)) {
-      for (const component of args.components) cliArgs.push("--component", String(component));
-    }
-    return cliArgs;
-  }, harnessPlanSchema),
-  command(inventoryFor("harness_status"), () => ["harness-status"]),
-  command(inventoryFor("harness_logs"), (args) => {
-    const cliArgs = ["harness-logs"];
-    if (typeof args.component === "string") cliArgs.push(args.component);
-    if (args.all === true) cliArgs.push("--all");
-    if (typeof args.tail === "number") cliArgs.push("--tail", String(args.tail));
-    return cliArgs;
-  }, harnessLogsSchema),
 ];
 
 export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
@@ -179,7 +136,6 @@ export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ], liveArtifactAuthorSchema),
   command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeConfirmSchema),
   command(inventoryFor("cancel_change"), (args) => ["cancel", String(args.change)], changeConfirmSchema),
-  command(inventoryFor("harness_edit"), (args) => ["harness-edit", ...(Array.isArray(args.args) ? args.args.map(String) : [])], artifactAuthorSchema),
   command(inventoryFor("architecture_edit"), (args) => ["architecture-edit", ...(Array.isArray(args.args) ? args.args.map(String) : [])], artifactAuthorSchema),
   command(inventoryFor("design_edit"), (args) => ["design-edit", ...(Array.isArray(args.args) ? args.args.map(String) : [])], artifactAuthorSchema),
   command(inventoryFor("roadmap_sync"), (args) => {
@@ -188,27 +144,6 @@ export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
     return cliArgs;
   }, roadmapSyncSchema),
   command(inventoryFor("archive_change"), (args) => ["archive", String(args.change)], changeConfirmSchema),
-  command(inventoryFor("harness_start"), (args) => {
-    const cliArgs = ["harness-start"];
-    if (typeof args.environment === "string") cliArgs.push("--environment", args.environment);
-    if (Array.isArray(args.components)) {
-      for (const component of args.components) cliArgs.push("--component", String(component));
-    }
-    if (args.confirm === true) cliArgs.push("--confirm");
-    return cliArgs;
-  }, harnessLifecycleSchema),
-  command(inventoryFor("harness_stop"), (args) => {
-    const cliArgs = ["harness-stop"];
-    if (args.confirm === true) cliArgs.push("--confirm");
-    return cliArgs;
-  }, harnessStopSchema),
-  command(inventoryFor("harness_session_create"), (args) => ["harness-session", "create", String(args.session)], harnessSessionCreateSchema),
-  command(inventoryFor("harness_session_mutate"), (args) => [
-    "harness-session",
-    String(args.action),
-    String(args.session),
-    ...(Array.isArray(args.args) ? args.args.map(String) : []),
-  ], harnessSessionMutateSchema),
 ];
 
 export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [

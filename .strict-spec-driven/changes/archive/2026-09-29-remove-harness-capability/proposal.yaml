@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-harness-capability
+  status: proposed
+summary:
+  what:
+    - 'Remove the harness capability entirely: the ten harness-* CLI commands, the harness and harness-session schemas, scaffold, and examples, the harness-state mutation-inventory family, the MCP harness tools, resource, and prompt, the Harness Guidance sections of bundled skills, the harness operator documentation, and this repository''s own harness declaration, wrapper scripts, and architecture component.'
+    - Extend archive so a delta that removes every requirement of a main spec, or every rule of a technical standard, deletes that artifact file and its emptied directory and regenerates the owning index in the same archive operation.
+  why:
+    - Declaring, starting, stopping, and logging project services and recording investigation sessions lies outside the product boundary of a spec-driven workflow tool; operators and agents already manage services with their own tools.
+    - The product surface is being narrowed before the core workflow evolves further, so every cross-cutting change (CLI-only YAML authoring, command metadata, MCP coverage, skill checks) stops carrying the harness surface along.
+    - Removing the harness and sessions spec areas empties two main specs, and archive currently leaves an emptied main spec file and index entry behind, contrary to the MUST rule that a named removal prunes the container it empties.
+scope:
+  in:
+    - Unregister harness-edit, harness-infer, harness-doctor, harness-plan, harness-start, harness-stop, harness-status, harness-logs, harness-scripts, and harness-session and delete their implementation modules and command-metadata entries; a former command fails as an ordinary unknown command with no alias or retirement message.
+    - Delete the harness and harness-session bundled schemas, registry entries, scaffold templates, and examples, regenerate embedded templates, stop init from scaffolding harness.yaml, and remove the harness-state family from inventory/yaml-mutation-surfaces.yaml.
+    - Remove the MCP harness_plan, harness_status, harness_logs, harness_edit, harness_start, harness_stop, harness_session_create, and harness_session_mutate tools, the strict://harness/declaration resource, the strict_harness_investigation prompt, and the rule that forwards confirm only to harness lifecycle commands.
+    - Remove the Harness Guidance section from the apply, auto, bugfix, review, and verify skills and drop it from the required skill headings and snippets in src/skills/model.ts.
+    - Delete HARNESS, DEBUG_QUICKSTART, DEBUG_SESSIONS, and DEV_SESSIONS operator documents in every language, remove harness passages from README and QUICKSTART, and add a harness removal upgrade note inside the README marked retirement block stating that residual harness files may be deleted by hand.
+    - Delete this repository's .strict-spec-driven/harness.yaml through the harness CLI before the command is removed, delete scripts/harness-* wrappers, and remove the harness architecture component through the architecture CLI before re-rendering ARCHITECTURE.md.
+    - Archive prunes a main spec or technical standard whose requirements or rules a delta removes entirely, together with its emptied directory, and regenerates the spec or tech index in the same operation.
+    - Remove the harness and sessions spec areas, the cli-harness-* requirements, and the harness contract requirements; update MCP requirements that name harness; adjust the cli-command-metadata rule exception that cites the harness doctor warning.
+    - Delete harness test suites and fixtures, update suites that assert harness presence, and add a repository-wide sweep test that proves no harness-capability token survives outside the excluded scope while agent-runtime harness wording is left alone.
+    - Drop the lifecycle MCP safety class, used only by the harness lifecycle tools, and restate the MCP safety-class requirements without it.
+  out:
+    - Renaming or rewording the agent-runtime meaning of harness, including 'the running harness' guidance, the skill-handoff-names-no-harness-mechanism rule, and src/skills/handoff.ts.
+    - A retirement warning, cleanup command, or any detection of residual harness.yaml, harness-sessions/, or scripts/harness-* files in consuming projects.
+    - Any replacement service-lifecycle or investigation-session capability, and any restoration of dev-session or debug-session commands.
+    - Rewriting archived changes, completed roadmap milestones and planned changes, or lessons that mention harness.
+unchanged_behavior:
+  - Agent-runtime harness wording, the skill-handoff-names-no-harness-mechanism technical rule and its skill validation diagnostic, and src/skills/handoff.ts behave exactly as before.
+  - retired-skills.json keeps strict-spec-harness-init and strict-spec-harness-session so installers keep removing those retired skills.
+  - Test-harness wording in test helpers and the workflow-regression-coverage standard, which refers to the test runner rather than the removed capability, is kept.
+  - Archive behavior for a delta that leaves at least one requirement or rule in its target is unchanged, including REMOVED of an absent target being skipped and reported.
+  - MCP mutating tools still require confirm true at the server boundary and refuse without invoking the CLI otherwise.
+  - Archived changes under .strict-spec-driven/changes/archive/, completed roadmap artifacts, and lessons that mention harness are not rewritten; the workflow may still append lesson occurrences or record new lessons.

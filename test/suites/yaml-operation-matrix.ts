@@ -128,24 +128,6 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "mcp-driven": RUNS_HERE,
     },
   },
-  "harness-state": {
-    owners: ["harness-edit", "harness-infer", "harness-session"],
-    cells: {
-      "create": coveredBy("harness-authoring.ts", "harness authoring fixture initializes"),
-      "scalar-update": coveredBy("harness-authoring.ts", "harness-edit accepts additive named component fields"),
-      "keyed-update": coveredBy("harness-authoring.ts", "named removal preserves sibling component state"),
-      "additive-list": coveredBy("harness-authoring.ts", "harness-edit de-duplicates repeated list additions"),
-      "named-removal": coveredBy("harness-authoring.ts", "harness-edit removes one exact nested list value"),
-      "deletion": coveredBy("harness-authoring.ts", "harness deletion is blocked while an active session exists"),
-      "invalid-input-no-mutation": coveredBy("harness-authoring.ts", "invalid harness relationships leave the artifact byte-identical"),
-      "rollback": coveredBy("harness-authoring.ts", "invalid harness relationships leave the artifact byte-identical"),
-      "index-reconciliation": coveredBy("harness-authoring.ts", "active session fixture is created"),
-      "deterministic-output": coveredBy("harness-authoring.ts", "harness-edit de-duplicates repeated list additions"),
-      "installed-cli": RUNS_HERE,
-      "copied-project": RUNS_HERE,
-      "mcp-driven": RUNS_HERE,
-    },
-  },
   "spec-state": {
     owners: ["archive", "spec-edit"],
     cells: {
@@ -452,7 +434,6 @@ const MCP_FAMILY_TOOLS: Record<string, string[]> = {
   "workflow-config": ["init_workflow", "config_edit"],
   "architecture-state": ["architecture_edit"],
   "design-system-state": ["design_edit"],
-  "harness-state": ["harness_edit", "harness_session_create", "harness_session_mutate"],
   "spec-state": ["spec_edit", "archive_change"],
   "tech-state": ["tech_edit", "archive_change"],
   "change-planning-state": [
@@ -669,19 +650,6 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
       "design-system-state: an additive token update commits through the installed CLI",
     );
 
-    const harnessResult = cli([
-      "harness-edit", "--id", "matrix-harness",
-      "--environment", "development", "--environment-kind", "development",
-      "--component-environment", "development", "--component", "matrix-web", "--component-type", "backend",
-    ], { cwd: workspace });
-    assertCell(
-      "harness-state", ["installed-cli"],
-      harnessResult.status === 0
-        && readFileSync(path.join(workspace, ".strict-spec-driven", "harness.yaml"), "utf8").includes("matrix-web"),
-      "harness-state: the installed CLI declares an environment component",
-      harnessResult.stderr.trim() || harnessResult.stdout.trim(),
-    );
-
     const techResult = cli([
       "tech-edit", "matrix-standard", "--title", "Matrix Standard", "--category", "testing",
       "--rule", "matrix-rule", "--strength", "MUST",
@@ -745,14 +713,6 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
           ["design-init"],
           ["design-edit", "--token-group", "colors", "--token", "copied-token", "--token-value", "#202020"],
         ],
-      },
-      {
-        familyId: "harness-state",
-        invocations: [[
-          "harness-edit", "--id", "copied-harness",
-          "--environment", "development", "--environment-kind", "development",
-          "--component-environment", "development", "--component", "copied-web", "--component-type", "backend",
-        ]],
       },
       {
         familyId: "tech-state",

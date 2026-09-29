@@ -110,8 +110,8 @@ function gitVisiblePaths(rootDir: string, pathspecs: string[]): string[] {
 }
 
 const FILESYSTEM_MUTATION = /\b(?:writeFileSync|appendFileSync|renameSync|rmSync|unlinkSync|copyFileSync|writeFile|rename|rm|unlink|copyFile)\s*\(/u;
-const YAML_CONTEXT = /(?:ya?ml|strict-spec-driven|roadmap|planned.?change|schema|scaffold|lesson|sop|harness|architecture|design.?system|delta.?spec|delta.?tech)/iu;
-const GUIDANCE_MUTATION = /(?:direct(?:ly)?\s+(?:edit|write|author)|(?:edit|write|create|delete|remove|rename|modify)(?:ing|s|ed)?[^.\n]{0,100}(?:\.ya?ml|YAML)|strict-spec-cli\s+(?:init|propose|generate|apply|archive|cancel|migrate|maintenance|design-init|harness-(?:infer|session)|mcp-install|roadmap-(?:generate|sync|move-planned-change|archive|reopen|pause|resume|reorder|renumber)|sop-(?:create|edit)|lesson-(?:create|edit|obsolete))|\/strict-(?:roadmap-(?:archive|move|pause|plan|recommend|reopen|reorder|resume|review|sync)|spec-(?:apply|architecture|archive|auto|brainstorm|bugfix|cancel|design(?:-sync)?|harness-(?:init|session)|init|maintenance|migrate|propose(?:-from-roadmap)?|sop|spec-edit|sync-specs)|tech-(?:edit|sync)))/iu;
+const YAML_CONTEXT = /(?:ya?ml|strict-spec-driven|roadmap|planned.?change|schema|scaffold|lesson|sop|architecture|design.?system|delta.?spec|delta.?tech)/iu;
+const GUIDANCE_MUTATION = /(?:direct(?:ly)?\s+(?:edit|write|author)|(?:edit|write|create|delete|remove|rename|modify)(?:ing|s|ed)?[^.\n]{0,100}(?:\.ya?ml|YAML)|strict-spec-cli\s+(?:init|propose|generate|apply|archive|cancel|migrate|maintenance|design-init|mcp-install|roadmap-(?:generate|sync|move-planned-change|archive|reopen|pause|resume|reorder|renumber)|sop-(?:create|edit)|lesson-(?:create|edit|obsolete))|\/strict-(?:roadmap-(?:archive|move|pause|plan|recommend|reopen|reorder|resume|review|sync)|spec-(?:apply|architecture|archive|auto|brainstorm|bugfix|cancel|design(?:-sync)?|harness-(?:init|session)|init|maintenance|migrate|propose(?:-from-roadmap)?|sop|spec-edit|sync-specs)|tech-(?:edit|sync)))/iu;
 
 export function discoverMutationPaths(rootDir: string): string[] {
   return gitVisiblePaths(rootDir, MUTATION_PATHSPECS).filter((relativePath) => {

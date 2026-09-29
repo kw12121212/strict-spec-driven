@@ -271,21 +271,6 @@ run `init` from this skill.
    and complete project-level regression test evidence has passed, noting that
    archive guidance will still run its bounded final current-change tech sync.
 
-## Harness Guidance
-
-When `.strict-spec-driven/harness.yaml` exists in the project and harness
-evidence was gathered during implementation:
-
-1. Run `harness-plan` for the relevant environment and components, then compare
-   the declared targets and evidence labels against the evidence that was
-   reported.
-2. Check that declared components were stopped after evidence collection when
-   the harness started them.
-3. Note any discrepancy between declared harness targets and the evidence
-   actually captured.
-4. Harness evidence supplements but does not replace the required project
-   regression command.
-
 ## Rules
 
 - Reconstruct the requirement from the change's planning artifacts before

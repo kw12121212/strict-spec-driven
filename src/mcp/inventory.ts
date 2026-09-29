@@ -49,7 +49,7 @@ function mcpToolDescription(cliCommand: string): string {
 export const MCP_SERVER_NAME = "strict-spec-driven";
 export const MCP_SERVER_VERSION = "0.1.0";
 
-export const MCP_SAFETY_CLASSES = ["read", "write", "lifecycle", "release", "destructive"] as const;
+export const MCP_SAFETY_CLASSES = ["read", "write", "release", "destructive"] as const;
 export type McpSafetyClass = (typeof MCP_SAFETY_CLASSES)[number];
 
 export type McpCapabilityInventory = {
@@ -159,27 +159,6 @@ export const MCP_READ_ONLY_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     cliCommand: "scene-status",
     mutates: false,
   },
-  {
-    name: "harness_plan",
-    description: mcpToolDescription("harness-plan"),
-    safety: "read",
-    cliCommand: "harness-plan",
-    mutates: false,
-  },
-  {
-    name: "harness_status",
-    description: mcpToolDescription("harness-status"),
-    safety: "read",
-    cliCommand: "harness-status",
-    mutates: false,
-  },
-  {
-    name: "harness_logs",
-    description: mcpToolDescription("harness-logs"),
-    safety: "read",
-    cliCommand: "harness-logs",
-    mutates: false,
-  },
 ];
 
 export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
@@ -261,13 +240,6 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     mutates: true,
   },
   {
-    name: "harness_edit",
-    description: mcpToolDescription("harness-edit"),
-    safety: "write",
-    cliCommand: "harness-edit",
-    mutates: true,
-  },
-  {
     name: "architecture_edit",
     description: mcpToolDescription("architecture-edit"),
     safety: "write",
@@ -279,34 +251,6 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     description: mcpToolDescription("design-edit"),
     safety: "write",
     cliCommand: "design-edit",
-    mutates: true,
-  },
-  {
-    name: "harness_start",
-    description: mcpToolDescription("harness-start"),
-    safety: "lifecycle",
-    cliCommand: "harness-start",
-    mutates: true,
-  },
-  {
-    name: "harness_stop",
-    description: mcpToolDescription("harness-stop"),
-    safety: "lifecycle",
-    cliCommand: "harness-stop",
-    mutates: true,
-  },
-  {
-    name: "harness_session_create",
-    description: mcpToolDescription("harness-session"),
-    safety: "write",
-    cliCommand: "harness-session",
-    mutates: true,
-  },
-  {
-    name: "harness_session_mutate",
-    description: mcpToolDescription("harness-session"),
-    safety: "write",
-    cliCommand: "harness-session",
     mutates: true,
   },
 ];
@@ -326,7 +270,6 @@ export const MCP_RESOURCE_INVENTORY: McpCapabilityInventory["resources"] = [
   { name: "roadmap_planned_change", uri: "strict://roadmap/planned-changes/{plannedChangeId}", description: "Strict roadmap planned change.", template: true },
   { name: "tech_index", uri: "strict://tech/index", description: "Strict technical standards index.", template: false },
   { name: "tech_standard", uri: "strict://tech/{standardId}", description: "Strict technical standard.", template: true },
-  { name: "harness_declaration", uri: "strict://harness/declaration", description: "Strict harness declaration.", template: false },
 ];
 
 export const MCP_PROMPT_INVENTORY: McpCapabilityInventory["prompts"] = [
@@ -365,14 +308,6 @@ export const MCP_PROMPT_INVENTORY: McpCapabilityInventory["prompts"] = [
     description: "Guide selection and execution of the next strict roadmap-backed change.",
     arguments: [
       { name: "roadmapItem", description: "Optional planned-change or milestone hint.", required: false },
-    ],
-  },
-  {
-    name: "strict_harness_investigation",
-    description: "Guide a structured harness investigation session.",
-    arguments: [
-      { name: "session", description: "Harness session identifier.", required: true },
-      { name: "environment", description: "Optional harness environment.", required: false },
     ],
   },
 ];

@@ -1,0 +1,60 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: remove-harness-capability
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: The harness capability — declaring, starting, stopping, and logging project services and recording investigation sessions — lies outside the product boundary of a spec-driven workflow tool; operators and agents manage services with their own tools.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: Former harness commands are no longer registered and fail as ordinary unknown commands; init, the MCP server, and the schema, template, and sample discovery commands no longer expose any harness surface; bundled skills and operator documentation no longer route to harness; and a repository-wide sweep test proves no harness-capability token survives while agent-runtime harness wording is not reported.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The product surface is being narrowed before the core workflow evolves further; without the removal every cross-cutting change keeps carrying the harness surface along.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: Agent-runtime harness wording and the skill-handoff-names-no-harness-mechanism rule stay unchanged; archived changes, completed roadmap artifacts, and lessons are not rewritten; retired-skills.json keeps its harness skill entries; and no replacement service-lifecycle or investigation capability is introduced, nor are dev-session or debug-session commands restored.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: Remove only the harness feature — environment and component lifecycle, harness sessions, the harness-* commands, and their schemas, MCP surface, documentation, skill sections, and specs — and keep the agent-runtime meaning of harness untouched.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: residual-harness-artifacts
+    question: How should residual harness files in consuming projects be handled after upgrade?
+    context: 'Leftover .strict-spec-driven/harness.yaml, harness-sessions/, and scripts/harness-* cannot break verify or ready because no generic validator walks all workflow YAML, but the wrappers call removed commands. Options: ignore with an upgrade note, ignore silently, warn from check-workflow-state, or add a cleanup command; recommended: ignore with an upgrade note.'
+    answer: Ignore them in every command and add an upgrade note inside the README marked retirement block stating they may be deleted by hand.
+    status: resolved
+    answered_by: human
+  - id: emptied-spec-removal
+    question: How should the harness and sessions spec areas, whose requirements this change removes entirely, be removed?
+    context: 'Archive currently deletes REMOVED requirements but leaves an emptied main spec file and index entry, and spec-edit --delete is refused while an active delta references the spec. Options: extend archive to prune emptied specs in the same operation, or run spec-edit --delete after archive; recommended: extend archive, which the named-removal-prunes-the-container-it-empties MUST rule requires.'
+    answer: Extend archive to prune a main spec its delta empties, with its emptied directory, and regenerate the spec index in the same operation.
+    status: resolved
+    answered_by: human
+  - id: emptied-standard-removal
+    question: Should archive pruning also cover technical standards emptied by a delta tech?
+    context: 'The tech merge path has the same shape and the same MUST pruning rule applies, though this change itself empties no standard. Options: cover tech symmetrically, or cover main specs only; recommended: cover tech symmetrically.'
+    answer: Cover technical standards symmetrically.
+    status: resolved
+    answered_by: human

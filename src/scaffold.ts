@@ -19,7 +19,6 @@ function scaffoldTemplateKey(relativePath: string): string {
 
 const REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
-  "harness.yaml",
   "architecture.yaml",
   "specs/INDEX.yaml",
   "tech/INDEX.yaml",

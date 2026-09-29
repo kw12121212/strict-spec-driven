@@ -30,10 +30,6 @@ const changeSchema = z.strictObject({
 const roadmapSchema = z.strictObject({
   roadmapItem: z.string().min(1).optional(),
 });
-const harnessSchema = z.strictObject({
-  session: z.string().min(1),
-  environment: z.string().min(1).optional(),
-});
 
 function promptInventory(name: string): McpCapabilityInventory["prompts"][number] {
   const inventory = MCP_PROMPT_INVENTORY.find((candidate) => candidate.name === name);
@@ -102,12 +98,6 @@ export const MCP_PROMPT_DEFINITIONS: McpPromptDefinition[] = [
       : "Start with roadmap-recommend and treat the scripted recommendation as authoritative.",
     "Scaffold exactly one recommended planned change, link milestone and planned_change metadata, run ready, then continue through strict-spec-auto.",
     "Do not manually choose among roadmap candidates when the script returns a recommendation.",
-  ].join("\n")),
-  prompt("strict_harness_investigation", harnessSchema, (args) => [
-    `Drive harness session ${String(args.session)} with the strict-spec-cli harness-session command.`,
-    args.environment ? `Target harness environment: ${args.environment}.` : "Select the environment from the harness declaration or user request.",
-    "Run harness-plan before lifecycle commands, use harness-start/status/logs/stop or generated scripts, and record replayable evidence.",
-    "For manual or sensitive steps, use human_checkpoints and manual_actions with secrets_recorded: false; never store secret values.",
   ].join("\n")),
 ];
 

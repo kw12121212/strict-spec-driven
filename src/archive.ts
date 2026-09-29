@@ -4,6 +4,8 @@ import {
   readdirSync,
   readFileSync,
   renameSync,
+  rmdirSync,
+  unlinkSync,
   writeFileSync,
 } from "fs";
 import path from "path";
@@ -107,6 +109,8 @@ export type ArchiveMergedSpecResult = {
   targetSpec: string;
   specPath: string;
   created: boolean;
+  /** True when the merge removed every requirement, so the main spec file was deleted. */
+  pruned: boolean;
   added: number;
   modified: number;
   removed: number;
@@ -118,6 +122,8 @@ export type ArchiveMergedStandardResult = {
   targetStandard: string;
   standardPath: string;
   created: boolean;
+  /** True when the merge removed every rule, so the standard file was deleted. */
+  pruned: boolean;
   added: number;
   modified: number;
   removed: number;
@@ -132,6 +138,7 @@ export type ArchiveResult = {
   mergeSummary: {
     specsUpdated: number;
     specsCreated: number;
+    specsPruned: number;
     added: number;
     modified: number;
     removed: number;
@@ -142,6 +149,7 @@ export type ArchiveResult = {
   techMergeSummary: {
     standardsUpdated: number;
     standardsCreated: number;
+    standardsPruned: number;
     added: number;
     modified: number;
     removed: number;
@@ -203,6 +211,25 @@ function listYamlFiles(directoryPath: string): string[] {
 
   walk(directoryPath);
   return files;
+}
+
+/**
+ * Deletes a main artifact a merge emptied, then every directory between it and the root that the
+ * deletion leaves empty, so the store after archive holds no container its schema would reject.
+ */
+function pruneEmptiedArtifact(filePath: string, stopDir: string): void {
+  if (existsSync(filePath)) {
+    unlinkSync(filePath);
+  }
+
+  let directory = path.dirname(filePath);
+  while (directory !== stopDir && directory.startsWith(stopDir + path.sep)) {
+    if (!existsSync(directory) || readdirSync(directory).length > 0) {
+      break;
+    }
+    rmdirSync(directory);
+    directory = path.dirname(directory);
+  }
 }
 
 function readYamlFile<T>(filePath: string): T {
@@ -590,14 +617,20 @@ function regenerateTechIndex(rootDir: string): void {
   writeYamlFile(indexPath, indexArtifact);
 }
 
+/**
+ * Merges the change's delta tech into the standards. A standard the merge leaves without rules is
+ * still written, emptied, and returned in `emptiedPaths` for the caller to prune once every later
+ * merge has succeeded.
+ */
 function mergeDeltaTechStandards(
   rootDir: string,
   changeDir: string,
-): ArchiveMergedStandardResult[] {
+): { mergedStandards: ArchiveMergedStandardResult[]; emptiedPaths: string[] } {
   const deltaTechDir = path.join(changeDir, "tech");
   const deltaTechPaths = listYamlFiles(deltaTechDir);
+  const emptiedPaths: string[] = [];
   if (deltaTechPaths.length === 0) {
-    return [];
+    return { mergedStandards: [], emptiedPaths };
   }
 
   const techRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "tech");
@@ -619,6 +652,7 @@ function mergeDeltaTechStandards(
         targetStandard: deltaTech.target_standard,
         standardPath: "",
         created: false,
+        pruned: false,
         added: 0,
         modified: 0,
         removed: 0,
@@ -658,18 +692,23 @@ function mergeDeltaTechStandards(
   if (mainTechCache.size > 0) {
     mkdirSync(techRoot, { recursive: true });
     for (const [techPath, mainTechArtifact] of mainTechCache) {
+      if (Object.keys(mainTechArtifact.rules).length === 0) {
+        emptiedPaths.push(techPath);
+        mergeReports.get(mainTechArtifact.standard.id)!.pruned = true;
+      }
       writeYamlFile(techPath, mainTechArtifact);
     }
     regenerateTechIndex(rootDir);
   }
 
-  return Array.from(mergeReports.values()).sort((left, right) => {
+  const mergedStandards = Array.from(mergeReports.values()).sort((left, right) => {
     const byPath = left.standardPath.localeCompare(right.standardPath);
     if (byPath !== 0) {
       return byPath;
     }
     return left.targetStandard.localeCompare(right.targetStandard);
   });
+  return { mergedStandards, emptiedPaths };
 }
 
 function syncRoadmapAfterArchive(rootDir: string): RoadmapSyncResult | null {
@@ -752,6 +791,7 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
         targetSpec: deltaSpec.target_spec,
         specPath: normalizeRepoRelativePath(rootDir, cacheKey),
         created,
+        pruned: false,
         added: 0,
         modified: 0,
         removed: 0,
@@ -765,17 +805,36 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     applyDeltaToMainSpec(mainSpec, deltaSpec, report, cacheKey);
   }
 
+  const emptiedSpecPaths: string[] = [];
   for (const [mainSpecPath, mainSpecArtifact] of mainSpecCache) {
+    if (Object.keys(mainSpecArtifact.requirements).length === 0) {
+      emptiedSpecPaths.push(mainSpecPath);
+      mergeReports.get(mainSpecArtifact.spec.id)!.pruned = true;
+    }
     mkdirSync(path.dirname(mainSpecPath), { recursive: true });
     writeYamlFile(mainSpecPath, mainSpecArtifact);
   }
 
   regenerateSpecIndex(rootDir);
 
-  const mergedStandards = mergeDeltaTechStandards(rootDir, changeDir);
+  const { mergedStandards, emptiedPaths: emptiedStandardPaths } = mergeDeltaTechStandards(rootDir, changeDir);
   // Scenes merge after the specs they cover, so a coverage reference this change also introduces
   // resolves against the main specs already on disk rather than against their pre-merge state.
   const mergedScenes = mergeDeltaScenes(rootDir, changeDir);
+
+  // Pruning waits until every merge has succeeded: an archive refused by a later merge leaves the
+  // change active with its emptied artifacts still on disk, so a retry — whose REMOVED targets are
+  // then absent and skipped — still resolves its delta targets and prunes them.
+  if (emptiedSpecPaths.length > 0) {
+    const specsRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "specs");
+    for (const specPath of emptiedSpecPaths) pruneEmptiedArtifact(specPath, specsRoot);
+    regenerateSpecIndex(rootDir);
+  }
+  if (emptiedStandardPaths.length > 0) {
+    const techRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "tech");
+    for (const techPath of emptiedStandardPaths) pruneEmptiedArtifact(techPath, techRoot);
+    regenerateTechIndex(rootDir);
+  }
 
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
   renameSync(changeDir, archiveDestination);
@@ -791,7 +850,9 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
 
   const mergeSummary = mergedSpecs.reduce(
     (summary, report) => {
-      if (report.created) {
+      if (report.pruned) {
+        summary.specsPruned += 1;
+      } else if (report.created) {
         summary.specsCreated += 1;
       } else {
         summary.specsUpdated += 1;
@@ -806,6 +867,7 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     {
       specsUpdated: 0,
       specsCreated: 0,
+      specsPruned: 0,
       added: 0,
       modified: 0,
       removed: 0,
@@ -816,7 +878,9 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
 
   const techMergeSummary = mergedStandards.reduce(
     (summary, report) => {
-      if (report.created) {
+      if (report.pruned) {
+        summary.standardsPruned += 1;
+      } else if (report.created) {
         summary.standardsCreated += 1;
       } else {
         summary.standardsUpdated += 1;
@@ -831,6 +895,7 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     {
       standardsUpdated: 0,
       standardsCreated: 0,
+      standardsPruned: 0,
       added: 0,
       modified: 0,
       removed: 0,

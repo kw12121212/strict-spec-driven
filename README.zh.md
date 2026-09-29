@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-**文档：** [快速入门](QUICKSTART.zh.md) · [架构文档](ARCHITECTURE.md) · [架构文档快速入门](ARCHITECTURE_QUICKSTART.zh.md) · [UI 设计系统快速入门](DESIGN_QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [开发会话](DEV_SESSIONS.zh.md) · [调试会话](DEBUG_SESSIONS.zh-CN.md) · [Harness](HARNESS.zh.md) · [RTK](RTK.md)
+**文档：** [快速入门](QUICKSTART.zh.md) · [架构文档](ARCHITECTURE.md) · [架构文档快速入门](ARCHITECTURE_QUICKSTART.zh.md) · [UI 设计系统快速入门](DESIGN_QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [RTK](RTK.md)
 
 `strict-spec-driven` 是一个 YAML 优先的规范驱动开发工作流。它提供规范驱动生命周期（提议 → 执行 → 验证 → Skill 驱动代码审查 → 归档）和 Agent Skills 集成，将工作流制品——规范、变更、路线图、任务、问题——转换为严格 YAML 模式，由确定性脚本强制执行。
 
@@ -41,7 +41,7 @@
 
 `/strict-spec-sop`、`/strict-spec-harness-init`、`/strict-spec-harness-session`、
 `/strict-spec-migrate` 和 `/strict-spec-propose-from-roadmap` 这五个技能以同样的方式被移除。
-它们背后的 CLI 命令没有变化——`sop-*`、`harness-*` 和 `migrate` 都保留原有名称、参数和行为——
+`sop-*` 和 `migrate` 命令没有变化——都保留原有名称、参数和行为——
 因此这些能力仍可通过 `strict-spec-cli` 使用；而路线图支持的提案，在需要跨整个路线图挑选下一件工作时由
 `/strict-roadmap-recommend` 脚手架化，在请求指名某一个里程碑时则由 `/strict-spec-propose` 脚手架化。
 
@@ -61,6 +61,14 @@
 
 底层 CLI 命令没有变化：`roadmap-pause`、`roadmap-sync` 等仍然保持原有名称和参数，
 改变的只是技能打包方式。
+
+harness 能力已被整体移除，因为声明、启动、停止项目服务并查看其日志不属于规格驱动工作流工具的职责。
+`harness-edit`、`harness-infer`、`harness-doctor`、`harness-plan`、`harness-start`、
+`harness-stop`、`harness-status`、`harness-logs`、`harness-scripts` 和 `harness-session`
+命令不再注册，调用时按未知命令失败；`init` 不再生成 `harness.yaml`；MCP 服务器也不再提供
+harness 工具、`strict://harness/declaration` 资源和 `strict_harness_investigation` 提示。
+没有任何命令会读取旧版本遗留的文件，因此 `.strict-spec-driven/harness.yaml`、
+`.strict-spec-driven/harness-sessions/` 和生成的 `scripts/harness-*` 包装脚本可以手动删除。
 
 如果你在此变更之前安装过这些技能，请重新安装，让已退役的技能包从技能目录中移除，
 并装上合并后的技能：
@@ -100,13 +108,6 @@ bun run install-strict-skills
 | `sample-show <name>` | 输出一个捆绑的严格 YAML sample 资源 |
 | `template-list` | 列出捆绑的模板和 schema 资源键 |
 | `template-show <key>` | 输出一个捆绑的模板或 schema 资源 |
-| `harness-infer` | 从仓库元数据推断安全 harness 声明草稿 |
-| `harness-doctor` | 诊断 harness 声明、包装脚本、环境和安全问题 |
-| `harness-plan` | 验证并推导确定性 harness 计划 |
-| `harness-start` / `harness-stop` | 管理已声明的可执行 harness 组件 |
-| `harness-status` / `harness-logs` | 检查受管 harness 运行时状态和日志 |
-| `harness-scripts <generate\|verify>` | 生成或验证项目本地的 `scripts/harness-*` 包装脚本 |
-| `harness-session <create\|validate\|archive>` | 管理结构化 harness 调查会话 |
 
 ### 安装
 
@@ -263,13 +264,12 @@ MCP 服务器将 CLI 和 Agent Skills 保留为权威的工作流实现。它将
 - `strict://changes/{change}/proposal`
 - `strict://specs/{specId}`
 - `strict://roadmap/planned-changes/{plannedChangeId}`
-- `strict://harness/declaration`
 
 代表性只读请求：要求 MCP 客户端检查严格工作流状态。预期的工具调用是 `check_workflow_state`，它委托给 `strict-spec-cli check-workflow-state`，不会修改项目文件。
 
 代表性提示请求：使用 `{ "change": "my-change" }` 请求 `strict_review_change`，以获取将验证、直接代码审查和完整回归证据保留在工作流中的审查指导。
 
-变更工具需要宿主可见的确认边界。`propose_change`、`generate_change_artifact`、`mark_next_task_complete`、`roadmap_sync` 和 `archive_change` 等工具会写入严格工作流状态。`harness_start` 和 `harness_stop` 是生命周期操作，`archive_change` 属于发布级别，因为它会合并规范并协调路线图状态。
+变更工具需要宿主可见的确认边界。`propose_change`、`generate_change_artifact`、`mark_next_task_complete`、`roadmap_sync` 和 `archive_change` 等工具会写入严格工作流状态。`archive_change` 属于发布级别，因为它会合并规范并协调路线图状态。
 
 ## CLI 独占的 YAML 编写
 
@@ -330,12 +330,6 @@ strict-spec-cli sop-validate
 ```
 
 每个类别都强制要求自己的必需章节——编写前用 `sop-category-show <id>` 查看。
-
-## Harness
-
-位于 `.strict-spec-driven/harness.yaml` 的 harness 声明文件告诉 Agent 和人类如何规划、启动、停止、检查和调查混合的项目环境。它涵盖了本地开发和生产环境的可观测性、类型化组件、依赖顺序、就绪性、日志、状态、生成的 `scripts/harness-*` 包装脚本、生命周期安全、证据、重放以及敏感信息处理规则。
-
-参见 [HARNESS.zh.md](HARNESS.zh.md) 了解完整参考。
 
 ## 迁移边界
 

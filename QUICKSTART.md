@@ -75,7 +75,7 @@ Example user requests for an MCP client:
 - "Archive `my-change`." Expected tool: `archive_change` with `{ "change": "my-change", "confirm": true }`; it is release-class and mutates workflow state.
 - "Cancel `my-change`." Expected tool: `cancel_change` with `{ "change": "my-change", "confirm": true }`; it is destructive and permanently deletes the active change.
 
-The MCP server does not replace the CLI or skills. Read-only tools report diagnostics without changing files. Mutating tools such as `propose_change`, `mark_next_task_complete`, `roadmap_sync`, `harness_start`, `archive_change`, and `cancel_change` require an explicit `confirm: true`; without it the server refuses the call and does not run the underlying strict command. Hosts should surface these as write, lifecycle, release, or destructive actions before execution.
+The MCP server does not replace the CLI or skills. Read-only tools report diagnostics without changing files. Mutating tools such as `propose_change`, `mark_next_task_complete`, `roadmap_sync`, `archive_change`, and `cancel_change` require an explicit `confirm: true`; without it the server refuses the call and does not run the underlying strict command. Hosts should surface these as write, release, or destructive actions before execution.
 
 ## Set Up a New Project
 
@@ -209,28 +209,6 @@ For changes where the scope is already clear, `/strict-spec-auto` runs the full 
 ```
 
 The skill pauses only when open questions require user input or when an unrecoverable error is encountered.
-
-## Harness (Optional)
-
-If your project has local services, production observability, or structured investigations, declare them in one harness:
-
-1. Run `strict-spec-cli harness-infer --write` to draft `.strict-spec-driven/harness.yaml` from project context, then `strict-spec-cli harness-doctor` to resolve what it could not infer. The declaration is authored through `harness-infer` and `harness-edit` named arguments; a human may still maintain the file by hand outside the AI workflow. <!-- human-manual-edit -->
-2. Run the dry plan and generate scripts:
-   ```sh
-   node dist/strict-spec-cli.js harness-plan --environment development
-   node dist/strict-spec-cli.js harness-scripts generate
-   ```
-3. Use `scripts/harness-start`, `scripts/harness-status`, `scripts/harness-logs`, and `scripts/harness-stop` to operate declared components.
-
-When a bug needs structured evidence, create a harness session:
-
-```sh
-node dist/strict-spec-cli.js harness-session create checkout-investigation
-```
-
-Record the investigation through `strict-spec-cli harness-session edit` named arguments. A session records selected environment/components, lifecycle evidence, reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, replay commands, and verification state without storing secret values.
-
-See [HARNESS.md](HARNESS.md) for the full reference.
 
 ## Migrating from Bootstrap State
 

@@ -149,17 +149,6 @@ components:
         - src/sops.ts
         - src/sop-categories.ts
         - src/cli/cmd-sops.ts
-  harness:
-    title: Harness
-    responsibility: Infers and validates the project harness declaration, plans and starts and stops declared long-running components, reports their status and logs, and records harness investigation sessions with their evidence.
-    boundaries:
-      - Starts only components the harness declaration names; it never guesses undeclared startup steps.
-    depends_on:
-      - schema-validation
-    mapping:
-      implementation:
-        - src/harness.ts
-        - src/cli/cmd-harness.ts
   migration:
     title: Legacy Migration and Maintenance
     responsibility: Converts a legacy Markdown .spec-driven/ directory into strict YAML under .strict-spec-driven/ with a structured migration report, and runs configured maintenance checks over the strict workflow state.

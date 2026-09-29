@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-harness-capability
+approach:
+  - 'Remove the harness capability as one coordinated change: contract artifacts first (delta specs removing the harness and sessions areas and the cli-harness-* and harness contract requirements, MODIFIED MCP requirements, ADDED archive-pruning and harness-absence requirements, a delta tech adjusting the cli-command-metadata exception, and a delta scene updating the archive step), then implementation, then the removal proof.'
+  - 'Implementation follows the reference graph the deletion gates enforce rather than the owning-command order first planned: delete this repository''s harness.yaml with harness-edit --delete while the command exists and stage the deletion so the git-listed inventory coverage check stops seeing it; remove the architecture component and the inventory family; delete the source modules, command registrations, metadata, MCP surface, scaffold list entry, and harness test suites, because the bundled-asset deletions refuse while any of them names an asset; then remove the registry entries, rebuild, delete the schemas, templates, and samples with schema-edit, template-edit, and sample-edit, and finally remove the inventory surface paths of the deleted source and documents.'
+  - 'Archive gains a pruning step: every main spec whose requirements map is empty, and every technical standard whose rules map is empty, after the merge is deleted along with any directory the deletion empties, and the spec and tech indexes are regenerated without them, with the pruned paths reported in the archive JSON. Pruning runs only after the tech and scene merges succeed, so an archive refused by a later merge leaves the emptied artifact on disk and a retry, whose REMOVED targets are then absent and skipped, still prunes it.'
+decisions:
+  remove-harness-wholesale:
+    decision: Remove every harness-capability surface — CLI, schemas, scaffold, examples, inventory family, MCP, skills, docs, specs, and this repository's own harness state — rather than deprecating or partially keeping it.
+    rationale: The requester placed the whole capability outside the product boundary; a partial keep would leave the cross-cutting maintenance cost the change exists to remove.
+  unknown-command-without-alias:
+    decision: Former harness-* commands are simply unregistered and fail through the ordinary unknown-command path, with no alias and no dedicated retirement message.
+    rationale: This follows the precedent set when dev-session and debug-session commands were retired, and a retirement message would be a permanent code path that keeps naming the removed capability.
+  ignore-residual-artifacts-with-upgrade-note:
+    decision: Residual harness.yaml, harness-sessions/, and scripts/harness-* files in consuming projects are ignored by every command; the only guidance is an upgrade note inside the README marked retirement block saying they may be deleted by hand.
+    rationale: No generic validator walks all workflow YAML, so leftovers cannot break verify or ready; detection or cleanup code would be new surface for a capability being removed to narrow the product.
+  archive-prunes-emptied-specs-and-standards:
+    decision: Archive deletes a main spec or technical standard that a delta empties, plus its emptied directory, and regenerates the owning index in the same operation, for specs and technical standards symmetrically.
+    rationale: The named-removal-prunes-the-container-it-empties MUST rule requires it, spec-edit --delete is refused while an active delta references the spec, and the requester chose symmetric coverage of technical standards because the merge code has the same shape.
+  scene-updates-archive-step-only:
+    decision: The only delta scene is a MODIFIED archive step of roadmap-backed-change-reaches-archive that adds the pruning behavior and its covering requirements; the harness removal itself authors no scene.
+    rationale: No recorded scene contains a harness step, and removing a capability introduces no new actor flow, while the archive pruning changes what the existing archive step observably does.
+  sweep-test-scope:
+    decision: The removal sweep test scans tracked source, skills, operator documentation, templates, examples, inventory, and scripts for tokens unique to the capability (harness- command names, harness.yaml, harness-session, harness-sessions/, strict://harness, strict_harness_investigation, Harness Guidance), excludes .strict-spec-driven/ workflow state and history, retired-skills.json, and the README marked retirement block, builds its probe strings at runtime, and asserts that agent-runtime harness wording is not reported.
+    rationale: The testing lessons record that a shared token turns a removal proof into a report on retained code, and that a scan inside its own scope matches its own probes; unique tokens and runtime-built probes keep the proof honest, and a negative case must show the scan firing on inserted content.
+  drop-lifecycle-safety-class:
+    decision: Remove the lifecycle MCP safety class together with the harness_start and harness_stop tools, leaving read, write, release, and destructive, and restate the MCP safety requirements without it.
+    rationale: Only the harness lifecycle tools used the lifecycle class, so keeping it would advertise a vocabulary member no tool can report and leave the contract describing a class hosts never see.
+alternatives:
+  - option: Keep the harness commands but drop them from skills and docs.
+    reason: It leaves the code, schemas, specs, and MCP surface in place, so the cross-cutting maintenance cost the requester named remains.
+  - option: Delete the emptied harness and sessions specs with spec-edit --delete after archiving.
+    reason: It leaves an emptied main spec and index entry observable between archive and cleanup, adds a manual step, and leaves archive in violation of the MUST pruning rule for every other project.
+  - option: Warn from check-workflow-state when residual harness files exist.
+    reason: It adds a permanent detection code path naming the removed capability, which contradicts narrowing the product surface.
+risks:
+  - Bundled asset deletions are refused while anything still references the asset, so a wrong order between registry, inventory, schema, template, and sample edits blocks progress; tasks follow the dependency order stated in the approach.
+  - Removing the Harness Guidance required heading and the MCP harness tools changes shipped skill validation and MCP inventory checks; suites asserting their presence must be updated in the same change or the regression gate fails.
+  - Deleting large harness modules and suites lowers covered and total src lines together; the coverage gate at 78 percent must still pass after removal, and the threshold must not be lowered.
+  - Archive pruning runs for every project; a delta that removes all requirements by mistake now deletes the spec file rather than leaving an empty one, so the archive report must name each pruned path.

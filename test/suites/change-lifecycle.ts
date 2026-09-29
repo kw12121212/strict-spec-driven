@@ -3122,6 +3122,161 @@ try {
   rmSync(archiveTechCreateDir, { recursive: true, force: true });
 }
 
+// 13t2: archive prunes a main spec or standard its delta empties, and keeps partial removals
+const archivePruneDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-prune-"));
+try {
+  const changeName = "archive-prune";
+  writeMainSpecArtifact(archivePruneDir, "retired/behavior.yaml", "retired-behavior", "Retired Behavior", [
+    { id: "req-gone-one", statement: "First retired requirement" },
+    { id: "req-gone-two", statement: "Second retired requirement" },
+  ]);
+  writeMainSpecArtifact(archivePruneDir, "cli/foundation.yaml", "cli-foundation", "CLI Foundation", [
+    { id: "req-kept", statement: "Surviving requirement" },
+    { id: "req-dropped", statement: "Dropped requirement" },
+  ]);
+  writeMainTechArtifact(archivePruneDir, "retired/standard.yaml", "retired-standard", "Retired Standard", "coding", [
+    { id: "rule-gone", strength: "MUST", statement: "Retired rule" },
+  ]);
+  writeMainTechArtifact(archivePruneDir, "coding-baseline.yaml", "coding-baseline", "Coding Baseline", "coding", [
+    { id: "rule-kept", strength: "MUST", statement: "Surviving rule" },
+    { id: "rule-dropped", strength: "SHOULD", statement: "Dropped rule" },
+  ]);
+  writeValidChangeArtifacts(archivePruneDir, changeName);
+  writeDeltaSpecArtifact(archivePruneDir, changeName, "retired.yaml", "retired-behavior", {
+    REMOVED: {
+      "req-gone-one": { reason: "Capability removed" },
+      "req-gone-two": { reason: "Capability removed" },
+    },
+  });
+  writeDeltaSpecArtifact(archivePruneDir, changeName, "cli.yaml", "cli-foundation", {
+    REMOVED: { "req-dropped": { reason: "Capability removed" } },
+  });
+  writeDeltaTechArtifact(archivePruneDir, changeName, "retired.yaml", "retired-standard", {
+    REMOVED: { "rule-gone": { reason: "Capability removed" } },
+  });
+  writeDeltaTechArtifact(archivePruneDir, changeName, "coding.yaml", "coding-baseline", {
+    REMOVED: { "rule-dropped": { reason: "Capability removed" } },
+  });
+
+  const pruneResult = cli(["archive", changeName], { cwd: archivePruneDir });
+  context.assert(pruneResult.status === 0, "archive exits zero when a delta empties a main spec and a standard", `got ${pruneResult.status}: ${pruneResult.stderr}`);
+  const pruneJson = JSON.parse(pruneResult.stdout.trim()) as {
+    mergeSummary: { specsPruned: number; specsUpdated: number; removed: number };
+    mergedSpecs: Array<{ targetSpec: string; specPath: string; pruned: boolean }>;
+    techMergeSummary: { standardsPruned: number; standardsUpdated: number };
+    mergedStandards: Array<{ targetStandard: string; standardPath: string; pruned: boolean }>;
+  };
+  const strictRoot = path.join(archivePruneDir, ".strict-spec-driven");
+
+  const prunedSpec = pruneJson.mergedSpecs.find((report) => report.targetSpec === "retired-behavior");
+  context.assert(
+    prunedSpec?.pruned === true && prunedSpec.specPath === ".strict-spec-driven/specs/retired/behavior.yaml",
+    "archive output names the pruned main spec path",
+    JSON.stringify(prunedSpec),
+  );
+  context.assert(
+    pruneJson.mergeSummary.specsPruned === 1 && pruneJson.mergeSummary.specsUpdated === 1 && pruneJson.mergeSummary.removed === 3,
+    "archive merge summary counts the pruned spec apart from the updated one",
+    JSON.stringify(pruneJson.mergeSummary),
+  );
+  context.assert(
+    !existsSync(path.join(strictRoot, "specs", "retired", "behavior.yaml"))
+      && !existsSync(path.join(strictRoot, "specs", "retired")),
+    "archive deletes the emptied main spec and the directory it leaves empty",
+  );
+  const prunedSpecIndex = yamlModule.parseYamlFile<{ specs: Array<{ id: string }> }>(path.join(strictRoot, "specs", "INDEX.yaml"));
+  context.assert(
+    !prunedSpecIndex.specs.some((spec) => spec.id === "retired-behavior")
+      && prunedSpecIndex.specs.some((spec) => spec.id === "cli-foundation"),
+    "archive regenerates the spec index without the pruned spec and with the surviving one",
+    JSON.stringify(prunedSpecIndex.specs),
+  );
+
+  const keptSpec = pruneJson.mergedSpecs.find((report) => report.targetSpec === "cli-foundation");
+  const keptSpecArtifact = yamlModule.parseYamlFile<{ requirements: Record<string, unknown> }>(path.join(strictRoot, "specs", "cli", "foundation.yaml"));
+  context.assert(
+    keptSpec?.pruned === false && JSON.stringify(Object.keys(keptSpecArtifact.requirements)) === JSON.stringify(["req-kept"]),
+    "archive keeps a partially removed main spec with its surviving requirements",
+    JSON.stringify(keptSpec),
+  );
+
+  const prunedStandard = pruneJson.mergedStandards.find((report) => report.targetStandard === "retired-standard");
+  context.assert(
+    prunedStandard?.pruned === true && prunedStandard.standardPath === ".strict-spec-driven/tech/retired/standard.yaml",
+    "archive output names the pruned standard path",
+    JSON.stringify(prunedStandard),
+  );
+  context.assert(
+    pruneJson.techMergeSummary.standardsPruned === 1 && pruneJson.techMergeSummary.standardsUpdated === 1,
+    "archive tech merge summary counts the pruned standard apart from the updated one",
+    JSON.stringify(pruneJson.techMergeSummary),
+  );
+  context.assert(
+    !existsSync(path.join(strictRoot, "tech", "retired", "standard.yaml"))
+      && !existsSync(path.join(strictRoot, "tech", "retired")),
+    "archive deletes the emptied standard and the directory it leaves empty",
+  );
+  const prunedTechIndex = yamlModule.parseYamlFile<{ standards: Array<{ id: string }> }>(path.join(strictRoot, "tech", "INDEX.yaml"));
+  context.assert(
+    !prunedTechIndex.standards.some((standard) => standard.id === "retired-standard")
+      && prunedTechIndex.standards.some((standard) => standard.id === "coding-baseline"),
+    "archive regenerates the tech index without the pruned standard and with the surviving one",
+    JSON.stringify(prunedTechIndex.standards),
+  );
+
+  const keptStandard = pruneJson.mergedStandards.find((report) => report.targetStandard === "coding-baseline");
+  const keptTechArtifact = yamlModule.parseYamlFile<{ rules: Record<string, unknown> }>(path.join(strictRoot, "tech", "coding-baseline.yaml"));
+  context.assert(
+    keptStandard?.pruned === false && JSON.stringify(Object.keys(keptTechArtifact.rules)) === JSON.stringify(["rule-kept"]),
+    "archive keeps a partially removed standard with its surviving rules",
+    JSON.stringify(keptStandard),
+  );
+  context.assert(existsSync(path.join(strictRoot, "specs")) && existsSync(path.join(strictRoot, "tech")), "archive pruning never removes the specs or tech root");
+} finally {
+  rmSync(archivePruneDir, { recursive: true, force: true });
+}
+
+// 13t3: a retried archive prunes the artifacts an earlier refused attempt had already emptied.
+// Pruning runs only after every merge succeeds, so a refused attempt leaves the emptied spec and
+// standard on disk; on the retry their REMOVED targets are absent and skipped, and they still prune.
+const archivePruneRetryDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-prune-retry-"));
+try {
+  const changeName = "archive-prune-retry";
+  writeMainSpecArtifact(archivePruneRetryDir, "retired/behavior.yaml", "retired-behavior", "Retired Behavior", []);
+  writeMainTechArtifact(archivePruneRetryDir, "retired/standard.yaml", "retired-standard", "Retired Standard", "coding", []);
+  writeValidChangeArtifacts(archivePruneRetryDir, changeName);
+  writeDeltaSpecArtifact(archivePruneRetryDir, changeName, "retired.yaml", "retired-behavior", {
+    REMOVED: { "req-gone": { reason: "Removed by the refused attempt" } },
+  });
+  writeDeltaTechArtifact(archivePruneRetryDir, changeName, "retired.yaml", "retired-standard", {
+    REMOVED: { "rule-gone": { reason: "Removed by the refused attempt" } },
+  });
+
+  const retryResult = cli(["archive", changeName], { cwd: archivePruneRetryDir });
+  context.assert(retryResult.status === 0, "a retried archive over already-emptied artifacts exits zero", `got ${retryResult.status}: ${retryResult.stderr}`);
+  const retryJson = JSON.parse(retryResult.stdout.trim()) as {
+    mergeSummary: { specsPruned: number; removedMissingTargetSkipped: number };
+    techMergeSummary: { standardsPruned: number; removedMissingTargetSkipped: number };
+  };
+  const retryRoot = path.join(archivePruneRetryDir, ".strict-spec-driven");
+  context.assert(
+    retryJson.mergeSummary.specsPruned === 1
+      && retryJson.mergeSummary.removedMissingTargetSkipped === 1
+      && !existsSync(path.join(retryRoot, "specs", "retired")),
+    "a retried archive skips the absent REMOVED target and still prunes the emptied main spec",
+    JSON.stringify(retryJson.mergeSummary),
+  );
+  context.assert(
+    retryJson.techMergeSummary.standardsPruned === 1
+      && retryJson.techMergeSummary.removedMissingTargetSkipped === 1
+      && !existsSync(path.join(retryRoot, "tech", "retired")),
+    "a retried archive skips the absent REMOVED rule and still prunes the emptied standard",
+    JSON.stringify(retryJson.techMergeSummary),
+  );
+} finally {
+  rmSync(archivePruneRetryDir, { recursive: true, force: true });
+}
+
 // 13u: verify rejects new-standard delta missing standard block
 const verifyTechNewDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-tech-new-"));
 try {

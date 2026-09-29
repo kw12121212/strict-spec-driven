@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: removing-an-artifact-family-is-ordered-by-its-re-1e4fec
+  title: Removing an artifact family is ordered by its reference graph, not by its owning commands
+category: architecture
+status: active
+created_at: '2026-09-29T03:56:54.777Z'
+updated_at: '2026-09-29T03:56:54.777Z'
+context: 'Planning remove-harness-capability, the design ordered the work by owning command: delete the own declaration, edit the architecture, remove the inventory family, delete the bundled schemas, templates, and samples, then delete source, skills, docs, and tests last.'
+observation: Almost every step in that order was refused. inventory-edit rejected dropping a family while files it covered still existed; sample-edit, template-edit, and schema-edit --delete refused while src/scaffold.ts, the schema registry, and eleven test suites still named the asset; inventory surface paths for source and documents could only be removed after those files were gone. The work had to run consumers first — source and tests, then registry entries, then assets, then the inventory entries — and the tasks were completed out of list order.
+takeaway: 'When a change deletes a whole artifact family, derive the task order from the reference graph the deletion gates enforce: remove every consumer that names the asset (source, tests, scaffold lists, registry entries) before the asset, and remove inventory coverage and surface paths only after the files they describe are deleted and staged. Ask one refused deletion for its referrer list early, because the refusal names the whole graph.'
+applies_when: Planning or ordering the tasks of a change that deletes an artifact family or capability wholesale — its bundled schemas, scaffold templates, examples, mutation-inventory family, and the source, tests, and documentation that read them — through schema-edit, template-edit, sample-edit, and inventory-edit.
+occurrences:
+  - origin: remove-harness-capability
+    date: '2026-09-29'
+    evidence: 'sample-edit harness --delete: asset-still-referenced by src/scaffold.ts, templates/strict-spec-driven/schemas/registry.yaml, and test/suites/*; inventory-edit --remove-entry artifact_families.harness-state: uncovered-yaml-path.'

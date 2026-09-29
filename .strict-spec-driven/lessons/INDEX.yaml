@@ -34,6 +34,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/architecture/adding-a-command-to-a-shared-inventory-owner-lis-0da186.yaml
+    removing-an-artifact-family-is-ordered-by-its-re-1e4fec:
+      title: Removing an artifact family is ordered by its reference graph, not by its owning commands
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/architecture/removing-an-artifact-family-is-ordered-by-its-re-1e4fec.yaml
   documentation:
     adding-cli-mutation-guidance-to-a-document-enrol-18d554:
       title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
@@ -190,7 +195,7 @@ categories:
     a-regenerated-source-file-that-is-also-compiled-65ffa0:
       title: A regenerated source file that is also compiled has no effect until rebuild
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/tooling/a-regenerated-source-file-that-is-also-compiled-65ffa0.yaml
     prerequisite-changes-can-make-a-roadmap-task-par-9e3db8:
       title: Prerequisite changes can make a roadmap task partly obsolete
@@ -225,7 +230,7 @@ categories:
     a-deleted-but-unstaged-file-still-exists-to-any-0f7e75:
       title: A deleted-but-unstaged file still exists to any check that discovers files through git ls-files
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/tooling/a-deleted-but-unstaged-file-still-exists-to-any-0f7e75.yaml
     a-set-field-path-that-does-not-exist-creates-a-n-02ec26:
       title: A --set field path that does not exist creates a new branch instead of failing

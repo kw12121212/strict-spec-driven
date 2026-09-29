@@ -80,7 +80,7 @@ main_flow:
     action: The agent reads every changed implementation and test file and reports findings against the recorded technical standards.
     no_coverage_reason: Code review is performed by a bundled skill rather than by a CLI command, so no main spec requirement governs the reading itself; the shipped requirement records only that the review CLI command was removed.
   archive:
-    action: The agent archives the change, which merges its delta artifacts into the main specs, regenerates the spec index, reconciles the roadmap planned-change status, and moves the change into the dated archive.
+    action: The agent archives the change, which merges its delta artifacts into the main specs and technical standards, deletes any main spec or standard the delta empties together with its emptied directory, regenerates the spec and tech indexes, reconciles the roadmap planned-change status, and moves the change into the dated archive.
     covered_by:
       - spec_id: cli-foundation
         requirement_id: cli-archive-merges-delta-specs-into-main-specs
@@ -90,6 +90,12 @@ main_flow:
         requirement_id: cli-archive-moves-change-to-date-prefixed-archive
       - spec_id: roadmap-domain-behavior
         requirement_id: roadmap-sync-contract
+      - spec_id: contracts-yaml-artifacts
+        requirement_id: yaml-delta-tech-archive-merge
+      - spec_id: cli-foundation
+        requirement_id: cli-archive-prunes-emptied-main-specs
+      - spec_id: contracts-yaml-artifacts
+        requirement_id: yaml-delta-tech-archive-prunes-emptied-standards
   ship:
     action: The operator is handed a focused commit summary for the archived change, and the push remains theirs to run.
     covered_by:

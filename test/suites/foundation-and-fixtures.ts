@@ -1104,16 +1104,6 @@ context.assert(
   "delta-spec new-spec coverage example carries a spec block with title and path",
 );
 
-const harnessSchema = validationModule.loadBundledSchemaByArtifactType("harness") as Record<string, unknown>;
-context.assert(
-  (harnessSchema.properties as Record<string, unknown>)?.harness !== undefined,
-  "harness schema resolves by artifact type",
-);
-const harnessSessionSchema = validationModule.loadBundledSchemaByArtifactType("harness_session") as Record<string, unknown>;
-context.assert(
-  (harnessSessionSchema.properties as Record<string, unknown>)?.harness_session !== undefined,
-  "harness-session schema resolves by artifact type",
-);
 const bundledRegistry = validationModule.loadBundledSchema<Record<string, unknown>>("registry.yaml") as {
   entries: Array<{ schema_id: string; artifact_type: string; schema_file: string; primary_example: string }>;
 };
@@ -1126,26 +1116,6 @@ context.assert(
       && entry.primary_example.endsWith("/planned-change.yaml"),
   ),
   "schema registry includes standalone planned change schema and primary example",
-);
-context.assert(
-  bundledRegistry.entries.some(
-    (entry) =>
-      entry.schema_id === "strict-spec-driven/harness/v1"
-      && entry.artifact_type === "harness"
-      && entry.schema_file === "harness.yaml"
-      && entry.primary_example.endsWith("/harness.yaml"),
-  ),
-  "schema registry includes harness schema and primary example",
-);
-context.assert(
-  bundledRegistry.entries.some(
-    (entry) =>
-      entry.schema_id === "strict-spec-driven/harness-session/v1"
-      && entry.artifact_type === "harness_session"
-      && entry.schema_file === "harness-session.yaml"
-      && entry.primary_example.endsWith("/harness-session.yaml"),
-  ),
-  "schema registry includes harness-session schema and primary example",
 );
 
 const testJsonSchema = {
@@ -1628,12 +1598,11 @@ context.assert(
   JSON.stringify(firstAssetList) === JSON.stringify(secondAssetList),
   "required scaffold asset manifest is deterministic",
 );
-context.assert(firstAssetList.length === 7, "required scaffold asset manifest includes seven assets");
+context.assert(firstAssetList.length === 6, "required scaffold asset manifest includes six assets");
 context.assert(
   firstAssetList.every((asset) => asset.endsWith(".yaml")),
   "required scaffold asset manifest contains only YAML files",
 );
-context.assert(firstAssetList.includes("harness.yaml"), "required scaffold asset manifest includes harness scaffold");
 context.assert(
   firstAssetList.includes("architecture.yaml"),
   "required scaffold asset manifest includes architecture scaffold",
@@ -1694,10 +1663,6 @@ context.assert(typeof scaffoldRoadmapIndex.milestones === "object" && scaffoldRo
 const scaffoldTechIndex = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("tech/INDEX.yaml");
 context.assert(scaffoldTechIndex.artifact_type === "tech_index", "scaffold tech index template is loadable YAML");
 
-const scaffoldHarness = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("harness.yaml");
-context.assert(scaffoldHarness.artifact_type === "harness", "scaffold harness template is loadable YAML");
-const scaffoldHarnessSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("harness-sessions/session.yaml");
-context.assert(scaffoldHarnessSession.artifact_type === "harness_session", "scaffold harness-session template is loadable YAML");
 
 context.section("[5] init command");
 
@@ -1716,7 +1681,6 @@ try {
   const strictRoot = path.join(initTempDir, ".strict-spec-driven");
   const requiredArtifacts = [
     "config.yaml",
-    "harness.yaml",
     "specs/INDEX.yaml",
     "tech/INDEX.yaml",
     "roadmap/INDEX.yaml",
@@ -3919,8 +3883,6 @@ context.assert(
 );
 
 const distSchemaFiles = [
-  "harness-session.yaml",
-  "harness.yaml",
   "registry.yaml",
   "main-spec.yaml",
   "delta-spec.yaml",
@@ -3935,9 +3897,6 @@ for (const schemaFile of distSchemaFiles) {
   context.assert(existsSync(distSchemaPath), `dist schema file exists (${schemaFile})`);
   context.assert(statSync(distSchemaPath).isFile(), `dist schema file is a file (${schemaFile})`);
 }
-const distHarnessSessionScaffoldPath = path.join(distScaffoldDir, "harness-sessions", "session.yaml");
-context.assert(existsSync(distHarnessSessionScaffoldPath), "dist harness-session scaffold template exists");
-context.assert(statSync(distHarnessSessionScaffoldPath).isFile(), "dist harness-session scaffold template is a file");
 
 context.assert(!existsSync(distExamplesDir), "dist/templates/strict-spec-driven/examples is not bundled after build");
 
@@ -4061,7 +4020,7 @@ try {
   context.assert(distOnlyInit.status === 0, "init succeeds from dist-only temp directory", `got exit code ${distOnlyInit.status}`);
   const strictRoot = path.join(distOnlyDir, ".strict-spec-driven");
   context.assert(existsSync(strictRoot), "init from dist creates .strict-spec-driven directory");
-  for (const artifact of ["config.yaml", "harness.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml"]) {
+  for (const artifact of ["config.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml"]) {
     context.assert(existsSync(path.join(strictRoot, artifact)), `init from dist creates artifact (${artifact})`);
   }
   context.assert(
@@ -4102,68 +4061,6 @@ try {
 } finally {
   rmSync(distOnlyProposeDir, { recursive: true, force: true });
 }
-
-context.section("[12] harness user documentation smoke coverage");
-
-const harnessGuidePath = path.join(ROOT, "HARNESS.md");
-context.assert(existsSync(harnessGuidePath), "HARNESS.md guide exists");
-
-const harnessGuide = readFileSync(harnessGuidePath, "utf8");
-const harnessGuideNormalized = harnessGuide.replace(/\s+/g, " ");
-
-context.assert(
-  harnessGuideNormalized.includes("harness.yaml"),
-  "HARNESS.md covers the declaration file path",
-);
-context.assert(
-  harnessGuideNormalized.includes("harness-infer")
-    && harnessGuideNormalized.includes("harness-doctor")
-    && harnessGuideNormalized.includes("harness-plan")
-    && harnessGuideNormalized.includes("harness-start")
-    && harnessGuideNormalized.includes("harness-status")
-    && harnessGuideNormalized.includes("harness-logs")
-    && harnessGuideNormalized.includes("harness-stop")
-    && harnessGuideNormalized.includes("harness-session"),
-  "HARNESS.md covers harness CLI commands",
-);
-
-context.assert(
-  harnessGuideNormalized.includes("scripts/harness-infer")
-    && harnessGuideNormalized.includes("scripts/harness-doctor")
-    && harnessGuideNormalized.includes("scripts/harness-plan")
-    && harnessGuideNormalized.includes("scripts/harness-session"),
-  "HARNESS.md covers generated project-local scripts",
-);
-context.assert(
-  harnessGuideNormalized.includes("evidence_labels")
-    || (harnessGuideNormalized.includes("evidence") && harnessGuideNormalized.includes("replay")),
-  "HARNESS.md covers harness evidence and replay",
-);
-context.assert(
-  (harnessGuideNormalized.toLowerCase().includes("secret") || harnessGuideNormalized.toLowerCase().includes("variable name"))
-    && harnessGuideNormalized.toLowerCase().includes("environment"),
-  "HARNESS.md covers secret-handling rules for environment variables",
-);
-context.assert(
-  harnessGuideNormalized.includes("production")
-    && harnessGuideNormalized.includes("requires_confirmation")
-    && harnessGuideNormalized.includes("allow_stateful_lifecycle"),
-  "HARNESS.md covers production and stateful safety policy",
-);
-
-const readmePath = path.join(ROOT, "README.md");
-const readmeContent = readFileSync(readmePath, "utf8");
-context.assert(
-  readmeContent.includes("HARNESS.md") && readmeContent.includes("Harness"),
-  "README.md includes a Harness section and link to HARNESS.md",
-);
-
-const quickstartPath = path.join(ROOT, "QUICKSTART.md");
-const quickstartContent = readFileSync(quickstartPath, "utf8");
-context.assert(
-  quickstartContent.includes("harness") && quickstartContent.includes("HARNESS.md"),
-  "QUICKSTART.md includes harness guidance and a link to HARNESS.md",
-);
 
 
 // --- Bundled repository asset editing -------------------------------------------------------

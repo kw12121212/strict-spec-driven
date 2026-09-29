@@ -170,7 +170,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(inventoryModule.MCP_SERVER_NAME === "strict-spec-driven", "MCP inventory exposes server name");
   context.assert(inventoryModule.MCP_SERVER_VERSION === packageJson.version, "MCP inventory exposes package version");
   context.assert(
-    inventoryModule.MCP_SAFETY_CLASSES.join(",") === "read,write,lifecycle,release,destructive",
+    inventoryModule.MCP_SAFETY_CLASSES.join(",") === "read,write,release,destructive",
     "MCP inventory exposes safety-class vocabulary",
   );
   const resourceUris = resourcesModule.createResourceInventory().map((resource) => resource.uri);
@@ -182,7 +182,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     resourceUris.includes("strict://roadmap/planned-changes/{plannedChangeId}"),
     "MCP resources include planned change template",
   );
-  context.assert(resourceUris.includes("strict://harness/declaration"), "MCP resources include harness declaration");
+  context.assert(!resourceUris.some((uri) => uri.startsWith("strict://harness")), "MCP resources expose no harness declaration");
   const promptInventory = promptsModule.createPromptInventory();
   const promptNames = promptInventory.map((prompt) => prompt.name);
   context.assert(promptNames.includes("strict_propose_change"), "MCP prompts include proposal guidance");
@@ -190,7 +190,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(promptNames.includes("strict_review_change"), "MCP prompts include review guidance");
   context.assert(promptNames.includes("strict_archive_change"), "MCP prompts include archive guidance");
   context.assert(promptNames.includes("strict_roadmap_recommend"), "MCP prompts include roadmap recommendation guidance");
-  context.assert(promptNames.includes("strict_harness_investigation"), "MCP prompts include harness investigation guidance");
+  context.assert(!promptNames.some((name) => name.includes("harness")), "MCP prompts expose no harness investigation guidance");
   context.assert(
     promptInventory.find((prompt) => prompt.name === "strict_propose_change")?.arguments.some((argument) => argument.name === "roadmapItem" && !argument.required),
     "MCP propose prompt declares optional roadmap-backed argument",
@@ -211,7 +211,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     "MCP roadmap_recommend read tool advertises no YAML write",
     roadmapRecommendTool?.description,
   );
-  context.assert(toolNames.includes("harness_logs"), "MCP read tools include bounded harness logs");
+  context.assert(!toolNames.some((name) => name.startsWith("harness_")), "MCP read tools expose no harness tool");
   const mutatingToolNames = toolsModule.MUTATING_TOOL_DEFINITIONS.map((tool) => tool.name);
   context.assert(mutatingToolNames.includes("init_workflow"), "MCP mutating tools include workflow init");
   context.assert(mutatingToolNames.includes("config_edit"), "MCP mutating tools include workflow config authoring");
@@ -220,9 +220,10 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(mutatingToolNames.includes("mark_next_task_complete"), "MCP mutating tools include task-state completion");
   context.assert(mutatingToolNames.includes("roadmap_sync"), "MCP mutating tools include roadmap sync");
   context.assert(mutatingToolNames.includes("archive_change"), "MCP mutating tools include archive");
-  context.assert(mutatingToolNames.includes("harness_start"), "MCP mutating tools include harness start");
-  context.assert(mutatingToolNames.includes("harness_stop"), "MCP mutating tools include harness stop");
-  context.assert(mutatingToolNames.includes("harness_session_create"), "MCP mutating tools include harness session creation");
+  context.assert(
+    !mutatingToolNames.some((name) => name.startsWith("harness_")),
+    "MCP mutating tools expose no harness lifecycle or session tool",
+  );
   context.assert(
     toolsModule.READ_ONLY_TOOL_DEFINITIONS.every((tool) => tool.safety === "read" && tool.mutates === false),
     "MCP read tools are all classified as non-mutating read tools",
@@ -239,8 +240,6 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   );
   const archiveTool = toolsModule.MUTATING_TOOL_DEFINITIONS.find((tool) => tool.name === "archive_change");
   context.assert(archiveTool?.safety === "release", "MCP archive tool uses release safety class");
-  const harnessStartTool = toolsModule.MUTATING_TOOL_DEFINITIONS.find((tool) => tool.name === "harness_start");
-  context.assert(harnessStartTool?.safety === "lifecycle", "MCP harness start tool uses lifecycle safety class");
   context.assert(mutatingToolNames.includes("cancel_change"), "MCP mutating tools include destructive cancel");
   const cancelTool = toolsModule.MUTATING_TOOL_DEFINITIONS.find((tool) => tool.name === "cancel_change");
   context.assert(cancelTool?.safety === "destructive", "MCP cancel tool uses destructive safety class");
@@ -322,8 +321,6 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
       && parameterizedRoadmapPrompt.includes("roadmap-recommend --milestone"),
     "MCP roadmap prompt renders parameterized milestone recommendation guidance",
   );
-  const harnessPrompt = promptsModule.renderStrictPrompt("strict_harness_investigation", { session: "demo-session" }).messages[0]?.content.text ?? "";
-  context.assert(harnessPrompt.includes("secrets_recorded: false"), "MCP harness prompt preserves secret evidence boundary");
 
   const tempProject = mkdtempSync(path.join(os.tmpdir(), "strict-mcp-project-"));
   try {
@@ -336,7 +333,6 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     mkdirSync(path.join(tempProject, ".strict-spec-driven", "roadmap", "planned-changes"), { recursive: true });
     mkdirSync(path.join(tempProject, ".strict-spec-driven", "tech"), { recursive: true });
     writeFileSync(path.join(tempProject, ".strict-spec-driven", "config.yaml"), "schema: config\n", "utf8");
-    writeFileSync(path.join(tempProject, ".strict-spec-driven", "harness.yaml"), "schema: harness\n", "utf8");
     writeFileSync(
       path.join(tempProject, ".strict-spec-driven", "changes", "demo-change", "proposal.yaml"),
       "change:\n  id: demo-change\n",
@@ -448,15 +444,15 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     context.assert(failedEnvelope.stderr === "change not found", "MCP read tool envelope preserves stderr");
 
     const mutatingDelegated = await toolsModule.callMutatingTool(
-      "harness_start",
-      { environment: "dev", components: ["api", "worker"], confirm: true },
+      "roadmap_sync",
+      { materializePlannedChanges: true, confirm: true },
       {
         projectRoot: tempProject,
         runner: (args, options) => {
           context.assert(options.cwd === tempProject, "MCP mutating tool runner uses project root cwd");
           context.assert(
-            args.join(" ") === "harness-start --environment dev --component api --component worker --confirm",
-            "MCP mutating tool maps typed args to CLI args",
+            args.join(" ") === "roadmap-sync --materialize-planned-changes",
+            "MCP mutating tool maps typed args to CLI args without forwarding confirm",
           );
           return { status: 0, stdout: "{\"valid\":true}", stderr: "" };
         },
@@ -469,9 +465,9 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
       mutates: boolean;
       parsedJson?: { valid?: boolean };
     };
-    context.assert(mutatingDelegatedEnvelope.command === "harness-start", "MCP mutating tool envelope includes command");
+    context.assert(mutatingDelegatedEnvelope.command === "roadmap-sync", "MCP mutating tool envelope includes command");
     context.assert(mutatingDelegatedEnvelope.status === 0, "MCP mutating tool envelope includes status");
-    context.assert(mutatingDelegatedEnvelope.safety === "lifecycle", "MCP mutating tool envelope includes safety");
+    context.assert(mutatingDelegatedEnvelope.safety === "write", "MCP mutating tool envelope includes safety");
     context.assert(mutatingDelegatedEnvelope.mutates === true, "MCP mutating tool envelope marks mutation");
     context.assert(mutatingDelegatedEnvelope.parsedJson?.valid === true, "MCP mutating tool envelope includes parsed JSON stdout");
 
@@ -519,7 +515,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
         projectRoot: tempProject,
         runner: (args) => {
           confirmedDelegated = true;
-          context.assert(args.join(" ") === "propose demo-change", "MCP confirmed mutation does not forward confirm to non-harness CLI");
+          context.assert(args.join(" ") === "propose demo-change", "MCP confirmed mutation does not forward confirm to the CLI");
           return { status: 0, stdout: "{\"ok\":true}", stderr: "" };
         },
       },
@@ -720,9 +716,6 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   const applySkill = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const reviewSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
   const roadmapSkill = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
-  // The harness skill package was removed; HARNESS.md is the surviving surface that states the
-  // secret boundary the prompt has to keep matching.
-  const harnessDoc = readFileSync(path.join(ROOT, "HARNESS.md"), "utf8");
   const proposePrompt = promptsModule.renderStrictPrompt("strict_propose_change", {}).messages[0]?.content.text ?? "";
   const roadmapBackedPrompt = promptsModule.renderStrictPrompt("strict_propose_change", { roadmapItem: "5" }).messages[0]?.content.text ?? "";
   const applyPrompt = promptsModule.renderStrictPrompt("strict_apply_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
@@ -741,5 +734,4 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
       && parameterizedRoadmapPrompt.includes("roadmap-recommend --milestone"),
     "MCP roadmap prompt tracks parameterized recommendation command",
   );
-  context.assert(harnessDoc.includes("secrets_recorded: false") && harnessPrompt.includes("secrets_recorded: false"), "MCP harness prompt tracks secret boundary");
 }

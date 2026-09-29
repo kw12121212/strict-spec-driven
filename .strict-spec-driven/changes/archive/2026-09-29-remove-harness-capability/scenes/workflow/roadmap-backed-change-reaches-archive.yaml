@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: roadmap-backed-change-reaches-archive
+operations:
+  ADDED: {}
+  MODIFIED:
+    main_flow:
+      archive:
+        action: The agent archives the change, which merges its delta artifacts into the main specs and technical standards, deletes any main spec or standard the delta empties together with its emptied directory, regenerates the spec and tech indexes, reconciles the roadmap planned-change status, and moves the change into the dated archive.
+        covered_by:
+          - spec_id: cli-foundation
+            requirement_id: cli-archive-merges-delta-specs-into-main-specs
+          - spec_id: cli-foundation
+            requirement_id: cli-archive-regenerates-spec-index-after-merge
+          - spec_id: cli-foundation
+            requirement_id: cli-archive-moves-change-to-date-prefixed-archive
+          - spec_id: roadmap-domain-behavior
+            requirement_id: roadmap-sync-contract
+          - spec_id: contracts-yaml-artifacts
+            requirement_id: yaml-delta-tech-archive-merge
+          - spec_id: cli-foundation
+            requirement_id: cli-archive-prunes-emptied-main-specs
+          - spec_id: contracts-yaml-artifacts
+            requirement_id: yaml-delta-tech-archive-prunes-emptied-standards
+  REMOVED: {}

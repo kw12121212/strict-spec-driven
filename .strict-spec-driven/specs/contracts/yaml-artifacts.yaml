@@ -1111,22 +1111,6 @@ requirements:
         - GIVEN: skill packaging validation checks strict workflow precheck guidance
         - WHEN: the precheck snippet is validated for a non-init strict skill
         - THEN: the expected snippet includes the full node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state invocation
-  yaml-harness-artifact-contract:
-    strength: MUST
-    statement: The system MUST define strict YAML harness declaration and harness session contracts that replace dev-session and debug-session artifacts with one script-managed model for environments, mixed components, explicit operation capabilities, lifecycle safety, evidence, human checkpoints, replay, and verification, without requiring backward-compatible dev-session or debug-session artifact migration.
-    scenarios:
-      harness-contract-models-mixed-environments:
-        - GIVEN: a strict project needs to describe development and production operation for frontend, backend, database, cache, worker, external resource, browser, Electron, or CDP components
-        - WHEN: the harness declaration and harness session contracts are reviewed
-        - THEN: the contracts expose structured fields for environments, components, dependencies, operation modes, lifecycle scripts, readiness, status, logs, safety policy, secret-safe environment variable names, evidence, human checkpoints, replay, and verification
-  yaml-harness-status-logs-are-descriptive:
-    strength: MUST
-    statement: The system MUST let harness declarations treat operations.status and operations.logs as optional descriptive metadata, keep readonly as a valid never-executed marker, and document that status comes from runtime state while logs come from the captured runtime log file.
-    scenarios:
-      optional-status-logs-remain-valid:
-        - GIVEN: a strict harness declaration omits operations.status and operations.logs or keeps readonly markers without script commands
-        - WHEN: the declaration schema, bundled example, and harness contract guidance are validated
-        - THEN: the artifact remains valid and the contract describes status as runtime-derived and logs as captured-file output rather than executable lifecycle commands
   proposal-generating-skills-run-proposal-checkpoint:
     strength: MUST
     statement: Proposal-generating and proposal-handoff skills MUST guide agents to run a proposal checkpoint over generated planning artifacts after population and before ready/verify validation, ready handoff, auto implementation, or handoff to another strict workflow skill so semantic quality issues and insufficient change-document detail are corrected without naming the planning-stage gate a review.
@@ -1513,3 +1497,19 @@ requirements:
         - GIVEN: a delta scene carrying a complete new-scene block and at least one added main-flow step and exception flow
         - WHEN: the merge assembles the created scene
         - THEN: the created scene validates against the main scene schema, because the block supplied every required section no flow step carries
+  yaml-delta-tech-archive-prunes-emptied-standards:
+    strength: MUST
+    statement: The system MUST make archive delete a technical standard whose rules a change's delta tech removes entirely, together with any tech directory that deletion leaves empty, regenerate the tech index without it in the same archive operation, and report each pruned standard path in the archive JSON output.
+    scenarios:
+      archive-prunes-fully-removed-standard:
+        - GIVEN: an active change whose delta tech REMOVES every rule of an existing technical standard
+        - WHEN: archive runs for that change
+        - THEN: the standard file and its emptied directory no longer exist, the regenerated tech index no longer lists the standard, and the archive output names the pruned standard path
+      archive-keeps-partially-removed-standard:
+        - GIVEN: an active change whose delta tech REMOVES some but not all rules of an existing technical standard
+        - WHEN: archive runs for that change
+        - THEN: the standard file remains with its surviving rules, the tech index still lists it, and the archive output reports no pruned standard
+      archive-prunes-standard-emptied-by-a-refused-attempt:
+        - GIVEN: an active change whose earlier archive attempt was refused after its delta tech had already emptied a technical standard, so the emptied standard is still on disk
+        - WHEN: archive is retried for that change
+        - THEN: the absent REMOVED rules are skipped, the emptied standard and its emptied directory are deleted, and the archive output names the pruned standard path

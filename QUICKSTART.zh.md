@@ -74,7 +74,7 @@ MCP 客户端的示例用户请求：
 - "引导我审查 `my-change`。" 预期提示：`strict_review_change`，参数为 `{ "change": "my-change" }`。
 - "归档 `my-change`。" 预期工具：`archive_change`，由于属于发布类操作且会变更工作流状态，需在宿主确认后执行。
 
-MCP 服务器不替代 CLI 或 Skills。只读工具报告诊断信息而不修改文件。变更性工具如 `propose_change`、`mark_next_task_complete`、`roadmap_sync`、`harness_start` 和 `archive_change` 应由 MCP 宿主在执行前展示为写入、生命周期或发布类操作。
+MCP 服务器不替代 CLI 或 Skills。只读工具报告诊断信息而不修改文件。变更性工具如 `propose_change`、`mark_next_task_complete`、`roadmap_sync` 和 `archive_change` 应由 MCP 宿主在执行前展示为写入或发布类操作。
 
 ## 初始化新项目
 
@@ -209,28 +209,6 @@ Ship Skill 读取已归档的变更摘要，构建提交信息，并将 `git pus
 
 仅当开放性问题需要用户输入或遇到不可恢复的错误时，该 Skill 才会暂停。
 
-
-## Harness (可选)
-
-如果你的项目有本地服务、生产环境可观测性或结构化调查，可以在一个 harness 中声明它们：
-
-1. 运行 `strict-spec-cli harness-infer --write` 从项目上下文中草拟 `.strict-spec-driven/harness.yaml`，再运行 `strict-spec-cli harness-doctor` 补齐推断不出的部分。该声明通过 `harness-infer` 和 `harness-edit` 的命名参数编写；人类仍可在 AI 工作流之外手工维护该文件。 <!-- human-manual-edit -->
-2. 运行空转规划（dry plan）并生成脚本：
-   ```sh
-   node dist/strict-spec-cli.js harness-plan --environment development
-   node dist/strict-spec-cli.js harness-scripts generate
-   ```
-3. 使用 `scripts/harness-start`、`scripts/harness-status`、`scripts/harness-logs` 和 `scripts/harness-stop` 来操作声明的组件。
-
-当某个 Bug 需要结构化证据时，创建一个 harness 会话：
-
-```sh
-node dist/strict-spec-cli.js harness-session create checkout-investigation
-```
-
-通过 `strict-spec-cli harness-session edit` 的具名参数记录调查过程。一次会话会记录选定的环境/组件、生命周期证据、重现步骤、证据文件、假设、发现、人工检查点、手动操作、重放/重现命令以及验证状态，且不会存储敏感值。
-
-参见 [HARNESS.zh.md](HARNESS.zh.md) 了解完整参考。
 
 ## 从引导状态迁移
 

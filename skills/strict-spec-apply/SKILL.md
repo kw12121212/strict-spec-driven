@@ -195,25 +195,6 @@ run `init` from this skill.
 10. **Finish cleanly** — read `tasks.yaml` again to confirm there are no
     remaining `status: pending` entries, then suggest `strict-spec-verify`.
 
-## Harness Guidance
-
-When `.strict-spec-driven/harness.yaml` exists in the project and a task
-requires starting declared components or opening declared targets:
-
-1. Run `harness-plan` first and explain the declared long-running commands
-   before starting them.
-2. Use `harness-start` to start declared executable components rather than
-   guessing undeclared startup steps.
-3. Use declared URLs, targets, and evidence labels from the plan when exercising
-   the running application.
-4. Capture evidence consistently using harness session evidence identifiers.
-5. Run `harness-stop` to stop all components you started before finishing the
-   task.
-6. If required environment variables are missing, the declaration is absent,
-   or the user has already provided a running service URL outside the harness
-   declaration, report the unavailable prerequisites and do not use lifecycle
-   commands.
-
 ## Rules
 
 - Read existing code before modifying it

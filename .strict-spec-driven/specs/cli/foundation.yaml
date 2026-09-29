@@ -1171,102 +1171,6 @@ requirements:
         - THEN: the command exits with a non-zero status
         - THEN: the command reports that strict workflow state is missing
         - THEN: the command directs the user to run /strict-spec-init
-  cli-harness-script-managed-workflow:
-    strength: MUST
-    statement: The system MUST provide a script-first harness workflow that validates harness declarations, generates or verifies thin project-local scripts under the scripts/harness-* namespace, manages declared environment components through those scripts, and creates, validates, and archives harness sessions as the replacement for dev-session and debug-session commands without backward-compatible command aliases.
-    scenarios:
-      harness-scripts-manage-selected-environment-components:
-        - GIVEN: a strict project contains a valid harness declaration with development and production environments and generated project-local harness scripts
-        - WHEN: an operator invokes the harness scripts with an environment and optional component selection
-        - THEN: the workflow plans or runs only the selected declared components in dependency order, reports deterministic status/log evidence, enforces declared operation capabilities and safety policy, and records session evidence when a harness session is active
-  cli-harness-infer-and-doctor:
-    strength: MUST
-    statement: The system MUST provide deterministic harness inference and doctor commands that help agents draft and repair .strict-spec-driven/harness.yaml from repository metadata without executing lifecycle commands, while preserving explicit human control over production and stateful lifecycle operations.
-    scenarios:
-      ai-assisted-harness-draft-is-safe:
-        - GIVEN: a repository contains common project metadata such as package scripts, sample environment variable files, or service declarations
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: the command emits a valid harness declaration draft that identifies likely development components, environment variable names, URLs or ports when discoverable, and manual or disabled defaults for uncertain, production, or stateful lifecycle operations
-      doctor-reports-repairable-diagnostics:
-        - GIVEN: a strict project contains a harness declaration and project-local wrapper expectations
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
-        - THEN: the command reports deterministic diagnostics for missing working directories, missing script commands, wrapper drift, undeclared environment samples, schema or planning failures, and safety policy issues without starting or stopping services
-  cli-harness-logs-bounded-output:
-    strength: MUST
-    statement: The system MUST return a conservative tail-line slice from harness-logs by default, support --tail <n> for explicit line selection, and document --all as the explicit full-output override so agents can inspect long-running managed component logs without flooding their context window.
-    scenarios:
-      default-tail-bound-limits-output:
-        - GIVEN: a managed component has a captured log file larger than the documented default tail-line bound
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-logs for that component without flags
-        - THEN: the command returns only the most recent lines up to the documented default bound
-      explicit-tail-count-overrides-default:
-        - GIVEN: a managed component has a captured log file larger than the default tail-line bound
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-logs --tail <n> for that component
-        - THEN: the command returns the most recent requested number of lines
-      all-override-returns-full-captured-log:
-        - GIVEN: a managed component has a captured log file larger than the documented default tail-line bound
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-logs --all for that component
-        - THEN: the command returns the full captured log content and the command usage or HARNESS.md documents the override
-  cli-harness-status-logs-follow-runtime-model:
-    strength: MUST
-    statement: The system MUST have harness-plan, harness-doctor, harness-status, harness-logs, and harness-infer follow the runtime status/log model so agents are not asked to author executable status or logs commands that the lifecycle never runs.
-    scenarios:
-      planning-and-doctor-respect-descriptive-status-logs:
-        - GIVEN: a strict project uses a harness declaration where status/logs are omitted or declared with descriptive readonly metadata
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-plan, harness-doctor, or harness-infer
-        - THEN: planning and diagnostics do not require executable status/logs commands and the resulting behavior keeps status runtime-derived and logs sourced from the captured log file
-  cli-harness-infer-detects-runtime-signals-beyond-node:
-    strength: MUST
-    statement: The system MUST let harness-infer detect supported non-Node runtime signals with a deterministic precedence order, preserve manual and disabled safety defaults in inferred drafts, and report explicit evidence when no lifecycle command can be inferred.
-    scenarios:
-      package-scripts-stay-highest-precedence:
-        - GIVEN: a repository exposes both package.json dev/start/serve scripts and other supported runtime signals such as compose, Procfile, or Makefile metadata
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: the draft uses the package-script-derived command and records evidence for the selected signal without mixing multiple runtime sources
-      supported-non-node-signal-produces-safe-draft:
-        - GIVEN: a repository lacks package dev/start/serve scripts but contains a supported compose, Procfile, or Makefile runtime signal
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: the draft includes a manual development start command derived from the first supported non-Node signal, keeps production disabled, and records which signal was used
-      unsupported-repository-explains-no-detection:
-        - GIVEN: a repository lacks package dev/start/serve scripts and other supported runtime signals
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: the draft remains manual and reports explicit evidence and an unavailable condition explaining that no lifecycle command could be inferred
-  cli-harness-start-env-guidance-aligns-with-doctor:
-    strength: MUST
-    statement: The system MUST make harness-start missing-required-environment failures explicitly explain that harness-doctor verifies env-sample documentation only, the harness does not load .env files, and required values must be exported or sourced before retrying.
-    scenarios:
-      documented-env-sample-still-requires-exported-values:
-        - GIVEN: a harness component requires an environment variable and that variable name is documented in an env sample file
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-start without exporting or sourcing that required value into the current process environment
-        - THEN: harness-start fails with a diagnostic that says the variable is missing from the current environment, explains that documented env sample entries do not satisfy runtime requirements, notes that the harness does not load .env files, and tells the operator to export or source the value before retrying
-  cli-harness-start-reports-partial-failure-recovery:
-    strength: MUST
-    statement: The system MUST make harness-start partial-start failures explicitly report which already-started components remain running and direct operators to run harness-stop for recovery while preserving those components for inspection.
-    scenarios:
-      later-readiness-failure-names-running-components-and-recovery:
-        - GIVEN: a harness environment starts components in dependency order and a later component fails readiness after an earlier component is already running
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-start for that environment
-        - THEN: the command fails, keeps the earlier component marked running in the component snapshot, and includes a dedicated recovery signal naming the running component together with the harness-stop cleanup instruction
-  cli-harness-doctor-auto-recovery:
-    strength: MUST
-    statement: The system MUST support generating structured recovery actions for doctor diagnostics and executing them non-interactively using the --fix flag.
-    scenarios:
-      doctor-performs-non-interactive-auto-recovery:
-        - GIVEN: a harness declaration contains missing local wrapper scripts or template environment configurations
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor with the --fix flag
-        - THEN: the command automatically resolves all autofixable diagnostics, regenerates missing files, and exits zero after validation succeeds
-  cli-harness-doctor-flags-cross-environment-shared-ports:
-    strength: MUST
-    statement: The system MUST report a deterministic harness-doctor safety diagnostic when the same port is declared by components in two or more environments, identifying the shared port and the involved environments and components, without automatically rewriting ports, so that a likely cross-environment port conflict between development and production is surfaced for explicit human confirmation in the harness-init skill before the harness declaration is accepted.
-    scenarios:
-      cross-environment-shared-port-is-reported:
-        - GIVEN: a harness declaration in which a port is declared by components in two or more environments, such as development and production
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
-        - THEN: the command reports a deterministic safety diagnostic that identifies the shared port and the involved environments and components and offers no automatic port-rewriting recovery
-      distinct-environment-ports-do-not-trigger-the-diagnostic:
-        - GIVEN: a harness declaration in which every environment declares distinct port numbers
-        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
-        - THEN: no cross-environment shared-port diagnostic is reported while existing same-environment duplicate-port detection is unaffected
   cli-mcp-server-contract:
     strength: MUST
     statement: The system MUST define one integrated local MCP server contract that uses stdio transport, accepts an explicit project root from MCP client configuration, and preserves the existing strict CLI and Agent Skills as authoritative workflow surfaces.
@@ -1283,13 +1187,12 @@ requirements:
         - THEN: the CLI command surface, strict YAML artifacts, Agent Skills, verification, review, and archive gates remain authoritative
   cli-mcp-resource-contract:
     strength: MUST
-    statement: The MCP server contract MUST define stable strict-resource URI conventions for workflow config, active and archived changes, change artifacts, specs, roadmap artifacts, tech standards, harness declaration, and selected command summaries.
+    statement: The MCP server contract MUST define stable strict-resource URI conventions for workflow config, active and archived changes, change artifacts, specs, roadmap artifacts, tech standards, and selected command summaries.
     scenarios:
       mcp-contract-lists-resource-uri-families:
         - GIVEN: the MCP resource contract is reviewed
         - WHEN: resource URI templates are inspected
-        - THEN: the contract includes stable URI families for config, changes, specs, roadmap, tech standards, harness declaration, and command summaries
-        - AND: each URI family identifies deterministic content for valid strict workflow projects
+        - THEN: the contract includes stable URI families for config, changes, specs, roadmap, tech standards, and command summaries, each identifying deterministic content for valid strict workflow projects, and includes no harness declaration family
   cli-mcp-tool-inventory-contract:
     strength: MUST
     statement: The MCP server contract MUST define a server-owned tool inventory covering read-only diagnostics and guarded mutating workflow actions with names, input schema fields, delegated CLI or domain operation, success output shape, and representative failure diagnostics.
@@ -1302,22 +1205,20 @@ requirements:
         - AND: each entry identifies input schema fields, success output shape, and representative failure diagnostics
   cli-mcp-tool-safety-contract:
     strength: MUST
-    statement: The MCP server contract MUST classify every MCP tool as read, write, lifecycle, release, or destructive and MUST describe mutation behavior so MCP hosts can present appropriate confirmation boundaries.
+    statement: The MCP server contract MUST classify every MCP tool as read, write, release, or destructive and MUST describe mutation behavior so MCP hosts can present appropriate confirmation boundaries.
     scenarios:
       mcp-contract-classifies-tool-safety:
         - GIVEN: the MCP tool inventory is reviewed
         - WHEN: tool safety metadata is inspected
-        - THEN: each tool has one of the read, write, lifecycle, release, or destructive safety classes
-        - AND: mutating, lifecycle, release, and destructive tools describe their project-state mutation behavior
+        - THEN: each tool has one of the read, write, release, or destructive safety classes, no lifecycle class remains, and write, release, and destructive tools describe their project-state mutation behavior
   cli-mcp-prompt-contract:
     strength: MUST
-    statement: The MCP server contract MUST define MCP prompt inventory for proposal, apply or review, archive, roadmap recommendation, and harness investigation workflows, with prompt text derived from existing strict skill guidance or covered by drift tests.
+    statement: The MCP server contract MUST define MCP prompt inventory for proposal, apply or review, archive, and roadmap recommendation workflows, with prompt text derived from existing strict skill guidance or covered by drift tests.
     scenarios:
       mcp-contract-lists-skill-backed-prompts:
         - GIVEN: the MCP prompt contract is reviewed
         - WHEN: prompt inventory entries are inspected
-        - THEN: proposal, apply or review, archive, roadmap recommendation, and harness investigation workflows are represented
-        - AND: the contract requires prompt content to reuse existing strict skill guidance or be protected by drift tests
+        - THEN: proposal, apply or review, archive, and roadmap recommendation workflows are represented, no harness investigation workflow is represented, and the contract requires prompt content to reuse existing strict skill guidance or be protected by drift tests
   cli-mcp-sdk-package-contract:
     strength: MUST
     statement: The MCP server contract MUST identify the official server-side MCP TypeScript SDK package as `@modelcontextprotocol/server`, record the selected initial version range as `^2.0.0-alpha.2`, and define local stdio registration in terms of `McpServer` and `StdioServerTransport` without adding the runtime dependency in the contract-only change.
@@ -1379,13 +1280,12 @@ requirements:
         - THEN: '`@modelcontextprotocol/server` is declared with version range `^2.0.0-alpha.2`'
   cli-mcp-read-tool-inventory:
     strength: MUST
-    statement: The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change guidance, verification, roadmap status and recommendation, tech status, harness plan, harness status, and bounded harness logs.
+    statement: The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change guidance, verification, roadmap status and recommendation, and tech status.
     scenarios:
       mcp-read-tools-are-discoverable:
         - GIVEN: the MCP server registers its tool inventory
         - WHEN: read-only tool definitions are inspected
-        - THEN: the expected workflow, change, roadmap, tech, and harness diagnostic tools are present
-        - AND: every read-only tool reports safety class read
+        - THEN: the expected workflow, change, roadmap, and tech diagnostic tools are present, no harness tool is present, and every read-only tool reports safety class read
   cli-mcp-read-tool-delegation:
     strength: MUST
     statement: Each read-only MCP tool MUST delegate to the existing strict CLI command surface under the configured project root instead of reimplementing strict workflow behavior.
@@ -1414,13 +1314,12 @@ requirements:
         - THEN: the workspace diff after the calls matches the captured diff
   cli-mcp-mutating-tool-inventory:
     strength: MUST
-    statement: The MCP server MUST expose guarded mutating tools for init, proposal creation, artifact generation, task-state completion, roadmap sync, archive, harness lifecycle, and harness session creation with explicit safety and mutation metadata.
+    statement: The MCP server MUST expose guarded mutating tools for init, proposal creation, artifact generation, task-state completion, roadmap sync, and archive with explicit safety and mutation metadata.
     scenarios:
       mcp-mutating-tools-are-discoverable:
         - GIVEN: the MCP tool inventory is inspected
         - WHEN: mutating tool definitions are enumerated
-        - THEN: init, propose, generate, apply-backed task completion, roadmap sync, archive, harness lifecycle, and harness session creation tools are present
-        - THEN: each mutating tool reports mutates true and a conservative safety class
+        - THEN: init, propose, generate, apply-backed task completion, roadmap sync, and archive tools are present, no harness lifecycle or harness session tool is present, and each mutating tool reports mutates true and a conservative safety class
   cli-mcp-mutating-tool-delegation:
     strength: MUST
     statement: Each mutating MCP tool MUST delegate to the existing strict CLI command surface under the configured project root and MUST preserve strict CLI preconditions and failure diagnostics.
@@ -1441,23 +1340,20 @@ requirements:
         - AND: no project mutation is attempted by the MCP handler
   cli-mcp-mutating-tool-safety-boundaries:
     strength: MUST
-    statement: Mutating MCP tool descriptions and envelopes MUST make project-state mutation explicit, including write, lifecycle, and release safety classes, and the apply-backed tool MUST be worded as task-state completion rather than implementation work.
+    statement: Mutating MCP tool descriptions and envelopes MUST make project-state mutation explicit, including write and release safety classes, and the apply-backed tool MUST be worded as task-state completion rather than implementation work.
     scenarios:
       mcp-mutating-tools-report-confirmation-metadata:
         - GIVEN: MCP clients inspect mutating tool metadata and call results
         - WHEN: mutating tools are registered or executed
-        - THEN: descriptions identify project-state mutation or lifecycle effects
-        - AND: returned envelopes include the tool safety class and mutates true
-        - AND: the apply-backed tool is named and described as marking the next task complete
+        - THEN: descriptions identify project-state mutation effects, returned envelopes include the tool safety class and mutates true, and the apply-backed tool is named and described as marking the next task complete
   cli-mcp-resource-inventory:
     strength: MUST
-    statement: The MCP server MUST expose bounded strict workflow resources for config, workflow state, changes, change artifacts, specs, roadmap, tech standards, and harness declaration using stable strict:// URI conventions.
+    statement: The MCP server MUST expose bounded strict workflow resources for config, workflow state, changes, change artifacts, specs, roadmap, and tech standards using stable strict:// URI conventions.
     scenarios:
       mcp-resources-are-discoverable:
         - GIVEN: the MCP resource inventory is inspected
         - WHEN: resource definitions are enumerated
-        - THEN: the expected strict workflow resource URIs and URI templates are present
-        - THEN: resources are listed in stable order
+        - THEN: the expected strict workflow resource URIs and URI templates are present in stable order and no harness declaration resource is listed
   cli-mcp-resource-reading:
     strength: MUST
     statement: MCP resource reads MUST return deterministic text content for valid strict workflow artifacts and generated strict summaries.
@@ -1478,13 +1374,12 @@ requirements:
         - AND: no arbitrary repository file is exposed
   cli-mcp-prompt-inventory:
     strength: MUST
-    statement: The MCP server MUST expose stable prompt inventory entries for strict proposal, application, review, archive, roadmap recommendation, and harness investigation workflows, including typed argument schemas and user-facing descriptions.
+    statement: The MCP server MUST expose stable prompt inventory entries for strict proposal, application, review, archive, and roadmap recommendation workflows, including typed argument schemas and user-facing descriptions.
     scenarios:
       mcp-prompts-are-discoverable:
         - GIVEN: the MCP server prompt inventory is inspected
         - WHEN: prompt entries are enumerated
-        - THEN: strict_propose_change, strict_apply_change, strict_review_change, strict_archive_change, strict_roadmap_recommend, and strict_harness_investigation are present
-        - AND: each prompt declares its expected typed arguments and description
+        - THEN: strict_propose_change, strict_apply_change, strict_review_change, strict_archive_change, and strict_roadmap_recommend are present with their typed arguments and descriptions, and no harness investigation prompt is present
   cli-mcp-prompt-rendering:
     strength: MUST
     statement: MCP prompts MUST render deterministic user messages derived from existing strict skill workflow guidance and MUST preserve strict verification, review, archive, and safety boundaries.
@@ -1523,8 +1418,7 @@ requirements:
       mcp-mutating-tool-proceeds-with-confirmation:
         - GIVEN: a mutating MCP tool is called with valid typed arguments and confirm set to true
         - WHEN: the MCP server processes the call
-        - THEN: the delegated strict CLI command runs under the configured project root
-        - AND: the confirm flag is forwarded to the CLI only for harness lifecycle commands
+        - THEN: the delegated strict CLI command runs under the configured project root and the confirm flag is consumed at the server boundary rather than forwarded to the delegated command
   cli-mcp-tool-error-signaling:
     strength: MUST
     statement: MCP tool results MUST set the protocol isError flag when input validation fails, a required confirmation is missing, or the delegated strict CLI command exits non-zero, while still returning the deterministic JSON envelope as the result content.
@@ -3469,3 +3363,39 @@ requirements:
         - GIVEN: the active roadmap records planned change first-ready in milestones m1 and m2 and change first-ready exists
         - WHEN: generate first-ready proposal runs with --milestone m1 --planned-change first-ready
         - THEN: the command exits non-zero stating the planned change is recorded more than once and the proposal is left unchanged
+  cli-archive-prunes-emptied-main-specs:
+    strength: MUST
+    statement: The system MUST make archive delete a main spec whose requirements a change's delta spec removes entirely, together with any spec directory that deletion leaves empty, regenerate the spec index without it in the same archive operation, and report each pruned spec path in the archive JSON output.
+    scenarios:
+      archive-prunes-fully-removed-spec:
+        - GIVEN: an active change whose delta spec REMOVES every requirement of an existing main spec
+        - WHEN: archive runs for that change
+        - THEN: the main spec file and its emptied directory no longer exist, the regenerated spec index no longer lists the spec, and the archive output names the pruned spec path
+      archive-keeps-partially-removed-spec:
+        - GIVEN: an active change whose delta spec REMOVES some but not all requirements of an existing main spec
+        - WHEN: archive runs for that change
+        - THEN: the main spec file remains with its surviving requirements, the spec index still lists it, and the archive output reports no pruned spec
+      archive-prunes-spec-emptied-by-a-refused-attempt:
+        - GIVEN: an active change whose earlier archive attempt was refused after its delta spec had already emptied a main spec, so the emptied spec is still on disk
+        - WHEN: archive is retried for that change
+        - THEN: the absent REMOVED targets are skipped, the emptied main spec and its emptied directory are deleted, and the archive output names the pruned spec path
+  cli-harness-capability-absent:
+    strength: MUST
+    statement: The system MUST NOT register any harness command, MUST NOT scaffold a harness declaration during init, MUST NOT list harness or harness-session schemas, scaffold templates, or samples through the discovery commands, MUST NOT expose harness tools, resources, or prompts through the MCP server, and MUST ignore residual harness declaration, harness session, and harness wrapper files left in a consuming project.
+    scenarios:
+      former-harness-command-is-unknown:
+        - GIVEN: the strict CLI is installed
+        - WHEN: an operator or AI agent invokes a former harness command such as harness-plan or harness-session
+        - THEN: the command exits non-zero through the ordinary unknown-command diagnostic and no alias or harness-specific retirement message is printed
+      init-scaffolds-no-harness-declaration:
+        - GIVEN: a project without strict workflow state
+        - WHEN: init runs
+        - THEN: the created .strict-spec-driven/ directory contains no harness.yaml and no harness-sessions directory
+      discovery-lists-no-harness-assets:
+        - GIVEN: the bundled schema, scaffold, and sample assets
+        - WHEN: schema-list, template-list, sample-list, and yaml-surface-list run
+        - THEN: no harness or harness-session schema, template, sample, or artifact family is reported
+      residual-harness-files-are-ignored:
+        - GIVEN: a strict project that still contains .strict-spec-driven/harness.yaml, a harness-sessions directory, and scripts/harness-* wrappers from an earlier version
+        - WHEN: check-workflow-state, ready, and verify run for a valid change
+        - THEN: each command succeeds exactly as it would without those files and reports no diagnostic about them
