@@ -1,0 +1,144 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+spec:
+  title: DSH Strict Document Viewer Behavior
+  path: .strict-spec-driven/specs/dsh-viewer/behavior.yaml
+operations:
+  ADDED:
+    tree-family-order:
+      strength: MUST
+      statement: 'The document tree presents the strict artifact families of the shown Session workspace in the fixed order config, architecture, roadmap, changes, scenes, specs, tech, lessons, SOPs, and design system, populating each family from its canonical locations under .strict-spec-driven/: config.yaml for config, architecture.yaml for architecture, roadmap/INDEX.yaml with milestones/, planned-changes/, and archive/ for roadmap, the active change directories with archive/ for changes, scenes/INDEX.yaml with the scene subdirectories for scenes, specs/INDEX.yaml with the spec area subdirectories for specs, tech/INDEX.yaml with the standards for tech, lessons/INDEX.yaml with the category subdirectories for lessons, sops/INDEX.yaml with categories/ and the SOP files for SOPs, and design-system.yaml for the design system.'
+      scenarios:
+        families-in-fixed-order:
+          - GIVEN: the shown Session workspace is a strict-spec-driven repository containing config, architecture, roadmap, changes, scenes, specs, tech, and lessons artifacts
+          - WHEN: the document tree is rendered
+          - THEN: the families appear in the fixed order config, architecture, roadmap, changes, scenes, specs, tech, lessons, SOPs, design system, each populated from its canonical locations under .strict-spec-driven/
+        family-source-paths:
+          - GIVEN: the workspace holds a roadmap index, milestone files, planned-change files, and an archived roadmap directory
+          - WHEN: the roadmap family is listed
+          - THEN: it presents the recorded milestones, planned changes, and archived items sourced from roadmap/INDEX.yaml, roadmap/milestones/, roadmap/planned-changes/, and roadmap/archive/
+    absent-family-omitted:
+      strength: MUST
+      statement: A strict artifact family whose canonical locations are absent from the workspace is omitted from the document tree rather than shown as an empty group.
+      scenarios:
+        absent-family-omitted:
+          - GIVEN: the workspace holds no sops directory and no design-system.yaml
+          - WHEN: the document tree is rendered
+          - THEN: the SOPs and design-system families are omitted entirely rather than shown as empty groups
+    document-labels:
+      strength: MUST
+      statement: Each tree node carries a display label derived from the document's declared artifact fields, falling back to the file name when no declaring field is available, and archived changes and archived roadmap items are labeled from their directory or file names alone so an archive can be listed without reading its files.
+      scenarios:
+        label-from-artifact-fields:
+          - GIVEN: a listed document declares identifying artifact fields such as an id or title
+          - WHEN: its tree node renders
+          - THEN: the label is derived from those declared fields, with the file name used only when no declaring field is available
+        archived-labels-without-reading:
+          - GIVEN: the change archive holds dated change directories and the roadmap archive holds archived milestone and planned-change files
+          - WHEN: the archived groups are listed
+          - THEN: every archived entry is labeled from its directory or file name alone, without the viewer reading the archived files' contents
+    archive-groups-collapsed:
+      strength: MUST
+      statement: Archived groups render collapsed by default, and the entries of a collapsed archived group are not read from the workspace until the operator expands it.
+      scenarios:
+        collapsed-unread-by-default:
+          - GIVEN: the workspace holds a change archive and a roadmap archive
+          - WHEN: the document tree first renders
+          - THEN: both archived groups are collapsed and their entries have not been read from the workspace
+        read-on-expand:
+          - GIVEN: an archived group is collapsed and its entries unread
+          - WHEN: the operator expands the group
+          - THEN: its entries are listed after being read on expansion
+    truncated-listing-marker:
+      strength: MUST
+      statement: When the entries available for a directory are cut short by the host's directory-listing limit, the tree shows an explicit truncation marker for that directory rather than implying the listing is complete.
+      scenarios:
+        marker-when-cut:
+          - GIVEN: the entries available for a listed directory are cut short by the host's directory-listing limit
+          - WHEN: the directory's group renders
+          - THEN: the tree shows an explicit truncation marker identifying the directory as incompletely listed
+    read-only-viewing:
+      strength: MUST
+      statement: The viewer offers no control that writes, edits, or deletes strict workflow files, and viewing interactions leave the contents of every listed file unchanged.
+      scenarios:
+        no-mutation-controls:
+          - GIVEN: the viewer is open on a workspace
+          - WHEN: its tree and document views are inspected and their controls exercised
+          - THEN: no control writes, edits, or deletes strict workflow files, and the contents of every listed file are unchanged after viewing
+    declared-values-only:
+      strength: MUST
+      statement: Document views show declared field values exactly as written in the file, and never present a derived roadmap status, validation result, or any other value not written in the file.
+      scenarios:
+        values-as-written:
+          - GIVEN: an open strict document declares field values such as a status or an order
+          - WHEN: the document view renders
+          - THEN: it shows the declared values exactly as written and presents no derived roadmap status, validation result, or other value not written in the file
+    generic-structured-rendering:
+      strength: MUST
+      statement: Opening any strict document from the tree renders it as a structured view of its YAML fields, uniformly for every artifact type.
+      scenarios:
+        any-document-structured:
+          - GIVEN: any strict document in the tree, including artifact types without a dedicated renderer
+          - WHEN: the operator opens it
+          - THEN: it renders as a structured view of its YAML fields, uniformly for every artifact type
+    located-parse-error:
+      strength: MUST
+      statement: Opening a strict document whose YAML cannot be parsed renders a parse-error view naming the error's location, while the tree and the open view keep working.
+      scenarios:
+        parse-error-located:
+          - GIVEN: a strict document in the tree contains YAML that cannot be parsed
+          - WHEN: the operator opens it
+          - THEN: the view renders a parse error naming the error's location instead of failing the tree or the open view
+    empty-state:
+      strength: MUST
+      statement: When the shown workspace has no .strict-spec-driven/ directory, both entry points show an explicit empty state instead of a document tree.
+      scenarios:
+        no-workflow-directory:
+          - GIVEN: the shown workspace has no .strict-spec-driven/ directory
+          - WHEN: either entry point opens
+          - THEN: it shows an explicit empty state instead of a document tree
+    live-refresh:
+      strength: MUST
+      statement: Loaded tree directories and the open document refresh automatically when their files change on disk without a manual reload, and an open document removed from disk is reflected as no longer present.
+      scenarios:
+        loaded-directory-refresh:
+          - GIVEN: a tree directory has been loaded
+          - WHEN: a strict file inside that directory changes on disk
+          - THEN: the tree refreshes that directory without a manual reload
+        open-document-refresh:
+          - GIVEN: a strict document is open in the view
+          - WHEN: the open file changes on disk
+          - THEN: the open view refreshes to the new content without a manual reload
+        removed-document-reflected:
+          - GIVEN: a strict document is open in the view
+          - WHEN: the open file is deleted from disk
+          - THEN: the view and the loaded tree update to reflect that the document is no longer present
+    right-sidebar-tab:
+      strength: MUST
+      statement: The right-sidebar tab follows the active Session and shows that Session's workspace through the document tree and document view.
+      scenarios:
+        tab-follows-active-session:
+          - GIVEN: the operator switches the active Session in the dsh client while the strict documents right-sidebar tab is open
+          - WHEN: the tab renders
+          - THEN: it shows the active Session's workspace through the document tree and document view
+    left-page-session-picker:
+      strength: MUST
+      statement: The left-sidebar page offers an explicit Session picker, shows the chosen Session's workspace, and shares the tree behavior and document rendering with the right-sidebar tab.
+      scenarios:
+        picker-chooses-session:
+          - GIVEN: the left-sidebar page is open
+          - WHEN: the operator picks a Session in the Session picker
+          - THEN: the page shows that Session's workspace through the same tree behavior and document rendering as the right-sidebar tab
+    host-compatibility-gate:
+      strength: MUST
+      statement: The viewer declares a dsh release compatibility range and registers no document UI when the running dsh release falls outside that range, so no partially working tree or document view is shown.
+      scenarios:
+        outside-pin-no-ui:
+          - GIVEN: the viewer plugin declares a dsh release compatibility range
+          - WHEN: a dsh release outside that range loads the plugin
+          - THEN: no viewer document UI registers and no partially working tree or document view is shown
+  MODIFIED: {}
+  REMOVED: {}

@@ -7,6 +7,10 @@ standards:
     title: CLI Command Metadata
     category: architecture
     path: .strict-spec-driven/tech/cli-command-metadata.yaml
+  - id: dsh-plugin-client
+    title: DSH Plugin Client Conventions
+    category: ui
+    path: .strict-spec-driven/tech/dsh-plugin-client.yaml
   - id: typescript-esm-baseline
     title: TypeScript ESM Baseline
     category: coding

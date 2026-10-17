@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: render-roadmap-artifacts
+  milestone: dsh-strict-spec-viewer-renderers
+status: planned
+summary: Render roadmap index, milestone, and planned-change artifacts as status-first, navigable planning views.
+details: 'Apply the unknown-field-display answer recorded in the milestone notes. Milestone view: title, declared status badge, goal, scope in and out side by side, done criteria as a checklist, dependencies, risks, notes, details, and intake questions as cards showing question, context, impact, and recommendation. It also lists the planned changes owned by the milestone with their declared status, found by reading the non-archived planned-change files whose milestone field names it, and the archived planned-change files when the milestone is itself archived. Planned-change view: summary, details, declared status, owning milestone, and depends_on entries that navigate the tree to the target, showing a visible unresolved marker when the target is not found. Roadmap index view: milestones in their order field sequence with declared status. Derived status is not shown, because only strict-spec-cli computes it. Apply the same renderers to roadmap archive files. Test each renderer against its registered strict example and against an archived milestone of this repository.'
+depends_on:
+  - register-right-sidebar-tab
+  - register-left-panel-page

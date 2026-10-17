@@ -1,0 +1,95 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+scene:
+  title: An operator browses strict documents in dsh
+  area: dsh-viewer
+  actors:
+    - name: operator
+      role: A person using a dsh client who reads strict workflow documents without editing them.
+  preconditions:
+    - The strict document viewer plugin is installed in a dsh client.
+    - The running dsh release is inside the viewer plugin's declared compatibility range.
+    - The Session workspace shown to the operator is a repository using the strict-spec-driven workflow.
+operations:
+  ADDED:
+    main_flow:
+      open-right-sidebar-tab:
+        action: The operator opens the strict documents tab from the dsh right sidebar, which follows the active Session and shows that Session's workspace.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: right-sidebar-tab
+      open-left-panel-page:
+        action: The operator opens the left-sidebar global page and picks a Session in its Session picker, which shows the chosen Session's workspace.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-session-picker
+      view-tree:
+        action: The operator views the document tree, which lists the strict artifact families present in the workspace in the fixed family order and omits families whose canonical locations are absent.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-family-order
+          - spec_id: dsh-viewer-behavior
+            requirement_id: absent-family-omitted
+      expand-family-group:
+        action: The operator expands a collapsed family group and its documents are listed with labels derived from their declared fields.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-family-order
+      expand-archive:
+        action: The operator expands an archived group that was collapsed by default and whose entries were unread until this expansion.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: archive-groups-collapsed
+      open-document:
+        action: The operator opens a strict document from the tree, which renders in the generic structured view showing its declared field values exactly as written.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: generic-structured-rendering
+          - spec_id: dsh-viewer-behavior
+            requirement_id: declared-values-only
+    exception_flows:
+      missing-workflow-directory:
+        trigger: The workspace of the active or chosen Session has no .strict-spec-driven/ directory.
+        steps:
+          show-empty-state:
+            action: The open entry point shows an explicit empty state instead of a document tree.
+            covered_by:
+              - spec_id: dsh-viewer-behavior
+                requirement_id: empty-state
+      malformed-yaml-document:
+        trigger: The operator opens a strict document whose YAML cannot be parsed.
+        steps:
+          show-located-parse-error:
+            action: The document view renders a parse error naming the error's location, and the tree remains usable.
+            covered_by:
+              - spec_id: dsh-viewer-behavior
+                requirement_id: located-parse-error
+      open-document-removed:
+        trigger: The document open in the view is deleted from disk while it is open.
+        steps:
+          reflect-removal:
+            action: The open view and the loaded tree update without a manual reload to reflect that the document is no longer present.
+            covered_by:
+              - spec_id: dsh-viewer-behavior
+                requirement_id: live-refresh
+      truncated-directory-listing:
+        trigger: A directory listing is cut short by the host workspace-files entry cap.
+        steps:
+          show-truncation-marker:
+            action: The tree shows an explicit truncation marker for the cut directory rather than implying a complete listing.
+            covered_by:
+              - spec_id: dsh-viewer-behavior
+                requirement_id: truncated-listing-marker
+      incompatible-dsh-release:
+        trigger: The running dsh release falls outside the viewer plugin's declared compatibility range.
+        steps:
+          withhold-viewer-ui:
+            action: No viewer document UI registers, so no partially working tree or document view is shown.
+            covered_by:
+              - spec_id: dsh-viewer-behavior
+                requirement_id: host-compatibility-gate
+  MODIFIED: {}
+  REMOVED: {}

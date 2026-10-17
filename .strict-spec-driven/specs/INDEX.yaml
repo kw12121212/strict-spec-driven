@@ -15,6 +15,9 @@ specs:
   - id: design-domain-behavior
     title: Design System Document Domain Behavior
     path: .strict-spec-driven/specs/design/domain-behavior.yaml
+  - id: dsh-viewer-behavior
+    title: DSH Strict Document Viewer Behavior
+    path: .strict-spec-driven/specs/dsh-viewer/behavior.yaml
   - id: lessons-domain-behavior
     title: Lessons Domain Behavior
     path: .strict-spec-driven/specs/lessons/domain-behavior.yaml

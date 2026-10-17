@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: render-spec-and-scene-artifacts
+  milestone: dsh-strict-spec-viewer-renderers
+status: planned
+summary: Render main specs, the specs index, scenes, and the scenes index, with scene step coverage linked to requirements.
+details: 'Spec view: title, purpose, and requirements with RFC keyword emphasis for MUST, SHOULD, and MAY, each requirement with its scenarios and a stable anchor. Specs index view grouped by spec area. Scene view: actors with their responsibilities, preconditions, the ordered main flow, and exception flows with trigger and outcome, where each step shows its covering requirements as links that open the requirement anchor in its spec or its explicit no-coverage reason, and visibly flags a step that names neither. Scenes index view grouped by subdirectory. Extend the discovery model with a requirement index if the foundation does not already provide one. Test against the registered spec, scene, and index examples and against this repository first real scene.'
+depends_on:
+  - register-right-sidebar-tab
+  - register-left-panel-page

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-dsh-viewer-contract
+sections:
+  Implementation:
+    author-viewer-delta-spec:
+      text: Author the dsh viewer behavior delta spec through generate delta-spec, creating the new main spec area dsh-viewer-behavior at .strict-spec-driven/specs/dsh-viewer/behavior.yaml with scenario-backed MUST requirements for the fixed family order and source paths, absent-family omission, display labels with filename fallback and archive labels without file reads, archived groups collapsed and unread until expanded, the truncation marker, the read-only guarantee, declared-values-only rendering, generic structured rendering, located parse errors, the empty state, live refresh, the Session-bound right-sidebar tab, the left-page Session picker, and the host compatibility gate.
+      status: complete
+    author-operator-delta-scene:
+      text: Author the delta scene operator-browses-strict-documents through generate delta-scene in the dsh-viewer area, with main-flow steps for opening both entry points, viewing the tree, expanding a family group, expanding an archive, and opening a document, and exception flows for a missing workflow directory, a malformed YAML file, a file removed while open, a truncated directory listing, and a dsh release outside the compatibility pin, every step naming covering requirements in dsh-viewer-behavior.
+      status: complete
+    author-plugin-client-delta-tech:
+      text: Author the plugin client conventions delta tech through generate delta-tech, creating the ui-category standard dsh-plugin-client with MUST rules for dsh shared modules kept external in the closure-factory CommonJS bundle, CSS Modules with --dsw-alias tokens and no literal colors or radii, zh and en locale registration for every user-visible string, props-and-stores-only data flow, the narrow engines.dsh pin, and dsh-free component tests.
+      status: complete
+  Testing:
+    validate-change-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate, confirming the delta spec, delta scene, and delta tech validate and every scene step coverage reference resolves through the change's own delta spec overlay; the readiness gate owns artifact validity while tasks are still pending.
+      status: complete
+      command: strict-spec-cli ready define-dsh-viewer-contract
+    lint-typecheck:
+      text: Run the project lint command so the contract change is held to the same type gate as code changes.
+      status: complete
+      command: bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite to confirm the CLI surface that validates these artifacts behaves unchanged, since the change authors contract artifacts only.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    confirm-contract-only-scope:
+      text: Confirm the change authors contract artifacts only, with no src, script, generated-asset, or skill-prompt edits, so CLI validation and the regression suite are the complete test evidence.
+      status: complete
+    confirm-archive-merge-targets:
+      text: 'Confirm the archive merge targets are consistent: the delta spec creates the dsh-viewer-behavior entry in the regenerated spec index, the delta scene creates the operator-browses-strict-documents entry in the regenerated scene index, and the delta tech creates the dsh-plugin-client entry in the regenerated tech index, leaving existing entries untouched.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify define-dsh-viewer-contract directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-change-artifacts
+  unit_test_task: run-project-suite

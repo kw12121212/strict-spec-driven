@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-dsh-viewer-contract
+approach:
+  - 'Populate the change through strict-spec-cli generate calls only: a proposal linked to the owning milestone and planned change, design decisions, one delta spec creating the dsh-viewer-behavior area, one delta scene creating the operator browsing scene, and one delta tech creating the ui-category plugin client standard.'
+  - Derive every requirement, scenario, scene step, and tech rule from the milestone scope, notes, risks, and answered intake questions and from the planned change summary and details, so the contract replays roadmap decisions rather than inventing new ones.
+decisions:
+  viewer-spec-area-naming:
+    decision: Create the new main spec area as dsh-viewer-behavior at .strict-spec-driven/specs/dsh-viewer/behavior.yaml.
+    rationale: Every existing spec id pairs an area directory with a topic, such as cli/foundation and roadmap/domain-behavior; a dedicated dsh-viewer area keeps the viewer contract separable from CLI domain specs and gives the renderers milestone a natural place to extend.
+  scene-steps-cover-own-delta-spec:
+    decision: Cover every scene step with requirements in this change's own dsh-viewer-behavior delta spec, including a host compatibility gate requirement for the dsh-release exception flow, so no step is waived.
+    rationale: Verify resolves scene coverage against the main specs overlaid with the change's delta specs, so a contract-first scene can name the spec it creates; the planned change also requires every step to name covering requirements rather than waive.
+  tech-standard-in-ui-category:
+    decision: Create the plugin client standard as dsh-plugin-client and open the new ui category with it.
+    rationale: The workflow config already assigns UI engineering and design rules to the ui category and no ui-category standard exists yet, so this change opens the category with the plugin client conventions the config rules call for.
+  contract-only-no-plugin-code:
+    decision: Author contract artifacts only and add no plugin package, build tooling, or client code.
+    rationale: The milestone orders work contract first so the scaffold change and the feature changes implement against a pinned, reviewable contract instead of letting implementation constraints quietly rewrite the requirement set.
+alternatives:
+  - option: Author the viewer contract as prose documentation inside the future plugin package.
+    reason: Prose cannot gate ready or verify and archive would never merge it into the main specs, so the contract would start drifting as soon as the plugin changed.
+  - option: Defer the contract to the scaffold change and specify the viewer alongside the first feature code.
+    reason: Specifying behavior while writing code lets implementation constraints rewrite the requirement set under time pressure, which is exactly the failure the contract-first ordering exists to prevent.
+risks:
+  - The viewer spec pins behavior against pre-stable dsh slot and remote contracts, so a later dsh release may force requirement edits even before the plugin ships.
+  - A generic renderer contract written now must stay honest until dedicated renderers land in the next milestone, or the renderers milestone inherits an over-specific or stale contract.

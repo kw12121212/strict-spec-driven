@@ -1,0 +1,75 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  dsh-strict-spec-viewer-foundation:
+    title: DeepSeek Harness strict document viewer foundation
+order: 700
+goal: Ship a DeepSeek Harness (dsh) client plugin, built as a sub-package of this repository, that lists every strict workflow document of the session workspace in a collapsible, indented sidebar tree with archived content collapsed by default, and opens any selected document in a readable structured view, from both a right-sidebar tab and a left-sidebar global page.
+scope:
+  in:
+    - 'A viewer behavior contract: a new main spec area for the dsh viewer, a delta scene for an operator browsing strict documents inside dsh, and a delta technical standard for plugin client conventions'
+    - A plugin sub-package under plugins/dsh-strict-spec/ with dsh bundle and client manifest fields, an engines.dsh compatibility pin, a cordis patch, an empty host entry, and a Bun-based client build producing the ModuleLoader closure-factory CJS bundle with dsh shared modules kept external
+    - A read-only document discovery model that walks .strict-spec-driven/ through the remote.workspaceFiles list and read calls, classifies files by path and artifact_type into a fixed taxonomy, derives display labels from artifact fields, and refreshes from the workspaceFiles change stream
+    - A collapsible indented document tree with archived groups collapsed by default and loaded only on expand, counts and status badges, keyboard navigation, virtualization for large archives, and loading, empty, and error states
+    - A generic structured YAML document renderer used for every artifact type until a dedicated renderer exists
+    - zh and en locale registration for every user-visible string
+    - A Session-bound right-sidebar tab with a guide entry, and a left-sidebar panel icon opening a two-pane main page with an explicit Session picker, both sharing one tree and one renderer
+  out:
+    - Dedicated per-artifact-type renderers for roadmap, change, spec, scene, and project-context artifacts, owned by the dsh-strict-spec-viewer-renderers milestone
+    - Any write, edit, or mutation of strict YAML from the plugin; the viewer is read-only and mutation stays with strict-spec-cli
+    - Invoking strict-spec-cli or a custom host RPC namespace from the plugin, since dsh does not expose third-party remote namespaces
+    - Changes to strict artifact schemas, the strict CLI, or the MCP server to suit the viewer
+    - Upstream changes to deepseek-harness itself, including a published client build preset
+    - Rendering of non-strict files outside .strict-spec-driven/
+    - Derived roadmap status, validation diagnostics, scene coverage gaps, or any other result only strict-spec-cli can compute; the viewer shows declared field values as written in each file
+done_criteria:
+  - 'dsh plugin add with a link: spec loads the built plugin in the pinned dsh release, and its client module is served without load errors in both the web client and the desktop profile'
+  - Selecting any non-archived strict document renders it through the generic structured renderer, and a malformed YAML file renders a located parse error instead of breaking the tree
+  - A workspace with no .strict-spec-driven/ directory shows an explicit empty state in both entry points
+  - Editing a strict file on disk updates the open tree and document view without a manual reload
+  - Plugin unit tests run inside bun test/run.ts, a bundle-shape test proves shared dsh modules are not inlined, and bun scripts/coverage-gate.ts --threshold 78 still passes
+  - Opened on this repository, the tree shows every strict artifact family present in the workspace (config, architecture, roadmap, changes, scenes, specs, tech, lessons) at stable indentation levels and omits families absent from it (SOPs and design system here), with the roadmap archive and the change archive collapsed and their files unread until expanded
+  - The right-sidebar tab follows the active Session, and the left-sidebar page lets the operator choose a Session explicitly and shows that Session workspace
+intake_questions:
+  - id: dsh-version-target
+    question: Which deepseek-harness release does the plugin pin in engines.dsh and in its @deepseek-ai/dsh-client-* dev dependencies?
+    context: 'Answered by the requester: target the newest next-tag release available when the scaffold change starts. At planning time the cloned master reported 0.2.1-alpha.5 while npm published 0.2.1-rc.2 on the next tag, and slot contracts are not yet stable.'
+    impact: Settled; the scaffold change fixes package.json engines, dev dependency versions, and the release used for the load smoke check from this answer.
+    recommendation: Pin engines.dsh to the patch line of the newest next-tag release at scaffold time only, and treat any later dsh upgrade as its own planned change.
+  - id: plugin-test-wiring
+    question: How are plugin tests run and measured, given the coverage gate scope is src/** only?
+    context: 'Answered by the requester: plugin unit tests run from bun test/run.ts as a registered suite so complete regression exercises them, and the coverage gate scope stays src/** with config.yaml review_evidence unchanged.'
+    impact: Settled; the scaffold change registers the plugin suite in test/run.ts and does not edit config.yaml.
+    recommendation: Keep plugin logic in pure modules testable without a running dsh, and revisit coverage scope only if plugin regressions start escaping review.
+  - id: plugin-package-name
+    question: What npm package name does the plugin use?
+    context: 'Answered by the requester: the unscoped name dsh-plugin-strict-spec.'
+    impact: Settled; package.json, the cordis patch insert entry, install commands, and documentation use this name.
+    recommendation: Use dsh-plugin-strict-spec everywhere the plugin is named.
+planned_changes: {}
+dependencies:
+  - No incomplete milestone in this repository blocks this work
+  - 'External: a published deepseek-harness release whose @deepseek-ai/dsh-client-* packages provide the sidebar.panellist, main, sidebarRightTabs, and remote.workspaceFiles contracts'
+risks:
+  - dsh is pre-stable (0.2.1 alpha and rc builds), so slot and remote contracts can change between releases and break the plugin silently unless the engines.dsh pin is narrow
+  - dsh publishes no client build preset, so the ModuleLoader closure-factory wrapper and the shared-module externals list are reproduced by hand and can drift from what the host loader expects
+  - No in-repo third-party client plugin exists upstream, so the install-to-render path is unproven until the scaffold change exercises it end to end
+  - Plugin code lives outside src/**, so the blocking coverage gate does not measure it and thin plugin tests would pass unnoticed unless the test-wiring decision is made explicitly
+  - Adding React and a second bundle target to a Bun and tsc repository can break the root build or the native CLI build if the plugin is not isolated from them
+  - remote.workspaceFiles list returns direct children only and silently drops entries past its 2000-entry cap with a truncated flag and no paging, so a directory over the cap cannot be fully listed and the tree must show an explicit truncation marker rather than imply completeness
+  - remote.workspaceFiles changes watches one file or one directory's direct entries and is not recursive, so live refresh needs one watch per loaded directory plus the open document, and a change inside an unloaded or archived directory is not observed until it is expanded
+status: proposed
+notes:
+  - 'Decided by the requester: the plugin lives in this repository as a sub-package rather than a separate repository, so its renderers can be tested against the registered strict schemas and examples in lockstep'
+  - 'Decided by the requester: both entry points ship, a Session-bound right-sidebar tab and a left-sidebar global page, sharing one tree component and one renderer'
+  - 'Decided from dsh constraints: the client reads files only through remote.workspaceFiles and parses YAML with its own bundled yaml copy, because dsh mounts remote namespaces at build time and a third-party plugin cannot add one'
+  - The viewer is user-observable behavior, so each change in this milestone answers the scene questions and carries a delta scene rather than recording a no-scene reason
+  - Archived content is collapsed by default because this repository alone holds about 280 archived changes; lazy loading on expand is a requirement, not an optimization
+  - 'Verified against the deepseek-harness workspace-files README: every remote.workspaceFiles call takes a sessionId, list is workspace-scoped with a 2000-entry cap and a truncated flag but no paging, read returns line pages of at most 5000 lines, readBytes without a range returns a complete file up to 32 MiB, and changes watches one file or one directory''s direct entries'
+  - Because the main slot gives the left-sidebar page no Session binding and every file call needs a sessionId, the left page picks a Session rather than a bare workspace path
+  - 'Decided by the requester: the plugin pins engines.dsh to the patch line of the newest next-tag dsh release available when the scaffold change starts'
+  - 'Decided by the requester: plugin tests run from bun test/run.ts as a registered suite, and the coverage gate scope stays src/** with config.yaml unchanged'
+  - 'Decided by the requester: the plugin package name is dsh-plugin-strict-spec'
+details: 'The requester wants strict workflow state to be readable inside DeepSeek Harness without opening raw YAML. dsh is an everything-is-a-plugin harness built on Cordis; an installable bundle is an npm package declaring dsh.bundle and dsh.client, whose client half is React 18 components loaded through a closure-factory CJS module. Work is ordered contract first: the viewer spec, scene, and client technical standard land before the package exists, the package scaffold proves the install-to-load path before any feature code, the discovery model lands before the tree consumes it, and the two entry points land last so both reuse the same tree and generic renderer. Dedicated renderers are deliberately deferred to the next milestone so this milestone is usable on its own.'

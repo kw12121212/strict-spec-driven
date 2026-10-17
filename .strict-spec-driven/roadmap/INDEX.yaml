@@ -27,3 +27,11 @@ milestones:
     title: Scene-driven requirements entry point
     path: roadmap/milestones/scene-driven-requirements.yaml
     status: complete
+  dsh-strict-spec-viewer-foundation:
+    title: DeepSeek Harness strict document viewer foundation
+    path: roadmap/milestones/dsh-strict-spec-viewer-foundation.yaml
+    status: proposed
+  dsh-strict-spec-viewer-renderers:
+    title: Dedicated strict artifact renderers and dsh plugin release
+    path: roadmap/milestones/dsh-strict-spec-viewer-renderers.yaml
+    status: proposed

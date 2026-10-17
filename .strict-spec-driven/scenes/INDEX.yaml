@@ -3,6 +3,11 @@ schema_version: 1
 artifact_type: scenes_index
 schema_file: templates/strict-spec-driven/schemas/scenes-index.yaml
 areas:
+  dsh-viewer:
+    operator-browses-strict-documents:
+      title: An operator browses strict documents in dsh
+      status: draft
+      path: .strict-spec-driven/scenes/dsh-viewer/operator-browses-strict-documents.yaml
   workflow:
     roadmap-backed-change-reaches-archive:
       title: A roadmap-backed change is carried from recommendation to archive

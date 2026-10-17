@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: build-document-discovery-model
+  milestone: dsh-strict-spec-viewer-foundation
+status: planned
+summary: Build the read-only discovery model that turns a workspace .strict-spec-driven/ directory into a classified, labeled, lazily loaded document tree.
+details: 'Implement pure TypeScript modules with no React dependency, each taking a sessionId because every remote.workspaceFiles call requires one. (1) A traversal over remote.workspaceFiles list that recurses by directory, defers archive directories until requested, and records the truncated flag of any listing as a visible truncation node rather than retrying or paging, since list has no paging. (2) A classifier mapping each path and its artifact_type to a taxonomy node from the viewer contract, with an unknown-artifact fallback. (3) A label deriver: non-archived documents take milestone titles, change names, spec titles, scene names, and lesson titles, with filename fallback; archived entries take their directory or file name without being read. (4) A document loader that reads the complete file, through readBytes with no range decoded as UTF-8 or through read pages until eof, and a bundled yaml parser. The loader returns either parsed data or a located parse error. (5) A refresh coordinator that opens one remote.workspaceFiles changes watch per loaded directory and one for the open document, closes watches when their node collapses or the document closes, and invalidates only the affected node; changes is not recursive. Expose the model through a client store so components receive data only through props and stores. Test against fixture trees and against a snapshot of this repository''s real .strict-spec-driven/ directory. Cover the archive size, a truncated listing, a malformed file, a missing workflow directory, a removed open file, and an artifact_type the classifier does not know.'
+depends_on:
+  - scaffold-dsh-plugin-package

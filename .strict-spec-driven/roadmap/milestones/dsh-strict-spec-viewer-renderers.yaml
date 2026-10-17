@@ -1,0 +1,55 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  dsh-strict-spec-viewer-renderers:
+    title: Dedicated strict artifact renderers and dsh plugin release
+order: 800
+goal: Replace the generic YAML view with purpose-built, readable renderers for every strict artifact family, linked to each other through the tree, and release the dsh viewer plugin with documented installation for the web client and the desktop profile.
+scope:
+  in:
+    - Roadmap renderers for the roadmap index, milestones, and planned changes, including status, scope, done criteria, risks, notes, intake questions, and navigable dependencies
+    - Change renderers for proposal, design, tasks, questions, and change-scoped delta spec, delta scene, and delta tech files, for both active and archived changes
+    - Spec and scene renderers for main specs, the specs index, scenes, and the scenes index, with requirement keyword emphasis and scene step coverage links that navigate to the covering requirement
+    - Project-context renderers for config, architecture, technical standards, lessons, SOPs, and design system artifacts
+    - Renderer tests driven by the registered strict examples so a schema change that breaks a renderer fails the regression suite
+    - 'Release preparation: en and zh plugin README, install instructions for the web client and desktop profile, packaging verification, and an end-to-end smoke check against the pinned dsh release'
+  out:
+    - Editing or mutating strict artifacts from any renderer
+    - Rendered output for non-strict files or for generated Markdown documents such as ARCHITECTURE.md
+    - Changing strict artifact schemas so that they render more easily
+    - Derived roadmap status, validation diagnostics, or computed scene coverage gaps; renderers show declared field values, and the scene view flags only steps whose declared coverage is empty
+    - Any npm publication or public discovery listing, including the dsh-plugin GitHub topic and plugin markets; the project is not distributed externally
+done_criteria:
+  - Every artifact type present in this repository .strict-spec-driven/ directory opens in a dedicated renderer, and any unrecognized top-level field is still shown through the generic renderer rather than hidden
+  - A tasks view shows per-section and overall completion, and a questions view separates open from resolved questions
+  - A scene view shows actors, preconditions, the ordered main flow, and exception flows, and each step coverage link opens the covering requirement in its spec
+  - Each renderer has a test that renders the registered strict example of its artifact type, and the suite passes under bun test/run.ts
+  - bun scripts/coverage-gate.ts --threshold 78 passes
+  - A milestone view lists its planned changes with their declared status, and selecting a planned change or a dependency navigates the tree to it
+  - 'The plugin README in en and zh documents installing from a local checkout into the web client and the desktop profile, dsh installs the plugin from a link: spec and from a locally packed tarball, and an end-to-end smoke check on this repository with the pinned dsh release is recorded'
+intake_questions:
+  - id: unknown-field-display
+    question: How should a dedicated renderer present fields its artifact schema version does not know?
+    context: Strict schemas evolve in this repository; a renderer written for today shape could hide newly added fields from operators reading a newer project.
+    impact: Settled before the first renderer change because every renderer follows the same rule.
+    recommendation: Render known fields in the dedicated layout and append every unrecognized top-level field through the generic renderer under an additional-fields section.
+  - id: npm-publication
+    question: Is the plugin published to npm within this milestone, or only made installable locally?
+    context: 'Answered by the requester: this project is not distributed externally, so the plugin is never published to npm and is not listed through the dsh-plugin GitHub topic or a plugin market.'
+    impact: Settled; the release change ends at local installation verification and contains no publish step.
+    recommendation: 'Install the plugin only from a local link: spec or a locally packed tarball.'
+planned_changes: {}
+dependencies:
+  - 'dsh-strict-spec-viewer-foundation must be complete: renderers plug into its tree, generic renderer, and both entry points'
+risks:
+  - Renderers encode the current shape of each strict schema, so schema evolution in this repository can silently degrade them unless example-driven tests fail first
+  - Cross-document navigation, such as scene step to requirement and planned change to dependency, depends on stable ids that the discovery model must index, and a missing index entry produces a dead link rather than an error
+  - A dsh release upgrade between the foundation and release changes can break the smoke check and force an engines.dsh bump inside this milestone
+status: proposed
+notes:
+  - Renderer tests consume the registered examples under examples/strict-spec-driven/ rather than private fixtures, which is the lockstep benefit of keeping the plugin in this repository
+  - 'Answers unknown-field-display from the milestone evidence: each dedicated renderer lays out the fields it knows and appends every unrecognized top-level field through the generic renderer under an additional-fields section, and an unknown artifact_type keeps the generic renderer, so a newer strict schema never makes content disappear'
+  - 'Decided by the requester: the project is not distributed externally, so the plugin is installed only from a local link: spec or a locally packed tarball and is never published to npm'
+details: 'The foundation milestone makes every strict document reachable but shows each one through a generic structured view. This milestone gives each artifact family a renderer that matches how operators read it: roadmap status at a glance, task progress, open questions, requirement keywords, and scene coverage. Renderer changes are independent of one another and may land in any order once the foundation is complete; release lands last so its documentation and smoke check describe the finished viewer.'

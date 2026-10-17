@@ -1,0 +1,64 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-client
+standard:
+  title: DSH Plugin Client Conventions
+  category: ui
+operations:
+  ADDED:
+    shared-dsh-modules-external:
+      strength: MUST
+      statement: Plugin client code compiles to the dsh ModuleLoader closure-factory CommonJS bundle with every dsh shared module, including React and the host's shared client APIs, declared external, so the bundle never inlines a copy of a shared module.
+      rationale: The dsh host injects its shared modules at load time; a bundled duplicate would create a second React instance whose hooks and context do not match the host's, breaking slot rendering in ways that surface only at runtime.
+      enforcement:
+        method: test
+        detail: A bundle-shape test inspects the built client bundle and fails when a shared module id resolves to inlined code instead of a runtime require.
+      examples:
+        bad:
+          - a client bundle that contains the full React implementation inline
+    css-modules-dsw-tokens:
+      strength: MUST
+      statement: Plugin styles are written as CSS Modules that consume --dsw-alias design tokens through var() for colors and border radii, and a plugin style sheet declares no literal color value and no literal border-radius.
+      rationale: Literal colors and radii drift from the host design system across dsh releases, while tokens keep the plugin visually native and let theme changes propagate without plugin edits.
+      enforcement:
+        method: lint
+        detail: A style lint pass over the plugin's CSS Module files fails on literal color or radius declarations outside token definitions.
+      examples:
+        good:
+          - 'border-radius: var(--dsw-radius-md);'
+        bad:
+          - 'border-radius: 8px;'
+    zh-en-locale-registration:
+      strength: MUST
+      statement: Every user-visible string the plugin renders is registered in both the zh and en locale catalogs, and components render text only through those registered entries.
+      rationale: dsh clients run in either language, and a string hardcoded in one language is unreadable for the other audience; registered catalogs make a missing translation a checkable defect instead of a silent gap.
+      enforcement:
+        method: review
+        detail: Review compares the strings components render against both locale catalogs and fails any string that bypasses them.
+    props-and-stores-data-flow:
+      strength: MUST
+      statement: Data reaches plugin components only through props or stores, and no component reads the remote workspace API, the filesystem, or module-scope mutable state directly.
+      rationale: Keeping remote reads out of components keeps them renderable in dsh-free static tests and keeps the data flow auditable against the read-only viewer contract.
+      enforcement:
+        method: review
+        detail: Review traces each component's inputs to props or store subscriptions and fails any direct remote or filesystem access inside a component.
+    narrow-engines-dsh-pin:
+      strength: MUST
+      statement: The plugin's package.json declares engines.dsh pinned to the patch line of the dsh release the plugin was built against, and widening the pin is its own planned change.
+      rationale: dsh is pre-stable and its slot and remote contracts change between releases; a wide pin lets a future host silently load a plugin whose contracts no longer match.
+      enforcement:
+        method: review
+        detail: Review reads engines.dsh at patch-line granularity and treats any widening as an unapproved contract change.
+    dsh-free-component-tests:
+      strength: MUST
+      statement: Component tests render plugin components without a running dsh host, for example through react-dom/server static rendering, and the plugin adds no browser or DOM test dependency unless the change that adds it justifies why static rendering cannot exercise the behavior under test.
+      rationale: Static rendering executes the same component code the host mounts while keeping the Bun-based suite hermetic and free of browser toolchain drift.
+      enforcement:
+        method: test
+        detail: Component suites run inside bun test/run.ts without network, browser, or dsh processes.
+      exceptions:
+        - A change may introduce a DOM or browser test dependency when it records why react-dom/server static rendering cannot exercise the behavior under test.
+  MODIFIED: {}
+  REMOVED: {}

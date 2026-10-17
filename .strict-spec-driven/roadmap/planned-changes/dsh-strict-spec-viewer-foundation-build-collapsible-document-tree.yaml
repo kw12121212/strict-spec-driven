@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: build-collapsible-document-tree
+  milestone: dsh-strict-spec-viewer-foundation
+status: planned
+summary: Build the shared collapsible indented tree and the generic structured YAML renderer consumed by both entry points.
+details: 'Build a tree component on the ui-primitives disclosure primitives. Requirements: consistent indentation per level; file-type icons; per-group counts; declared status badges for milestones and planned changes read from their status field; archived groups collapsed by default and loaded only on expand; truncation nodes rendered as an explicit notice; expand state persisted per workspace; keyboard navigation; and virtualization through @tanstack/react-virtual, so an archive of hundreds of changes stays responsive. Build a generic document renderer: top-level scalar fields as a header, mappings as titled sections, sequences as lists, multiline text as wrapped paragraphs, deep nesting as collapsible blocks, and a parse error as a located message with the raw text. Cover loading, empty, and error states in both components. Style only with CSS Modules and --dsw-alias tokens, and register every visible string in zh and en. Test component rendering, using the approach fixed in the delta technical standard, for each state and for collapsed-archive behavior.'
+depends_on:
+  - build-document-discovery-model

@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-dsh-viewer-contract
+  status: proposed
+summary:
+  what:
+    - Add a dsh strict document viewer behavior main spec area through a delta spec, pinning the document tree family order and source paths, absent-family omission, display labels with filename fallback and archive labels without file reads, archived groups collapsed and unread until expanded, the truncation marker for cut directory listings, the read-only guarantee, declared-values-only rendering, generic structured rendering, located parse errors, the empty state, live refresh, the Session-bound right-sidebar tab, the left-page Session picker, and the host compatibility gate.
+    - Author a delta scene for an operator browsing strict documents in dsh, whose main flow opens both entry points, views the tree, expands a family group, expands an archive, and opens a document, and whose exception flows cover a missing workflow directory, a malformed YAML file, a file removed while open, a truncated directory listing, and a dsh release outside the compatibility pin, with every step naming covering requirements.
+    - 'Add a delta technical standard in the ui category for plugin client conventions: dsh shared modules kept external in the closure-factory CommonJS bundle, CSS Modules with --dsw-alias tokens and no literal colors or radii, zh and en locale registration for every user-visible string, props-and-stores-only data flow, a narrow engines.dsh pin, and dsh-free component tests.'
+  why:
+    - 'The requester wants strict workflow state readable inside DeepSeek Harness without opening raw YAML, and the viewer milestone is ordered contract first: the viewer spec, scene, and client technical standard land before any plugin code exists.'
+    - Pinning the observable contract before the scaffold change keeps later plugin work implementing against reviewed requirements instead of reverse-engineering behavior from code.
+scope:
+  in:
+    - One delta spec creating the dsh-viewer-behavior main spec area with scenario-backed MUST requirements.
+    - One delta scene creating the operator-browses-strict-documents scene in the dsh-viewer area.
+    - One delta tech artifact creating the dsh-plugin-client standard in the ui category.
+  out:
+    - Any plugin package, build tooling, or client code, which stays with later planned changes in this milestone.
+    - Dedicated per-artifact-type renderers, owned by the dsh-strict-spec-viewer-renderers milestone.
+    - Any write, edit, or mutation of strict YAML from the viewer, which stays with strict-spec-cli.
+    - Invoking strict-spec-cli or a custom host RPC namespace from the plugin.
+    - Changes to strict artifact schemas, the strict CLI, the MCP server, or deepseek-harness itself.
+    - Rendering of non-strict files outside .strict-spec-driven/.
+unchanged_behavior:
+  - The strict CLI, strict artifact schemas, and generated workflow documents are unchanged.
+  - Repository build, test, and coverage-gate behavior and the coverage scope declared in config.yaml are unchanged.
+roadmap:
+  milestone: dsh-strict-spec-viewer-foundation
+  planned_change: define-dsh-viewer-contract
