@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: scaffold-dsh-plugin-package
+approach:
+  - 'Create plugins/dsh-strict-spec/ as a private Bun sub-package named dsh-plugin-strict-spec whose package.json carries the dsh bundle and client manifest fields, the patch-line engines.dsh pin, the pinned @deepseek-ai/dsh-client-* dev dependencies for types, and an empty host apply entry, then prove install-to-load before any feature code: a Bun-based client build emits a CommonJS bundle wrapped in the window.__ModuleLoader__ closure-factory form with the shared modules external, the client entry registers only a placeholder left-sidebar icon with zh and en locale strings, the plugin suite joins bun test/run.ts with a bundle-shape test, and a recorded manual smoke check confirms dsh plugin add with a link: spec loads the bundle in the web client and the desktop profile of the pinned release.'
+decisions:
+  sub-package-in-repo:
+    decision: The plugin lives at plugins/dsh-strict-spec/ inside this repository as a private package rather than in a separate repository.
+    rationale: 'The requester decided the in-repo sub-package home so renderers can be tested against the registered strict schemas and examples in lockstep, and a private flag keeps the undistributed package out of npm while still exposing the dsh manifest fields to a link: install.'
+  closure-factory-cjs-bundle:
+    decision: The client build is a Bun build that emits a CommonJS bundle wrapped in the window.__ModuleLoader__ closure-factory form, with react, react-dom, cordis, zod, @tanstack/react-virtual, and the dsh client-store, ui-slots, ui-primitives, and ui-dockkit modules declared external.
+    rationale: dsh publishes no client build preset, so the wrapper and the externals list are reproduced by hand exactly as the host loader expects; the dsh-plugin-client standard forbids inlining shared modules because a bundled duplicate React breaks slot rendering only at runtime.
+  placeholder-icon-as-load-probe:
+    decision: The client entry registers a single placeholder left-sidebar icon, with its visible string in the zh and en locale catalogs, and no document UI.
+    rationale: A placeholder icon makes the install-to-load path observable in both dsh profiles without pulling discovery, tree, or renderer work into the scaffold, and the later register-left-panel-page planned change replaces it with the real panel icon.
+  pin-at-change-start:
+    decision: Pin engines.dsh and the @deepseek-ai/dsh-client-* dev dependencies to the patch line of the newest next-tag dsh release published when this change starts, resolving that release from the npm registry at implementation time.
+    rationale: dsh is pre-stable and its slot and remote contracts change between releases; the settled dsh-version-target intake answer and the narrow-engines-dsh-pin rule both require a patch-line pin fixed at scaffold time, with any later widening as its own planned change.
+  suite-registration-in-test-runner:
+    decision: Plugin tests run as a registered suite invoked from bun test/run.ts, and the coverage gate scope stays src/** with config.yaml unchanged.
+    rationale: The settled plugin-test-wiring intake answer keeps complete regression exercising the plugin suite while the blocking coverage gate keeps measuring only the CLI sources, avoiding a config edit this change is explicitly out of scope for.
+  main-key-click-safety:
+    decision: The client entry registers the placeholder left-sidebar icon together with a matching keyed main registration whose page renders one locale-registered sentence and no document UI.
+    rationale: A panellist row whose id has no registered main key makes the row's selection throw inside the host's selectPanel, so the scaffold pairs the observable icon with a click-safe placeholder cell; the page is a selection target, not an early panel, and the later register-left-panel-page planned change replaces both with the real two-pane page.
+  plugin-tsconfig-own-compile-face:
+    decision: The plugin package keeps its own tsconfig with bundler resolution, allowImportingTsExtensions, and noEmit, compiled to the closure-factory bundle by Bun.build rather than the repository's tsc src-to-dist path, and its type gate is the plugin-local tsc --noEmit -p . run rather than the root lint.
+    rationale: The typescript-esm-baseline esm-typescript-only rule governs the repository's src-to-dist CLI compile face, and the design-approved isolation keeps React and the second bundle target out of that face; the plugin's browser build necessarily resolves through a bundler and is held to its own type gate because its devDependencies live in its own install tree.
+alternatives:
+  - option: Host the plugin in a separate repository
+    reason: 'Rejected by the requester: a separate repository cannot test renderers against the registered strict schemas and examples in lockstep and would split review evidence across two histories.'
+  - option: Contribute a client build preset upstream and consume it from dsh
+    reason: Upstream changes to deepseek-harness are outside the milestone scope and would block the whole viewer milestone on an external release cycle the project does not control.
+risks:
+  - The hand-reproduced ModuleLoader closure-factory wrapper and externals list can drift from what the host loader expects, because dsh publishes no client build preset to copy from.
+  - The pinned pre-stable dsh release can change slot or remote contracts in a later build and silently break the plugin, which the patch-line engines pin only narrows.
+  - The manual smoke check needs a runnable pinned dsh environment in both the web client and the desktop profile; when it cannot run, review blocks until a human prepares the environment or provides equivalent evidence.
+  - Adding React and a second bundle target to a Bun and tsc repository can break the root build or the native CLI build when the plugin is not fully isolated from them.

@@ -307,3 +307,13 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-removal-and-a-restatement-of-the-same-entry-in-e9d9fd.yaml
+    a-hand-reproduced-host-bundle-contract-drifts-un-f852d6:
+      title: A hand-reproduced host bundle contract drifts until the real host loads it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-hand-reproduced-host-bundle-contract-drifts-un-f852d6.yaml
+    bun-add-inside-a-sub-package-walks-up-and-mutate-93d904:
+      title: bun add inside a sub-package walks up and mutates the repository root
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/bun-add-inside-a-sub-package-walks-up-and-mutate-93d904.yaml

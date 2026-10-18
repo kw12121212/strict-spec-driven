@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-client
+operations:
+  ADDED:
+    declaration-aware-slot-registration:
+      strength: MUST
+      statement: A dynamic plugin fiber registers into shell-owned slots through the registry's declaration-aware installation path, ctx.slots.inject with the slot key and a callback that performs the registration, never through a bare register call in apply, because the fiber can activate before the shell entries that declare the slot have committed their children tables and a bare registration into an undeclared slot throws.
+      rationale: Fiber activation order follows service resolution rather than bundle order, so a plugin with only early-provided services activates before the layout and sidebar entries declare their slots; the declaration-aware path runs the registration the moment the declaration is live and collects disposers on collapse, which a bare register call cannot survive.
+      enforcement:
+        method: test
+        detail: The load smoke check boots the pinned dsh web client with the plugin installed and fails when the plugin entry reports an activation error, which a bare registration into a not-yet-declared slot produces.
+  MODIFIED: {}
+  REMOVED: {}

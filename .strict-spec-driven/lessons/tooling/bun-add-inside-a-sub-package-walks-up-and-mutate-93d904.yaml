@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: bun-add-inside-a-sub-package-walks-up-and-mutate-93d904
+  title: bun add inside a sub-package walks up and mutates the repository root
+category: tooling
+status: active
+created_at: '2026-10-17T17:11:49.971Z'
+updated_at: '2026-10-17T17:11:49.971Z'
+context: The dsh plugin lives at plugins/dsh-strict-spec with its own package.json and lockfile, but the repository root also carries a package.json and bun.lock.
+observation: Running bun add -d <pkg> inside plugins/dsh-strict-spec resolved the project root at the repository top, wrote the dependency into the root package.json and bun.lock, and hoisted the packages into the root node_modules, silently polluting the strict CLI's dependency tree; bun install run in the plugin directory, by contrast, respected the plugin's own manifest and lockfile.
+takeaway: Edit the sub-package's package.json first and run bun install from inside plugins/dsh-strict-spec; never run bun add from a sub-package directory of this repository, and check git status on the root package.json and bun.lock after any plugin dependency change.
+applies_when: Adding or updating dependencies of the plugins/dsh-strict-spec sub-package in the repository that also has a root bun.lock.
+occurrences:
+  - origin: scaffold-dsh-plugin-package
+    date: '2026-10-17'
+    evidence: plugins/dsh-strict-spec/package.json; plugins/dsh-strict-spec/bun.lock; root package.json and bun.lock restored unchanged after the pollution was reverted.

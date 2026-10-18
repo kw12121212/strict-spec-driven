@@ -1,0 +1,5 @@
+# dsh-plugin-strict-spec bundle layer: inserts this package's host entry into
+# the profile's plugin tree so the client bundle is served under /plugins.
+- insert:
+    - id: ui-strict-spec
+      name: dsh-plugin-strict-spec

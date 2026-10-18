@@ -1,0 +1,70 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: scaffold-dsh-plugin-package
+open: []
+resolved:
+  - id: dsh-version-pin
+    question: Which deepseek-harness release does the plugin pin in engines.dsh and in its @deepseek-ai/dsh-client-* dev dependencies?
+    context: 'Carried from the milestone intake question dsh-version-target, which the requester settled: pin the patch line of the newest next-tag dsh release available when the scaffold change starts, resolving that release from the npm registry at implementation time, and treat any later dsh upgrade as its own planned change. Impact: fixes package.json engines and dev dependency versions and the release used for the load smoke check; no spec, test-scope, or standards impact.'
+    answer: Pin engines.dsh and the @deepseek-ai/dsh-client-* dev dependencies to the patch line of the newest next-tag dsh release published when this change starts.
+    status: resolved
+    kind: technical
+    answered_by: roadmap
+  - id: plugin-test-wiring
+    question: How are plugin tests run and measured, given the coverage gate scope is src/** only?
+    context: 'Carried from the milestone intake question plugin-test-wiring, which the requester settled: plugin unit tests run from bun test/run.ts as a registered suite so complete regression exercises them, while the coverage gate scope stays src/** and config.yaml review evidence is unchanged. Impact: decides the test-runner wiring task and forbids any config.yaml edit in this change.'
+    answer: Register the plugin suite in test/run.ts and leave the coverage gate scope and config.yaml untouched.
+    status: resolved
+    kind: technical
+    answered_by: roadmap
+  - id: plugin-package-name
+    question: What npm package name does the plugin use?
+    context: 'Carried from the milestone intake question plugin-package-name, which the requester settled with the unscoped name dsh-plugin-strict-spec. Impact: fixes the package.json name, the cordis patch insert entry, install commands, and documentation references.'
+    answer: Use the unscoped name dsh-plugin-strict-spec everywhere the plugin is named.
+    status: resolved
+    kind: technical
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Operators of strict-spec-driven repositories working inside DeepSeek Harness still cannot read their workflow state there, and the milestone''s later feature changes — the discovery model, the document tree, and both entry points — have no loadable plugin package to build on: nothing in this repository or upstream proves a third-party dsh client plugin can be installed and loaded at all, so every later change would couple feature risk with unproven packaging risk.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'After dsh plugin add with a link: spec against the pinned dsh release, the built plugin loads with its client module served without load errors in both the web client and the desktop profile, visibly through the placeholder left-sidebar icon; the bundle-shape test proves the closure-factory wrapper is present and shared dsh modules are not inlined; and bun scripts/coverage-gate.ts --threshold 78 still passes.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The milestone is deliberately ordered contract first and that contract change is archived, making this scaffold the next queued planned change; the requester also pinned the version target to the newest next-tag dsh release available when this change starts, and dsh's pre-stable slot and remote contracts make deferring the install-to-load proof riskier the longer feature code grows on top of an unproven package.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No document discovery, tree, renderer, right-sidebar tab, or real left panel ships here — they stay with their own planned changes; dedicated renderers stay in the next milestone; the plugin stays read-only and invokes neither strict-spec-cli nor a custom host RPC namespace; strict artifact schemas, the strict CLI, the MCP server, deepseek-harness itself, and the coverage gate scope and config.yaml review evidence stay unchanged; and the root build, native CLI build, and existing test suites keep working.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Only one reading is in play: scaffold means the sub-package, its manifest and pin, the client build producing the closure-factory bundle with externals, the placeholder icon registration, the test wiring, and the recorded smoke check — the placeholder icon is a loading probe that the later register-left-panel-page planned change replaces, not an early panel.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: desktop-profile-smoke-leg
+    question: The desktop-profile leg of the install smoke check cannot run in this environment; how should the change proceed to archive?
+    context: 'Why this is asked: the change''s recorded smoke check and the milestone done criterion require the built plugin to load in both the web client and the desktop profile of the pinned dsh release. Impact: the web-client leg is proven and recorded (clean boot at 0.2.1-rc.2, combo route serving one intact ModuleLoader handoff, browser load with zero plugin errors, placeholder row rendered; see the tooling lesson a-hand-reproduced-host-bundle-contract-drifts-un-f852d6), but the desktop profile is reserved for the Electron-owned carrier and the npm CLI refuses to boot or manage it, so the desktop-profile-placeholder scenario of the delta spec stays unproven here. This affects acceptance evidence only: no proposal scope, spec delta, implementation file, test, dependency, or technical standard changes with the answer. Recommendation: either run the same link: install and load check in the Desktop app against dsh 0.2.1-rc.2 and record it, or accept the web-client evidence as covering the shared web stack for this scaffold change and let the release-dsh-strict-spec-plugin planned change prove the desktop leg before release. Tradeoff: waiting for a desktop run gives full scenario evidence now; accepting the web leg keeps the scaffold moving and leaves the desktop proof to the change that actually ships the plugin.'
+    answer: 'Accept the proven web-client leg as covering the shared web stack for this scaffold change: the desktop profile is reserved for the Electron-owned carrier, the npm CLI cannot boot or manage it, and the desktop-profile proof moves to the release-dsh-strict-spec-plugin planned change, which ships the plugin and must prove both profiles before release.'
+    status: resolved
+    kind: technical
+    answered_by: human

@@ -8,6 +8,10 @@ areas:
       title: An operator browses strict documents in dsh
       status: draft
       path: .strict-spec-driven/scenes/dsh-viewer/operator-browses-strict-documents.yaml
+    operator-installs-viewer-plugin:
+      title: An operator installs the strict document viewer plugin into dsh
+      status: draft
+      path: .strict-spec-driven/scenes/dsh-viewer/operator-installs-viewer-plugin.yaml
   workflow:
     roadmap-backed-change-reaches-archive:
       title: A roadmap-backed change is carried from recommendation to archive

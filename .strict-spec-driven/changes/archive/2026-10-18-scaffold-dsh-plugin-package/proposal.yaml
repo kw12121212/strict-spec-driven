@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: scaffold-dsh-plugin-package
+  status: proposed
+summary:
+  what:
+    - Scaffold the plugin sub-package plugins/dsh-strict-spec/ named dsh-plugin-strict-spec and marked private, declaring engines.dsh pinned to the patch line of the newest next-tag dsh release published when this change starts, exports for the client entry, dsh.bundle pointing at a cordis patch file that inserts the plugin, dsh.client declaring platform web, an empty host apply entry, and the pinned @deepseek-ai/dsh-client-* dev dependencies for types.
+    - Add a Bun-based client build that emits a CommonJS bundle wrapped in the window.__ModuleLoader__ closure-factory form, keeping react, react-dom, cordis, zod, @tanstack/react-virtual, and the dsh client-store, ui-slots, ui-primitives, and ui-dockkit modules external.
+    - Register a placeholder left-sidebar icon from the client entry so a loaded plugin is observable, with its visible string registered in the zh and en locale catalogs and no document UI registered.
+    - 'Wire the plugin build so the root bun run build and the native CLI build keep working and React never reaches the strict CLI bundle, register the plugin suite in test/run.ts including a bundle-shape test asserting the wrapper is present and shared modules are not inlined, and record a manual smoke check that dsh plugin add with a link: spec loads the bundle in the web client and the desktop profile.'
+    - Carry one ADDED requirement in dsh-viewer-behavior for the placeholder load registration and one new delta scene in the dsh-viewer area for an operator installing the viewer plugin.
+  why:
+    - The milestone is ordered contract first and the viewer spec, scene, and plugin client standard now exist, but no in-repo third-party dsh client plugin exists upstream, so the install-to-load path is unproven until this scaffold exercises it end to end against the pinned release.
+    - Every later feature change in this milestone, the discovery model, the document tree, and both entry points, needs a loadable plugin package to build on, so proving the package installs and loads before feature code keeps later changes reviewable as pure feature work.
+scope:
+  in:
+    - The plugin sub-package scaffold under plugins/dsh-strict-spec/ with its package.json, cordis patch file, empty host apply entry, and pinned dsh client dev dependencies.
+    - The Bun-based client build producing the ModuleLoader closure-factory CommonJS bundle with the shared modules external.
+    - The placeholder left-sidebar icon registration with zh and en locale entries.
+    - The plugin suite registered in test/run.ts, including the bundle-shape test.
+    - The build wiring that keeps the root build and the native CLI build working without React in the strict CLI.
+    - 'The recorded manual smoke check of dsh plugin add with a link: spec in the web client and the desktop profile.'
+    - One ADDED requirement in the dsh-viewer-behavior delta spec and one new delta scene in the dsh-viewer area.
+  out:
+    - Any document discovery model, document tree, structured renderer, right-sidebar tab, or real left-sidebar panel page, which stay with their own planned changes in this milestone.
+    - Dedicated per-artifact-type renderers, owned by the dsh-strict-spec-viewer-renderers milestone.
+    - Any write, edit, or mutation of strict YAML from the plugin, invoking strict-spec-cli or a custom host RPC namespace from the plugin, and changes to strict artifact schemas, the strict CLI, the MCP server, or deepseek-harness itself, including a published client build preset.
+    - Changes to the coverage gate scope or the config.yaml review evidence.
+unchanged_behavior:
+  - The strict CLI, strict artifact schemas, the MCP server, and generated workflow documents are unchanged.
+  - The root build, the native CLI build, and bun test/run.ts keep working for every existing suite, and the strict CLI bundle contains no React.
+  - The coverage gate scope stays src/** with the config.yaml review evidence unchanged.
+roadmap:
+  milestone: dsh-strict-spec-viewer-foundation
+  planned_change: scaffold-dsh-plugin-package

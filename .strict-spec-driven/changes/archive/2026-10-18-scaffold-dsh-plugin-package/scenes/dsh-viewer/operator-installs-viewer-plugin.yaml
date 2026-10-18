@@ -1,0 +1,43 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-installs-viewer-plugin
+scene:
+  title: An operator installs the strict document viewer plugin into dsh
+  area: dsh-viewer
+  actors:
+    - name: operator
+      role: A person running a pinned dsh release who installs the built strict document viewer plugin and confirms it loads in both client profiles.
+  preconditions:
+    - A dsh release within the plugin's declared compatibility range is installed and runnable.
+    - The plugin package dsh-plugin-strict-spec is built, producing its client bundle.
+operations:
+  ADDED:
+    exception_flows:
+      dsh-release-outside-pin:
+        trigger: The running dsh release falls outside the plugin's declared compatibility range.
+        steps:
+          observe-no-ui:
+            action: Observe that the plugin registers no viewer document UI in that release.
+            covered_by:
+              - spec_id: dsh-viewer-behavior
+                requirement_id: host-compatibility-gate
+    main_flow:
+      install-plugin-link-spec:
+        action: 'Install the built plugin package into the running dsh release using a link: spec.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: placeholder-load-indicator
+      observe-web-placeholder:
+        action: Open the web client and observe the placeholder left-sidebar icon with no document tree or document view registered.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: placeholder-load-indicator
+      observe-desktop-placeholder:
+        action: Open the desktop profile and observe the placeholder left-sidebar icon with no document tree or document view registered.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: placeholder-load-indicator
+  MODIFIED: {}
+  REMOVED: {}

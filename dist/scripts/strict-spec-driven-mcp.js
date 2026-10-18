@@ -26420,6 +26420,12 @@ exclusions:
     evidence:
       - AGENTS.md
       - RTK.md
+  dsh-plugin-host-input:
+    ownership: human-only
+    path_patterns:
+      - plugins/dsh-strict-spec/cordis.patch.yml
+    evidence:
+      - plugins/dsh-strict-spec/package.json
 mutation_surfaces:
   shared-yaml-mutation-core:
     path_patterns:

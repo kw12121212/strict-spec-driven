@@ -8,6 +8,9 @@ dist/scripts/*
 !dist/scripts/strict-spec-driven.js
 !dist/scripts/strict-spec-driven-mcp.js
 
+# dsh plugin client build output (rebuilt by plugins/dsh-strict-spec before a link: install)
+plugins/dsh-strict-spec/dist/
+
 # Environment
 .env
 .env.local

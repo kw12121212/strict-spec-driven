@@ -1,0 +1,62 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: scaffold-dsh-plugin-package
+sections:
+  Implementation:
+    author-placeholder-delta-spec:
+      text: Author the placeholder load registration delta spec through generate delta-spec, adding one ADDED MUST requirement placeholder-load-indicator to dsh-viewer-behavior with scenarios for the web client and the desktop profile of a dsh release inside the declared compatibility pin.
+      status: complete
+    author-install-delta-scene:
+      text: 'Author the delta scene operator-installs-viewer-plugin through generate delta-scene in the dsh-viewer area, with a main flow that installs the built plugin package with a link: spec and observes the placeholder left-sidebar icon in both dsh profiles, and an exception flow for a dsh release outside the compatibility pin registering no viewer UI, every step naming covering requirements in dsh-viewer-behavior.'
+      status: complete
+    scaffold-plugin-package:
+      text: Create plugins/dsh-strict-spec/ with a package.json declaring the private package name dsh-plugin-strict-spec, engines.dsh and the @deepseek-ai/dsh-client-* dev dependencies pinned to the patch line of the newest next-tag dsh release published when this task starts, exports for the client entry, dsh.bundle pointing at the cordis patch file that inserts the plugin, dsh.client with platform web, and the pinned dsh client dev dependencies for types, plus the cordis patch file and an empty host apply entry.
+      status: complete
+    implement-client-entry:
+      text: Implement the client entry module that registers a single placeholder left-sidebar icon with its visible string registered in the zh and en locale catalogs and no document UI, following the dsh-plugin-client rules for props-and-stores data flow and locale registration.
+      status: complete
+    implement-client-build:
+      text: Implement the Bun-based plugin client build that emits a CommonJS bundle wrapped in the window.__ModuleLoader__ closure-factory form, keeping react, react-dom, cordis, zod, @tanstack/react-virtual, and the dsh client-store, ui-slots, ui-primitives, and ui-dockkit modules external, reproducing the host loader contract by hand because dsh publishes no client build preset.
+      status: complete
+    isolate-plugin-from-root-builds:
+      text: Wire the plugin build into the repository so bun run build and bun run build:native keep succeeding and the strict CLI bundles never contain React or plugin client code, keeping the plugin package isolated from the root tsc and native CLI build paths.
+      status: complete
+    register-plugin-test-suite:
+      text: Register the plugin suite as an invocation from test/run.ts, including a bundle-shape test that builds the client bundle and asserts the closure-factory wrapper is present and the shared dsh modules resolve to runtime requires instead of inlined code.
+      status: complete
+  Testing:
+    validate-change-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate, confirming the delta spec and delta scene validate and every scene step coverage reference resolves through the change's own delta spec overlay; the readiness gate owns artifact validity while tasks are still pending.
+      status: complete
+      command: strict-spec-cli ready scaffold-dsh-plugin-package
+    run-lint:
+      text: Run the project lint command (tsc --noEmit over src, which the root gate records) and the plugin-local type gate bun run lint inside plugins/dsh-strict-spec (tsc --noEmit -p .), which holds the plugin TypeScript sources and build scripts to the same strictness through their own compile face; the plugin gate stays out of the root script because the plugin devDependencies live in the plugin's own install tree.
+      status: complete
+      command: bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite including the newly registered plugin suite, confirming the bundle-shape test passes and every existing suite keeps passing.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the plugin addition leaves the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-builds-and-cli-isolation:
+      text: Run bun run build and bun run build:native after the plugin lands, confirm both keep succeeding, and confirm the emitted strict CLI bundles contain no React or plugin client code, proving the isolation the change promises.
+      status: complete
+      command: bun run build && bun run build:native
+    record-install-smoke-check:
+      text: 'Record the manual smoke check against the pinned dsh release: install the built plugin with dsh plugin add and a link: spec, confirm the client module is served and loads without errors in the web client and in the desktop profile with the placeholder left-sidebar icon visible, and record the observed evidence; when the environment cannot run the check, report it so review blocks on the missing evidence rather than passing silently.'
+      status: complete
+    confirm-archive-merge-targets:
+      text: 'Confirm the archive merge targets are consistent: the delta spec adds the placeholder-load-indicator requirement to the existing dsh-viewer-behavior main spec leaving the spec index untouched, the delta scene creates the operator-installs-viewer-plugin entry in the regenerated scene index under the dsh-viewer area, and the delta tech adds the declaration-aware-slot-registration rule to the existing dsh-plugin-client standard leaving the tech index untouched.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify scaffold-dsh-plugin-package directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-change-artifacts
+  unit_test_task: run-project-suite

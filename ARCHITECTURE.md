@@ -414,7 +414,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 232 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
-| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 14 |
+| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 15 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 10 |
@@ -451,6 +451,7 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `props-and-stores-data-flow` — Data reaches plugin components only through props or stores, and no component reads the remote workspace API, the filesystem, or module-scope mutable state directly.
 - **MUST** `narrow-engines-dsh-pin` — The plugin's package.json declares engines.dsh pinned to the patch line of the dsh release the plugin was built against, and widening the pin is its own planned change.
 - **MUST** `dsh-free-component-tests` — Component tests render plugin components without a running dsh host, for example through react-dom/server static rendering, and the plugin adds no browser or DOM test dependency unless the change that adds it justifies why static rendering cannot exercise the behavior under test.
+- **MUST** `declaration-aware-slot-registration` — A dynamic plugin fiber registers into shell-owned slots through the registry's declaration-aware installation path, ctx.slots.inject with the slot key and a callback that performs the registration, never through a bare register call in apply, because the fiber can activate before the shell entries that declare the slot have committed their children tables and a bare registration into an undeclared slot throws.
 
 ### [TypeScript ESM Baseline](.strict-spec-driven/tech/typescript-esm-baseline.yaml) (`typescript-esm-baseline`) — coding
 

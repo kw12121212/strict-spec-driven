@@ -9,6 +9,7 @@ import { runDesignSystemAuthoringSuite } from "./suites/design-system-authoring.
 import { runEntrypointAndSkillsSuite } from "./suites/entrypoint-and-skills.js";
 import { runFoundationAndFixtureSuite } from "./suites/foundation-and-fixtures.js";
 import { runHarnessRemovalSuite } from "./suites/harness-removal.js";
+import { runDshPluginSuite } from "./suites/dsh-plugin.js";
 import { runMcpInstallSuite } from "./suites/mcp-install.js";
 import { runMcpServerSuite } from "./suites/mcp-server.js";
 import { runOperationsSuite } from "./suites/operations.js";
@@ -45,6 +46,7 @@ async function main(): Promise<void> {
   await runMcpServerSuite(context);
   await runMcpInstallSuite(context);
   await runHarnessRemovalSuite(context);
+  await runDshPluginSuite(context);
   await runCoverageGateSuite(context);
 
   printFinalSummary(context);

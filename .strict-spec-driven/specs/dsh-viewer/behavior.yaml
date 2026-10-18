@@ -138,3 +138,15 @@ requirements:
         - GIVEN: the viewer plugin declares a dsh release compatibility range
         - WHEN: a dsh release outside that range loads the plugin
         - THEN: no viewer document UI registers and no partially working tree or document view is shown
+  placeholder-load-indicator:
+    strength: MUST
+    statement: When the plugin package is installed in a dsh release within its declared compatibility range, the plugin client registers a placeholder left-sidebar icon so the loaded plugin is observable, and the placeholder registers no document tree or document view.
+    scenarios:
+      web-client-placeholder:
+        - GIVEN: The built plugin package is installed into a dsh release within its declared compatibility range
+        - WHEN: the web client loads
+        - THEN: the placeholder left-sidebar icon is registered and visible, and no document tree or document view is registered
+      desktop-profile-placeholder:
+        - GIVEN: The built plugin package is installed into a dsh release within its declared compatibility range
+        - WHEN: the desktop profile loads
+        - THEN: the placeholder left-sidebar icon is registered and visible, and no document tree or document view is registered
