@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-client
+operations:
+  ADDED:
+    model-modules-behind-owned-remote-port:
+      strength: MUST
+      statement: 'Plugin model and business modules must not import generated dsh client remote modules or touch the client remote face directly; they close over a plugin-owned port interface that mirrors the pinned wire contract — including parameter requiredness, so a wire-required options object is never forwarded as undefined — with a single adapter at the client entry converting the real remote face, and their tests script a fake that reproduces the pinned wire semantics: the directory-listing entry cap with its truncated flag and no paging, the complete-file cap with its too-large refusal, line pages terminated by eof, non-recursive per-target watches, and the typed workspace-files error codes.'
+      rationale: Keeping remote access behind one owned seam keeps model logic runnable under bun test/run.ts with no dsh host and collapses contract drift onto a single typed boundary; the fake encoding the wire's exact shapes is what makes cap, truncation, watch, and error-code behaviors deterministically testable, and a fake looser than the wire hides divergence until the real host runs, which is precisely when it is most expensive to find.
+      enforcement:
+        method: test
+        detail: Model suites import only the port type — a scan fails on any @deepseek-ai remote import under the plugin's model sources — and the fake port rejects shapes the pinned remote rejects, so a call forwarding a wire-required option as undefined fails in the suite instead of in the host.
+      examples:
+        good:
+          - A loader calling port.readBytes(sessionId, path, {}, signal) for a complete-file read, against a fake that throws when options is undefined.
+        bad:
+          - A model module importing the generated remote client directly, or a fake whose readBytes accepts an undefined options argument the pinned host dereferences without a guard.
+  MODIFIED: {}
+  REMOVED: {}

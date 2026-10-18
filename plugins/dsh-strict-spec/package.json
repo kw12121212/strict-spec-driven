@@ -17,6 +17,7 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-store",
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-sidebar",
@@ -43,10 +44,14 @@
     "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.2",
     "@deepseek-ai/dsh-package-manifest": "0.2.1-rc.2",
     "@types/bun": "^1.4.3",
+    "@types/js-yaml": "^4.0.9",
     "@types/react": "~18.3.1",
     "@types/react-dom": "~18.3.0",
+    "immer": "^10.1.1",
+    "js-yaml": "4.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zustand": "~4.5.7"
   }
 }

@@ -317,3 +317,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/bun-add-inside-a-sub-package-walks-up-and-mutate-93d904.yaml
+    a-scripted-fake-that-tolerates-what-the-wire-rej-5b45c3:
+      title: A scripted fake that tolerates what the wire rejects hides the divergence
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-scripted-fake-that-tolerates-what-the-wire-rej-5b45c3.yaml

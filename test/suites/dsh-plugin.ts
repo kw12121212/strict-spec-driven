@@ -35,10 +35,23 @@ const INLINED_MARKERS: ReadonlyArray<{ moduleId: string; marker: string }> = [
 ];
 
 /**
- * The runtime require the client entry must issue for its JSX transform: the
- * production JSX runtime subpath the shell's frozen module table shares.
+ * The runtime requires the client entry must issue: the production JSX
+ * runtime subpath the shell's frozen module table shares, and the shared
+ * store module the discovery model's store exposure consumes.
  */
-const REQUIRED_RUNTIME_REQUIRES: readonly string[] = ['require("react/jsx-runtime")'];
+const REQUIRED_RUNTIME_REQUIRES: readonly string[] = [
+  'require("react/jsx-runtime")',
+  'require("@deepseek-ai/dsh-client-store")',
+];
+
+/**
+ * Literal markers proving the bundled YAML parser is inlined: one stable
+ * error-message literal js-yaml carries into any build, and the absence of a
+ * runtime require for the parser package, which stays bundled because it is
+ * not a module the host shares.
+ */
+const PARSER_INLINED_MARKERS: readonly string[] = ["duplicated mapping key"];
+const PARSER_EXTERNAL_REQUIRE = 'require("js-yaml")';
 
 /**
  * Inspect one built client bundle for wrapper, externals, and inlining shape.
@@ -68,6 +81,14 @@ export function inspectClientBundle(bundle: string): BundleFinding[] {
     if (bundle.includes(marker)) {
       findings.push({ category: "inlined-shared-module", detail: `bundle inlines shared module ${moduleId} (marker ${JSON.stringify(marker)})` });
     }
+  }
+  for (const marker of PARSER_INLINED_MARKERS) {
+    if (!bundle.includes(marker)) {
+      findings.push({ category: "parser-inline", detail: `bundle does not carry the bundled YAML parser (marker ${JSON.stringify(marker)} absent)` });
+    }
+  }
+  if (bundle.includes(PARSER_EXTERNAL_REQUIRE)) {
+    findings.push({ category: "parser-external", detail: "bundle requires the YAML parser at runtime instead of inlining it" });
   }
   return findings;
 }
@@ -137,6 +158,16 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       `inlined-shared-module matcher fires for ${moduleId}`,
     );
   }
+  const parserStripped = bundle.split("duplicated mapping key").join("an unrelated literal for the probe");
+  context.assert(
+    inspectClientBundle(parserStripped).some((finding) => finding.category === "parser-inline"),
+    "parser-inline matcher fires when the bundled parser marker is absent",
+  );
+  const parserExternal = `${bundle}\nrequire("js-yaml");\n`;
+  context.assert(
+    inspectClientBundle(parserExternal).some((finding) => finding.category === "parser-external"),
+    "parser-external matcher fires when the parser is required instead of inlined",
+  );
 
   // The wrapper helper itself must stay the lazy-CJS shape the shell expects.
   const wrapped = wrapModuleLoaderHandoff("probe-id", "module.exports = 1;");
@@ -154,7 +185,8 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     name?: string;
     private?: boolean;
     engines?: { dsh?: string };
-    dsh?: { bundle?: { patch?: string }; client?: { platform?: string } };
+    dsh?: { bundle?: { patch?: string }; client?: { platform?: string; inject?: string[] } };
+    devDependencies?: Record<string, string>;
   };
   context.assert(manifest.name === "dsh-plugin-strict-spec", "package name is dsh-plugin-strict-spec");
   context.assert(manifest.private === true, "package is private");
@@ -165,6 +197,18 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   );
   context.assert(manifest.dsh?.bundle?.patch === "./cordis.patch.yml", "dsh.bundle points at the cordis patch file");
   context.assert(manifest.dsh?.client?.platform === "web", "dsh.client platform is web");
+  const inject = manifest.dsh?.client?.inject ?? [];
+  context.assert(
+    inject.includes("@deepseek-ai/dsh-client-store"),
+    "the client inject list declares the shared store module the discovery model consumes",
+    `inject: ${JSON.stringify(inject)}`,
+  );
+  for (const injected of inject) {
+    context.assert(
+      manifest.devDependencies?.[injected] !== undefined,
+      `every injected shared module is a declared dev dependency (${injected})`,
+    );
+  }
 
   const patch = yaml.load(readFileSync(path.join(PLUGIN_ROOT, "cordis.patch.yml"), "utf8")) as Array<{
     insert?: Array<{ id?: string; name?: string }>;

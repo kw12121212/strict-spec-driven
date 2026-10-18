@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-scripted-fake-that-tolerates-what-the-wire-rej-5b45c3
+  title: A scripted fake that tolerates what the wire rejects hides the divergence
+category: tooling
+status: active
+created_at: '2026-10-18T04:28:22.991Z'
+updated_at: '2026-10-18T04:28:22.991Z'
+context: The dsh plugin discovery model talks to the pinned remote.workspaceFiles wire through a plugin-owned port, and its whole test suite drives a scripted fake rather than a real host.
+observation: The fake port declared readBytes' options and read's range as optional and accepted undefined, while the pinned generated remote declares both as required objects and the host dereferences options.range without a guard; every suite stayed green because the fake was looser than the wire, and the divergence surfaced only in a fresh-context review diffing the port against the pinned typings, one change before an entry point would have called the real host and failed every document read.
+takeaway: 'Script the fake to the wire''s exact parameter shapes, not to the shape the calling code happens to use: required option objects must be required on the fake too, and the adapter must normalize omitted options to the empty objects the wire requires. Diff the fake''s signatures against the pinned contract types as part of review.'
+applies_when: Any change tests a remote-contract port through a scripted fake instead of the real host, in the dsh plugin or anywhere else a hand-owned seam stands in for an external contract.
+occurrences:
+  - origin: build-document-discovery-model
+    date: '2026-10-18'
+    evidence: plugins/dsh-strict-spec/src/model/port.ts createRemotePort normalizing options and range to {}; the review MUST FIX finding naming loader.ts passing undefined options against the pinned dsh-api-workspace-files contract.

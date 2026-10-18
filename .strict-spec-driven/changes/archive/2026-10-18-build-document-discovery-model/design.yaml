@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: build-document-discovery-model
+approach:
+  - 'Layer the model as five React-free TypeScript modules under plugins/dsh-strict-spec/src/model/, all closed over one narrow port: the generated remote''s workspaceFiles methods (list, read, readBytes, changes), each already parameterized by sessionId, expressed as a plugin-owned interface so tests script a fake and client code passes the real remote face. The traversal lists .strict-spec-driven/ family directories on demand, recurses non-archive subdirectories, defers archive directories until an explicit expand request, and maps a listing''s truncated flag to a truncation node. The classifier combines path shape with each expanded non-archived file''s declared artifact_type to place documents in the fixed taxonomy, with an unknown-artifact fallback that still lists the file; the label deriver reads only expanded non-archived documents for milestone titles, change names, spec titles, scene names, and lesson titles with filename fallback, and derives archived labels from directory and file names alone. The document loader prefers readBytes without a range decoded as UTF-8 and falls back to read pages until eof, feeding the bundled js-yaml parser and returning parsed data or a line-and-column located parse error. The refresh coordinator holds one changes watch per loaded directory plus the open document, closes watches on collapse and close, and invalidates only the affected node. A store adapter over the shared dsh-client-store snapshot store exposes tree state, open document state, and expand, collapse, open, and close actions, so later components consume only props and stores.'
+decisions:
+  model-over-injectable-port:
+    decision: All model modules depend on a plugin-owned WorkspaceFilesPort interface — list, read, readBytes, and changes, each taking the sessionId first — instead of importing the dsh client remote directly.
+    rationale: Every remote.workspaceFiles call requires a sessionId, and the dsh-plugin-client standard keeps components off the remote API; expressing the seam as an owned interface lets the whole model run under bun test/run.ts against a scripted fake with no dsh host, while the client passes the real remote face unchanged.
+  readbytes-primary-paged-fallback:
+    decision: The document loader reads a complete file with readBytes and no range, decodes the bytes as UTF-8, and parses; a byte read that cannot serve the file falls back to read line pages walked until eof.
+    rationale: readBytes without a range returns the complete file up to the 32 MiB cap in one round trip, while the paged path covers files the byte cap refuses; both converge on the same string handed to the parser, so parse behavior never depends on which path served the bytes.
+  truncation-node-not-paging:
+    decision: A listing whose truncated flag is true records one truncation node under that directory and never retries or pages.
+    rationale: The host list operation has a 2000-entry cap, no paging, and no continuation token, so any retry returns the same cut listing; the viewer contract requires an explicit marker instead of implied completeness, and recording the flag as data lets the later tree change render it without model rework.
+  per-directory-watch-invalidation:
+    decision: The refresh coordinator opens exactly one changes watch per loaded directory and one for the open document, closes each watch when its node collapses or the document closes, and invalidates only the node the watch owns.
+    rationale: changes observes one file or one directory's direct entries and is not recursive, so correctness demands one watch per loaded directory; scoping invalidation to the watched node keeps an edit in one family from reloading the others, and closing watches on collapse bounds the watch count to what is visible.
+  bundled-js-yaml-parser:
+    decision: The plugin bundles js-yaml as its own devDependency, kept out of SHARED_EXTERNALS so it inlines into client.js.
+    rationale: dsh mounts remote namespaces at build time and a third-party plugin cannot add one, so the client must parse YAML itself; js-yaml is the parser this repository's strict workflow already uses and reports parse failures with line and column marks, which is exactly the located parse error the viewer contract requires.
+  store-exposure-without-ui:
+    decision: The model is exposed through snapshot stores created from the shared dsh-client-store module — tree state, open document state, and explicit expand, collapse, open, and close actions — and the change registers no slot, panel, or component.
+    rationale: The dsh-plugin-client standard requires data to reach components only through props or stores, so the store is the contract the later tree and entry-point changes consume; registering no UI keeps this change's observable surface identical to the archived scaffold's placeholder.
+  no-delta-spec:
+    decision: 'The change carries no delta spec, no delta scene, and no delta tech: it is technical-only model work behind already-specified behavior.'
+    rationale: Every observable guarantee this model implements — fixed family order, absent-family omission, labels from declared fields, collapsed unread archives, truncation markers, located parse errors, empty state, and live refresh — is already specified in the dsh-viewer-behavior main spec and covered by the draft operator-browses-strict-documents scene from the archived define-dsh-viewer-contract change; this change registers no UI, so the plugin's observable surface stays the scaffold placeholder and no main spec requirement changes; and it complies with the existing dsh-plugin-client standard without altering any rule, so no delta tech is warranted either.
+alternatives:
+  - option: Reading files through a host-provided YAML remote namespace or asking dsh to expose its parser
+    reason: dsh mounts remote namespaces at build time and a third-party plugin cannot register one, so no such namespace can exist for this plugin.
+  - option: One recursive workspace watch driving the whole tree
+    reason: changes watches a single file or a directory's direct entries and is not recursive, so a recursive watch cannot be expressed against the pinned contract.
+  - option: Reading archived entries eagerly at family load to precompute labels
+    reason: this repository alone holds about 280 archived changes and the milestone makes lazy archive loading a requirement rather than an optimization; eager reads would multiply round trips and violate the collapsed-unread guarantee.
+risks:
+  - The pinned dsh release's workspaceFiles contract can drift in later releases, silently breaking the port; the narrow engines.dsh pin and the scripted port fake keep the drift surface to one typed seam.
+  - Label derivation reads every expanded non-archived document, so an unusually wide workspace raises load cost; expansion stays per family and lazy, bounding reads to what the operator opened.
+  - Backends that report watch-unsupported leave the model without live refresh; the coordinator records the watch failure on the affected node so the later tree change can surface it instead of implying freshness.

@@ -19,6 +19,15 @@ import type {} from "@deepseek-ai/dsh-client-ui-sidebar/client";
 import { PlaceholderPanelIcon } from "./client/PlaceholderPanelIcon.tsx";
 import { PlaceholderPanelPage } from "./client/PlaceholderPanelPage.tsx";
 import { en, zh } from "./client/locales.ts";
+import { createRemotePort } from "./model/port.ts";
+import { createViewerStores } from "./model/store.ts";
+
+// The discovery model's client exposure: the store factory and the remote
+// port adapter later entry points consume. Re-exporting them through the
+// entry keeps the model in the served bundle while registering no UI — the
+// placeholder remains this change's only observable registration, and no
+// remote service is injected until an entry point drives the stores.
+export { createRemotePort, createViewerStores };
 
 declare module "@deepseek-ai/dsh-client-ui-slots" {
   interface LocaleNamespaceMap {

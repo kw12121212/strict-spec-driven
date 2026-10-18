@@ -1,0 +1,68 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: build-document-discovery-model
+sections:
+  Implementation:
+    define-workspace-files-port:
+      text: Define the WorkspaceFilesPort interface in the plugin's React-free model layer — list, read, readBytes, and changes, each taking the sessionId first — typed to match the pinned dsh release's generated remote contract, so no model module imports a dsh client package and tests can script the port.
+      status: complete
+    add-bundled-yaml-parser:
+      text: Add js-yaml as a plugin devDependency for the bundled parser, confirm it is absent from SHARED_EXTERNALS so it inlines into the built client bundle, and rebuild the bundle to prove the parser is carried.
+      status: complete
+    implement-workspace-traversal:
+      text: 'Implement the traversal module over the port''s list: load .strict-spec-driven/ family directories on demand, recurse non-archive directories, defer archive directories until an explicit expand, record a listing''s truncated flag as a truncation node without retrying or paging, and report a missing workflow directory as the empty-state condition.'
+      status: complete
+    implement-document-classifier:
+      text: Implement the classifier that places each document into the viewer contract's fixed family taxonomy from its workspace path combined with its declared artifact_type, with an unknown-artifact fallback that still lists the file.
+      status: complete
+    implement-label-deriver:
+      text: 'Implement the label deriver: non-archived documents take milestone titles, change names, spec titles, scene names, and lesson titles from declared fields with a filename fallback, and archived entries are labeled from directory or file names without reading their files.'
+      status: complete
+    implement-document-loader:
+      text: Implement the document loader that reads a complete file through readBytes without a range decoded as UTF-8, falls back to read line pages until eof when the byte read cannot serve the file, parses through the bundled js-yaml, and returns either parsed data or a line-and-column located parse error.
+      status: complete
+    implement-refresh-coordinator:
+      text: 'Implement the refresh coordinator: open one changes watch per loaded directory and one for the open document, close watches when their node collapses or the document closes, invalidate only the affected node on a change frame, and record watch failures as node state.'
+      status: complete
+    expose-model-through-stores:
+      text: Expose the model through snapshot stores built on the shared dsh-client-store module — tree state, open-document state, and expand, collapse, open, and close actions — without registering any slot, panel, or component.
+      status: complete
+    register-model-test-suite:
+      text: Register the model suite as an invocation from test/run.ts, with fixture trees driving a scripted port and a snapshot case against this repository's real .strict-spec-driven/ directory, covering archive size, a truncated listing, a malformed file, a missing workflow directory, a removed open file, and an unknown artifact_type.
+      status: complete
+  Testing:
+    validate-change-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready build-document-discovery-model
+    run-lint:
+      text: Run the root type gate over src and the plugin-local bun run lint inside plugins/dsh-strict-spec so the new model modules and store adapter compile under the plugin's strict TypeScript face.
+      status: complete
+      command: bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite including the newly registered model suite, confirming every model case and every existing suite passes.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the model addition leaves the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-carries-model:
+      text: 'Rebuild the client bundle with the model and bundled parser included and confirm the bundle-shape checks still hold: the ModuleLoader closure-factory wrapper opens the bundle, every shared dsh module including dsh-client-store stays a runtime require, and the parser is inlined rather than external.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    confirm-no-observable-drift:
+      text: 'Confirm the change''s observable surface is unchanged: the client entry still registers exactly the placeholder left-sidebar icon with zh and en locale entries, registers no document tree or document view, and the change carries no delta spec, delta scene, or delta tech because every behavior it implements is already specified and covered.'
+      status: complete
+    confirm-archive-merge-targets:
+      text: 'Confirm the archive surface is empty of spec, scene, and tech merges: archiving this change must leave the spec index, scene index, tech index, main specs, scenes, and standards untouched, with only the change record and the roadmap planned-change status advancing.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify build-document-discovery-model directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-change-artifacts
+  unit_test_task: run-project-suite
