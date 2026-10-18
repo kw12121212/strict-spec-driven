@@ -7,7 +7,9 @@
  * user-visible string is registered in both the zh and en catalogs of the
  * `strictSpec` namespace, and the component receives only framework-derived
  * props. Document discovery, the tree, and both real entry points land in
- * later planned changes of the dsh-strict-spec-viewer-foundation milestone.
+ * later planned changes of the dsh-strict-spec-viewer-foundation milestone;
+ * the shared tree and generic renderer components are re-exported here so
+ * they ride the served bundle without registering UI.
  */
 import type { Context as ClientContext } from "@deepseek-ai/cordis";
 // Type-only contract merges: the runtime halves belong to the host shell and
@@ -18,6 +20,8 @@ import type {} from "@deepseek-ai/dsh-client-ui-renderer/client";
 import type {} from "@deepseek-ai/dsh-client-ui-sidebar/client";
 import { PlaceholderPanelIcon } from "./client/PlaceholderPanelIcon.tsx";
 import { PlaceholderPanelPage } from "./client/PlaceholderPanelPage.tsx";
+import { DocumentTree } from "./client/DocumentTree.tsx";
+import { DocumentView } from "./client/DocumentView.tsx";
 import { en, zh } from "./client/locales.ts";
 import { createRemotePort } from "./model/port.ts";
 import { createViewerStores } from "./model/store.ts";
@@ -28,6 +32,12 @@ import { createViewerStores } from "./model/store.ts";
 // placeholder remains this change's only observable registration, and no
 // remote service is injected until an entry point drives the stores.
 export { createRemotePort, createViewerStores };
+
+// The shared tree and generic renderer the two entry-point planned changes
+// register. Re-exporting them keeps the components in the served bundle and
+// under the bundle-shape suite's externals assertions without mounting any
+// UI in this change: the entry-point changes own slot registration.
+export { DocumentTree, DocumentView };
 
 declare module "@deepseek-ai/dsh-client-ui-slots" {
   interface LocaleNamespaceMap {

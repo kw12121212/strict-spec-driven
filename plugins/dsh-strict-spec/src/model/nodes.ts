@@ -98,6 +98,12 @@ export interface DocumentRecord {
   artifactType?: string;
   /** Whether the classifier knew the declared artifact_type; the unknown fallback still lists the file. */
   known: boolean;
+  /**
+   * The status a milestone or planned change declares in its file, read from
+   * the same non-archived content pass that derives the label. Archived
+   * entries stay unread, so they carry no status.
+   */
+  status?: string;
   /** Whether the document lives inside an archive directory. */
   readonly archived: boolean;
 }
@@ -111,6 +117,8 @@ export interface LocatedParseError {
   readonly line: number;
   /** 1-based column of the error's location. */
   readonly column: number;
+  /** The raw document text as read, so the error view can show it beside the located message. */
+  readonly raw: string;
 }
 
 /** A read failure that is not a parse defect, classified by error code. */

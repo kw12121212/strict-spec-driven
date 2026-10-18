@@ -4,16 +4,17 @@
  * The model is exposed through snapshot stores built on the shared
  * dsh-client-store module — one for the tree state, one for the open
  * document — plus explicit actions for load, expand, collapse, open, and
- * close. Later components receive data only through props and stores, per
- * the plugin client conventions, and this change registers no UI: the stores
- * are idle data holders until an entry point drives them.
+ * close. Expand and collapse choices are kept per workspace so a re-shown
+ * workspace restores them. Later components receive data only through props
+ * and stores, per the plugin client conventions, and this change registers
+ * no UI: the stores are idle data holders until an entry point drives them.
  */
 import { createSnapshotStore } from "@deepseek-ai/dsh-client-store";
 import type { SnapshotStore } from "@deepseek-ai/dsh-client-store";
 import { loadGroupChildren, loadWorkspaceTree } from "./traversal.ts";
 import { loadDocument } from "./loader.ts";
 import { isKnownArtifactType } from "./classifier.ts";
-import { deriveDocumentLabel } from "./labels.ts";
+import { deriveDocumentLabel, deriveDocumentStatus } from "./labels.ts";
 import { RefreshCoordinator } from "./refresh.ts";
 import { initialOpenDocumentState, initialTreeState } from "./nodes.ts";
 import type { DocumentNode, DocumentRecord, OpenDocumentState, TreeState } from "./nodes.ts";
@@ -50,6 +51,7 @@ export interface ViewerActions {
 interface DocumentMeta {
   artifactType?: string;
   known: boolean;
+  status?: string;
 }
 
 /** Finds one node by id in a family forest, depth-first. */
@@ -119,8 +121,52 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
   const tree = createSnapshotStore<TreeState>(initialTreeState());
   const open = createSnapshotStore<OpenDocumentState>(initialOpenDocumentState());
   const documentMeta = new Map<string, DocumentMeta>();
+  /**
+   * Operator expand choices per workspace, keyed by the sessionId the host
+   * derives the workspace root from — the only workspace identity the port
+   * exposes. Recording both directions ("open" and "closed") lets a re-shown
+   * workspace restore collapses of eagerly loaded groups as well as
+   * expansions of deferred archives; a restored archive expansion still
+   * reads its entries through that expansion, never while collapsed.
+   */
+  const expandChoices = new Map<string, Map<string, "open" | "closed">>();
   let coordinator: RefreshCoordinator | undefined;
   let watchedSessionId: string | undefined;
+
+  /** Records one operator expand choice for the watched workspace. */
+  function recordExpandChoice(nodeId: string, choice: "open" | "closed"): void {
+    const sessionId = watchedSessionId;
+    if (sessionId === undefined) {
+      return;
+    }
+    const choices = expandChoices.get(sessionId) ?? new Map<string, "open" | "closed">();
+    choices.set(nodeId, choice);
+    expandChoices.set(sessionId, choices);
+  }
+
+  /**
+   * Re-applies the recorded expand choices of one workspace after its tree
+   * reloads: recorded opens expand groups the reload left deferred (their
+   * entries are read here, through this expansion), and recorded closes
+   * collapse groups the reload left loaded. Choices for nodes the reloaded
+   * tree no longer holds are skipped.
+   */
+  async function restoreExpandChoices(sessionId: string): Promise<void> {
+    const choices = expandChoices.get(sessionId);
+    if (choices === undefined) {
+      return;
+    }
+    // Shallow paths first, so a restored parent expansion loads before a
+    // recorded child of it is re-expanded.
+    const ordered = [...choices.entries()].sort((a, b) => a[0].length - b[0].length);
+    for (const [nodeId, choice] of ordered) {
+      if (choice === "open") {
+        await actions.expandNode(sessionId, nodeId);
+      } else {
+        actions.collapseNode(sessionId, nodeId);
+      }
+    }
+  }
 
   /** Recomputes the documents map from the tree and the read-side metadata. */
   function recomputeDocuments(state: TreeState): TreeState {
@@ -135,6 +181,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
             label: node.label,
             artifactType: meta?.artifactType,
             known: meta?.known ?? false,
+            status: meta?.status,
             archived: node.archived,
           };
         }
@@ -176,7 +223,11 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
     if (!result.ok) {
       return node;
     }
-    documentMeta.set(node.path, { artifactType: result.artifactType, known: isKnownArtifactType(result.artifactType) });
+    documentMeta.set(node.path, {
+      artifactType: result.artifactType,
+      known: isKnownArtifactType(result.artifactType),
+      status: deriveDocumentStatus(result.data, result.artifactType),
+    });
     const label = deriveDocumentLabel(node.path, result.data, result.artifactType);
     return label === node.label ? node : { ...node, label };
   }
@@ -281,7 +332,11 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       return;
     }
     if (result.ok) {
-      documentMeta.set(path, { artifactType: result.artifactType, known: isKnownArtifactType(result.artifactType) });
+      documentMeta.set(path, {
+        artifactType: result.artifactType,
+        known: isKnownArtifactType(result.artifactType),
+        status: deriveDocumentStatus(result.data, result.artifactType),
+      });
       open.set({ status: "ready", path, data: result.data });
       return;
     }
@@ -325,6 +380,9 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         watchLoadedDirectories(activeCoordinator, family);
       }
       tree.set(applyWatchHealth(next));
+      // A workspace re-shown after the operator expanded or collapsed groups
+      // restores those choices; a first load has none recorded.
+      await restoreExpandChoices(sessionId);
     },
 
     async expandNode(sessionId: string, nodeId: string): Promise<void> {
@@ -353,6 +411,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       next = recomputeDocuments(next);
       watchLoadedDirectories(activeCoordinator, expanded);
       tree.set(applyWatchHealth(next));
+      recordExpandChoice(nodeId, "open");
     },
 
     collapseNode(_sessionId: string, nodeId: string): void {
@@ -370,6 +429,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       let next: TreeState = { ...state, families: replaceNode(state.families, collapsed) };
       next = applyWatchHealth(recomputeDocuments(next));
       tree.set(next);
+      recordExpandChoice(nodeId, "closed");
     },
 
     async openDocument(sessionId: string, path: string): Promise<void> {
@@ -381,10 +441,17 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         return;
       }
       if (result.ok) {
-        documentMeta.set(path, { artifactType: result.artifactType, known: isKnownArtifactType(result.artifactType) });
         const state = tree.getSnapshot();
         const node = findNode(state.families, path);
+        // Opening an archived document serves the view but records no
+        // document meta: a later reload of its directory must not badge the
+        // archived row with the status the design keeps badge-less.
         if (node !== undefined && node.kind === "document" && !node.archived) {
+          documentMeta.set(path, {
+            artifactType: result.artifactType,
+            known: isKnownArtifactType(result.artifactType),
+            status: deriveDocumentStatus(result.data, result.artifactType),
+          });
           const label = deriveDocumentLabel(path, result.data, result.artifactType);
           let next: TreeState = { ...state, families: replaceNode(state.families, { ...node, label }) };
           next = recomputeDocuments(next);
@@ -408,6 +475,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       coordinator = undefined;
       watchedSessionId = undefined;
       documentMeta.clear();
+      expandChoices.clear();
       open.set(initialOpenDocumentState());
       tree.set(initialTreeState());
     },

@@ -79,3 +79,30 @@ export function deriveDocumentLabel(workspacePath: string, data: unknown, artifa
       return filenameLabel(workspacePath);
   }
 }
+
+/**
+ * Derives the declared status of one non-archived document for the tree's
+ * status badges: only milestones and planned changes declare a status the
+ * viewer badges, and every other artifact type yields no status. The value
+ * is the declared field exactly as written — never a derived roadmap state.
+ */
+export function deriveDocumentStatus(data: unknown, artifactType?: string): string | undefined {
+  switch (artifactType) {
+    case "roadmap_milestone": {
+      // A milestone file declares one keyed milestone whose status badges it.
+      const milestone = soleValue(data, "milestone");
+      if (typeof milestone === "object" && milestone !== null) {
+        const keyed = milestone as Record<string, unknown>;
+        const ids = Object.keys(keyed);
+        if (ids.length === 1) {
+          return stringField(keyed[ids[0]], "status");
+        }
+      }
+      return undefined;
+    }
+    case "planned_change":
+      return stringField(soleValue(data, "planned_change"), "status");
+    default:
+      return undefined;
+  }
+}

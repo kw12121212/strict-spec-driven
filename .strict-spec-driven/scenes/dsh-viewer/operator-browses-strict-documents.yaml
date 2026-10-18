@@ -49,6 +49,31 @@ main_flow:
         requirement_id: generic-structured-rendering
       - spec_id: dsh-viewer-behavior
         requirement_id: declared-values-only
+  wait-for-loading:
+    action: The operator opens an entry point while the workspace loads and sees a loading condition until the families are ready.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: viewer-status-conditions
+  scan-tree-presentation:
+    action: The operator scans the tree, whose document rows carry file-type glyphs, loaded groups carry entry counts, milestone and planned-change rows carry their declared status, and nesting indents one consistent step per level.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-node-presentation
+  navigate-tree-keyboard:
+    action: The operator moves through the tree with the keyboard only, expanding and collapsing the focused group and opening the focused document, with the focused row kept visible.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-keyboard-navigation
+  return-to-workspace:
+    action: The operator returns to a previously shown workspace and its expand choices are restored, with archived entries still unread while collapsed.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-expand-persistence
+  scan-structured-document:
+    action: The operator scans the structured view, whose top-level scalars form the header, mappings render as titled sections, sequences as lists, multiline text as wrapped paragraphs, and deep nesting as collapsible blocks.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: generic-renderer-structure
 exception_flows:
   missing-workflow-directory:
     trigger: The workspace of the active or chosen Session has no .strict-spec-driven/ directory.
@@ -62,7 +87,7 @@ exception_flows:
     trigger: The operator opens a strict document whose YAML cannot be parsed.
     steps:
       show-located-parse-error:
-        action: The document view renders a parse error naming the error's location, and the tree remains usable.
+        action: The document view renders a parse error naming the error's location beside the raw document text, and the tree remains usable.
         covered_by:
           - spec_id: dsh-viewer-behavior
             requirement_id: located-parse-error
@@ -90,3 +115,11 @@ exception_flows:
         covered_by:
           - spec_id: dsh-viewer-behavior
             requirement_id: host-compatibility-gate
+  workspace-listing-fails:
+    trigger: The workflow root listing of the shown workspace fails.
+    steps:
+      show-error-condition:
+        action: The tree shows an explicit error condition naming the failure rather than an empty tree.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: viewer-status-conditions

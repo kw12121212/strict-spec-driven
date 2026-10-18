@@ -1,0 +1,81 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    tree-node-presentation:
+      strength: MUST
+      statement: Each document tree node presents a file-type glyph, each group whose entries are loaded presents its entry count, milestone and planned-change nodes present a badge of the status declared in their file, and nesting depth renders as one consistent indentation step per level.
+      scenarios:
+        loaded-presentation:
+          - GIVEN: the tree shows families, loaded groups, and non-archived milestone and planned-change documents
+          - WHEN: the tree renders
+          - THEN: every document node presents a file-type glyph, every loaded group presents its entry count, milestone and planned-change nodes present their declared status as a badge, and each nesting level indents one consistent step deeper
+        unloaded-group-no-count:
+          - GIVEN: a collapsed group whose entries have not been listed
+          - WHEN: its row renders
+          - THEN: it presents no entry count rather than an assumed one
+    tree-keyboard-navigation:
+      strength: MUST
+      statement: The operator can move between visible tree nodes, expand and collapse the focused group, and open the focused document using only the keyboard, with the focused node kept visible.
+      scenarios:
+        keyboard-moves-focus:
+          - GIVEN: the document tree is focused
+          - WHEN: the operator moves focus with the keyboard
+          - THEN: focus moves node by node through the visible rows and the focused row is kept visible
+        keyboard-expands-and-opens:
+          - GIVEN: a group row or a document row is focused
+          - WHEN: the operator triggers the expand or open action from the keyboard
+          - THEN: the focused group expands or collapses, and the focused document opens in the document view
+    tree-expand-persistence:
+      strength: MUST
+      statement: Expand and collapse choices are kept per workspace, so a workspace shown again restores its previous expand choices, and an archived group whose expansion is restored still has its entries read only through that expansion.
+      scenarios:
+        workspace-expand-restored:
+          - GIVEN: the operator expanded and collapsed groups of one workspace and the viewer moved to another workspace
+          - WHEN: the first workspace is shown again
+          - THEN: its previous expand choices are restored
+        restored-archive-still-read-on-expand:
+          - GIVEN: an archived group expansion is restored for a re-shown workspace
+          - WHEN: the group renders expanded
+          - THEN: its entries are read for that rendering and were not read while it was collapsed
+    generic-renderer-structure:
+      strength: MUST
+      statement: The structured document view renders top-level scalar fields as a header, mapping fields as titled sections, sequence fields as lists, multiline text as wrapped paragraphs, and deeply nested structures as collapsible blocks, uniformly for every artifact type.
+      scenarios:
+        yaml-shapes-to-presentation:
+          - GIVEN: an open strict document mixes top-level scalars, mappings, sequences, and multiline text
+          - WHEN: the document view renders
+          - THEN: scalars appear in the header, mappings as titled sections, sequences as lists, multiline text as wrapped paragraphs, and deep nesting as collapsible blocks
+        deep-nesting-collapsible:
+          - GIVEN: an open strict document nests mappings beyond the top level
+          - WHEN: the view renders
+          - THEN: the nested mappings render as collapsible blocks the operator can expand and collapse
+    viewer-status-conditions:
+      strength: MUST
+      statement: Each viewer surface shows a loading condition while its data is loading and an explicit error condition naming the failure when a load fails, instead of an empty or frozen presentation.
+      scenarios:
+        loading-condition:
+          - GIVEN: a workspace tree load or a document load is in flight
+          - WHEN: the surface renders
+          - THEN: a loading condition shows until the load settles
+        listing-error-condition:
+          - GIVEN: the workflow root listing fails
+          - WHEN: the tree renders
+          - THEN: an explicit error condition names the failure rather than presenting an empty tree
+  MODIFIED:
+    located-parse-error:
+      strength: MUST
+      statement: Opening a strict document whose YAML cannot be parsed renders a parse-error view naming the error's location alongside the document's raw text, while the tree and the open view keep working.
+      scenarios:
+        parse-error-located:
+          - GIVEN: a strict document in the tree contains YAML that cannot be parsed
+          - WHEN: the operator opens it
+          - THEN: the view renders a parse error naming the error's location instead of failing the tree or the open view
+        parse-error-shows-raw-text:
+          - GIVEN: an open strict document failed to parse
+          - WHEN: the parse-error view renders
+          - THEN: it shows the raw document text beside the located message
+  REMOVED: {}

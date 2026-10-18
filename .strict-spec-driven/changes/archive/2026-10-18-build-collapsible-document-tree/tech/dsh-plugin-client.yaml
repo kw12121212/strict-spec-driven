@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-client
+operations:
+  ADDED:
+    shared-primitives-runtime-devdependencies:
+      strength: MUST
+      statement: A plugin whose dsh-free component tests or build import a shared dsh UI package must declare that package's own runtime dependencies as plugin devDependencies, because bun resolves the unbundled shared lib's imports from the plugin's node_modules, and the served bundle must inline every module the host does not share.
+      rationale: The host shares only the package identity, not its dependency closure; a plugin that skips the declaration fails at test or build time with unresolvable imports, and declaring the closure keeps the single-file bundle self-contained while the shared modules stay external.
+      enforcement:
+        method: test
+        detail: The bundle-shape scan fails when a shared package import cannot resolve, and the served bundle stays free of runtime requires for modules outside the shared externals list.
+      examples:
+        good:
+          - A plugin consuming dsh-client-ui-primitives declares clsx and the package's other runtime dependencies as devDependencies and the bundle inlines them.
+        bad:
+          - A plugin imports dsh-client-ui-primitives without declaring its closure, so bun test and the client build fail on unresolvable imports.
+  MODIFIED:
+    css-modules-dsw-tokens:
+      strength: MUST
+      statement: Plugin styles are written as CSS Modules that consume --dsw-alias design tokens through var() for colors and border radii, and a plugin style sheet declares no literal color value and no literal border-radius.
+      rationale: Literal colors and radii drift from the host design system across dsh releases, while tokens keep the plugin visually native and let theme changes propagate without plugin edits.
+      enforcement:
+        method: test
+        detail: The plugin suite scans every plugins/dsh-strict-spec CSS Module file discovered from the filesystem and fails on any literal hex, rgb, or hsl color or any border-radius declaration containing a digit, with synthetic negative and positive probes exercised through the same inspect function each run.
+      examples:
+        good:
+          - 'border-radius: var(--dsw-radius-md);'
+        bad:
+          - 'border-radius: 8px;'
+  REMOVED: {}

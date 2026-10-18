@@ -322,3 +322,9 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-scripted-fake-that-tolerates-what-the-wire-rej-5b45c3.yaml
+  ui:
+    a-shared-dsh-ui-package-drags-its-dependency-clo-81fa91:
+      title: A shared dsh UI package drags its dependency closure into the plugin
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/ui/a-shared-dsh-ui-package-drags-its-dependency-clo-81fa91.yaml

@@ -1,0 +1,49 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: build-collapsible-document-tree
+approach:
+  - 'Layer the UI as a React-free row model plus two components under plugins/dsh-strict-spec/src/client/. The row model flattens the store tree state into visible rows carrying depth, file-type icon classification, loaded-group entry counts, declared status badges for non-archived milestones and planned changes, truncation notices, and keyboard focus and activation semantics, so behavior is testable through react-dom/server static rendering. The tree component renders rows on the shared ui-primitives DisclosureRow and FileTypeIcon with CSS Module indentation of one consistent step per level and virtualizes the row list through the host-shared @tanstack/react-virtual so an expanded archive of hundreds of changes stays responsive; expand and collapse flow through the store actions, and the stores keep the expand choices keyed by workspace root so a re-shown workspace restores them while archived groups still read entries only on expansion. The generic renderer maps YAML shapes onto presentation without artifact-type behavior: top-level scalars form the header, mappings render as titled sections, sequences as lists, multiline strings as wrapped paragraphs, deeper nesting as collapsible blocks, and a parse error renders its located message beside the raw document text. The client entry re-exports both components without registering any slot, the bundle-shape suite gains the ui-primitives and react-virtual runtime-require assertions, and the component suite registers in test/run.ts.'
+decisions:
+  tree-on-shared-primitives:
+    decision: The tree rows render on the shared @deepseek-ai/dsh-client-ui-primitives DisclosureRow, FileTypeIcon, and badge primitives, styled only through CSS Modules consuming --dsw-alias tokens.
+    rationale: The host shares these Cordis-free primitives precisely so plugin chrome stays visually native across dsh releases; hand-rolled rows would duplicate host styling and drift from the token system the dsh-plugin-client standard locks the plugin to.
+  pure-row-model-seam:
+    decision: Forest flattening, icon and count resolution, badge selection, truncation notices, and keyboard focus and activation logic live in a React-free row-model module the component consumes.
+    rationale: react-dom/server static rendering executes component code but measures no layout, and @tanstack/react-virtual needs measured or estimated geometry; keeping the behavior in a pure seam lets the suite verify indentation, badges, counts, truncation, and keyboard semantics deterministically while the virtualizer only owns the scroll window.
+  host-shared-virtualizer:
+    decision: The viewport virtualizes through @tanstack/react-virtual, already declared in the build shared externals, added now as a plugin devDependency for types, and asserted external by the bundle-shape suite.
+    rationale: The dsh shell shares this module, so the bundle stays thin and keeps a single React instance; this repository alone holds about 280 archived changes and the planned change makes virtualization a requirement, not an optimization.
+  expand-state-per-workspace-in-stores:
+    decision: Expand and collapse choices persist in the viewer stores keyed by the workspace root, restoring a re-shown workspace, and never trigger reads for collapsed archives.
+    rationale: The plugin conventions place state in stores and dsh exposes no storage API to a third-party plugin; durable host storage would add an untested platform dependency nobody asked for, while store-lifetime state satisfies the per-workspace persistence the planned change names.
+  badges-from-declared-status-only:
+    decision: Status badges render only the declared status the model captures for non-archived milestone and planned-change documents, and archived entries carry no badge.
+    rationale: The declared-values-only requirement forbids derived status and the collapsed-unread guarantee forbids reading archived files, so badges come from the same non-archived reads the label deriver already performs and surface a field the model now carries.
+  renderer-shape-mapping:
+    decision: The generic renderer maps YAML shapes to presentation, with a scalar header, titled mapping sections, sequence lists, wrapped multiline paragraphs, and collapsible deep nesting, and no artifact-type-specific behavior.
+    rationale: The viewer contract requires one uniform structured view for every artifact type until a dedicated renderer exists, so the mapping stays purely structural and the next milestone replaces it per type without schema knowledge landing here.
+  parse-error-with-raw-text:
+    decision: A parse error renders the located message with line and column beside the raw document text.
+    rationale: The planned change names the raw text as part of the parse-error view, and showing it lets the operator see the offending construct without leaving the viewer.
+  reexport-without-registration:
+    decision: The client entry re-exports the tree and renderer components and registers no slot, tab, or page.
+    rationale: The entry-point planned changes own registration, so this change keeps the observable surface at the scaffold placeholder while proving the components compile into the served bundle through the bundle-shape assertions.
+  shared-primitives-runtime-devdependencies:
+    decision: The plugin declares the shared ui-primitives package's own runtime dependencies (clsx, react-dom, the workspace-path and code-language utils, and the markdown and icon stack behind its index) as plugin devDependencies alongside @tanstack/react-virtual, because the dsh-free component suite and the Bun build resolve the unbundled shared package's lib from the plugin's own node_modules and the served bundle inlines every module the host does not share.
+    rationale: Importing the real ui-primitives lib is what makes the component tests execute the same code the host serves, but bun resolves that lib's own imports from the plugin tree, so the dependencies must be installed there; they stay out of SHARED_EXTERNALS and tree-shake out of the served bundle, which the bundle-shape scan and the 69 KB build output confirm.
+alternatives:
+  - option: Hand-rolled disclosure rows built from raw buttons and CSS
+    reason: Duplicates chrome the host already shares through ui-primitives and abandons the token system, so the tree drifts visually from dsh releases the pin still accepts.
+  - option: Rendering every row without virtualization
+    reason: The change archive in this repository alone holds about 280 entries and the planned change makes virtualization a requirement, so an unvirtualized list regresses exactly the archive case the milestone calls out.
+  - option: Persisting expand state durably through localStorage
+    reason: dsh exposes no storage contract to a third-party plugin, and untested platform behavior would ride under a spec statement that only names per-workspace persistence.
+  - option: Reading archived files to badge their status
+    reason: Violates the collapsed-unread guarantee the viewer contract already pins; archived labels come from names alone today and badges cannot buy a cheaper exception.
+risks:
+  - Static rendering cannot measure layout, so virtualized windows are verified through the row model and bundle shape rather than painted rows; the entry-point changes host load checks close the remaining gap.
+  - DisclosureRow shallow prop comparison demands stable callbacks and nodes from the tree component, and unstable closures would degrade rendering without failing tests.
+  - The pinned dsh release ui-primitives API can drift in later releases; the narrow engines pin contains it and the bundle-shape suite keeps the module a runtime require.
+  - Keyboard focus into rows outside the virtual window needs virtualizer scroll-into-view cooperation, which static tests can only verify at the row-model level.

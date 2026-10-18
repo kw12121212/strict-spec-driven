@@ -12,7 +12,8 @@
  *
  * dsh publishes no client build preset, so the wrapper and the externals list
  * are reproduced here by hand and the bundle-shape test in test/suites/
- * guards both against drift.
+ * guards both against drift. CSS Module styles the components import ride
+ * the wrapper as an injected <style> element, keeping the bundle one file.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -42,12 +43,26 @@ export const SHARED_EXTERNALS: readonly string[] = [
 /** The module id the shell addresses this bundle by: the package name. */
 export const CLIENT_MODULE_ID = "dsh-plugin-strict-spec";
 
+/** The id of the bundle's injected style element, unique to this plugin. */
+export const STYLE_ELEMENT_ID = "dsh-plugin-strict-spec-styles";
+
 /**
  * Wraps one CommonJS bundle body in the ModuleLoader closure-factory handoff.
  * The prelude mirrors the shell's own bundles: `module`/`exports` bindings the
  * body assigns into, and an ESM-compatible toStringTag on the exports object.
+ * When the build emitted CSS Module styles, they ride the factory as one
+ * idempotent <style> injection, because the host serves this bundle as a
+ * single file and loads no plugin stylesheet of its own.
  */
-export function wrapModuleLoaderHandoff(id: string, cjsBody: string): string {
+export function wrapModuleLoaderHandoff(id: string, cjsBody: string, cssText = ""): string {
+  const styleInjection = cssText.length === 0
+    ? ""
+    : `if (typeof document !== "undefined" && !document.getElementById(${JSON.stringify(STYLE_ELEMENT_ID)})) {\n`
+      + `\t\tvar style = document.createElement("style");\n`
+      + `\t\tstyle.id = ${JSON.stringify(STYLE_ELEMENT_ID)};\n`
+      + `\t\tstyle.textContent = ${JSON.stringify(cssText)};\n`
+      + `\t\tdocument.head.appendChild(style);\n`
+      + `\t}\n`;
   return (
     `window.__ModuleLoader__.load({\n`
     + `\tid: ${JSON.stringify(id)},\n`
@@ -55,6 +70,7 @@ export function wrapModuleLoaderHandoff(id: string, cjsBody: string): string {
     + `\t\tvar module = { exports: {} };\n`
     + `\t\tvar exports = module.exports;\n`
     + `\t\tObject.defineProperty(exports, Symbol.toStringTag, { value: "Module" });\n`
+    + styleInjection
     + `${cjsBody}\n`
     + `\t\treturn module.exports;\n`
     + `\t},\n`
@@ -82,7 +98,15 @@ export async function buildClientBundle(): Promise<string> {
   if (!output) {
     throw new Error("client bundle build produced no entry-point output");
   }
-  return wrapModuleLoaderHandoff(CLIENT_MODULE_ID, await output.text());
+  // CSS Module imports emit their compiled styles as asset outputs; the
+  // served bundle is one file, so the styles ride the factory wrapper.
+  const cssChunks: string[] = [];
+  for (const candidate of result.outputs) {
+    if (candidate.kind === "asset" && candidate.path.endsWith(".css")) {
+      cssChunks.push(await candidate.text());
+    }
+  }
+  return wrapModuleLoaderHandoff(CLIENT_MODULE_ID, await output.text(), cssChunks.join("\n"));
 }
 
 /** Builds the empty cordis host entry as a Node ESM module. */

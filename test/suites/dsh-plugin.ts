@@ -1,10 +1,11 @@
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import path from "path";
 import yaml from "js-yaml";
 import { ROOT, TestContext } from "../support/harness.js";
 import {
   CLIENT_MODULE_ID,
   SHARED_EXTERNALS,
+  STYLE_ELEMENT_ID,
   buildClientBundle,
   wrapModuleLoaderHandoff,
 } from "../../plugins/dsh-strict-spec/scripts/build-client.ts";
@@ -36,12 +37,16 @@ const INLINED_MARKERS: ReadonlyArray<{ moduleId: string; marker: string }> = [
 
 /**
  * The runtime requires the client entry must issue: the production JSX
- * runtime subpath the shell's frozen module table shares, and the shared
- * store module the discovery model's store exposure consumes.
+ * runtime subpath the shell's frozen module table shares, the shared store
+ * module the discovery model's store exposure consumes, and the shared
+ * primitives and virtualizer modules the tree and renderer components
+ * consume.
  */
 const REQUIRED_RUNTIME_REQUIRES: readonly string[] = [
   'require("react/jsx-runtime")',
   'require("@deepseek-ai/dsh-client-store")',
+  'require("@deepseek-ai/dsh-client-ui-primitives")',
+  'require("@tanstack/react-virtual")',
 ];
 
 /**
@@ -98,6 +103,35 @@ function sortedKeys(dict: Record<string, string>): string[] {
   return Object.keys(dict).sort();
 }
 
+/** One CSS token-discipline defect found in a plugin CSS Module file. */
+export type CssFinding = { category: "literal-color" | "literal-radius"; path: string; detail: string };
+
+/** Matchers for literal colors and literal border radii in CSS Module text. */
+const LITERAL_COLOR_PATTERN = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/;
+const LITERAL_RADIUS_PATTERN = /border-radius\s*:[^;]*[0-9]/;
+
+/**
+ * Inspect CSS Module texts for literal color and radius declarations, the two
+ * shapes the dsh-plugin-client css-modules-dsw-tokens rule forbids outside
+ * token definitions. Pure over its input: the suite runs it over every plugin
+ * CSS Module file discovered by scan, and the probes run synthetic defects
+ * through this same function.
+ */
+export function inspectCssModules(files: ReadonlyArray<{ path: string; text: string }>): CssFinding[] {
+  const findings: CssFinding[] = [];
+  for (const file of files) {
+    for (const line of file.text.split("\n")) {
+      if (LITERAL_COLOR_PATTERN.test(line)) {
+        findings.push({ category: "literal-color", path: file.path, detail: line.trim() });
+      }
+      if (LITERAL_RADIUS_PATTERN.test(line)) {
+        findings.push({ category: "literal-radius", path: file.path, detail: line.trim() });
+      }
+    }
+  }
+  return findings;
+}
+
 export async function runDshPluginSuite(context: TestContext): Promise<void> {
   context.section("dsh plugin: bundle shape");
 
@@ -105,6 +139,37 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   const findings = inspectClientBundle(bundle);
   context.assert(findings.length === 0, "built client bundle passes the shape inspection", JSON.stringify(findings));
   context.assert(bundle.endsWith("});\n"), "bundle closes the ModuleLoader handoff");
+  context.assert(bundle.includes(STYLE_ELEMENT_ID), "bundle carries the idempotent CSS style injection for module styles");
+
+  context.section("dsh plugin: css module token discipline");
+
+  // The scanned set derives from the filesystem, not from a hand list.
+  const cssDir = path.join(PLUGIN_ROOT, "src", "client");
+  const cssFiles = readdirSync(cssDir)
+    .filter((name) => name.endsWith(".module.css"))
+    .map((name) => ({ path: path.join(cssDir, name), text: readFileSync(path.join(cssDir, name), "utf8") }));
+  context.assert(cssFiles.length > 0, "the plugin declares CSS Module files to scan");
+  const cssFindings = inspectCssModules(cssFiles);
+  context.assert(cssFindings.length === 0, "every plugin CSS Module file stays free of literal colors and radii", JSON.stringify(cssFindings));
+  // Negative and positive proof for each matcher category through the same
+  // inspect function over synthetic defects appended to the real input.
+  const withColorDefect = [...cssFiles, { path: "synthetic-color.module.css", text: ".x { color: #ff0000; }" }];
+  context.assert(
+    inspectCssModules(withColorDefect).some((finding) => finding.category === "literal-color" && finding.path === "synthetic-color.module.css"),
+    "literal-color matcher fires on a synthetic hex color",
+  );
+  const withRgbDefect = [...cssFiles, { path: "synthetic-rgb.module.css", text: ".x { background: rgba(0, 0, 0, 0.5); }" }];
+  context.assert(
+    inspectCssModules(withRgbDefect).some((finding) => finding.category === "literal-color" && finding.path === "synthetic-rgb.module.css"),
+    "literal-color matcher fires on a synthetic rgb color",
+  );
+  const withRadiusDefect = [...cssFiles, { path: "synthetic-radius.module.css", text: ".x { border-radius: 8px; }" }];
+  context.assert(
+    inspectCssModules(withRadiusDefect).some((finding) => finding.category === "literal-radius" && finding.path === "synthetic-radius.module.css"),
+    "literal-radius matcher fires on a synthetic pixel radius",
+  );
+  const tokenOnly = [{ path: "synthetic-token.module.css", text: ".x { border-radius: var(--dsw-radius-md); color: var(--dsw-alias-label-primary); }" }];
+  context.assert(inspectCssModules(tokenOnly).length === 0, "token-only declarations pass the scan");
 
   // The externals list the build consumes and the module id it stamps must stay
   // the reviewed ones: every shared dsh module external, package name as id.

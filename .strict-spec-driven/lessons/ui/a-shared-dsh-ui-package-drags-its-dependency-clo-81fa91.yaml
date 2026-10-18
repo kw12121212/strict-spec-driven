@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-shared-dsh-ui-package-drags-its-dependency-clo-81fa91
+  title: A shared dsh UI package drags its dependency closure into the plugin
+category: ui
+status: active
+created_at: '2026-10-18T06:52:56.345Z'
+updated_at: '2026-10-18T06:52:56.345Z'
+context: The change added plugin components on @deepseek-ai/dsh-client-ui-primitives for the first time. Its task named only @tanstack/react-virtual as the new devDependency, but the dsh-free component suite and the Bun client build resolve the shared package's unbundled lib from the plugin's own node_modules, and that lib imports clsx, react-dom, workspace-path and code-language utils, and the whole markdown and icon stack behind its index. The suite failed twice with Cannot find package before the closure was declared.
+observation: About fifteen devDependencies beyond the task's named one were installed to make the import resolve at all; the review flagged them as undocumented until a design decision and a delta-tech rule recorded why they exist and why they must stay out of SHARED_EXTERNALS.
+takeaway: 'When a plugin starts importing a host-shared dsh client package it did not consume before, derive the devDependency closure from that package''s own lib imports, not from the task''s named set: install the closure, keep only the host-shared identities external, and record the addition in design and the technical standard so review does not meet it as an unexplained diff.'
+applies_when: Adding the first plugin-side import of a host-shared dsh client package, or when a dsh-free component suite or the client build fails with Cannot find package for dependencies of a package the host shares.
+occurrences:
+  - origin: build-collapsible-document-tree
+    date: '2026-10-18'
+    evidence: plugins/dsh-strict-spec/package.json devDependencies; test/suites/dsh-plugin-components.ts imports the primitives lib; .strict-spec-driven/changes/build-collapsible-document-tree/design.yaml decision shared-primitives-runtime-devdependencies; delta tech rule shared-primitives-runtime-devdependencies.

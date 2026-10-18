@@ -1,0 +1,68 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: build-collapsible-document-tree
+sections:
+  Implementation:
+    add-virtualizer-devdependency:
+      text: Add @tanstack/react-virtual as a plugin devDependency matching the pinned dsh release, confirm it stays in the build shared externals so the bundle requires it at runtime instead of inlining it, and refresh the plugin lockfile.
+      status: complete
+    extend-model-declared-status:
+      text: Extend the discovery model so non-archived milestone and planned-change documents carry their declared status field through the store documents map, captured during the same reads the label deriver performs, with archived entries left unread and badge-less.
+      status: complete
+    persist-expand-state-per-workspace:
+      text: Extend the viewer stores to keep expand and collapse choices keyed by the workspace root, restoring them when a workspace is re-shown and reloading archived entries only when their group is actually expanded.
+      status: complete
+    implement-tree-row-model:
+      text: 'Implement the React-free tree row model: flatten the forest into visible rows with depth, file-type classification, loaded-group entry counts, declared status badges, truncation notices, and keyboard focus and activation semantics.'
+      status: complete
+    implement-document-tree-component:
+      text: Implement the document tree component on the shared ui-primitives DisclosureRow and FileTypeIcon with CSS Module indentation of one consistent step per level, the @tanstack/react-virtual viewport, and loading, empty, and error conditions.
+      status: complete
+    implement-generic-renderer:
+      text: 'Implement the generic structured renderer: top-level scalars as the header, mappings as titled sections, sequences as lists, multiline text as wrapped paragraphs, deep nesting as collapsible blocks, the located parse error with raw text, and loading, absent, and error conditions.'
+      status: complete
+    register-visible-strings:
+      text: Sweep every new user-visible string of both components into the strictSpec zh and en catalogs and render text only through those registered entries.
+      status: complete
+    reexport-components-in-entry:
+      text: Re-export the tree and renderer through the client entry without registering any slot, and extend the bundle-shape suite to require the ui-primitives and @tanstack/react-virtual runtime requires in the built bundle.
+      status: complete
+    register-component-test-suite:
+      text: Register the component suite as an invocation from test/run.ts, rendering both components through react-dom/server static rendering across ready, loading, empty, error, truncated, collapsed-archive, parse-error, and persisted-expand cases.
+      status: complete
+  Testing:
+    validate-change-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready build-collapsible-document-tree
+    run-lint:
+      text: Run the root type gate and the plugin-local bun run lint inside plugins/dsh-strict-spec so the new components, row model, and store extensions compile under the plugin strict TypeScript face.
+      status: complete
+      command: bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite including the newly registered component suite, confirming every component case and every existing suite passes.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the addition leaves the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-shape-externals:
+      text: 'Rebuild the client bundle and confirm the shape checks hold: the ModuleLoader closure-factory wrapper opens the bundle, react, dsh-client-store, ui-primitives, and @tanstack/react-virtual stay runtime requires, and the YAML parser stays inlined.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    confirm-observable-surface-unchanged:
+      text: 'Confirm the observable surface is unchanged: the client entry still registers exactly the placeholder left-sidebar icon with zh and en locale entries and mounts no tree, renderer, tab, or page in the host.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the delta spec requirements and the modified located-parse-error requirement merge into dsh-viewer-behavior, and the delta scene steps merge into operator-browses-strict-documents with no orphaned coverage references.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify build-collapsible-document-tree directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-change-artifacts
+  unit_test_task: run-project-suite

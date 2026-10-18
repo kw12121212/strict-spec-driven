@@ -414,7 +414,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 232 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
-| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 15 |
+| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 20 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 10 |
@@ -453,6 +453,7 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `dsh-free-component-tests` — Component tests render plugin components without a running dsh host, for example through react-dom/server static rendering, and the plugin adds no browser or DOM test dependency unless the change that adds it justifies why static rendering cannot exercise the behavior under test.
 - **MUST** `declaration-aware-slot-registration` — A dynamic plugin fiber registers into shell-owned slots through the registry's declaration-aware installation path, ctx.slots.inject with the slot key and a callback that performs the registration, never through a bare register call in apply, because the fiber can activate before the shell entries that declare the slot have committed their children tables and a bare registration into an undeclared slot throws.
 - **MUST** `model-modules-behind-owned-remote-port` — Plugin model and business modules must not import generated dsh client remote modules or touch the client remote face directly; they close over a plugin-owned port interface that mirrors the pinned wire contract — including parameter requiredness, so a wire-required options object is never forwarded as undefined — with a single adapter at the client entry converting the real remote face, and their tests script a fake that reproduces the pinned wire semantics: the directory-listing entry cap with its truncated flag and no paging, the complete-file cap with its too-large refusal, line pages terminated by eof, non-recursive per-target watches, and the typed workspace-files error codes.
+- **MUST** `shared-primitives-runtime-devdependencies` — A plugin whose dsh-free component tests or build import a shared dsh UI package must declare that package's own runtime dependencies as plugin devDependencies, because bun resolves the unbundled shared lib's imports from the plugin's node_modules, and the served bundle must inline every module the host does not share.
 
 ### [TypeScript ESM Baseline](.strict-spec-driven/tech/typescript-esm-baseline.yaml) (`typescript-esm-baseline`) — coding
 

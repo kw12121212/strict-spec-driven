@@ -1,0 +1,60 @@
+/* Document tree styling: one consistent indentation step per depth level,
+ * spacing through the row model's --dssw-depth variable, and every color and
+ * radius through --dsw-alias tokens — no literal color, no literal radius. */
+
+.viewport {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  color: var(--dsw-alias-label-primary);
+}
+
+.scroll {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.rows {
+  position: relative;
+  width: 100%;
+}
+
+.virtualRow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.row {
+  padding-left: calc(var(--dssw-depth, 0) * var(--dssw-indent-step, 16px));
+  border-radius: var(--dsw-radius-md);
+}
+
+.row[data-focused] {
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.disclosure {
+  min-width: 0;
+}
+
+.count {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+}
+
+.truncation {
+  padding: 2px 8px 2px calc(8px + var(--dssw-depth, 0) * var(--dssw-indent-step, 16px));
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.state {
+  padding: 12px;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-secondary);
+}

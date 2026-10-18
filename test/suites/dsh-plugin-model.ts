@@ -26,7 +26,7 @@ const WORKFLOW_ROOT = ".strict-spec-driven";
 type FakeEntry = { kind: "file"; content: string } | { kind: "dir"; children: Map<string, FakeEntry> };
 
 /** A fake workspace-files port with call instrumentation and watch queues. */
-class FakeWorkspaceFiles {
+export class FakeWorkspaceFiles {
   readonly root: FakeEntry = { kind: "dir", children: new Map() };
   readonly listCalls: string[] = [];
   readonly listCounts = new Map<string, number>();

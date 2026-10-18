@@ -10,8 +10,13 @@
  * served the bytes. The result is either parsed data or a failure: a parse
  * error located by 1-based line and column, or a read error classified by the
  * workspace-files error code.
+ *
+ * Parsing uses the YAML 1.2 core schema: the viewer contract shows declared
+ * values exactly as written, and the core schema keeps timestamp-like and
+ * yes/no-like scalars as their literal strings instead of the YAML 1.1
+ * object forms the default schema would substitute.
  */
-import { load } from "js-yaml";
+import { CORE_SCHEMA, load } from "js-yaml";
 import type { DocumentLoadResult, LocatedParseError, ReadError } from "./nodes.ts";
 import { workspaceFileErrorCode } from "./port.ts";
 import type { WorkspaceFilesPort } from "./port.ts";
@@ -21,12 +26,12 @@ import { declaredArtifactType } from "./classifier.ts";
 const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
 
 /** Maps one thrown js-yaml error to a parse error located by 1-based position. */
-function toLocatedParseError(error: unknown): LocatedParseError {
+function toLocatedParseError(error: unknown, raw: string): LocatedParseError {
   const mark = (error as { mark?: { line?: unknown; column?: unknown } | null } | null)?.mark;
   const line = typeof mark?.line === "number" && mark.line >= 0 ? mark.line + 1 : 1;
   const column = typeof mark?.column === "number" && mark.column >= 0 ? mark.column + 1 : 1;
   const message = error instanceof Error ? error.message : String(error);
-  return { kind: "parse", message, line, column };
+  return { kind: "parse", message, line, column, raw };
 }
 
 /** Maps one thrown workspace-files error to a read error classified by code. */
@@ -96,9 +101,9 @@ export async function loadDocument(
     }
   }
   try {
-    const data = load(text);
+    const data = load(text, { schema: CORE_SCHEMA });
     return { ok: true, data, artifactType: declaredArtifactType(data) };
   } catch (parseError) {
-    return { ok: false, error: toLocatedParseError(parseError) };
+    return { ok: false, error: toLocatedParseError(parseError, text) };
   }
 }

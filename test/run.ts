@@ -11,6 +11,7 @@ import { runFoundationAndFixtureSuite } from "./suites/foundation-and-fixtures.j
 import { runHarnessRemovalSuite } from "./suites/harness-removal.js";
 import { runDshPluginSuite } from "./suites/dsh-plugin.js";
 import { runDshPluginModelSuite } from "./suites/dsh-plugin-model.js";
+import { runDshPluginComponentSuite } from "./suites/dsh-plugin-components.js";
 import { runMcpInstallSuite } from "./suites/mcp-install.js";
 import { runMcpServerSuite } from "./suites/mcp-server.js";
 import { runOperationsSuite } from "./suites/operations.js";
@@ -49,6 +50,7 @@ async function main(): Promise<void> {
   await runHarnessRemovalSuite(context);
   await runDshPluginSuite(context);
   await runDshPluginModelSuite(context);
+  await runDshPluginComponentSuite(context);
   await runCoverageGateSuite(context);
 
   printFinalSummary(context);

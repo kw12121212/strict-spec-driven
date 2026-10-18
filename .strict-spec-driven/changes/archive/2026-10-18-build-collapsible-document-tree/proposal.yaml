@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: build-collapsible-document-tree
+  status: proposed
+summary:
+  what:
+    - 'Build the shared collapsible document tree component inside plugins/dsh-strict-spec/: rows rendered on the shared ui-primitives disclosure and file-type-icon primitives with one consistent indentation step per nesting level, per-group entry counts on loaded groups, declared status badges for milestones and planned changes, archived groups collapsed with entries loaded only on expand, truncation notices, keyboard navigation, and viewport virtualization through the host-shared @tanstack/react-virtual.'
+    - 'Build the generic structured YAML document renderer: top-level scalar fields as a header, mappings as titled sections, sequences as lists, multiline text as wrapped paragraphs, deep nesting as collapsible blocks, and a parse error as a located message shown with the raw document text, with loading, empty, and error conditions in both components.'
+    - 'Extend the archived discovery model minimally so the tree can honor its contract: expose each non-archived milestone and planned-change declared status for badges, and keep expand and collapse choices per workspace in the viewer stores so a re-shown workspace restores them; register every new visible string in the zh and en catalogs, add @tanstack/react-virtual as a plugin devDependency kept external, re-export the components through the client entry without registering UI, and register a static-rendering component suite in test/run.ts.'
+    - 'Carry the observable contract: delta specs adding the tree presentation, keyboard navigation, per-workspace expand persistence, renderer structure, and status-condition requirements to dsh-viewer-behavior, modifying the located parse-error requirement to include the raw text, and a delta scene extending the operator-browses-strict-documents scene.'
+  why:
+    - 'The milestone orders work contract first, then scaffold, then model, then the shared tree and renderer, and only then the two entry points: build-document-discovery-model is archived, so this is the single eligible planned change, and register-left-panel-page and register-right-sidebar-tab stay dependency-incomplete until the shared tree and generic renderer they both reuse exist.'
+    - The tree and renderer turn the archived discovery model into the readable surfaces the milestone exists for, and building them before the entry points keeps each later change pure registration work against already tested components.
+scope:
+  in:
+    - 'The document tree component and its React-free row model under plugins/dsh-strict-spec/src/client/: forest flattening with depth, file-type icons, loaded-group counts, declared status badges, truncation notices, keyboard focus and activation logic, and the virtualized viewport through @tanstack/react-virtual.'
+    - 'The generic structured renderer component for every artifact type: scalar header, titled mapping sections, sequence lists, wrapped multiline paragraphs, collapsible deep nesting, located parse errors with raw text, and loading, absent, and error conditions.'
+    - 'The minimal model and store extensions: declared status capture for non-archived milestones and planned changes, and expand-state persistence keyed by workspace root in the viewer stores.'
+    - zh and en locale entries for every new visible string, and CSS Modules styled only through --dsw-alias tokens.
+    - The @tanstack/react-virtual plugin devDependency, the client-entry re-exports of the components, and the extended bundle-shape assertions for the new shared-module runtime requires.
+    - The component suite registered in test/run.ts using react-dom/server static rendering per the dsh-plugin-client standard.
+    - Delta specs against dsh-viewer-behavior and a delta scene against operator-browses-strict-documents.
+  out:
+    - 'Registering the right-sidebar tab, its guide entry, or the left-sidebar panel page: owned by the register-right-sidebar-tab and register-left-panel-page planned changes, so this change mounts no UI in the host.'
+    - Dedicated per-artifact-type renderers for roadmap, change, spec, scene, and project-context artifacts, owned by the dsh-strict-spec-viewer-renderers milestone.
+    - Any write, edit, or mutation of strict YAML; invoking strict-spec-cli or a custom host RPC namespace from the plugin; changes to strict artifact schemas, the strict CLI, the MCP server, or deepseek-harness itself.
+    - Changes to the engines.dsh pin, the dsh client manifest fields, the coverage gate scope, the config.yaml review evidence, or the shared-module externals list.
+unchanged_behavior:
+  - 'The plugin observable registration stays exactly the scaffold placeholder left-sidebar icon with its zh and en entries: no document tree, document view, tab, or panel page registers in the host.'
+  - The strict CLI, strict artifact schemas, the MCP server, and generated workflow documents are unchanged.
+  - The root build, the native CLI build, and every existing suite in bun test/run.ts keep passing; the client bundle keeps the ModuleLoader closure-factory wrapper with every shared module including react, dsh-client-store, ui-primitives, and @tanstack/react-virtual external and the YAML parser inlined; bun scripts/coverage-gate.ts --threshold 78 keeps passing with its scope unchanged.
+  - 'The archived discovery model behaviors keep their guarantees: fixed family order, absent-family omission, collapsed archives unread, truncation flags recorded, located parse errors, and per-directory watches.'
+roadmap:
+  milestone: dsh-strict-spec-viewer-foundation
+  planned_change: build-collapsible-document-tree
