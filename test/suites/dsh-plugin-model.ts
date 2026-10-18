@@ -19,6 +19,7 @@ import { FAMILY_ORDER } from "../../plugins/dsh-strict-spec/src/model/nodes.ts";
 import type { DocumentNode, TreeState } from "../../plugins/dsh-strict-spec/src/model/nodes.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
 import type { ViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
+import { parentDirectory, taskCompletion } from "../../plugins/dsh-strict-spec/src/model/taskCompletion.ts";
 import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.ts";
 import {
   computePickerCatalog,
@@ -1018,5 +1019,68 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
         && seenCalls.find((call) => call.method === "readBytes")?.options !== undefined,
       "omitted range and options objects reach the wire as objects, never undefined",
     );
+  }
+
+  context.section("dsh plugin model: change task completion");
+
+  {
+    // Counting rules: declared statuses only, and no declared tasks means
+    // no completion rather than a fabricated zero badge.
+    context.assert(taskCompletion(undefined) === undefined, "a non-document yields no completion");
+    context.assert(taskCompletion({ sections: {} }) === undefined, "a tasks file with no sections yields no completion");
+    const mixed = taskCompletion({
+      sections: {
+        A: { t1: { text: "x", status: "complete" } },
+        B: { t2: { text: "y", status: "pending" }, t3: { text: "z", status: "complete" } },
+      },
+    });
+    context.assert(mixed?.done === 2 && mixed?.total === 3, "completion counts complete tasks across every section");
+    context.assert(parentDirectory("a/b/c.yaml") === "a/b" && parentDirectory("c.yaml") === "", "the parent directory of a tasks file names its change group");
+  }
+
+  {
+    // The badge rides the existing content pass: no workspace read beyond
+    // the label refinement, refresh through the directory watch, deletion
+    // through the recomputed tree, and never an archived entry.
+    const fake = new FakeWorkspaceFiles();
+    fake.writeFile(`${WORKFLOW_ROOT}/config.yaml`, "schema: strict-spec-driven/config/v1\nartifact_type: workflow_config\n");
+    fake.writeFile(`${WORKFLOW_ROOT}/changes/alpha/proposal.yaml`, "artifact_type: change_proposal\nchange:\n  id: alpha\n");
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/changes/alpha/tasks.yaml`,
+      "artifact_type: task_list\nchange: alpha\nsections:\n  Implementation:\n    a1:\n      text: One.\n      status: complete\n    a2:\n      text: Two.\n      status: pending\n",
+    );
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/changes/archive/2026-01-01-beta/tasks.yaml`,
+      "artifact_type: task_list\nchange: beta\nsections:\n  Implementation:\n    b1:\n      text: Done.\n      status: complete\n",
+    );
+    const stores = createViewerStores(fake.port);
+    await stores.actions.loadWorkspace(SESSION_ID);
+    await settle();
+
+    const state = stores.tree.getSnapshot();
+    const completion = state.changeCompletion?.[`${WORKFLOW_ROOT}/changes/alpha`];
+    context.assert(completion?.done === 1 && completion?.total === 2, "the content pass records the change's completion keyed by its group path");
+    context.assert(
+      state.changeCompletion?.[`${WORKFLOW_ROOT}/changes/archive`] === undefined
+        && state.changeCompletion?.[`${WORKFLOW_ROOT}/changes/archive/2026-01-01-beta`] === undefined,
+      "archived change groups never appear because their files stay unread while they are only listed",
+    );
+
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/changes/alpha/tasks.yaml`,
+      "artifact_type: task_list\nchange: alpha\nsections:\n  Implementation:\n    a1:\n      text: One.\n      status: complete\n    a2:\n      text: Two.\n      status: complete\n",
+    );
+    fake.emit(`${WORKFLOW_ROOT}/changes/alpha`, "v2");
+    await settle();
+    const refreshed = stores.tree.getSnapshot().changeCompletion?.[`${WORKFLOW_ROOT}/changes/alpha`];
+    context.assert(refreshed?.done === 2 && refreshed?.total === 2, "a changed tasks file recomputes the completion through the directory reload");
+
+    fake.removeFile(`${WORKFLOW_ROOT}/changes/alpha/tasks.yaml`);
+    fake.emit(`${WORKFLOW_ROOT}/changes/alpha`, "v3");
+    await settle();
+    const removed = stores.tree.getSnapshot().changeCompletion?.[`${WORKFLOW_ROOT}/changes/alpha`];
+    context.assert(removed === undefined, "a deleted tasks file drops its change's badge rather than going stale");
+
+    stores.actions.dispose();
   }
 }

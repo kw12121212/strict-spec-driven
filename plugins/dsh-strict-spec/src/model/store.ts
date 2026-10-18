@@ -16,6 +16,8 @@ import { loadDocument } from "./loader.ts";
 import { isKnownArtifactType } from "./classifier.ts";
 import { deriveDocumentLabel, deriveDocumentStatus } from "./labels.ts";
 import { RefreshCoordinator } from "./refresh.ts";
+import { parentDirectory, taskCompletion } from "./taskCompletion.ts";
+import type { TaskCompletion } from "./taskCompletion.ts";
 import { initialOpenDocumentState, initialTreeState } from "./nodes.ts";
 import type { DocumentNode, DocumentRecord, OpenDocumentState, TreeState } from "./nodes.ts";
 import type { WorkspaceFilesPort } from "./port.ts";
@@ -122,6 +124,14 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
   const open = createSnapshotStore<OpenDocumentState>(initialOpenDocumentState());
   const documentMeta = new Map<string, DocumentMeta>();
   /**
+   * Task completion keyed by each non-archived change's tasks-file path,
+   * recorded by the same content pass that refines labels, so the badge
+   * adds no workspace reads. The recomputed tree state keys it by change
+   * directory and drops entries whose tasks file the walked tree no longer
+   * holds, so a deleted tasks file loses its badge instead of going stale.
+   */
+  const taskCompletionByFile = new Map<string, TaskCompletion>();
+  /**
    * Operator expand choices per workspace, keyed by the sessionId the host
    * derives the workspace root from — the only workspace identity the port
    * exposes. Recording both directions ("open" and "closed") lets a re-shown
@@ -168,12 +178,14 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
     }
   }
 
-  /** Recomputes the documents map from the tree and the read-side metadata. */
+  /** Recomputes the documents map and change completion from the tree and the read-side metadata. */
   function recomputeDocuments(state: TreeState): TreeState {
     const documents: Record<string, DocumentRecord> = {};
+    const documentPaths = new Set<string>();
     const collect = (nodes: readonly DocumentNode[]): void => {
       for (const node of nodes) {
         if (node.kind === "document") {
+          documentPaths.add(node.path);
           const meta = documentMeta.get(node.path);
           documents[node.path] = {
             path: node.path,
@@ -191,7 +203,17 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       }
     };
     collect(state.families);
-    return { ...state, documents };
+    const changeCompletion: Record<string, TaskCompletion> = {};
+    for (const [path, completion] of taskCompletionByFile) {
+      if (!documentPaths.has(path)) {
+        continue;
+      }
+      const directory = parentDirectory(path);
+      if (directory !== "") {
+        changeCompletion[directory] = completion;
+      }
+    }
+    return { ...state, documents, changeCompletion };
   }
 
   /** Applies the recorded watch health of each loaded directory to its nodes. */
@@ -228,6 +250,17 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       known: isKnownArtifactType(result.artifactType),
       status: deriveDocumentStatus(result.data, result.artifactType),
     });
+    // A change's tasks file records its completion for the change group
+    // badge during this same read; an unreadable tasks list clears any
+    // earlier count instead of badging a change whose file went bad.
+    if (node.family === "changes" && result.artifactType === "task_list") {
+      const completion = taskCompletion(result.data);
+      if (completion === undefined) {
+        taskCompletionByFile.delete(node.path);
+      } else {
+        taskCompletionByFile.set(node.path, completion);
+      }
+    }
     const label = deriveDocumentLabel(node.path, result.data, result.artifactType);
     return label === node.label ? node : { ...node, label };
   }
@@ -350,6 +383,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       const stale = (): boolean => watchedSessionId !== sessionId;
       tree.set(initialTreeState());
       documentMeta.clear();
+      taskCompletionByFile.clear();
       let loaded: TreeState;
       try {
         loaded = await loadWorkspaceTree(port, sessionId);
@@ -468,6 +502,14 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
             known: isKnownArtifactType(result.artifactType),
             status: deriveDocumentStatus(result.data, result.artifactType),
           });
+          if (node.family === "changes" && result.artifactType === "task_list") {
+            const completion = taskCompletion(result.data);
+            if (completion === undefined) {
+              taskCompletionByFile.delete(path);
+            } else {
+              taskCompletionByFile.set(path, completion);
+            }
+          }
           const label = deriveDocumentLabel(path, result.data, result.artifactType);
           let next: TreeState = { ...state, families: replaceNode(state.families, { ...node, label }) };
           next = recomputeDocuments(next);
@@ -491,6 +533,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       coordinator = undefined;
       watchedSessionId = undefined;
       documentMeta.clear();
+      taskCompletionByFile.clear();
       expandChoices.clear();
       open.set(initialOpenDocumentState());
       tree.set(initialTreeState());

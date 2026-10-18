@@ -1,0 +1,56 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: render-change-artifacts
+open: []
+resolved:
+  - id: unknown-field-display
+    question: How should a dedicated renderer present fields its artifact schema version does not know?
+    context: 'Every renderer this change adds follows one rule for unrecognized top-level fields. The milestone''s intake answer settles presentation, spec delta shape, and implementation files: hiding unknown fields would lose content when a schema evolves, while the generic append keeps newer projects readable. The milestone notes record this as the settled unknown-field-display answer.'
+    answer: Render the fields the dedicated layout knows and append every unrecognized top-level field through the generic structured view under an additional-fields section; an artifact type without a dedicated renderer keeps the generic view entirely.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: derived-completion-versus-declared-values
+    question: Do task completion counts violate the viewer's declared-values-only requirement?
+    context: 'The planned change details require per-section and overall task completion, which is a computed summary rather than a value written in the file, while the recorded dsh-viewer-behavior requirement forbids presenting values not written in the file. The uncertainty affects the spec delta: which requirement statement changes and how narrowly the exception is pinned.'
+    answer: Task completion is the single permitted computed summary, counting declared task statuses only; the declared-values-only requirement is modified to pin the exception to task completion, and no other derived value is shown anywhere.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Operators reading change artifacts in the viewer today decode generic YAML shape: the completed foundation milestone makes every strict document reachable but shows each one through a generic structured view, so an operator checking a running change''s task progress, open questions, or requirement deltas reads field-by-field structure instead of the readable per-family views the renderers milestone exists to provide.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Opening an active or archived change''s proposal, design, tasks, questions, or change-scoped delta file renders its dedicated view: tasks grouped by section with done or pending markers and per-section and overall completion, questions separated into open and resolved with answers, delta operation groups labeled with their declared operation; each non-archived change group node badges its completed-over-total task count; and artifact types without a dedicated renderer keep the generic view, with unrecognized top-level fields appended under an additional-fields section.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The viewer foundation milestone is complete, with register-right-sidebar-tab and register-left-panel-page archived, so the renderers milestone's dependency blockers cleared and roadmap-recommend reports this planned change among the eligible ones; the milestone records that renderer changes are independent of one another and may land in any order once the foundation is complete.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No dedicated renderers for the other artifact families, which are separate planned changes of the same milestone; no editing or mutating strict artifacts from any renderer; no cross-document navigation from rendered views; no derived roadmap status, validation diagnostics, or computed scene coverage gaps, with task completion the only computed summary; and no changes to strict artifact schemas, the host plugin contract, the client entry's registration surface, or the tree's existing guarantees.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Only one reading is in play: dedicated views for exactly the five change planning artifact types and the three change-scoped delta types, serving active and archived changes alike; delta files lay out requirement bodies, flow steps, and rule bodies through the same layouts their main counterparts use plus their operation labels; the completion badge derives from declared task statuses and appears only on non-archived change group nodes; and every renderer appends unrecognized top-level fields through the generic view.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

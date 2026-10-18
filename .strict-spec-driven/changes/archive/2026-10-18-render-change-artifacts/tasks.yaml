@@ -1,0 +1,59 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: render-change-artifacts
+sections:
+  Implementation:
+    implement-change-view-models:
+      text: 'Implement the React-free change view-model module under plugins/dsh-strict-spec/src/client/: map a parsed change proposal, design, task list, or question list onto its presentation structure — proposal summary, scope, unchanged behavior, and roadmap link; design approach, decisions with rationale, alternatives, and risks; task sections with per-task done or pending markers and per-section and overall completed-over-total counts computed from declared statuses; question entries partitioned into open and resolved with their answers — and partition every top-level field the dedicated layout does not present for the additional-fields append.'
+      status: complete
+    implement-delta-view-models:
+      text: 'Implement the React-free delta view-model module: map a delta spec, delta scene, or delta tech file onto operation groups labeled with their declared operation, carrying requirement bodies with strength, statement, and scenarios, scene flow steps under main and exception flows with actions, coverage references, and no-coverage reasons, and rule bodies with strength, statement, rationale, enforcement, and examples, with the same unknown-top-level-field partition.'
+      status: complete
+    implement-dedicated-renderer-components:
+      text: 'Implement the dedicated renderer components and their CSS Modules under plugins/dsh-strict-spec/src/client/: proposal, design, tasks, questions, delta spec, delta scene, and delta tech views rendering through the view models with props-only data flow, styles consuming only --dsw alias tokens, and every new user-visible string registered in both the zh and en catalogs and rendered only through them.'
+      status: complete
+    route-document-view-by-artifact-type:
+      text: Extend the shared DocumentView to dispatch on the open document's declared artifact_type, render the matched dedicated view, append unrecognized top-level fields through the generic structured view under an additional-fields section, and keep the generic view, status conditions, and parse-error rendering for every other document unchanged.
+      status: complete
+    implement-change-completion-badge:
+      text: 'Extend the model and tree with change task completion: derive completed-over-total counts when the content pass reads a non-archived change''s tasks file, expose the counts per change directory on the tree state, badge the change group rows in the row model and the tree component, and recompute on the live-refresh reloads of a change directory, keeping archived change groups badge-free and unread.'
+      status: complete
+    extend-plugin-renderer-suites:
+      text: 'Extend the plugin suites inside bun test/run.ts: component cases statically rendering every dedicated renderer against its registered strict example under examples/strict-spec-driven/ — proposal, design, task list, question list, and the open question-list example, delta spec with its operations and new-spec variants, delta scene, and delta tech with its operations — plus the additional-fields append, the unknown-type generic fallback, and archived-change routing; model cases for the completion derivation, badge rows, refresh recomputation, and the badge-free archive.'
+      status: complete
+  Testing:
+    validate-change-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready render-change-artifacts
+    run-lint:
+      text: Run the plugin-local lint inside plugins/dsh-strict-spec so the view models, renderer components, and model changes compile under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite, confirming the renderer example cases, the completion badge cases, and the existing viewer behavior all pass together.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the additions leave the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-and-conventions:
+      text: 'Rebuild the client bundle and confirm the shape and convention checks hold: shared modules stay runtime requires, no unshared runtime require appears, CSS Modules carry no literal colors or radii, and both locale catalogs stay key-complete for the new renderer strings.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    record-manual-renderer-check:
+      text: 'Record the manual check in the pinned dsh release with the observed evidence written back into this task. OBSERVED EVIDENCE (dsh 0.2.1-rc.2, isolated DSH_HOME=/tmp/dsh-renderer-home, link: install of the built plugin, browser-driven web client on 127.0.0.1:13192, screenshots /tmp/rca-smoke-01..07): (1) dsh plugin --profile web add link: installed dsh-plugin-strict-spec from the local checkout; the client booted with the Strict documents panel registered and no load errors. (2) After choosing /home/wx766/Code/strict-spec-driven as workspace and opening the strict documents page, the tree loaded the real workspace in the fixed family order with entry counts and archives collapsed. (3) The Changes family listed the active change group with the live completion badge exactly matching its task state at observation time: ''render-change-artifacts 11/14 tasks complete 7 entries''. (4) Keyboard opening the active change''s tasks.yaml rendered the dedicated tasks view: ''Overall: 11/14 complete'', sections Implementation (6/6 complete), Testing (4/4 complete), Verification (1/4 complete), a Testing gates section, 11 Done and 3 Pending markers. (5) Opening the change''s delta spec (specs/dsh-viewer/behavior.yaml) rendered the dedicated delta view: ADDED, MODIFIED, and REMOVED operation group labels, the four requirement ids change-artifact-renderers, generic-structured-rendering, declared-values-only, tree-node-presentation, MUST strengths, and GIVEN/WHEN/THEN scenario steps. (6) Expanding the change archive in-host listed the four archived change directories each with 7 entries and no completion badge, confirming archived groups render badge-free while only listed. NOT FULLY RUN: opening an archived change document through the tree in-host — the browser drive of the virtualized archived rows could not reliably land the open click; the same-dedicated-view behavior for archived change documents is instead proven deterministically by the component suite, which renders the real archived register-right-sidebar-tab tasks.yaml through the identical dedicated tasks view (14/14 complete). NOT RUN: the desktop-profile leg — the profile is Electron-managed and no Electron binary exists in this environment, so desktop proof defers to the release-dsh-strict-spec-plugin planned change, which owns the end-to-end smoke for both profiles.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the delta spec''s modified generic-structured-rendering, declared-values-only, and tree-node-presentation requirements and the added change-artifact-renderers requirement merge into dsh-viewer-behavior, the delta tech rule merges into dsh-plugin-client, and the delta scene steps merge into the browses scene with coverage resolving through the delta overlay.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify render-change-artifacts directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-change-artifacts
+  unit_test_task: run-project-suite

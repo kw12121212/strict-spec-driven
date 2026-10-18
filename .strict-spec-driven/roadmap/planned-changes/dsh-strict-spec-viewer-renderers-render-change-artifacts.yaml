@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: render-change-artifacts
   milestone: dsh-strict-spec-viewer-renderers
-status: planned
+status: complete
 summary: Render change proposal, design, tasks, questions, and change-scoped delta files for active and archived changes.
 details: Proposal view with summary, scope, and motivation sections; design view with decisions and their rationale; tasks view with per-section and overall completion and done or pending markers per task; questions view separating open from resolved questions with answers; and delta spec, delta scene, and delta tech files rendered with the same layouts as their main counterparts plus their delta operation labels. The change group node in the tree shows task completion as a badge. Archived changes use the same renderers. Test each renderer against its registered strict example, including the open question-list example.
 depends_on:

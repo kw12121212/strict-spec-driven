@@ -8,6 +8,9 @@
  * than shown as an empty group, and an archive directory renders as a
  * collapsed group whose entries are not read until the operator expands it.
  */
+import type { TaskCompletion } from "./taskCompletion.ts";
+
+export type { TaskCompletion };
 
 /** The fixed strict artifact family order of the document tree. */
 export const FAMILY_ORDER = [
@@ -145,6 +148,14 @@ export interface TreeState {
   readonly families: readonly DocumentNode[];
   /** Every classified document keyed by workspace path. */
   readonly documents: Readonly<Record<string, DocumentRecord>>;
+  /**
+   * Task completion per non-archived change directory, keyed by the group
+   * node's workspace path, counted from the declared statuses of the
+   * change's tasks file. Present once the tree has been recomputed;
+   * archived change directories never appear because their files stay
+   * unread while they are only listed.
+   */
+  readonly changeCompletion?: Readonly<Record<string, TaskCompletion>>;
 }
 
 /** The state of the one document open in the view. */

@@ -68,20 +68,28 @@ requirements:
         - THEN: no control writes, edits, or deletes strict workflow files, and the contents of every listed file are unchanged after viewing
   declared-values-only:
     strength: MUST
-    statement: Document views show declared field values exactly as written in the file, and never present a derived roadmap status, validation result, or any other value not written in the file.
+    statement: Document views show declared field values exactly as written in the file, and never present a derived roadmap status, validation result, or any other value not written in the file, with the single exception of task completion counts, which summarize the declared status fields of a change's tasks.
     scenarios:
       values-as-written:
         - GIVEN: an open strict document declares field values such as a status or an order
         - WHEN: the document view renders
         - THEN: it shows the declared values exactly as written and presents no derived roadmap status, validation result, or other value not written in the file
+      completion-summarizes-declared-statuses:
+        - GIVEN: an open change tasks document declares task statuses across its sections
+        - WHEN: the tasks view renders
+        - THEN: its per-section and overall completion counts count exactly the declared statuses, complete against all, and the view presents no other computed value
   generic-structured-rendering:
     strength: MUST
-    statement: Opening any strict document from the tree renders it as a structured view of its YAML fields, uniformly for every artifact type.
+    statement: Opening any strict document whose artifact type has no dedicated renderer renders it as a structured view of its YAML fields, uniformly for every such type, and a document whose type has a dedicated renderer renders that renderer's layout with every top-level field the layout does not present appended through the same structured view under an additional-fields section.
     scenarios:
-      any-document-structured:
-        - GIVEN: any strict document in the tree, including artifact types without a dedicated renderer
-        - WHEN: the operator opens it
-        - THEN: it renders as a structured view of its YAML fields, uniformly for every artifact type
+      fallback-types-stay-generic:
+        - GIVEN: an open strict document declares an artifact type no dedicated renderer serves, such as a workflow config or an unknown type
+        - WHEN: the document view renders
+        - THEN: it renders as the structured view of its YAML fields exactly as before, with no dedicated layout applied
+      additional-fields-appended:
+        - GIVEN: an open document of a served artifact type declares a top-level field its dedicated layout does not present
+        - WHEN: the document view renders
+        - THEN: that field appears under an additional-fields section rendered through the generic structured view rather than being hidden
   located-parse-error:
     strength: MUST
     statement: Opening a strict document whose YAML cannot be parsed renders a parse-error view naming the error's location alongside the document's raw text, while the tree and the open view keep working.
@@ -160,16 +168,24 @@ requirements:
         - THEN: no viewer document UI registers and no partially working tree or document view is shown
   tree-node-presentation:
     strength: MUST
-    statement: Each document tree node presents a file-type glyph, each group whose entries are loaded presents its entry count, milestone and planned-change nodes present a badge of the status declared in their file, and nesting depth renders as one consistent indentation step per level.
+    statement: Each document tree node presents a file-type glyph, each group whose entries are loaded presents its entry count, milestone and planned-change nodes present a badge of the status declared in their file, each non-archived change group node whose tasks file was read presents a badge of its task completion counted from the declared statuses, and nesting depth renders as one consistent indentation step per level.
     scenarios:
       loaded-presentation:
-        - GIVEN: the tree shows families, loaded groups, and non-archived milestone and planned-change documents
+        - GIVEN: the tree shows families, loaded groups, and non-archived milestone, planned-change, and change documents
         - WHEN: the tree renders
-        - THEN: every document node presents a file-type glyph, every loaded group presents its entry count, milestone and planned-change nodes present their declared status as a badge, and each nesting level indents one consistent step deeper
+        - THEN: every document node presents a file-type glyph, every loaded group presents its entry count, milestone and planned-change nodes present their declared status as a badge, each non-archived change group node whose tasks were read presents its completed-over-total task count as a badge, and each nesting level indents one consistent step deeper
       unloaded-group-no-count:
         - GIVEN: a collapsed group whose entries have not been listed
         - WHEN: its row renders
         - THEN: it presents no entry count rather than an assumed one
+      completion-badge-updates-on-change:
+        - GIVEN: a non-archived change group node presents its task completion badge and the change's tasks file changes on disk
+        - WHEN: the tree refreshes that change directory
+        - THEN: the badge presents the completion recomputed from the new declared statuses without a manual reload
+      archived-change-no-completion-badge:
+        - GIVEN: the change archive is expanded and its entries listed
+        - WHEN: the archived change rows render
+        - THEN: they present no completion badge, because archived files stay unread while they are only listed
   tree-keyboard-navigation:
     strength: MUST
     statement: The operator can move between visible tree nodes, expand and collapse the focused group, and open the focused document using only the keyboard, with the focused node kept visible.
@@ -242,3 +258,27 @@ requirements:
         - GIVEN: the operator chose a Session and opened a strict document in the left-sidebar page
         - WHEN: the page is opened again
         - THEN: the same Session is chosen and the same document is selected without the operator re-choosing either
+  change-artifact-renderers:
+    strength: MUST
+    statement: Opening a change's proposal, design, tasks, or questions document renders its dedicated view — the proposal view with its summary what and why, scope in and out, unchanged behavior, and roadmap link; the design view with its approach, decisions and their rationale, alternatives, and risks; the tasks view with per-section grouping, a done or pending marker per task, and per-section and overall completion; the questions view separating open questions from resolved ones with their answers — and opening a change-scoped delta spec, delta scene, or delta tech file renders each operation group labeled with its declared operation, laying out requirement bodies, scene flow steps, and rule bodies through the same layouts their main counterparts use, with the same dedicated views serving archived change documents.
+    scenarios:
+      proposal-view:
+        - GIVEN: an open change proposal declares summary what and why, scope in and out, unchanged behavior, and a roadmap link
+        - WHEN: the proposal view renders
+        - THEN: each group appears as its own section presenting its declared entries in declaration order
+      tasks-view-completion:
+        - GIVEN: an open change tasks document declares sections whose tasks carry pending and complete statuses
+        - WHEN: the tasks view renders
+        - THEN: each section lists its tasks with a done or pending marker from the declared status, each section presents its completed-over-total count, and the view presents the overall completed-over-total count
+      questions-open-separated-resolved:
+        - GIVEN: an open change questions document declares open questions and resolved questions with answers
+        - WHEN: the questions view renders
+        - THEN: the open questions appear separated from the resolved ones, and each resolved entry presents its recorded answer
+      delta-operations-labeled:
+        - GIVEN: an open change-scoped delta spec, delta scene, or delta tech file declares operation groups
+        - WHEN: its view renders
+        - THEN: each operation group presents its declared operation label, and the requirement bodies, scene flow steps, and rule bodies inside render through the same layouts their main counterparts use
+      archived-change-dedicated-views:
+        - GIVEN: the operator expanded the change archive and opened one of its proposal, design, tasks, questions, or delta documents
+        - WHEN: the document view renders
+        - THEN: it renders through the same dedicated view an active change's document of that type uses

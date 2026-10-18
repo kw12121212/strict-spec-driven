@@ -1,0 +1,34 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: render-change-artifacts
+approach:
+  - Route every open document through the shared document view, which reads the declared artifact_type of the open document's parsed data and dispatches to a dedicated renderer registered for that type, falling back to the generic structured view for every other or absent type. Each dedicated renderer is backed by a React-free view-model module that partitions top-level fields into the ones its layout presents and the unrecognized ones appended through the generic view, computes per-task markers and per-section and overall completion from declared statuses, and maps delta operation groups onto shared requirement, flow-step, and rule layouts. The change tree badge derives completion in the model layer during the same content pass that already refines tree labels.
+decisions:
+  dispatch-on-declared-artifact-type:
+    decision: The document view dispatches to dedicated renderers by the artifact_type field of the open document's parsed data, with no dedicated renderer and the generic structured view for every other or absent type.
+    rationale: The parsed data already carries the declaration, so routing needs no store or port change; an unknown or absent artifact type keeps the generic view exactly as the milestone's unknown-field-display answer requires, and archived change documents route identically because the declaration lives in the file content that is read on open.
+  react-free-change-view-models:
+    decision: Each dedicated renderer is backed by a React-free view-model module that maps declared fields onto presentation structures, including the unknown-top-level-field partition, per-task done or pending markers, and per-section and overall completion computed from declared task statuses.
+    rationale: 'The generic document-parts mapper proved this seam: structure mapping outside React renders is assertable directly under bun test/run.ts, so renderer layout regressions fail the suite without a host, and the completion computation is testable on its own instead of only through rendered output.'
+  shared-main-family-layouts:
+    decision: The delta spec, delta scene, and delta tech views lay out requirement bodies, scene flow steps, and rule bodies through shared layout components that the main spec, scene, and tech renderers will reuse, labeling each operation group with its declared operation.
+    rationale: The planned change requires the same layouts as the main counterparts while those dedicated renderers land as separate planned changes of the same milestone; building the shared layouts once here keeps the later renderers presentation-consistent instead of re-derived per change, and the milestone's any-order rule means whichever lands first owns the shared layout.
+  completion-badge-from-content-reads:
+    decision: The change group badge presents completed-over-total task counts computed when the tree's existing content pass reads a non-archived change's tasks file, stored per change directory and recomputed by the same live-refresh reloads that already re-read a changed change directory.
+    rationale: The tree already reads every non-archived document to derive labels, so the badge adds no workspace reads and no new watch surface; recomputation rides the directory watch whose invalidation already reloads the change directory when any of its files changes.
+  archived-changes-badge-free:
+    decision: Archived change group nodes present no completion badge, keeping archived entries labeled from their directory names alone with their files unread until opened.
+    rationale: The archive contract — collapsed by default, entries unread until expansion, never badged — exists so an archive can be listed without reading its files; computing archived badges would break the read guarantee the viewer spec records, and an archived change's task history is not live progress.
+  additional-fields-through-generic-view:
+    decision: Every dedicated renderer appends the top-level fields its layout does not present through the generic structured view under an additional-fields section, and artifact types without a dedicated renderer keep the generic view entirely.
+    rationale: 'This is the milestone''s settled unknown-field-display answer recorded in its intake evidence: a newer schema version that adds a top-level field never makes content disappear from the reader, while known fields get the dedicated layout. Additions nested under a known mapping, such as a new key inside change, stay outside this change''s top-level contract and generalize when the remaining renderer changes of the milestone land; implementing the partition once in the dispatch keeps every renderer honest by construction.'
+alternatives:
+  - option: Extend the generic structured renderer with special-case sections for change artifacts.
+    reason: The generic mapper is deliberately artifact-type-blind; per-type branches there would scatter dedicated presentation through the one component every type shares and make the unknown-field fallback harder to guarantee.
+  - option: Store a dedicated renderer registry keyed by artifact family in the model layer.
+    reason: Rendering choice is pure presentation over already-parsed data; a model registry would move presentation into the data layer and still need the same dispatch in the view, doubling the seam without adding a testable fact.
+risks:
+  - Renderer view models encode the current shapes of change artifacts, so schema evolution can silently degrade them; example-driven renderer tests make the break fail the regression suite first.
+  - Completion counts are the first computed values the viewer shows; leaking other derived values into views would break the declared-values requirement, so the exception stays pinned to task completion alone.

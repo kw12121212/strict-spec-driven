@@ -1,0 +1,206 @@
+/* Dedicated artifact view styling: every color and radius through
+ * --dsw-alias and --dsw tokens — no literal color, no literal radius. The
+ * generic document styles (fields, lists, paragraphs, blocks) are reused
+ * from DocumentView.module.css through the shared generic blocks view. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.fact {
+  display: inline-flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.factKey {
+  flex: none;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.factText {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.entries {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entry {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardId {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+.statement {
+  margin: 0;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaRow {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metaKey {
+  flex: none;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.metaText {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+.scenario {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+}
+
+.scenarioId {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.step {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 12px;
+}
+
+.stepKind {
+  flex: none;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.stepText {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+.flowSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flowStep {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coverageList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.coverage {
+  font-family: var(--dsw-mono-font-family, monospace);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.command {
+  font-family: var(--dsw-mono-font-family, monospace);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.completion {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.operationGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.operationTitle {
+  margin: 0;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+}

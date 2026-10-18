@@ -43,7 +43,7 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: archive-groups-collapsed
   open-document:
-    action: The operator opens a strict document from the tree, which renders in the generic structured view showing its declared field values exactly as written.
+    action: 'The operator opens a strict document from the tree, which renders in the view its artifact type uses: a dedicated change-artifact view for change documents, or the generic structured view for a type without one, showing declared field values exactly as written with unrecognized top-level fields appended under an additional-fields section.'
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: generic-structured-rendering
@@ -84,6 +84,26 @@ main_flow:
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-selection-restore
+  open-change-tasks:
+    action: 'The operator opens an active change''s tasks document and reads its dedicated view: tasks grouped by section, a done or pending marker per task, per-section completion counts, and the overall completion.'
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: change-artifact-renderers
+  open-change-delta:
+    action: The operator opens a change-scoped delta spec, delta scene, or delta tech file and reads its operation groups, each labeled with its declared operation, with requirement bodies, scene flow steps, and rule bodies laid out as in their main counterparts.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: change-artifact-renderers
+  open-archived-change:
+    action: The operator expands the change archive and opens one of its documents, which renders through the same dedicated view an active change uses.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: change-artifact-renderers
+  scan-change-completion-badge:
+    action: The operator scans the changes family, where each non-archived change group node carries a completed-over-total task completion badge that refreshes when its tasks file changes, and archived change groups carry none.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-node-presentation
 exception_flows:
   missing-workflow-directory:
     trigger: The workspace of the active or chosen Session has no .strict-spec-driven/ directory.

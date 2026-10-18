@@ -97,6 +97,11 @@ function TreeRowView(
       {row.status === undefined ? null : (
         <Tag tone={STATUS_TONES[row.status] ?? "outline"}>{row.status}</Tag>
       )}
+      {row.taskCompletion === undefined ? null : (
+        <Tag tone={row.taskCompletion.done === row.taskCompletion.total ? "success" : "info"}>
+          {t("tree.task-completion", { done: row.taskCompletion.done, total: row.taskCompletion.total })}
+        </Tag>
+      )}
       {row.count === undefined ? null : (
         <span className={styles.count}>{t("tree.group-count", { count: row.count })}</span>
       )}

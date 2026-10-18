@@ -414,7 +414,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 232 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
-| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 22 |
+| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 23 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 10 |
@@ -457,6 +457,8 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `identity-stable-adapters-and-effect-free-controllers` — An adapter that feeds a React useSyncExternalStore source returns identity-stable snapshots — memoizing on the identity of the host snapshots it reads, so unchanged sources return the same object — and an effect-driven sequence a component needs at mount or transition (load, restore, teardown) is extracted into a plain controller object the component's effects only delegate to, so suites prove the ordering under bun test/run.ts with no React effect runtime.
 - **MUST** `entry-declares-every-host-face-it-reads` — The client entry's inject export declares every ctx property its apply path and wired components read — service names, the bare remote face, and each remote namespace as a remote-prefixed name — and the package manifest's dsh.client.inject list declares every module the built bundle requires at runtime plus every entry whose fibers provide the declared services.
 - **SHOULD** `type-only-dependency-type-closure` — A type-only contract devDependency should also declare, as pinned type-only devDependencies, every package whose types its published .d.ts files import, and the bundle-shape suite should list each added package among the type-only runtime-require prohibitions.
+- **MUST** `renderer-suites-consume-registered-examples` — Every dedicated renderer the plugin adds is covered by a suite case that renders the registered strict example of its artifact type from examples/strict-spec-driven/, so a schema change that breaks a renderer's layout fails the regression suite rather than silently degrading the view.
+- **MUST** `dedicated-renderers-react-free-view-models` — Every dedicated renderer maps a parsed strict artifact onto its presentation structure through a React-free view-model module — partitioning known and unrecognized top-level fields and computing any presented summary, such as task completion, from declared values — and renders every unrecognized top-level field through the one shared generic blocks implementation.
 
 ### [TypeScript ESM Baseline](.strict-spec-driven/tech/typescript-esm-baseline.yaml) (`typescript-esm-baseline`) — coding
 

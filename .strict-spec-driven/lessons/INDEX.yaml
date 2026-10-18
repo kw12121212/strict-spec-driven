@@ -146,6 +146,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/a-line-deleting-control-run-takes-a-required-fie-280dc1.yaml
+    statically-rendered-translate-params-must-be-ass-083ebf:
+      title: Statically rendered translate params must be asserted with HTML escaping
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/statically-rendered-translate-params-must-be-ass-083ebf.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: render-change-artifacts
+  status: proposed
+summary:
+  what:
+    - 'Give change planning artifacts dedicated readable views: a proposal view with summary, scope, and motivation sections, a design view with decisions and their rationale, a tasks view with per-section and overall completion and per-task done or pending markers, and a questions view separating open from resolved questions with their answers.'
+    - Render change-scoped delta spec, delta scene, and delta tech files with the same layouts as their main counterparts plus their ADDED, MODIFIED, and REMOVED operation labels.
+    - Show each non-archived change group node in the document tree with a task completion badge derived from its change's declared task statuses.
+  why:
+    - The generic structured view makes operators decode YAML shape to read a change's task progress, open questions, or requirement deltas, and the renderers milestone exists to give each artifact family a renderer that matches how operators read it.
+    - Renderers encode strict schema shapes, and renderer tests driven by the registered strict examples make schema drift fail the regression suite rather than silently degrade the views.
+scope:
+  in:
+    - 'A dedicated proposal view: summary what and why, scope in and out, unchanged behavior, and the roadmap milestone and planned-change link, each as its own section with declared entries in declaration order.'
+    - 'A dedicated design view: approach, decisions with their decision text and rationale, alternatives with their rejection reasons, and risks.'
+    - 'A dedicated tasks view: tasks grouped by declared section, a done or pending marker per task from its declared status, per-section completed-over-total counts, and the overall completed-over-total count.'
+    - 'A dedicated questions view: open questions separated from resolved ones, each entry showing its question and context, and each resolved entry also showing its recorded answer.'
+    - 'Dedicated delta file views: delta spec, delta scene, and delta tech files rendering each operation group labeled with its declared operation, requirement bodies, scene flow steps, and rule bodies laid out through the same layouts their main counterparts use.'
+    - A task completion badge on each non-archived change group node in the tree, recomputed when the change's tasks file changes on disk, with archived change groups staying badge-free.
+    - The same dedicated renderers serving archived change documents reached by expanding the change archive.
+    - Unrecognized top-level fields appended through the generic structured view under an additional-fields section, and artifact types without a dedicated renderer keeping the generic view.
+    - Renderer suite cases that render the registered strict example of each artifact type, including the open question-list example.
+  out:
+    - Dedicated renderers for roadmap, planned-change, spec, scene, config, architecture, tech, lessons, SOP, and design-system artifacts, which are separate planned changes of the same milestone.
+    - Editing or mutating strict artifacts from any renderer.
+    - Cross-document navigation from a rendered view, such as opening a delta file's target spec from the view; navigation belongs to the renderer changes that own those documents.
+    - Derived roadmap status, validation diagnostics, or computed scene coverage gaps; views show declared field values, with task completion the only computed summary.
+    - Changes to strict artifact schemas, the host plugin contract, the client entry's registration surface, or the plugin's dependencies.
+unchanged_behavior:
+  - The document tree's fixed family order, absent-family omission, archive collapse, labeling, truncation markers, entry counts, keyboard navigation, and expand persistence.
+  - The generic structured view for artifact types without a dedicated renderer, including its header, titled sections, lists, wrapped paragraphs, and collapsible blocks.
+  - The viewer's read-only guarantee, located parse-error view, loading and error conditions, empty state, and live refresh behavior.
+  - Both entry points' registration, Session binding and following, watch teardown, pane layouts, and selection restore.
+roadmap:
+  milestone: dsh-strict-spec-viewer-renderers
+  planned_change: render-change-artifacts

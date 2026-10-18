@@ -12,7 +12,7 @@
  * change badges. The keyboard model lives here too, so focus movement,
  * expansion, and activation are deterministic and testable without a host.
  */
-import type { DocumentNode, FamilyId, NodeKind, TreeState } from "../model/nodes.ts";
+import type { DocumentNode, FamilyId, NodeKind, TaskCompletion, TreeState } from "../model/nodes.ts";
 
 /** One visible row of the document tree. */
 export interface TreeRow {
@@ -34,6 +34,8 @@ export interface TreeRow {
   readonly count?: number;
   /** Declared status badge of a milestone or planned-change document, as written in its file. */
   readonly status?: string;
+  /** Task completion badge of a non-archived change group, counted from its declared task statuses. */
+  readonly taskCompletion?: TaskCompletion;
   /** Whether a group row shows its children. */
   readonly open: boolean;
   /** Whether the row can expand and collapse. */
@@ -85,6 +87,7 @@ export function flattenTreeRows(state: TreeState): TreeRow[] {
         archived: node.archived,
         count,
         status: node.kind === "document" ? record?.status : undefined,
+        taskCompletion: isGroup ? state.changeCompletion?.[node.path] : undefined,
         open,
         expandable: isGroup,
         document: node.kind === "document",

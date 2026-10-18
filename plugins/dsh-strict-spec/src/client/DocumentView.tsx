@@ -1,22 +1,26 @@
 /**
- * The generic structured renderer: the one document view every artifact
- * type renders through until a dedicated renderer exists.
+ * The shared document view: renders the one open strict document, routing
+ * by its declared artifact_type to a dedicated renderer when one is
+ * registered and to the generic structured view for every other or absent
+ * type. Loading, absent, read-error, parse-error, and idle conditions
+ * render explicitly regardless of routing, and a document whose YAML
+ * cannot be parsed renders its located message beside the raw text.
  *
- * The shape mapping lives in the React-free document-parts module: top-level
- * scalars form the header, mappings render as titled sections, sequences as
- * lists, multiline text as wrapped paragraphs, and deep nesting as
- * collapsible disclosure blocks. A document whose YAML cannot be parsed
- * renders its located message beside the raw text, and loading, absent,
- * read-error, and idle conditions each render explicitly instead of a blank
- * pane. The component reads data only through its props, per the plugin
- * client conventions.
+ * Dedicated renderers render their own facts header from the scalar fields
+ * exactly as the generic view draws them and append every unrecognized
+ * top-level field through the generic additional-fields section, so routing
+ * never hides content. The component reads data only through its props,
+ * per the plugin client conventions.
  */
-import { useState, type CSSProperties, type ReactNode } from "react";
-import { DisclosureRow, FileTypeIcon } from "@deepseek-ai/dsh-client-ui-primitives";
+import type { ReactNode } from "react";
 import type { Translate } from "@deepseek-ai/dsh-client-ui-slots";
 import type { OpenDocumentState } from "../model/nodes.ts";
+import { declaredArtifactType } from "../model/classifier.ts";
 import { documentParts } from "./documentParts.ts";
-import type { DocumentPart } from "./documentParts.ts";
+import { GenericBlocksView } from "./genericBlocks.tsx";
+import { DesignView, ProposalView, QuestionsView, TasksView } from "./ChangeArtifactViews.tsx";
+import type { DedicatedViewProps } from "./ChangeArtifactViews.tsx";
+import { DeltaSceneView, DeltaSpecView, DeltaTechView } from "./DeltaArtifactViews.tsx";
 import type { StrictSpecKey } from "./locales.ts";
 import styles from "./DocumentView.module.css";
 
@@ -28,78 +32,20 @@ export interface DocumentViewProps {
   readonly t: Translate<StrictSpecKey>;
 }
 
-/** Renders one scalar value: wrapped paragraphs for multiline text, inline text otherwise. */
-function ScalarView(props: { readonly part: Extract<DocumentPart, { kind: "scalar" }> }): ReactNode {
-  const { part } = props;
-  if (part.multiline) {
-    return <p className={styles.paragraph}>{part.text}</p>;
-  }
-  return <span className={styles.scalar}>{part.text}</span>;
-}
-
-/** Renders one field inside a section: the key with its value part. */
-function FieldView(props: { readonly fieldKey: string; readonly value: DocumentPart; readonly depth: number }): ReactNode {
-  const { fieldKey, value, depth } = props;
-  if (value.kind === "scalar") {
-    return (
-      <div className={styles.field}>
-        <span className={styles.fieldKey}>{fieldKey}</span>
-        <ScalarView part={value} />
-      </div>
-    );
-  }
-  return (
-    <CollapsibleBlock title={fieldKey} depth={depth}>
-      <PartBody part={value} depth={depth + 1} />
-    </CollapsibleBlock>
-  );
-}
-
-/** Renders the body of one mapping or sequence part. */
-function PartBody(props: { readonly part: DocumentPart; readonly depth: number }): ReactNode {
-  const { part, depth } = props;
-  if (part.kind === "scalar") {
-    return <ScalarView part={part} />;
-  }
-  if (part.kind === "sequence") {
-    return (
-      <ul className={styles.list}>
-        {part.items.map((item, index) => (
-          <li key={index} className={styles.listItem}>
-            <PartBody part={item} depth={depth} />
-          </li>
-        ))}
-      </ul>
-    );
-  }
-  return (
-    <div className={styles.fields}>
-      {part.fields.map((field) => (
-        <FieldView key={field.key} fieldKey={field.key} value={field.value} depth={depth} />
-      ))}
-    </div>
-  );
-}
-
-/** Renders one deep nested structure as a collapsible disclosure block. */
-function CollapsibleBlock(props: { readonly title: string; readonly depth: number; readonly children: ReactNode }): ReactNode {
-  const { title, depth, children } = props;
-  const [open, setOpen] = useState(false);
-  return (
-    <div className={styles.block} style={{ "--dssw-depth": depth } as CSSProperties}>
-      <DisclosureRow
-        icon={<FileTypeIcon kind="other" size={16} />}
-        title={title}
-        open={open}
-        expandable
-        onToggle={() => setOpen(!open)}
-        className={styles.disclosure}
-      >
-        {open ? children : null}
-      </DisclosureRow>
-    </div>
-  );
-}
+/**
+ * The dedicated renderers, keyed by declared artifact_type: the change
+ * planning families and the change-scoped delta families. Every other or
+ * absent type keeps the generic structured view.
+ */
+const DEDICATED_VIEWS: Readonly<Record<string, (props: DedicatedViewProps) => ReactNode>> = {
+  change_proposal: ProposalView,
+  change_design: DesignView,
+  task_list: TasksView,
+  question_list: QuestionsView,
+  delta_spec: DeltaSpecView,
+  delta_scene: DeltaSceneView,
+  delta_tech: DeltaTechView,
+};
 
 /** Renders the generic structured view of one open strict document. */
 export function DocumentView(props: DocumentViewProps): ReactNode {
@@ -127,6 +73,14 @@ export function DocumentView(props: DocumentViewProps): ReactNode {
     }
     return <div className={styles.state} role="alert">{t("view.error", { code: state.error?.code ?? "unknown" })}</div>;
   }
+  // Routing follows the declared artifact_type of the parsed data, so an
+  // unknown or absent type keeps the generic view and archived change
+  // documents render through the same dedicated views active ones do.
+  const artifactType = declaredArtifactType(state.data);
+  const DedicatedView = artifactType === undefined ? undefined : DEDICATED_VIEWS[artifactType];
+  if (DedicatedView !== undefined) {
+    return <DedicatedView data={state.data} t={t} />;
+  }
   const parts = documentParts(state.data);
   if (parts.header.length === 0 && parts.blocks.length === 0) {
     return <div className={styles.state} role="status">{t("view.empty-document")}</div>;
@@ -143,34 +97,7 @@ export function DocumentView(props: DocumentViewProps): ReactNode {
           ))}
         </header>
       )}
-      {parts.blocks.map((block) => {
-        if (block.kind === "section") {
-          return (
-            <section key={block.title} className={styles.section}>
-              <h3 className={styles.sectionTitle}>{block.title}</h3>
-              <div className={styles.fields}>
-                {block.fields.map((field) => (
-                  <FieldView key={field.key} fieldKey={field.key} value={field.value} depth={1} />
-                ))}
-              </div>
-            </section>
-          );
-        }
-        if (block.kind === "list") {
-          return (
-            <section key={block.title} className={styles.section}>
-              <h3 className={styles.sectionTitle}>{block.title}</h3>
-              <PartBody part={{ kind: "sequence", items: block.items }} depth={1} />
-            </section>
-          );
-        }
-        return (
-          <section key={block.title} className={styles.section}>
-            <h3 className={styles.sectionTitle}>{block.title}</h3>
-            <p className={styles.paragraph}>{block.text}</p>
-          </section>
-        );
-      })}
+      <GenericBlocksView blocks={parts.blocks} />
     </div>
   );
 }

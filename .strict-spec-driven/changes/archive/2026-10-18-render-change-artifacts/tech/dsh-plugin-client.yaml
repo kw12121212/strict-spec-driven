@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-client
+operations:
+  ADDED:
+    renderer-suites-consume-registered-examples:
+      strength: MUST
+      statement: Every dedicated renderer the plugin adds is covered by a suite case that renders the registered strict example of its artifact type from examples/strict-spec-driven/, so a schema change that breaks a renderer's layout fails the regression suite rather than silently degrading the view.
+      rationale: Renderers encode the current shape of each strict schema; a private fixture hides drift between the schema and the renderer, while the registered example is the same sample the schema cache serves, keeping renderer tests in lockstep with schema evolution at zero fixture cost.
+      enforcement:
+        method: test
+        detail: The plugin component suite loads each artifact type's registered example file and statically renders its dedicated renderer; removing or renaming an example, or a schema change that alters fields the renderer reads, fails the case.
+      examples:
+        good:
+          - A question-list renderer case reading examples/strict-spec-driven/question-list.open.yaml and asserting the open and resolved groups render separately.
+        bad:
+          - A renderer tested only against an inline hand-written object that drifts from the registered example until a real schema change breaks the view silently.
+    dedicated-renderers-react-free-view-models:
+      strength: MUST
+      statement: Every dedicated renderer maps a parsed strict artifact onto its presentation structure through a React-free view-model module — partitioning known and unrecognized top-level fields and computing any presented summary, such as task completion, from declared values — and renders every unrecognized top-level field through the one shared generic blocks implementation.
+      rationale: Renderer structure that lives outside React renders is assertable directly under bun test/run.ts without a host, which is what makes example-driven renderer checks meaningful; and one shared generic blocks implementation means the dedicated additional-fields section and the generic view can never diverge about how a YAML shape renders. The remaining renderer changes of the milestone reuse exactly this seam.
+      enforcement:
+        method: test
+        detail: View-model cases assert the field partition, per-artifact body mapping, and computed summaries directly, and component cases render each dedicated view with its additional-fields section drawn through the shared generic blocks, so a renderer that inlines structure mapping or renders additional fields itself fails the suite.
+      examples:
+        good:
+          - The tasks renderer draws its sections, markers, and counts from tasksView's model and its additional fields through GenericBlocksView.
+        bad:
+          - A renderer that walks its parsed YAML inline in JSX, or renders unrecognized fields with a second private blocks implementation.
+  MODIFIED: {}
+  REMOVED: {}

@@ -5,7 +5,10 @@
  * scripted workspace fake the model suite uses, plus the pure row-model,
  * keyboard-model, and document-parts cases.
  */
-import { TestContext } from "../support/harness.js";
+import { readFileSync } from "fs";
+import path from "path";
+import { CORE_SCHEMA, load } from "js-yaml";
+import { TestContext, ROOT } from "../support/harness.js";
 import { FakeWorkspaceFiles } from "./dsh-plugin-model.js";
 import { createElement, renderToString } from "../../plugins/dsh-strict-spec/test-support/static-render.ts";
 import { DocumentTree } from "../../plugins/dsh-strict-spec/src/client/DocumentTree.tsx";
@@ -19,6 +22,7 @@ import type { PickerCatalog, SessionCatalogPort } from "../../plugins/dsh-strict
 import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.ts";
 import { flattenTreeRows, keyOutcomeFor } from "../../plugins/dsh-strict-spec/src/client/treeRows.ts";
 import { documentParts } from "../../plugins/dsh-strict-spec/src/client/documentParts.ts";
+import { proposalView, questionsView, tasksView } from "../../plugins/dsh-strict-spec/src/client/changeParts.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
 import { en, zh } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
 import type { StrictSpecKey } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
@@ -355,7 +359,7 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     // scalars keep their literal spelling under the core schema parse.
     fake.writeFile(
       `${WORKFLOW_ROOT}/changes/dated/proposal.yaml`,
-      "artifact_type: change_proposal\nchange:\n  id: dated\n  when: 2026-10-18\n  flag: yes\n",
+      "change:\n  id: dated\n  when: 2026-10-18\n  flag: yes\n",
     );
     fake.emit(`${WORKFLOW_ROOT}/changes`, "v4");
     await settle();
@@ -583,6 +587,171 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     emptySurfaces.dispose();
   }
 
+  context.section("dsh plugin components: dedicated change artifact renderers");
+
+  {
+    // Renderer cases consume the registered strict example of each artifact
+    // type, so a schema change that breaks a renderer fails the suite rather
+    // than silently degrading the view.
+    const readExample = (name: string): unknown =>
+      load(readFileSync(path.join(ROOT, "examples", "strict-spec-driven", name), "utf8"), { schema: CORE_SCHEMA });
+    const renderData = (data: unknown): string => renderView({ status: "ready", path: "example", data });
+
+    const proposalExample = readExample("change-proposal.yaml");
+    const proposalModel = proposalView(proposalExample);
+    context.assert(proposalModel.body.change?.id === "example-change" && proposalModel.body.change?.status === "proposed", "the proposal view model reads the change identity");
+    context.assert(proposalModel.additional.length === 0, "the registered example's fields are all presented, leaving no additional fields");
+    const proposalHtml = renderData(proposalExample);
+    context.assert(proposalHtml.includes("proposal.what") && proposalHtml.includes("proposal.out"), "the proposal view renders its summary and scope sections");
+    context.assert(proposalHtml.includes("Add one observable workflow behavior."), "the proposal view renders a declared what entry");
+    context.assert(proposalHtml.includes("example-change") && proposalHtml.includes("proposed"), "the proposal view renders the change identity and status");
+    context.assert(proposalHtml.includes("example-milestone"), "the proposal view renders the roadmap link");
+    context.assert(!proposalHtml.includes("view.additional-fields"), "no additional-fields section renders when every field is presented");
+
+    const extendedModel = proposalView({ ...proposalExample, review_notes: { owner: "unassigned" } });
+    context.assert(extendedModel.additional.length === 1 && extendedModel.additional[0]?.title === "review_notes", "an unrecognized top-level field partitions into the additional blocks");
+    const extendedHtml = renderData({ ...proposalExample, review_notes: { owner: "unassigned" } });
+    context.assert(extendedHtml.includes("view.additional-fields"), "an unrecognized top-level field renders under the additional-fields section");
+    context.assert(extendedHtml.includes("review_notes") && extendedHtml.includes("unassigned"), "the unrecognized field's content renders through the generic structure");
+
+    const designHtml = renderData(readExample("change-design.yaml"));
+    context.assert(designHtml.includes("design.approach") && designHtml.includes("Update the relevant workflow artifact."), "the design view renders the approach");
+    context.assert(designHtml.includes("design.decisions") && designHtml.includes("use-structured-yaml"), "the design view renders decisions with their ids");
+    context.assert(designHtml.includes("Structured fields can be parsed deterministically"), "the design view renders a decision's rationale");
+    context.assert(designHtml.includes("design.alternatives") && designHtml.includes("Keep prose-only Markdown conventions."), "the design view renders rejected alternatives");
+
+    const tasksExample = readExample("task-list.yaml");
+    const tasksModel = tasksView(tasksExample);
+    context.assert(tasksModel.body.overall?.done === 0 && tasksModel.body.overall?.total === 4, "the tasks view model counts the declared statuses");
+    context.assert(tasksModel.body.gates?.validationTask === "validate-example" && tasksModel.body.gates?.unitTestTask === "unit-test-example", "the tasks view model reads the testing gates");
+    const tasksHtml = renderData(tasksExample);
+    context.assert(tasksHtml.includes("tasks.overall:{&quot;done&quot;:0,&quot;total&quot;:4}"), "the tasks view renders the overall completion");
+    context.assert(tasksHtml.includes("tasks.completion:{&quot;done&quot;:0,&quot;total&quot;:2}"), "each section renders its own completed-over-total count");
+    context.assert(tasksHtml.includes(">Implementation<") && tasksHtml.includes(">Testing<") && tasksHtml.includes(">Verification<"), "the tasks view groups by declared section");
+    context.assert(tasksHtml.includes("tasks.pending") && !tasksHtml.includes("tasks.done"), "each pending task carries its marker from the declared status");
+    context.assert(tasksHtml.includes("implement-example"), "the tasks view renders task ids");
+    context.assert(tasksHtml.includes("npm run build"), "the tasks view renders a task's recorded command");
+    context.assert(tasksHtml.includes("tasks.gates") && tasksHtml.includes("unit-test-example"), "the tasks view renders the testing gates");
+
+    const questionsExample = readExample("question-list.open.yaml");
+    const questionsModel = questionsView(questionsExample);
+    context.assert(questionsModel.body.open.length === 2 && questionsModel.body.resolved.length === 2, "the questions view model separates open from resolved");
+    const questionsHtml = renderData(questionsExample);
+    context.assert(questionsHtml.includes("questions.open") && questionsHtml.includes("questions.resolved"), "the questions view renders both groups");
+    context.assert(questionsHtml.indexOf("questions.open") < questionsHtml.indexOf("questions.resolved"), "open questions render before resolved ones");
+    context.assert(questionsHtml.includes("requirement-problem") && questionsHtml.includes("choose-example"), "the questions view renders question ids");
+    context.assert(questionsHtml.includes("The overnight failure count is visible without opening any dashboard."), "the questions view renders a resolved question's answer");
+
+    const deltaOpsHtml = renderData(readExample("delta-spec.operations.yaml"));
+    context.assert(deltaOpsHtml.includes("delta.target-spec") && deltaOpsHtml.includes("example-spec"), "the delta spec view renders its target");
+    context.assert(deltaOpsHtml.includes(">ADDED<") && deltaOpsHtml.includes(">MODIFIED<") && deltaOpsHtml.includes(">REMOVED<"), "each operation group renders its declared operation label");
+    context.assert(deltaOpsHtml.includes("added-requirement") && deltaOpsHtml.includes("MUST"), "requirement bodies render with id and strength");
+    context.assert(deltaOpsHtml.includes("added-success") && deltaOpsHtml.includes(">GIVEN<"), "scenario bodies render their declared steps");
+
+    const newSpecHtml = renderData(readExample("delta-spec.new-spec.yaml"));
+    context.assert(newSpecHtml.includes("delta.new-spec") && newSpecHtml.includes("Example New Spec"), "a delta creating a spec renders its title");
+    context.assert(newSpecHtml.includes(".strict-spec-driven/specs/example/new-spec.yaml"), "a delta creating a spec renders its path");
+
+    const sceneHtml = renderData(readExample("delta-scene.yaml"));
+    context.assert(sceneHtml.includes("delta.target-scene") && sceneHtml.includes("checkout-flow"), "the delta scene view renders its target");
+    context.assert(sceneHtml.includes(">ADDED<") && sceneHtml.includes(">MODIFIED<") && sceneHtml.includes(">REMOVED<"), "each scene operation group renders its declared operation label");
+    context.assert(sceneHtml.includes("delta.main-flow") && sceneHtml.includes("confirm-order"), "main flow steps render under their label");
+    context.assert(sceneHtml.includes("commerce-checkout:order-total-is-confirmed"), "a step's covering reference renders as spec:requirement");
+    context.assert(sceneHtml.includes("delta.trigger") && sceneHtml.includes("payment-declined") && sceneHtml.includes("delta.no-coverage"), "exception flows render trigger, steps, and no-coverage reasons");
+
+    const techOpsHtml = renderData(readExample("delta-tech.operations.yaml"));
+    context.assert(techOpsHtml.includes("delta.target-standard") && techOpsHtml.includes("example-standard"), "the delta tech view renders its target");
+    context.assert(techOpsHtml.includes(">ADDED<") && techOpsHtml.includes(">MODIFIED<") && techOpsHtml.includes(">REMOVED<"), "each rule operation group renders its declared operation label");
+    context.assert(techOpsHtml.includes("added-rule") && techOpsHtml.includes("Modules MUST follow the added engineering rule."), "rule bodies render with id and statement");
+    context.assert(techOpsHtml.includes("delta.enforcement") && techOpsHtml.includes("Reviewers reject code that violates the added rule."), "rule enforcement renders with its method detail");
+    const techExamplesHtml = renderData({
+      artifact_type: "delta_tech",
+      target_standard: "example-standard",
+      operations: {
+        ADDED: {
+          "rule-with-examples": {
+            strength: "SHOULD",
+            statement: "A rule body with examples.",
+            rationale: "Because examples teach.",
+            enforcement: { method: "review", detail: "Reviewers check." },
+            examples: { good: ["A good case."], bad: ["A bad case."] },
+          },
+        },
+      },
+    });
+    context.assert(techExamplesHtml.includes("delta.example-good") && techExamplesHtml.includes("A good case."), "good examples render with their label");
+    context.assert(techExamplesHtml.includes("delta.example-bad") && techExamplesHtml.includes("A bad case."), "bad examples render with their label");
+
+    const configHtml = renderData(readExample("config.yaml"));
+    context.assert(configHtml.includes("preferred_human_language"), "an artifact type without a dedicated renderer keeps the generic view");
+    context.assert(!configHtml.includes("proposal.what") && !configHtml.includes("view.additional-fields"), "no dedicated layout or additional section applies to an unserved type");
+
+    const archivedTasks = load(
+      readFileSync(path.join(ROOT, ".strict-spec-driven", "changes", "archive", "2026-10-18-register-right-sidebar-tab", "tasks.yaml"), "utf8"),
+      { schema: CORE_SCHEMA },
+    );
+    const archivedHtml = renderData(archivedTasks);
+    context.assert(archivedHtml.includes("tasks.overall:{&quot;done&quot;:14,&quot;total&quot;:14}"), "an archived change's tasks render through the same dedicated view as an active change's");
+    context.assert(archivedHtml.includes("tasks.done") && !archivedHtml.includes("tasks.pending"), "a completed task renders its Done marker from the declared status");
+  }
+
+  context.section("dsh plugin components: change completion badge");
+
+  {
+    // An isolated workspace: one active change with mixed task statuses and
+    // an archived change whose files stay unread while it is only listed.
+    const badgeFake = new FakeWorkspaceFiles();
+    badgeFake.writeFile(`${WORKFLOW_ROOT}/config.yaml`, "schema: strict-spec-driven/config/v1\nartifact_type: workflow_config\n");
+    badgeFake.writeFile(`${WORKFLOW_ROOT}/changes/alpha/proposal.yaml`, "artifact_type: change_proposal\nchange:\n  id: alpha\n");
+    badgeFake.writeFile(
+      `${WORKFLOW_ROOT}/changes/alpha/tasks.yaml`,
+      "artifact_type: task_list\nchange: alpha\nsections:\n  Implementation:\n    a1:\n      text: One.\n      status: complete\n    a2:\n      text: Two.\n      status: pending\n",
+    );
+    badgeFake.writeFile(
+      `${WORKFLOW_ROOT}/changes/archive/2026-01-01-beta/tasks.yaml`,
+      "artifact_type: task_list\nchange: beta\nsections:\n  Implementation:\n    b1:\n      text: Done.\n      status: complete\n",
+    );
+    const badgeStores = createViewerStores(badgeFake.port);
+    await badgeStores.actions.loadWorkspace("session-badge");
+    await settle();
+
+    const badgeRows = flattenTreeRows(badgeStores.tree.getSnapshot());
+    const alphaRow = badgeRows.find((row) => row.id === `${WORKFLOW_ROOT}/changes/alpha`);
+    context.assert(alphaRow?.taskCompletion?.done === 1 && alphaRow?.taskCompletion?.total === 2, "a non-archived change group row carries its counted completion");
+    const archivedChangeRow = badgeRows.find((row) => row.id === `${WORKFLOW_ROOT}/changes/archive/2026-01-01-beta`);
+    context.assert(archivedChangeRow === undefined, "an archived change group stays deferred, so it carries no badge row at all");
+
+    // Expanding the archive lists the archived change group without badging
+    // it: its files stay unread while it is only listed.
+    const archiveGroup = badgeRows.find((row) => row.id === `${WORKFLOW_ROOT}/changes/archive`);
+    if (archiveGroup !== undefined) {
+      await badgeStores.actions.expandNode("session-badge", archiveGroup.id);
+      await settle();
+      const listedRow = flattenTreeRows(badgeStores.tree.getSnapshot()).find((row) => row.id === `${WORKFLOW_ROOT}/changes/archive/2026-01-01-beta`);
+      context.assert(listedRow !== undefined, "expanding the archive lists the archived change group");
+      context.assert(listedRow?.taskCompletion === undefined, "a listed archived change group carries no completion badge");
+    }
+
+
+    const badgeHtml = renderTree({ sessionId: "session-badge", tree: badgeStores.tree, actions: badgeStores.actions, t: fakeT });
+    context.assert(badgeHtml.includes("tree.task-completion:{&quot;done&quot;:1,&quot;total&quot;:2}"), "the tree renders the change group's completion badge");
+
+    // The badge refreshes from the same live-refresh reload that watches the
+    // change directory: an edited tasks file recomputes the count.
+    badgeFake.writeFile(
+      `${WORKFLOW_ROOT}/changes/alpha/tasks.yaml`,
+      "artifact_type: task_list\nchange: alpha\nsections:\n  Implementation:\n    a1:\n      text: One.\n      status: complete\n    a2:\n      text: Two.\n      status: complete\n",
+    );
+    badgeFake.emit(`${WORKFLOW_ROOT}/changes/alpha`, "v2");
+    await settle();
+    const refreshedRow = flattenTreeRows(badgeStores.tree.getSnapshot()).find((row) => row.id === `${WORKFLOW_ROOT}/changes/alpha`);
+    context.assert(refreshedRow?.taskCompletion?.done === 2 && refreshedRow?.taskCompletion?.total === 2, "an edited tasks file recomputes the badge without a manual reload");
+    const refreshedHtml = renderTree({ sessionId: "session-badge", tree: badgeStores.tree, actions: badgeStores.actions, t: fakeT });
+    context.assert(refreshedHtml.includes("tree.task-completion:{&quot;done&quot;:2,&quot;total&quot;:2}"), "the rendered badge shows the recomputed completion");
+
+    badgeStores.actions.dispose();
+  }
+
   context.section("dsh plugin components: locale catalogs");
 
   {
@@ -593,14 +762,22 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
       "the zh and en catalogs declare exactly the same keys",
       `zh: ${zhKeys.join(",")} en: ${enKeys.join(",")}`,
     );
-    const treeKeys = ["tree.label", "tree.family.changes", "tree.family.design-system", "tree.family.sops", "tree.loading", "tree.empty", "tree.error", "tree.root-truncated", "tree.truncated", "tree.group-count"];
+    const treeKeys = ["tree.label", "tree.family.changes", "tree.family.design-system", "tree.family.sops", "tree.loading", "tree.empty", "tree.error", "tree.root-truncated", "tree.truncated", "tree.group-count", "tree.task-completion"];
     context.assert(treeKeys.every((key) => key in zh), "every tree string is registered in both catalogs");
-    const viewKeys = ["view.idle", "view.loading", "view.absent", "view.error", "view.parse-error", "view.raw-text", "view.empty-document"];
+    const viewKeys = ["view.idle", "view.loading", "view.absent", "view.error", "view.parse-error", "view.raw-text", "view.empty-document", "view.additional-fields"];
     context.assert(viewKeys.every((key) => key in zh), "every document-view string is registered in both catalogs");
     const pageKeys = ["page.picker-label", "page.picker-placeholder", "page.workspace-empty", "page.workspace-other", "page.loading", "page.error", "page.no-sessions", "page.no-session-prompt", "page.tree-pane", "page.document-pane"];
     context.assert(pageKeys.every((key) => key in zh), "every strict-documents-page string is registered in both catalogs");
     const tabKeys = ["tab.title", "tab.guide-title", "tab.guide-description", "tab.tree-region", "tab.document-region"];
     context.assert(tabKeys.every((key) => key in zh), "every strict-documents-tab string is registered in both catalogs");
+    const rendererKeys = [
+      "proposal.what", "proposal.why", "proposal.in", "proposal.out", "proposal.unchanged", "proposal.roadmap", "proposal.roadmap-milestone", "proposal.roadmap-planned-change", "proposal.change-id", "proposal.change-status",
+      "design.approach", "design.decisions", "design.rationale", "design.alternatives", "design.reason", "design.risks",
+      "tasks.overall", "tasks.completion", "tasks.done", "tasks.pending", "tasks.command", "tasks.gates", "tasks.gate-validation", "tasks.gate-unit-test",
+      "questions.open", "questions.resolved", "questions.context", "questions.answer",
+      "delta.target-spec", "delta.new-spec", "delta.target-scene", "delta.target-standard", "delta.new-standard", "delta.main-flow", "delta.exception-flow", "delta.trigger", "delta.reason", "delta.rationale", "delta.enforcement", "delta.example-good", "delta.example-bad", "delta.no-coverage",
+    ];
+    context.assert(rendererKeys.every((key) => key in zh), "every dedicated-renderer string is registered in both catalogs");
   }
 
   stores.actions.dispose();
