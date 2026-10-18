@@ -1,0 +1,15 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+operations:
+  ADDED: {}
+  MODIFIED:
+    main_flow:
+      open-right-sidebar-tab:
+        action: The operator opens the strict documents tab from the right sidebar's guide entry, which binds to the Session whose surface renders it, shows that Session's workspace through the shared tree and renderer within the pane width, and closes the previous Session's watches when the active Session switches.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: right-sidebar-tab
+  REMOVED: {}

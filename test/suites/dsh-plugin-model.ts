@@ -19,6 +19,7 @@ import { FAMILY_ORDER } from "../../plugins/dsh-strict-spec/src/model/nodes.ts";
 import type { DocumentNode, TreeState } from "../../plugins/dsh-strict-spec/src/model/nodes.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
 import type { ViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
+import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.ts";
 import {
   computePickerCatalog,
   createPageController,
@@ -904,6 +905,52 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
     await settle();
     context.assert(fake.openWatches.size === 0, "deactivation closes every watch of the shown session");
     context.assert(switchFake.openWatches.size === 0, "dispose closes every watch of the driven stores");
+  }
+
+  context.section("dsh plugin model: right-sidebar tab controller and per-session surfaces");
+
+  {
+    const fake = new FakeWorkspaceFiles();
+    seedPickerControllerWorkspace(fake);
+    const surfaces = createTabSurfaces(fake.port);
+
+    // The bound Session's workspace loads on show, exactly once: a repeat
+    // show is the no-op the load-once contract promises.
+    const a = surfaces.get("session-a");
+    context.assert(a.sessionId === "session-a", "the surface carries the sessionId the seat handed it");
+    a.controller.show();
+    await settle();
+    context.assert(a.viewer.tree.getSnapshot().status === "ready", "show loads the bound session's workspace");
+    const walksAfterFirstShow = fake.listCalls.length;
+    a.controller.show();
+    await settle();
+    context.assert(fake.listCalls.length === walksAfterFirstShow, "a repeat show issues no second workspace walk");
+
+    // Per-Session isolation: another Session's surface holds its own
+    // stores, and the cache returns the same surface per sessionId.
+    const b = surfaces.get("session-b");
+    context.assert(a.viewer !== b.viewer, "each session's surface holds its own viewer stores");
+    context.assert(surfaces.get("session-a") === a, "the surface cache returns the same surface for the same sessionId");
+
+    // Teardown: dispose closes this surface's watches and resets it, and a
+    // later show reloads — the unmount/remount cycle a non-keepMounted tab
+    // body rides through Session switches.
+    a.controller.dispose();
+    await settle();
+    context.assert(fake.openWatches.size === 0, "dispose closes the surface's watches");
+    context.assert(a.viewer.tree.getSnapshot().status === "loading", "dispose resets the surface to the initial tree state");
+    a.controller.show();
+    await settle();
+    context.assert(a.viewer.tree.getSnapshot().status === "ready", "a disposed surface reloads on its next show");
+
+    // Registration disposal clears every cached surface and its watches, so
+    // an unloaded fiber leaks nothing.
+    b.controller.show();
+    await settle();
+    surfaces.dispose();
+    await settle();
+    context.assert(fake.openWatches.size === 0, "registration disposal closes every cached surface's watches");
+    context.assert(surfaces.get("session-a") !== a, "a get after registration disposal creates a fresh surface");
   }
 
   context.section("dsh plugin model: stale workspace load cannot clobber the active one");

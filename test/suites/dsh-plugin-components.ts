@@ -13,8 +13,10 @@ import type { DocumentTreeProps } from "../../plugins/dsh-strict-spec/src/client
 import { DocumentView } from "../../plugins/dsh-strict-spec/src/client/DocumentView.tsx";
 import type { DocumentViewProps } from "../../plugins/dsh-strict-spec/src/client/DocumentView.tsx";
 import { StrictDocumentsPage } from "../../plugins/dsh-strict-spec/src/client/StrictDocumentsPage.tsx";
+import { StrictDocumentsTab } from "../../plugins/dsh-strict-spec/src/client/StrictDocumentsTab.tsx";
 import { createPageController, createPageSelectionStore } from "../../plugins/dsh-strict-spec/src/model/picker.ts";
 import type { PickerCatalog, SessionCatalogPort } from "../../plugins/dsh-strict-spec/src/model/picker.ts";
+import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.ts";
 import { flattenTreeRows, keyOutcomeFor } from "../../plugins/dsh-strict-spec/src/client/treeRows.ts";
 import { documentParts } from "../../plugins/dsh-strict-spec/src/client/documentParts.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
@@ -540,6 +542,47 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     stores.actions.dispose();
   }
 
+  context.section("dsh plugin components: strict documents right-sidebar tab body");
+
+  {
+    // The Session-bound pane-width surface: the seat's inject factory hands
+    // the body one per-Session surface, whose controller has already loaded
+    // the workspace and opened a document.
+    const fake = new FakeWorkspaceFiles();
+    seedComponentWorkspace(fake);
+    const surfaces = createTabSurfaces(fake.port);
+    const surface = surfaces.get("session-components");
+    surface.controller.show();
+    await settle();
+    await surface.viewer.actions.openDocument("session-components", `${WORKFLOW_ROOT}/config.yaml`);
+    await settle();
+
+    const tabHtml = renderToString(createElement(StrictDocumentsTab, { surface, t: fakeT }));
+    context.assert(
+      tabHtml.includes('aria-label="tab.tree-region"') && tabHtml.includes('aria-label="tab.document-region"'),
+      "the tab renders both named regions",
+    );
+    context.assert(
+      tabHtml.indexOf('aria-label="tab.tree-region"') < tabHtml.indexOf('aria-label="tab.document-region"'),
+      "the tree region stacks above the document region for the pane width",
+    );
+    context.assert(tabHtml.includes('role="tree"'), "the tab carries the shared tree");
+    context.assert(tabHtml.includes("workflow_config"), "the tab renders the open document's structured fields under the tree");
+    surfaces.dispose();
+
+    // Empty state: a workspace without .strict-spec-driven/ shows the
+    // explicit empty condition instead of a document tree.
+    const emptyFake = new FakeWorkspaceFiles();
+    const emptySurfaces = createTabSurfaces(emptyFake.port);
+    const emptySurface = emptySurfaces.get("session-empty");
+    emptySurface.controller.show();
+    await settle();
+    const emptyHtml = renderToString(createElement(StrictDocumentsTab, { surface: emptySurface, t: fakeT }));
+    context.assert(emptyHtml.includes("tree.empty"), "a workspace without the workflow directory shows the empty state in the tab");
+    context.assert(!emptyHtml.includes('role="tree"'), "the empty tab renders no document tree");
+    emptySurfaces.dispose();
+  }
+
   context.section("dsh plugin components: locale catalogs");
 
   {
@@ -556,6 +599,8 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     context.assert(viewKeys.every((key) => key in zh), "every document-view string is registered in both catalogs");
     const pageKeys = ["page.picker-label", "page.picker-placeholder", "page.workspace-empty", "page.workspace-other", "page.loading", "page.error", "page.no-sessions", "page.no-session-prompt", "page.tree-pane", "page.document-pane"];
     context.assert(pageKeys.every((key) => key in zh), "every strict-documents-page string is registered in both catalogs");
+    const tabKeys = ["tab.title", "tab.guide-title", "tab.guide-description", "tab.tree-region", "tab.document-region"];
+    context.assert(tabKeys.every((key) => key in zh), "every strict-documents-tab string is registered in both catalogs");
   }
 
   stores.actions.dispose();

@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: register-right-sidebar-tab
   milestone: dsh-strict-spec-viewer-foundation
-status: planned
+status: complete
 summary: Register the Session-bound right-sidebar tab that shows the strict document tree and the selected document of the active workspace.
 details: Register a tab type through ctx.sidebarRightTabs with a guide entry, so it is discoverable from the right sidebar, and register its component in the sidebar.right.pane.tab keyed slot. The tab binds to the active Session and passes its sessionId to the discovery model. It shows the shared tree and the shared renderer within the pane width and follows Session switches, closing the previous Session watches. Show the empty state when the workspace has no .strict-spec-driven/ directory. Live refresh comes from the discovery model refresh coordinator. Test tab registration, Session switching with watch teardown, and the empty state, and record a manual check in the pinned dsh web client.
 depends_on:

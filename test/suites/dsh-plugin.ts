@@ -53,18 +53,30 @@ const REQUIRED_RUNTIME_REQUIRES: readonly string[] = [
 
 /**
  * Packages the entry consumes only through type-only imports for the
- * session, workspace, and workspace-files faces, plus the virtualizer the
- * bundle inlines: their merges and code never reach the host's frozen
- * module table, so a runtime require for any of them means a value import
- * crept in and would ask the loader for a module it does not share — the
- * exact drift a real 0.2.1-rc.2 host load exposed for the virtualizer.
+ * session, workspace, workspace-files, shortcuts, and sidebar-right faces,
+ * plus the virtualizer the bundle inlines: their merges and code never
+ * reach the host's frozen module table, so a runtime require for any of
+ * them means a value import crept in and would ask the loader for a module
+ * it does not share — the exact drift a real 0.2.1-rc.2 host load exposed
+ * for the virtualizer.
  */
 const TYPE_ONLY_PACKAGE_REQUIRES: readonly string[] = [
   'require("@deepseek-ai/dsh-api-session-controller")',
   'require("@deepseek-ai/dsh-api-workspace-controller")',
   'require("@deepseek-ai/dsh-api-workspace-files")',
+  'require("@deepseek-ai/dsh-client-shortcuts")',
+  'require("@deepseek-ai/dsh-client-ui-sidebar-right")',
   'require("@tanstack/react-virtual")',
 ];
+
+/**
+ * Every runtime require the bundle may issue: the seed-table modules the
+ * host shares. The manifest's dsh.client.inject list declares these plus
+ * the api controllers whose fibers provide the declared services, so a
+ * require for any other bare specifier is a module the loader cannot
+ * resolve.
+ */
+const REQUIRE_LITERAL_PATTERN = /require\("([^".][^"]*)"\)/g;
 
 /**
  * Literal markers proving the virtualizer is inlined like the YAML parser:
@@ -128,6 +140,15 @@ export function inspectClientBundle(bundle: string): BundleFinding[] {
   for (const marker of VIRTUALIZER_INLINED_MARKERS) {
     if (!bundle.includes(marker)) {
       findings.push({ category: "virtualizer-inline", detail: `bundle does not carry the inlined virtualizer (marker ${JSON.stringify(marker)} absent)` });
+    }
+  }
+  // Every runtime require left in the bundle must name a module the pinned
+  // host shares (the externals list); a require for anything else — inside
+  // or outside the manifest — can never resolve at load time.
+  const sharedSet = new Set(SHARED_EXTERNALS);
+  for (const match of bundle.matchAll(REQUIRE_LITERAL_PATTERN)) {
+    if (!sharedSet.has(match[1])) {
+      findings.push({ category: "unshared-require", detail: `bundle requires a module outside the shared externals list: require("${match[1]}")` });
     }
   }
   return findings;
@@ -251,10 +272,17 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     inspectClientBundle(requireStripped).some((finding) => finding.category === "shared-require"),
     "shared-require matcher fires when the runtime require is retargeted",
   );
-  const withTypeOnlyRequire = `${bundle}\nrequire("@deepseek-ai/dsh-api-session-controller");\n`;
+  for (const requireLiteral of TYPE_ONLY_PACKAGE_REQUIRES) {
+    const withTypeOnlyRequire = `${bundle}\n${requireLiteral};\n`;
+    context.assert(
+      inspectClientBundle(withTypeOnlyRequire).some((finding) => finding.category === "type-only-require" && finding.detail.includes(requireLiteral)),
+      `type-only-require matcher fires when ${requireLiteral.slice(9, -1)} is required at runtime`,
+    );
+  }
+  const withUnsharedRequire = `${bundle}\nrequire("some-unshared-package");\n`;
   context.assert(
-    inspectClientBundle(withTypeOnlyRequire).some((finding) => finding.category === "type-only-require"),
-    "type-only-require matcher fires when a type-only dependency is required at runtime",
+    inspectClientBundle(withUnsharedRequire).some((finding) => finding.category === "unshared-require" && finding.detail.includes("some-unshared-package")),
+    "unshared-require matcher fires when the bundle requires a module outside the shared externals list",
   );
   for (const { moduleId, marker } of INLINED_MARKERS) {
     const withInlinedModule = `${bundle}\n// synthetic inlined copy for the probe\nvar R={};R.x=1;/* ${marker} */\n`;
@@ -329,6 +357,11 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       `inject: ${JSON.stringify(inject)}`,
     );
   }
+  context.assert(
+    inject.includes("@deepseek-ai/dsh-client-ui-sidebar-right"),
+    "the client inject list declares the sidebar-right module whose fibers provide the declared sidebarRightTabs service",
+    `inject: ${JSON.stringify(inject)}`,
+  );
   for (const injected of inject) {
     context.assert(
       manifest.devDependencies?.[injected] !== undefined,

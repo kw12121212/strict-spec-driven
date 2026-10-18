@@ -60,7 +60,7 @@ risks:
   - Adding React and a second bundle target to a Bun and tsc repository can break the root build or the native CLI build if the plugin is not isolated from them
   - remote.workspaceFiles list returns direct children only and silently drops entries past its 2000-entry cap with a truncated flag and no paging, so a directory over the cap cannot be fully listed and the tree must show an explicit truncation marker rather than imply completeness
   - remote.workspaceFiles changes watches one file or one directory's direct entries and is not recursive, so live refresh needs one watch per loaded directory plus the open document, and a change inside an unloaded or archived directory is not observed until it is expanded
-status: proposed
+status: complete
 notes:
   - 'Decided by the requester: the plugin lives in this repository as a sub-package rather than a separate repository, so its renderers can be tested against the registered strict schemas and examples in lockstep'
   - 'Decided by the requester: both entry points ship, a Session-bound right-sidebar tab and a left-sidebar global page, sharing one tree component and one renderer'

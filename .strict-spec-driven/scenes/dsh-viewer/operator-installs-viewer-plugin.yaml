@@ -29,6 +29,16 @@ main_flow:
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-session-picker
+  observe-web-tab:
+    action: Open the web client, observe the strict documents entry in the right sidebar's guide, and pick it to open the Session-bound strict documents tab beside the conversation.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: right-sidebar-tab
+  observe-desktop-tab:
+    action: Open the desktop profile, observe the strict documents entry in the right sidebar's guide, and pick it to open the Session-bound strict documents tab beside the conversation.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: right-sidebar-tab
 exception_flows:
   dsh-release-outside-pin:
     trigger: The running dsh release falls outside the plugin's declared compatibility range.

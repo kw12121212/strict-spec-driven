@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: register-right-sidebar-tab
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A problem here means what someone does or suffers today, not a feature that is missing. A sufficient answer names who is affected, what they do today instead, and how often; it becomes the proposal''s why.'
+    answer: 'Operators still cannot read strict workflow state beside the conversation they are working in: the archived shared tree and generic renderer are mounted only by the left global page, which demands an explicit Session picker and a trip away from the conversation, and no viewer surface simply follows the active Session even though the right sidebar holds one docking surface per Session.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. Observable means someone outside the system can check it without reading the code; it becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: The right sidebar's guide lists a strict documents entry; picking it opens a tab that shows the active Session's workspace through the shared tree and renderer within the pane width; switching the active Session closes the previous Session's watches and the tab shows the now-active Session's workspace when it renders; a workspace without .strict-spec-driven/ shows the explicit empty state; zh and en labels render throughout; and the recorded manual check shows the tab working in the pinned dsh web client and desktop profile.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This catches a request that sounds reasonable but has no real driver; the answer becomes part of the proposal''s why and is weighed at review before archive.'
+    answer: The milestone orders the two entry points after the archived shared tree change, the roadmap-recommend gate reports this planned change as the single eligible one because its dependency build-collapsible-document-tree is archived while the renderers milestone's changes stay dependency-incomplete, and it is the last planned change of the foundation milestone.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. These become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No dedicated per-artifact-type renderers and no auto-open in every Session; the plugin stays read-only and invokes neither strict-spec-cli nor a custom host RPC namespace; strict artifact schemas, the strict CLI, the MCP server, deepseek-harness, the engines.dsh pin, the coverage gate scope, and config.yaml review evidence stay unchanged; and the archived discovery model, tree, renderer, and left-page behaviors keep their guarantees.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short plan usually admits several readings, and building the wrong one is indistinguishable from building nothing. The answer fixes the scope boundary before any code is written; it settles disputes about what was asked.'
+    answer: 'Only one reading is in play: the tab is a page-type registration through ctx.sidebarRightTabs with a guide entry, its body binds to the Session whose surface renders it through the seat''s per-Session inject factory and disposes that Session''s watches on unmount, it reuses the shared tree and renderer rather than forking them, and it does not auto-open in Sessions the operator has not opened it in.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

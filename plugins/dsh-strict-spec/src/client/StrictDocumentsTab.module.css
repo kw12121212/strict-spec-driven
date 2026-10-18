@@ -1,0 +1,29 @@
+/* The strict documents right-sidebar tab body. Every color and radius
+   consumes a --dsw-alias design token through var(), per the plugin client
+   standard, so the tab stays visually native across host theme changes.
+   The pane is a narrow column beside the conversation, so the tree and the
+   open document stack with an equal share of the height and scroll
+   independently. */
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+}
+
+.treeRegion {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: hidden;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l4);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.documentRegion {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: auto;
+  background: var(--dsw-alias-bg-layer-1);
+}

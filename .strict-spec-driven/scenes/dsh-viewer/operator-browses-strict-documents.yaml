@@ -16,7 +16,7 @@ preconditions:
   - The Session workspace shown to the operator is a repository using the strict-spec-driven workflow.
 main_flow:
   open-right-sidebar-tab:
-    action: The operator opens the strict documents tab from the dsh right sidebar, which follows the active Session and shows that Session's workspace.
+    action: The operator opens the strict documents tab from the right sidebar's guide entry, which binds to the Session whose surface renders it, shows that Session's workspace through the shared tree and renderer within the pane width, and closes the previous Session's watches when the active Session switches.
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: right-sidebar-tab

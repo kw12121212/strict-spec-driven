@@ -30,7 +30,7 @@ milestones:
   dsh-strict-spec-viewer-foundation:
     title: DeepSeek Harness strict document viewer foundation
     path: roadmap/milestones/dsh-strict-spec-viewer-foundation.yaml
-    status: proposed
+    status: complete
   dsh-strict-spec-viewer-renderers:
     title: Dedicated strict artifact renderers and dsh plugin release
     path: roadmap/milestones/dsh-strict-spec-viewer-renderers.yaml

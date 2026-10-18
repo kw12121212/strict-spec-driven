@@ -114,3 +114,15 @@ rules:
         - inject = ["slots","locale","remote","remote.workspaceFiles","sessions","workspaces"] with dsh.client.inject listing the shared client modules and the api controllers.
       bad:
         - Reading ctx.sessions in apply while the entry's inject names only slots and locale; a bundle that requires @tanstack/react-virtual while the host's boot wire declares no shared row for it.
+  type-only-dependency-type-closure:
+    strength: SHOULD
+    statement: A type-only contract devDependency should also declare, as pinned type-only devDependencies, every package whose types its published .d.ts files import, and the bundle-shape suite should list each added package among the type-only runtime-require prohibitions.
+    rationale: tsc resolves a contract package's transitive type imports from the plugin's own node_modules, so a type-only dependency whose declaration closure is undeclared fails the entry's contextual type-check even though the bundle never requires it at runtime; naming each addition in the bundle suite keeps the no-runtime-require guarantee checkable per package.
+    enforcement:
+      method: test
+      detail: The bundle-shape suite asserts every type-only package in its list never appears as a runtime require in the built client bundle, with the negative probe firing per entry.
+    examples:
+      good:
+        - Adding @deepseek-ai/dsh-client-ui-sidebar-right as a type-only dependency and declaring @deepseek-ai/dsh-client-shortcuts beside it because the sidebar-right .d.ts imports its client types.
+      bad:
+        - Adding a type-only contract dependency alone and letting the plugin-local tsc fail on unresolved transitive types, or adding the transitive package silently with no bundle-suite entry.

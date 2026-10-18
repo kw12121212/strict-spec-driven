@@ -1,0 +1,59 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: register-right-sidebar-tab
+sections:
+  Implementation:
+    add-sidebar-right-type-dependency:
+      text: Add the pinned @deepseek-ai/dsh-client-ui-sidebar-right package as a plugin devDependency consumed only through type-only imports, refresh the plugin lockfile, extend the manifest's dsh.client.inject list with it, and confirm the built bundle gains no runtime require for it.
+      status: complete
+    implement-tab-session-model:
+      text: 'Implement the React-free tab model under plugins/dsh-strict-spec/src/model/: a per-Session tab controller whose showSession loads the bound Session''s workspace, whose repeat call for the same Session is a no-op, whose superseded loads are abandoned by the viewer stores'' own staleness guard (the watched-Session switch the store re-checks after every await), and whose dispose closes that Session''s directory and open-document watches, mirroring the page controller pattern.'
+      status: complete
+    implement-tab-body-component:
+      text: 'Implement the tab body component under plugins/dsh-strict-spec/src/client/: the shared DocumentTree stacked above the shared DocumentView within the pane width, driven by the per-Session sources through props only, with the unmount effect disposing the controller, styled through CSS Modules consuming --dsw tokens only, and register every new user-visible string of the tab and its guide entry in the zh and en catalogs, rendering text only through those entries.'
+      status: complete
+    register-tab-type-and-guide-entry:
+      text: 'Extend the client entry: declare the sidebarRightTabs service in the inject export, register the tab type through ctx.sidebarRightTabs inside ctx.effect with the plugin id, the strict-spec-documents kind, a thunked title, and one guide entry, and register the body in the sidebar.right.pane.tab keyed slot through ctx.slots.inject with a per-Session sources factory whose cache the registration disposer clears.'
+      status: complete
+    extend-bundle-shape-assertions:
+      text: Extend the bundle-shape suite to assert the manifest inject list names the sidebar-right module whose fibers provide the declared service, that the built client bundle still requires exactly the shared externals at runtime, and that no runtime require appears for the type-only sidebar-right dependency or any package outside the manifest and seed table.
+      status: complete
+    extend-plugin-test-suites:
+      text: 'Extend the plugin model and component suites inside bun test/run.ts: model cases driving the per-Session tab controller and surface cache (load-once, dispose closes watches and resets for remount, cache cleared on registration disposal, per-Session store isolation) and static-rendering component cases for the tab body (stacked tree and document view within the pane, the empty state, locale-key completeness for the new tab strings).'
+      status: complete
+  Testing:
+    validate-change-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready register-right-sidebar-tab
+    run-lint:
+      text: Run the root type gate and the plugin-local bun run lint inside plugins/dsh-strict-spec so the tab model, body component, and entry changes compile under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite including the extended component, model, and bundle-shape suites, confirming the tab body renders the stacked tree and document view, the per-Session controller loads, supersedes, and disposes with watch teardown, the empty state shows, and both locale catalogs stay key-complete.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the addition leaves the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-shape-externals:
+      text: 'Rebuild the client bundle and confirm the shape checks hold: the ModuleLoader closure-factory wrapper opens the bundle, every shared module stays a runtime require, no runtime require appears for the type-only sidebar-right dependency, and the YAML parser and virtualizer stay inlined.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    record-manual-tab-check:
+      text: 'Record the manual check in the pinned dsh release and record the observed evidence here. OBSERVED EVIDENCE (dsh 0.2.1-rc.2, isolated DSH_HOME, link: install of the built plugin, browser-driven web client): (1) dsh plugin --profile web add link: installed the plugin, the combo route plugins/??…,dsh-plugin-strict-spec/client.js,… answered HTTP 200, and the client booted with every plugin surface registered and no load errors. (2) The right sidebar guide lists the entry ''Strict documents — Browse the active Session workspace''''s strict workflow documents in the right sidebar.'' (en; zh registers the same keys). (3) Picking the entry opened the Session-bound tab with the named regions ''Document tree region'' and ''Document region''; on the strict-spec-driven session the tree loaded the real workspace in the fixed family order with archives collapsed (Config, Architecture, Roadmap, Changes including the active change, Scenes, Specs, Tech standards, Lessons; SOPs and design system omitted), and keyboard navigation (ArrowDown, Enter) opened config.yaml, rendering its structured fields within the pane. (4) On a second workspace without .strict-spec-driven/ (empty-ws), the session''''s tab showed the explicit empty state ''''This workspace has no .strict-spec-driven/ directory.'''' with no tree (screenshot /tmp/tab-smoke-04-empty-state.png). (5) Session following observed across both sessions — each session''''s tab renders its own workspace; a fresh blank session''''s surface shows the guide with no auto-opened tab, and picking the entry there opens the tab and loads its workspace; the tab unmount/remount cycle across surfaces holds. Watch teardown on Session switch is proven deterministically by the model suite''''s openWatches assertions (close and registration-dispose cases), which the UI cannot show directly. NOT RUN: the desktop-profile leg — the profile is Electron-managed and no Electron binary exists in this environment, so desktop proof defers to the release planned change, matching the scaffold change''''s accepted stance.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the delta spec''s modified right-sidebar-tab requirement merges into dsh-viewer-behavior with its restated and added scenarios, and both delta scenes merge into their recorded scenes with no orphaned coverage references.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify register-right-sidebar-tab directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-change-artifacts
+  unit_test_task: run-project-suite

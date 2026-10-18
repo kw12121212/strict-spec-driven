@@ -107,3 +107,15 @@ rules:
         - scripts/coverage-gate.ts setting the heap size for the process that produces the coverage report, so the recorded invocation completes unchanged.
       bad:
         - Documenting NODE_OPTIONS=--max-old-space-size=5120 bun scripts/coverage-gate.ts in RTK.md while the workflow config still records the bare command as the gate.
+  manual-checks-record-observed-evidence:
+    strength: MUST
+    statement: A change whose acceptance needs a manual check against an external host must record each leg's observed evidence — what ran, what was observed, and which legs did not run with the reason — inside the change's own artifacts, so review verifies recorded evidence rather than trusting task completion status.
+    rationale: A manual check is the designated proof for behavior no automated suite can reach; when its evidence lives only in a session that ends, a completed task status asserts an observation nobody can re-read, and a MUST-strength requirement becomes unprovable from repository evidence at review time.
+    enforcement:
+      method: review
+      detail: Review reads the manual-check evidence recorded in the change's task or question artifacts and blocks archive on a MUST-strength requirement whose designated manual leg has neither recorded observed evidence nor an explicit human acceptance of its absence.
+    examples:
+      good:
+        - A task whose text records the pinned release, the install spec, each observed leg with its outcome, and the not-run legs with their reason and deferral.
+      bad:
+        - A manual-check task marked complete with the observed evidence existing only in the agent session that ran it.

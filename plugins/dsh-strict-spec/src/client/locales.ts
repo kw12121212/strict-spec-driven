@@ -42,6 +42,11 @@ export const zh = {
   "page.no-session-prompt": "此工作区没有会话。请为它打开一个会话后再阅读其 Strict 文档。",
   "page.tree-pane": "文档树窗格",
   "page.document-pane": "文档窗格",
+  "tab.title": "Strict 文档",
+  "tab.guide-title": "Strict 文档",
+  "tab.guide-description": "在右侧栏中浏览当前会话工作区的 Strict 工作流文档。",
+  "tab.tree-region": "文档树区域",
+  "tab.document-region": "文档区域",
 } as const;
 
 /** The strictSpec namespace key union. */
@@ -84,4 +89,9 @@ export const en: LocaleDictOf<"strictSpec"> = {
   "page.no-session-prompt": "This workspace has no Session. Open a Session for it to read its strict documents.",
   "page.tree-pane": "Document tree pane",
   "page.document-pane": "Document pane",
+  "tab.title": "Strict documents",
+  "tab.guide-title": "Strict documents",
+  "tab.guide-description": "Browse the active Session workspace's strict workflow documents in the right sidebar.",
+  "tab.tree-region": "Document tree region",
+  "tab.document-region": "Document region",
 };

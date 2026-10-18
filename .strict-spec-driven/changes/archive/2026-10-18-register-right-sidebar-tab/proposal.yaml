@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: register-right-sidebar-tab
+  status: proposed
+summary:
+  what:
+    - 'Register the Session-bound strict documents right-sidebar tab inside plugins/dsh-strict-spec/: a tab type registered through ctx.sidebarRightTabs with a guide entry that makes it discoverable from the right sidebar, its body registered in the sidebar.right.pane.tab keyed slot, and zh and en labels for the tab title and its guide entry.'
+    - 'Build the tab body as a pane-width surface that mounts the archived shared DocumentTree and shared DocumentView in one vertical stack: the body receives its Session through the seat''s per-Session inject factory, a per-Session tab controller loads that Session''s workspace through the discovery model, and unmounting or switching the active Session disposes the previous Session''s watches while live refresh keeps flowing from the discovery model''s refresh coordinator while mounted.'
+    - 'Extend the client entry and manifest: declare the sidebarRightTabs service in the entry''s inject export, add the pinned @deepseek-ai/dsh-client-ui-sidebar-right package as a type-only devDependency and a dsh.client.inject manifest entry, and keep both registrations on the declaration-aware ctx.slots.inject path.'
+    - 'Extend the plugin''s verification surface: static-rendering component cases for the tab body, model cases for the per-Session controller''s load, supersede, and dispose ordering, bundle-shape assertions for the new manifest entry, and delta spec and delta scene updates that point the browsing and installs scenes at the real tab.'
+  why:
+    - The milestone orders the two entry points last so both reuse the archived shared tree and generic renderer, and every earlier planned change of the foundation milestone is archived, so this is the single eligible planned change and the last step of the foundation milestone.
+    - 'Operators reading a conversation want their strict documents beside it without leaving for the left global page: the right sidebar holds one docking surface per Session, so a tab there follows the active Session and shows exactly the workspace being worked on, which the left page cannot do without an explicit picker.'
+scope:
+  in:
+    - 'The tab type registration through ctx.sidebarRightTabs: the plugin package id as the implementation identity, a strict-spec-documents kind opened as a page type with no resource patterns, a thunked title from the strictSpec catalog, and one guide entry with title and description in both locales.'
+    - 'The body registration in the sidebar.right.pane.tab keyed slot through ctx.slots.inject: a per-Session sources factory that receives the sessionId of the Session surface rendering the tab and returns a per-Session viewer stores instance and tab controller cached by sessionId, with the cache cleared when the registration disposes.'
+    - 'The React-free tab model under plugins/dsh-strict-spec/src/model/: showSession loads the bound Session''s workspace, a repeat call for the same Session is a no-op, a superseded load is abandoned by epoch, and dispose closes that Session''s directory and open-document watches.'
+    - 'The tab body component under plugins/dsh-strict-spec/src/client/: the shared DocumentTree above the shared DocumentView stacked within the pane width, with the tree''s loading, empty, and error conditions and the renderer''s own states, styled through CSS Modules consuming --dsw tokens only.'
+    - 'The client entry and manifest changes: the sidebarRightTabs inject declaration, the type-only @deepseek-ai/dsh-client-ui-sidebar-right devDependency at the pinned release, its dsh.client.inject manifest entry, and zh and en catalog entries for every new visible string.'
+    - Extended component, model, and bundle-shape suites inside bun test/run.ts covering tab rendering, Session switching with watch teardown, the empty state, and the manifest inject list naming the sidebar-right module.
+    - Delta specs against dsh-viewer-behavior modifying right-sidebar-tab to add guide discoverability, pane-width shared rendering, and previous-Session watch teardown, and delta scenes for operator-browses-strict-documents and operator-installs-viewer-plugin.
+  out:
+    - Dedicated per-artifact-type renderers for roadmap, change, spec, scene, and project-context artifacts, owned by the dsh-strict-spec-viewer-renderers milestone.
+    - 'Auto-opening the tab in every Session the operator switches to: the tab is discoverable through its guide entry and the per-Session right-sidebar layout keeps it where the operator opened it, because the host contract expands the panel on every programmatic open.'
+    - Any write, edit, or mutation of strict YAML; invoking strict-spec-cli or a custom host RPC namespace from the plugin; changes to strict artifact schemas, the strict CLI, the MCP server, or deepseek-harness itself.
+    - Widening the engines.dsh pin, changing the coverage gate scope, or changing the config.yaml review evidence.
+    - 'Re-touching the archived discovery model, tree, renderer, or left-page behaviors: the tab only consumes their existing seams.'
+unchanged_behavior:
+  - The archived discovery model, tree, and generic renderer behaviors keep their guarantees, and the left-sidebar page keeps its picker, two-pane layout, selection restore, and no-Session prompt exactly as archived.
+  - 'The viewer stays read-only: no control writes, edits, or deletes strict workflow files, and no strict-spec-cli or custom RPC invocation happens from the plugin.'
+  - The host compatibility gate still withholds all viewer UI outside the declared dsh release range.
+  - The client bundle keeps the ModuleLoader closure-factory wrapper with every module the pinned host actually shares external; the engines.dsh pin, the coverage gate scope, and the config.yaml review evidence are untouched.
+roadmap:
+  milestone: dsh-strict-spec-viewer-foundation
+  planned_change: register-right-sidebar-tab

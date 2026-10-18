@@ -1,0 +1,20 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-installs-viewer-plugin
+operations:
+  ADDED:
+    main_flow:
+      observe-web-tab:
+        action: Open the web client, observe the strict documents entry in the right sidebar's guide, and pick it to open the Session-bound strict documents tab beside the conversation.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: right-sidebar-tab
+      observe-desktop-tab:
+        action: Open the desktop profile, observe the strict documents entry in the right sidebar's guide, and pick it to open the Session-bound strict documents tab beside the conversation.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: right-sidebar-tab
+  MODIFIED: {}
+  REMOVED: {}

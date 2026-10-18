@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED: {}
+  MODIFIED:
+    right-sidebar-tab:
+      strength: MUST
+      statement: The strict documents right-sidebar tab is discoverable from the right sidebar's guide, follows the active Session, shows that Session's workspace through the shared document tree and document view within the pane width, and closes the previous Session's workspace watches when the active Session switches.
+      scenarios:
+        tab-follows-active-session:
+          - GIVEN: the operator switches the active Session in the dsh client while the strict documents right-sidebar tab is open
+          - WHEN: the tab renders
+          - THEN: it shows the active Session's workspace through the shared document tree and document view within the pane width
+        guide-entry-opens-tab:
+          - GIVEN: the right sidebar's guide lists the strict documents entry
+          - WHEN: the operator picks the entry
+          - THEN: the strict documents tab opens for the active Session and shows that Session's workspace through the shared document tree and document view
+        previous-session-watches-closed:
+          - GIVEN: the strict documents tab shows one Session's workspace
+          - WHEN: the operator switches the active Session
+          - THEN: the previous Session's directory and document watches close, so changes under the previous Session no longer refresh any open view
+  REMOVED: {}
