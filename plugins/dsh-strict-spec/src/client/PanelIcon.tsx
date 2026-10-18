@@ -1,14 +1,13 @@
 /**
- * The placeholder left-sidebar panel icon: the observable proof that the
- * plugin's client half loaded. Stroke follows the host theme through
- * currentColor, so no literal color appears anywhere in the plugin. The real
- * panel icon lands with the register-left-panel-page planned change.
+ * The left-sidebar panel icon of the strict documents page. Stroke follows
+ * the host theme through currentColor, so no literal color appears
+ * anywhere in the plugin, per the CSS and token discipline standard.
  */
 import type { ReactNode } from "react";
 import type { PropsRuntime } from "@deepseek-ai/dsh-client-ui-slots";
 
 /** Renders the icon glyph of the strict documents panel row. */
-export function PlaceholderPanelIcon({ size, active }: PropsRuntime<"sidebar.panellist">): ReactNode {
+export function PanelIcon({ size, active }: PropsRuntime<"sidebar.panellist">): ReactNode {
   return (
     <svg
       width={size}

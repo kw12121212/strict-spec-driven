@@ -8,7 +8,6 @@ import type { LocaleDictOf } from "@deepseek-ai/dsh-client-ui-slots";
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   "panel.title": "Strict 文档",
-  "panel.placeholder": "Strict 文档查看器将在后续变更中提供。",
   "tree.label": "Strict 文档树",
   "tree.family.config": "配置",
   "tree.family.architecture": "架构",
@@ -33,6 +32,16 @@ export const zh = {
   "view.parse-error": "解析失败：第 {line} 行第 {column} 列 — {message}",
   "view.raw-text": "原始文本",
   "view.empty-document": "此文档未声明任何字段。",
+  "page.picker-label": "会话",
+  "page.picker-placeholder": "选择一个会话",
+  "page.workspace-empty": "暂无会话 — 请先打开一个",
+  "page.workspace-other": "其他会话",
+  "page.loading": "正在加载会话…",
+  "page.error": "会话列表加载失败。",
+  "page.no-sessions": "尚不存在会话——请先打开一个会话再阅读其 Strict 文档。",
+  "page.no-session-prompt": "此工作区没有会话。请为它打开一个会话后再阅读其 Strict 文档。",
+  "page.tree-pane": "文档树窗格",
+  "page.document-pane": "文档窗格",
 } as const;
 
 /** The strictSpec namespace key union. */
@@ -41,7 +50,6 @@ export type StrictSpecKey = keyof typeof zh;
 /** English dictionary, checked complete against the zh key set. */
 export const en: LocaleDictOf<"strictSpec"> = {
   "panel.title": "Strict documents",
-  "panel.placeholder": "The strict document viewer arrives in a later change.",
   "tree.label": "Strict document tree",
   "tree.family.config": "Config",
   "tree.family.architecture": "Architecture",
@@ -66,4 +74,14 @@ export const en: LocaleDictOf<"strictSpec"> = {
   "view.parse-error": "Parse error: line {line}, column {column} — {message}",
   "view.raw-text": "Raw text",
   "view.empty-document": "This document declares no fields.",
+  "page.picker-label": "Session",
+  "page.picker-placeholder": "Select a Session",
+  "page.workspace-empty": "No Session yet — open one",
+  "page.workspace-other": "Other Sessions",
+  "page.loading": "Loading sessions…",
+  "page.error": "The session list failed to load.",
+  "page.no-sessions": "No Session exists yet — open one to read its strict documents.",
+  "page.no-session-prompt": "This workspace has no Session. Open a Session for it to read its strict documents.",
+  "page.tree-pane": "Document tree pane",
+  "page.document-pane": "Document pane",
 };

@@ -14,13 +14,54 @@ import { readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
 import { ROOT, TestContext } from "../support/harness.js";
 import type { ByteWindow, DirectoryEntry, DirectoryListing, TextPage, WatchFrame, WorkspaceFilesPort } from "../../plugins/dsh-strict-spec/src/model/port.ts";
+import { createRemotePort, workspaceFileErrorCode } from "../../plugins/dsh-strict-spec/src/model/port.ts";
 import { FAMILY_ORDER } from "../../plugins/dsh-strict-spec/src/model/nodes.ts";
 import type { DocumentNode, TreeState } from "../../plugins/dsh-strict-spec/src/model/nodes.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
 import type { ViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
+import {
+  computePickerCatalog,
+  createPageController,
+  createPageSelectionStore,
+  createSessionCatalogPort,
+  resolveShownSession,
+} from "../../plugins/dsh-strict-spec/src/model/picker.ts";
+import type { SessionsListSnapshot, WorkspacesListSnapshot } from "../../plugins/dsh-strict-spec/src/model/picker.ts";
 
 const SESSION_ID = "session-model-test";
 const WORKFLOW_ROOT = ".strict-spec-driven";
+
+/** Seeds the minimal workspace the page-controller cases drive. */
+function seedPickerControllerWorkspace(fake: FakeWorkspaceFiles): void {
+  fake.writeFile(`${WORKFLOW_ROOT}/config.yaml`, "schema: strict-spec-driven/config/v1\nartifact_type: workflow_config\n");
+  fake.writeFile(`${WORKFLOW_ROOT}/specs/INDEX.yaml`, "artifact_type: spec_index\n");
+}
+
+/**
+ * Wraps the fake's port so one Session's first workflow-root listing blocks
+ * until released, making a stale load deterministically slower than the
+ * active one.
+ */
+function createGatedPort(fake: FakeWorkspaceFiles, sessionId: string): { port: WorkspaceFilesPort; fake: FakeWorkspaceFiles; release(): void } {
+  let resolveGate!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    resolveGate = resolve;
+  });
+  let gated = true;
+  const port: WorkspaceFilesPort = {
+    list: (sid, path, signal) =>
+      gated && sid === sessionId && path === WORKFLOW_ROOT
+        ? gate.then(() => fake.port.list(sid, path, signal))
+        : fake.port.list(sid, path, signal),
+    read: (sid, path, range, signal) => fake.port.read(sid, path, range, signal),
+    readBytes: (sid, path, options, signal) => fake.port.readBytes(sid, path, options, signal),
+    changes: (sid, path, signal) => fake.port.changes(sid, path, signal),
+  };
+  return { port, fake, release: () => {
+    gated = false;
+    resolveGate();
+  } };
+}
 
 /** One in-memory workspace entry: a file with content or a directory. */
 type FakeEntry = { kind: "file"; content: string } | { kind: "dir"; children: Map<string, FakeEntry> };
@@ -658,5 +699,277 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
       "expanding the real archive reads no archived file content",
     );
     stores.actions.dispose();
+  }
+
+  context.section("dsh plugin model: session picker grouping and page selection");
+
+  {
+    // A scripted host: replaceable sessions/workspaces snapshots plus
+    // listener sets, reproducing the subscribe/getSnapshot shape the
+    // adapter reads. Changes replace the whole snapshot object, as the
+    // host's observable snapshots are immutable per state.
+    const listeners = { sessions: new Set<() => void>(), workspaces: new Set<() => void>() };
+    let sessionsSnapshot: SessionsListSnapshot = {
+      ids: ["s-old", "s-new", "s-mid", "s-free"],
+      byId: {
+        "s-old": { displayTitle: "Old session", updatedAt: 10 },
+        "s-new": { displayTitle: "New session", updatedAt: 30 },
+        "s-mid": { displayTitle: "Mid session", updatedAt: 20 },
+        "s-free": { displayTitle: "Ungrouped session", updatedAt: 15 },
+      },
+      phase: "ready",
+    };
+    const workspacesSnapshot: WorkspacesListSnapshot = {
+      items: [
+        { workspaceId: "w-alpha", title: "Alpha", path: "/home/op/alpha", sessionIds: ["s-old", "s-new"] },
+        { workspaceId: "w-empty", title: "Empty", path: "/home/op/empty", sessionIds: [] },
+        { workspaceId: "w-beta", title: "Beta", path: "/home/op/beta", sessionIds: ["s-mid"] },
+      ],
+      state: "idle",
+      phase: "ready",
+    };
+    const port = createSessionCatalogPort(
+      {
+        list: {
+          getSnapshot: () => sessionsSnapshot,
+          subscribe: (listener) => (listeners.sessions.add(listener), () => listeners.sessions.delete(listener)),
+        },
+      },
+      {
+        list: {
+          getSnapshot: () => workspacesSnapshot,
+          subscribe: (listener) => (listeners.workspaces.add(listener), () => listeners.workspaces.delete(listener)),
+        },
+      },
+    );
+
+    // Grouping: registry order, newest-first members, ungrouped tail, ready.
+    let catalog = port.getCatalog();
+    context.assert(catalog.status === "ready", "a ready host yields a ready catalog");
+    context.assert(
+      JSON.stringify(catalog.workspaces.map((workspace) => workspace.workspaceId)) === JSON.stringify(["w-alpha", "w-empty", "w-beta"]),
+      "workspaces keep the host registry order, including the sessionless one",
+    );
+    context.assert(
+      JSON.stringify(catalog.workspaces[0]?.sessions.map((session) => session.sessionId)) === JSON.stringify(["s-new", "s-old"]),
+      "workspace members sort newest-first",
+    );
+    context.assert(
+      catalog.workspaces[1]?.sessions.length === 0 && catalog.workspaces[2]?.sessions.length === 1,
+      "the empty workspace stays listed with no members and beta keeps its one member",
+    );
+    context.assert(
+      JSON.stringify(catalog.ungrouped.map((session) => session.sessionId)) === JSON.stringify(["s-free"]),
+      "a host-list session no workspace accounts lands in the ungrouped tail",
+    );
+
+    // Live grouping: a snapshot change seen through the subscription.
+    let observed = 0;
+    const unsubscribe = port.subscribe(() => {
+      observed += 1;
+    });
+    const beforeChange = port.getCatalog();
+    const unchangedIdentity = port.getCatalog();
+    context.assert(beforeChange === unchangedIdentity, "an unchanged snapshot pair returns the same catalog object, as useSyncExternalStore requires");
+    sessionsSnapshot = {
+      ...sessionsSnapshot,
+      byId: { ...sessionsSnapshot.byId, "s-new": { displayTitle: "Renamed session", updatedAt: 30 } },
+    };
+    for (const listener of listeners.sessions) {
+      listener();
+    }
+    catalog = port.getCatalog();
+    context.assert(catalog !== beforeChange, "a changed sessions snapshot produces a new catalog object");
+    context.assert(observed === 1, "a sessions snapshot change reaches the subscriber once");
+    context.assert(catalog.workspaces[0]?.sessions[0]?.displayTitle === "Renamed session", "the port reads the changed snapshot");
+    unsubscribe();
+    for (const listener of listeners.sessions) {
+      listener();
+    }
+    context.assert(observed === 1, "an unsubscribed listener stops receiving changes");
+
+    // Status mapping from both snapshots' arrival axes.
+    context.assert(
+      computePickerCatalog({ ...workspacesSnapshot, phase: "pending" }, sessionsSnapshot).status === "loading"
+        && computePickerCatalog(workspacesSnapshot, { ...sessionsSnapshot, phase: "pending" }).status === "loading",
+      "either pending snapshot keeps the catalog loading",
+    );
+    context.assert(
+      computePickerCatalog({ ...workspacesSnapshot, state: "error" }, sessionsSnapshot).status === "error",
+      "a failed workspace registry reports the error status",
+    );
+
+    // Shown-session resolution across selection states.
+    context.assert(
+      JSON.stringify(resolveShownSession(catalog, { workspaceId: "w-alpha", sessionId: "s-old" })) === JSON.stringify({ workspaceId: "w-alpha", sessionId: "s-old" }),
+      "a recorded member session resolves to itself with its workspace",
+    );
+    context.assert(
+      JSON.stringify(resolveShownSession(catalog, { workspaceId: "w-alpha", sessionId: "s-gone" })) === JSON.stringify({ workspaceId: "w-alpha", sessionId: "s-new" }),
+      "a vanished session falls back to the workspace's newest member",
+    );
+    context.assert(
+      JSON.stringify(resolveShownSession(catalog, { workspaceId: "w-empty" })) === JSON.stringify({ workspaceId: "w-empty" }),
+      "a sessionless workspace resolves to workspace-only, the prompt state",
+    );
+    context.assert(
+      JSON.stringify(resolveShownSession(catalog, { sessionId: "s-free" })) === JSON.stringify({ sessionId: "s-free" }),
+      "an ungrouped session resolves to itself with no workspace",
+    );
+    context.assert(
+      JSON.stringify(resolveShownSession(catalog, {})) === JSON.stringify({ workspaceId: "w-alpha", sessionId: "s-new" }),
+      "an empty selection resolves to the first workspace with a session",
+    );
+    context.assert(
+      JSON.stringify(resolveShownSession({ workspaces: [], ungrouped: [], status: "ready" }, {})) === JSON.stringify({}),
+      "a sessionless host resolves to nothing",
+    );
+
+    // Page-selection memory: recording and restoring choices.
+    const page = createPageSelectionStore();
+    context.assert(JSON.stringify(page.store.getSnapshot()) === JSON.stringify({}), "page selection starts empty");
+    page.actions.chooseSession("w-alpha", "s-old");
+    page.actions.recordDocument(".strict-spec-driven/config.yaml");
+    context.assert(
+      JSON.stringify(page.store.getSnapshot()) === JSON.stringify({ workspaceId: "w-alpha", sessionId: "s-old", documentPath: ".strict-spec-driven/config.yaml" }),
+      "session and document choices are recorded together in page state",
+    );
+    page.actions.chooseWorkspace("w-alpha", true);
+    context.assert(
+      page.store.getSnapshot().workspaceId === "w-alpha" && page.store.getSnapshot().sessionId === "s-old",
+      "choosing a workspace keeps the recorded session while it is a member",
+    );
+    page.actions.chooseWorkspace("w-empty", false);
+    context.assert(
+      JSON.stringify(page.store.getSnapshot()) === JSON.stringify({ workspaceId: "w-empty" }),
+      "choosing a workspace the recorded session does not belong to clears the session and its document, reaching the prompt state",
+    );
+    page.actions.recordDocument(undefined);
+    context.assert(page.store.getSnapshot().documentPath === undefined, "closing the document clears the recorded path");
+  }
+
+  context.section("dsh plugin model: page controller restore and staleness");
+
+  {
+    // The controller drives real stores over the scripted fake workspace.
+    const fake = new FakeWorkspaceFiles();
+    seedPickerControllerWorkspace(fake);
+    const stores = createViewerStores(fake.port);
+    const page = createPageSelectionStore();
+    const controller = createPageController(stores, page.store);
+
+    // Restore: a recorded document reopens after the workspace loads, with
+    // the path captured before the recording clears it mid-flight.
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/config.yaml`);
+    page.actions.recordDocument(`${WORKFLOW_ROOT}/config.yaml`);
+    // Simulate the remounted page's recording effect clearing the path
+    // synchronously while the load is still in flight.
+    controller.showSession(SESSION_ID);
+    page.actions.recordDocument(undefined);
+    await settle();
+    context.assert(stores.tree.getSnapshot().status === "ready", "the controller loads the shown session's workspace");
+    context.assert(
+      stores.open.getSnapshot().status === "ready" && stores.open.getSnapshot().path === `${WORKFLOW_ROOT}/config.yaml`,
+      "the controller restores the recorded document captured before the recording effect cleared it",
+    );
+
+    // Supersede: a switch to another Session abandons the in-flight
+    // restore instead of opening the old workspace's document under the
+    // new Session.
+    const switchFake = new FakeWorkspaceFiles();
+    seedPickerControllerWorkspace(switchFake);
+    const gated = createGatedPort(switchFake, "session-a");
+    const switchStores = createViewerStores(gated.port);
+    const switchPage = createPageSelectionStore();
+    const switchController = createPageController(switchStores, switchPage.store);
+    switchPage.actions.recordDocument(`${WORKFLOW_ROOT}/config.yaml`);
+    switchController.showSession("session-a");
+    await settle();
+    // The page clears the recorded document when the operator picks a
+    // different Session — the old document belongs to the old workspace.
+    switchPage.actions.recordDocument(undefined);
+    switchController.showSession("session-b");
+    await settle();
+    gated.release();
+    await settle();
+    context.assert(switchStores.tree.getSnapshot().status === "ready", "the superseding session's workspace loads");
+    context.assert(
+      switchStores.open.getSnapshot().status === "idle",
+      "a superseded restore never opens the old session's recorded document",
+    );
+
+    // Deactivation and disposal close watches: nothing outlives the page.
+    controller.showSession(undefined);
+    switchController.dispose();
+    await settle();
+    context.assert(fake.openWatches.size === 0, "deactivation closes every watch of the shown session");
+    context.assert(switchFake.openWatches.size === 0, "dispose closes every watch of the driven stores");
+  }
+
+  context.section("dsh plugin model: stale workspace load cannot clobber the active one");
+
+  {
+    const fake = new FakeWorkspaceFiles();
+    seedPickerControllerWorkspace(fake);
+    const gated = createGatedPort(fake, "session-slow");
+    const stores = createViewerStores(gated.port);
+    const slow = stores.actions.loadWorkspace("session-slow");
+    await stores.actions.loadWorkspace(SESSION_ID);
+    gated.release();
+    await slow;
+    await settle();
+    const state = stores.tree.getSnapshot();
+    context.assert(state.status === "ready", "the active session's workspace is loaded");
+    context.assert(
+      state.documents[`${WORKFLOW_ROOT}/config.yaml`] !== undefined,
+      "the active session's tree still shows its own documents after the stale load settles",
+    );
+  }
+
+  context.section("dsh plugin model: remote port adapter over the wire result envelope");
+
+  {
+    // A scripted remote face mirroring the pinned wire: every method
+    // resolves the ok/failure envelope, and the adapter must unwrap the
+    // value, throw the failure carrying its code, and forward omitted
+    // option objects as the empty objects the wire requires.
+    const seenCalls: Array<{ method: string; range?: unknown; options?: unknown }> = [];
+    const listing: DirectoryListing = { path: "", entries: [], truncated: false };
+    const face = {
+      workspaceFiles: {
+        list: async (_sessionId: string, _path: string) => {
+          seenCalls.push({ method: "list" });
+          return { ok: true as const, value: listing };
+        },
+        read: async (_sessionId: string, _path: string, range: unknown) => {
+          seenCalls.push({ method: "read", range });
+          return { ok: false as const, error: { code: "not-found", message: "absent" } };
+        },
+        readBytes: async (_sessionId: string, _path: string, options: unknown) => {
+          seenCalls.push({ method: "readBytes", options });
+          return { ok: true as const, value: { offset: 0, data: new Uint8Array(), eof: true } satisfies ByteWindow };
+        },
+        changes: (_sessionId: string, _path: string) => ({
+          async *[Symbol.asyncIterator]() {
+            /* no frames */
+          },
+        }),
+      },
+    };
+    const port = createRemotePort(face);
+    context.assert((await port.list(SESSION_ID, "")) === listing, "the ok branch resolves to the wire value");
+    let thrown: unknown;
+    try {
+      await port.read(SESSION_ID, "gone.yaml");
+    } catch (error) {
+      thrown = error;
+    }
+    context.assert(workspaceFileErrorCode(thrown) === "not-found", "the failure branch throws carrying the wire error code");
+    context.assert((await port.readBytes(SESSION_ID, "bytes.bin")) !== undefined, "the byte read resolves through the envelope");
+    context.assert(
+      seenCalls.find((call) => call.method === "read")?.range !== undefined
+        && seenCalls.find((call) => call.method === "readBytes")?.options !== undefined,
+      "omitted range and options objects reach the wire as objects, never undefined",
+    );
   }
 }

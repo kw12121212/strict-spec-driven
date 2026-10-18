@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-client
+operations:
+  ADDED:
+    identity-stable-adapters-and-effect-free-controllers:
+      strength: MUST
+      statement: An adapter that feeds a React useSyncExternalStore source returns identity-stable snapshots — memoizing on the identity of the host snapshots it reads, so unchanged sources return the same object — and an effect-driven sequence a component needs at mount or transition (load, restore, teardown) is extracted into a plain controller object the component's effects only delegate to, so suites prove the ordering under bun test/run.ts with no React effect runtime.
+      rationale: React throws on a getSnapshot that builds a fresh object per call, so an adapter computing a derived snapshot per read loops the first real render into a blank surface; and restore-then-record orderings that live inside useEffect are invisible to react-dom/server static rendering, which the left page's selection-restore defect proved when its race could not be exercised by any component case.
+      enforcement:
+        method: test
+        detail: 'The model suite drives every store adapter and controller directly: it asserts snapshot identity stability across unchanged sources and new identity after a source change, and it drives the controller''s load, restore, supersede, and dispose paths against the scripted workspace fake.'
+      examples:
+        good:
+          - A picker port whose getCatalog memoizes on the sessions and workspaces snapshot pair; a page controller whose showSession captures the recorded path synchronously and abandons superseded restores by epoch.
+        bad:
+          - A getCatalog that recomputes its grouping on every call; a restore sequence written inline in a page's useEffect with the recorded path read after an await.
+    entry-declares-every-host-face-it-reads:
+      strength: MUST
+      statement: The client entry's inject export declares every ctx property its apply path and wired components read — service names, the bare remote face, and each remote namespace as a remote-prefixed name — and the package manifest's dsh.client.inject list declares every module the built bundle requires at runtime plus every entry whose fibers provide the declared services.
+      rationale: A cordis context throws on reading a service or namespace property the fiber did not declare, and the pinned host's loader resolves module requires only against the manifest inject list and its frozen seed table; the left page's first three real host boots failed as a nameless 'entry did not activate' until remote, remote.workspaceFiles, sessions, and workspaces were declared and the manifest list completed, while local stub-based materialization passed every time because stubs never throw on undeclared reads.
+      enforcement:
+        method: test
+        detail: The bundle-shape suite asserts the manifest inject list names the shared modules and api controllers the bundle consumes, asserts no runtime require appears for a package outside the manifest and seed table, and a real-host manual check exercises the install-to-load path in the pinned release.
+      examples:
+        good:
+          - inject = ["slots","locale","remote","remote.workspaceFiles","sessions","workspaces"] with dsh.client.inject listing the shared client modules and the api controllers.
+        bad:
+          - Reading ctx.sessions in apply while the entry's inject names only slots and locale; a bundle that requires @tanstack/react-virtual while the host's boot wire declares no shared row for it.
+  MODIFIED: {}
+  REMOVED: {}

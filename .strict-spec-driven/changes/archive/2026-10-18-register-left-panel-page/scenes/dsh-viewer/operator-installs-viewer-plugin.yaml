@@ -1,0 +1,32 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-installs-viewer-plugin
+operations:
+  ADDED:
+    main_flow:
+      observe-web-panel:
+        action: Open the web client, observe the strict documents left-sidebar icon registered, and open it to the Session picker page.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-session-picker
+      observe-desktop-panel:
+        action: Open the desktop profile, observe the strict documents left-sidebar icon registered, and open it to the Session picker page.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-session-picker
+      install-plugin-with-link-spec:
+        action: 'Install the built plugin package into the running dsh release using a link: spec.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-session-picker
+  MODIFIED: {}
+  REMOVED:
+    main_flow:
+      observe-web-placeholder:
+        reason: The placeholder left-sidebar icon this step observed is replaced by the real strict documents page in this change.
+      observe-desktop-placeholder:
+        reason: The placeholder left-sidebar icon this step observed is replaced by the real strict documents page in this change.
+      install-plugin-link-spec:
+        reason: The step's only coverage was the placeholder-load-indicator requirement this change removes, and a modified step cannot drop a recorded coverage reference, so the step is restated under the id install-plugin-with-link-spec with coverage at the real panel page.

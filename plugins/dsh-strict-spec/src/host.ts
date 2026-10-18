@@ -1,16 +1,17 @@
 /**
- * Host entry of dsh-plugin-strict-spec: the cordis plugin row the bundle patch
- * inserts. This scaffold change proves the install-to-load path only, so the
- * host half applies nothing; document discovery, the tree, and both entry
- * points land in later planned changes of the dsh-strict-spec-viewer-foundation
- * milestone. The viewer stays read-only and never invokes strict-spec-cli.
+ * Host entry of dsh-plugin-strict-spec: the cordis plugin row the bundle
+ * patch inserts. The viewer is a client-only, read-only surface — document
+ * discovery, the tree, the renderers, and both entry points all live in
+ * the client half — so the host side applies nothing and injects no
+ * services. The plugin never invokes strict-spec-cli and never mutates
+ * workflow files.
  */
 import type { Context } from "@deepseek-ai/cordis";
 
-/** No host-side services are required by the placeholder. */
+/** No host-side services are required by the read-only viewer. */
 export const inject: string[] = [];
 
-/** Applies nothing: the observable placeholder lives in the client half. */
+/** Applies nothing: every observable surface lives in the client half. */
 export function apply(_ctx: Context): void {
   // Deliberately empty.
 }

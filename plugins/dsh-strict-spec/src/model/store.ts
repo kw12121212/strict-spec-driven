@@ -346,6 +346,8 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
   const actions: ViewerActions = {
     async loadWorkspace(sessionId: string): Promise<void> {
       const activeCoordinator = ensureCoordinator(sessionId);
+      /** True once a newer load switched the watched Session: this load is stale. */
+      const stale = (): boolean => watchedSessionId !== sessionId;
       tree.set(initialTreeState());
       documentMeta.clear();
       let loaded: TreeState;
@@ -353,8 +355,15 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         loaded = await loadWorkspaceTree(port, sessionId);
       } catch (error) {
         // A family walk that fails mid-load reports the error state instead
-        // of stranding the tree in loading; the next load retries.
+        // of stranding the tree in loading; the next load retries. A stale
+        // load reports nothing: a newer Session's load owns the tree.
+        if (stale()) {
+          return;
+        }
         tree.set({ status: "error", errorCode: workspaceFileErrorCode(error) ?? "unknown", families: [], documents: {} });
+        return;
+      }
+      if (stale()) {
         return;
       }
       if (loaded.status !== "ready") {
@@ -370,8 +379,15 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         }
       } catch (error) {
         // A family walk that fails mid-load reports the error state instead
-        // of stranding the tree in loading; the next load retries.
+        // of stranding the tree in loading; the next load retries. A stale
+        // load reports nothing: a newer Session's load owns the tree.
+        if (stale()) {
+          return;
+        }
         tree.set({ status: "error", errorCode: workspaceFileErrorCode(error) ?? "unknown", families: [], documents: {} });
+        return;
+      }
+      if (stale()) {
         return;
       }
       let next: TreeState = { status: "ready", families, documents: {}, rootTruncated: loaded.rootTruncated };

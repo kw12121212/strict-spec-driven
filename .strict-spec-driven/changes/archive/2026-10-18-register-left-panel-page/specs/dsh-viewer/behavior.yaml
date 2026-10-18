@@ -1,0 +1,51 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    left-page-two-pane-layout:
+      strength: MUST
+      statement: The left-sidebar page lays the document tree out in a left pane and the open document in a wide right pane, so a selected strict document can be read at width.
+      scenarios:
+        two-pane-reading:
+          - GIVEN: a Session is chosen in the left-sidebar page and one of its strict documents is open
+          - WHEN: the page renders
+          - THEN: the document tree occupies the left pane and the open document renders in a wide right pane beside it
+    left-page-no-session-prompt:
+      strength: MUST
+      statement: When the workspace the operator wants to read holds no Session, the left-sidebar page shows a prompt to open a Session for that workspace instead of reading its files.
+      scenarios:
+        no-session-prompt:
+          - GIVEN: the workspace wanted in the left-sidebar page holds no Session
+          - WHEN: the page renders for that workspace
+          - THEN: it shows an explicit prompt to open a Session for that workspace and reads none of its workflow files
+    left-page-selection-restore:
+      strength: MUST
+      statement: The left-sidebar page keeps the chosen Session and the selected document in page state, so opening the page again restores both.
+      scenarios:
+        reopen-restores-selection:
+          - GIVEN: the operator chose a Session and opened a strict document in the left-sidebar page
+          - WHEN: the page is opened again
+          - THEN: the same Session is chosen and the same document is selected without the operator re-choosing either
+  MODIFIED:
+    left-page-session-picker:
+      strength: MUST
+      statement: The plugin registers a left-sidebar panel row in sidebar.panellist and a main keyed page under the same panel id, and the page offers an explicit Session picker that groups the Sessions of each workspace under that workspace, remembers the last chosen Session across openings, and shows the chosen Session's workspace through the same tree behavior and document rendering as the right-sidebar tab.
+      scenarios:
+        picker-chooses-session:
+          - GIVEN: the left-sidebar page is open
+          - WHEN: the operator picks a Session in the Session picker
+          - THEN: the page shows that Session's workspace through the same tree behavior and document rendering as the right-sidebar tab
+        sessions-grouped-by-workspace:
+          - GIVEN: the host holds Sessions belonging to several workspaces
+          - WHEN: the Session picker renders
+          - THEN: every Session is offered under the workspace it belongs to, grouped by workspace
+        last-choice-remembered:
+          - GIVEN: a Session was chosen in the page on a previous opening
+          - WHEN: the page is opened again
+          - THEN: that Session is the chosen one without the operator re-picking it
+  REMOVED:
+    placeholder-load-indicator:
+      reason: The placeholder left-sidebar icon existed only to make the scaffold change's loaded client observable before any feature UI existed; this change replaces it with the real strict documents page, so the requirement describes registration behavior the plugin no longer builds.

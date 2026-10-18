@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: register-left-panel-page
   milestone: dsh-strict-spec-viewer-foundation
-status: planned
+status: complete
 summary: Register the left-sidebar panel icon that opens a two-pane main page for wide reading of strict documents with an explicit workspace picker.
 details: Register an icon in the sidebar.panellist list and a page in the main keyed slot under the same panel id, replacing the scaffold placeholder icon. Main keys other than conversation receive no Session binding, and every remote.workspaceFiles call needs a sessionId. The page therefore offers an explicit Session picker built on the dsh session and workspace stores, grouping Sessions by workspace and remembering the last choice. If no Session exists for the wanted workspace, the page shows a prompt to open one rather than reading files without authority. Lay out the shared tree in a left pane and the shared renderer in a wide right pane. Reflect the selected document in page state so reopening the page restores it. Register zh and en labels for the panel and page. Test registration, Session selection, the no-Session prompt, and selection restore, and record a manual check in the pinned dsh web client and desktop profile.
 depends_on:

@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: register-left-panel-page
+approach:
+  - 'Replace the placeholder registration inside plugins/dsh-strict-spec/ with the real strict documents page: the existing strict-spec panel id keeps its sidebar.panellist row and main keyed slot, now rendering a two-pane page that mounts the archived shared DocumentTree in a left pane and the shared DocumentView in a wide right pane. Because the main keyed slot receives no Session binding while every remote.workspaceFiles call needs a sessionId, the page owns an explicit Session picker: the client entry injects the pinned dsh session and workspace service faces, adapts them once behind a plugin-owned picker seam, and a React-free picker model groups the sessions list snapshot by workspace, remembers the last chosen Session, and restores the chosen Session and selected document from root-scoped page state on every opening. A workspace with no Session shows a prompt to open one instead of reading files without authority, and switching Sessions tears down the previous Session''s watches through the discovery model''s dispose contract. The placeholder icon and page components retire with the placeholder-load-indicator requirement, the installs scene re-points at the real panel, and the browses scene gains the page''s steps.'
+decisions:
+  session-picker-source:
+    decision: The Session picker consumes the pinned dsh client service faces for the Session catalog and the workspace list, adapted once in the client entry behind a plugin-owned picker seam, with the api controller packages added as type-only devDependencies so the bundle gains no runtime require.
+    rationale: The main keyed slot provides no Session binding while every remote.workspaceFiles call needs a sessionId, so the page must choose a Session itself; the faces are published at the pinned 0.2.1-rc.2 release, and adapting them behind one owned seam keeps the picker model renderable and testable under bun test/run.ts with no dsh host, mirroring the remote port pattern the discovery model already uses.
+  retire-placeholder-with-spec:
+    decision: The real page takes over the existing strict-spec panel identity, and the placeholder components, the placeholder-load-indicator requirement, and the installs scene's placeholder observation steps retire together, re-covered by the page requirements.
+    rationale: The placeholder existed only to make the scaffold's loaded client observable; keeping it beside a working page would register two conflicting surfaces, and leaving the requirement in the main spec would describe UI the plugin no longer builds, which the archive merge would then contradict.
+  page-state-in-root-scoped-store:
+    decision: The chosen Session id and the selected document path live in a root-scoped plugin store that survives page unmounts, and switching the chosen Session disposes the previous Session's watches before loading the new workspace.
+    rationale: Reopening a main-slot page must not lose the operator's place, and watch teardown on switch keeps exactly one Session observed at a time, matching the discovery model's dispose contract and the read-only viewer's live-refresh scope.
+  entry-service-and-remote-injection:
+    decision: 'The client entry declares inject = [slots, locale, remote, remote.workspaceFiles, sessions, workspaces]: reading any cordis service or remote namespace property the fiber has not declared throws at apply time, and the remote namespace consumers in the host itself inject the same remote-prefixed names.'
+    rationale: A real pinned web boot failed with the fiber marked failed and apply never entered until every accessed property was declared; ui-sidebar-files and ui-workspace in the same host declare exactly this shape for the same faces, so the entry mirrors the host's own convention instead of guessing at availability timing.
+  manifest-inject-completion-and-virtualizer-inline:
+    decision: The manifest's dsh.client.inject list declares every module the built bundle requires plus the api controller modules — adding @deepseek-ai/dsh-client-ui-primitives and the three api controller packages — and @tanstack/react-virtual left SHARED_EXTERNALS to inline beside the YAML parser.
+    rationale: The pinned host's boot wire exposes the api controllers as loadable entries whose fibers provide the sessions and workspaces services, so declaring them orders the entry after its service providers; the same wire declares no module-table row for @tanstack/react-virtual, so an external require for it can never resolve — the tree change's kept-external decision was drift only a real host load could expose.
+  picker-catalog-snapshot-memoization:
+    decision: The picker port memoizes the grouped catalog on the identity of both source snapshots, and the page's restore effect captures the recorded document path synchronously before awaiting the workspace load.
+    rationale: React's useSyncExternalStore requires getSnapshot to return a cached value, so recomputing the grouping per call looped the first real render into a blank page; and the recording effect clears the path as soon as a remounted page renders over the disposed idle open store, so restoring it after the load's await always read undefined.
+  controller-owned-restore-and-prompt-reachability:
+    decision: The page's load-then-restore sequence lives in an effect-free PageController the page effects delegate to, chooseWorkspace clears the recorded Session and document when the Session is not a member of the chosen Workspace, and loadWorkspace re-checks staleness after each await.
+    rationale: The fresh-context review proved the restore ordering untestable inside React effects and the no-Session prompt unreachable once a Session was chosen, because the recorded Session outranked the sessionless Workspace choice; a plain controller makes the race and the supersede deterministic model cases, the membership flag makes the prompt reachable in the returning-operator state, and the staleness guard stops a slow superseded load from clobbering the active Session's tree.
+alternatives:
+  - option: Offer a bare workspace path picker instead of a Session picker
+    reason: remote.workspaceFiles calls require a sessionId and the main slot provides none, so a bare workspace path cannot authorize any file read; synthesizing a session id would read a workspace without authority, which the planned change explicitly refuses.
+risks:
+  - 'The pinned rc''s client service faces are pre-stable: if the injectable service names or snapshot shapes differ from the published types at implementation time, the picker seam must be re-verified against the installed release before the bundle shape is trusted.'
+  - The desktop-profile leg of the manual check may not run in this environment; then review blocks on the missing evidence rather than passing silently, mirroring the scaffold's accepted stance that defers desktop proof to the release planned change.
+  - Grouping and last-choice memory add page state that must survive page reopenings without leaking watches or stale selections across Session switches.

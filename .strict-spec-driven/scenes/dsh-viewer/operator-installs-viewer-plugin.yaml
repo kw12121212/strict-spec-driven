@@ -14,21 +14,21 @@ preconditions:
   - A dsh release within the plugin's declared compatibility range is installed and runnable.
   - The plugin package dsh-plugin-strict-spec is built, producing its client bundle.
 main_flow:
-  install-plugin-link-spec:
+  observe-web-panel:
+    action: Open the web client, observe the strict documents left-sidebar icon registered, and open it to the Session picker page.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: left-page-session-picker
+  observe-desktop-panel:
+    action: Open the desktop profile, observe the strict documents left-sidebar icon registered, and open it to the Session picker page.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: left-page-session-picker
+  install-plugin-with-link-spec:
     action: 'Install the built plugin package into the running dsh release using a link: spec.'
     covered_by:
       - spec_id: dsh-viewer-behavior
-        requirement_id: placeholder-load-indicator
-  observe-web-placeholder:
-    action: Open the web client and observe the placeholder left-sidebar icon with no document tree or document view registered.
-    covered_by:
-      - spec_id: dsh-viewer-behavior
-        requirement_id: placeholder-load-indicator
-  observe-desktop-placeholder:
-    action: Open the desktop profile and observe the placeholder left-sidebar icon with no document tree or document view registered.
-    covered_by:
-      - spec_id: dsh-viewer-behavior
-        requirement_id: placeholder-load-indicator
+        requirement_id: left-page-session-picker
 exception_flows:
   dsh-release-outside-pin:
     trigger: The running dsh release falls outside the plugin's declared compatibility range.

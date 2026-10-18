@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-cordis-context-property-read-must-be-declared-b79e42
+  title: A cordis context property read must be declared in the entry's inject
+category: ui
+status: active
+created_at: '2026-10-18T12:18:19.965Z'
+updated_at: '2026-10-18T12:18:19.965Z'
+context: 'dsh plugin client entries run as cordis fibers whose context is a governed proxy: reading a service or remote namespace property the fiber did not declare in its export const inject throws at apply time, and the fiber is marked failed with no console output naming the property.'
+observation: 'The register-left-panel-page entry read ctx.remote.workspaceFiles, ctx.sessions, and ctx.workspaces in apply without declaring them; three real-host boots failed as ''entry did not activate, reason: failed'' while local materialization with stub contexts passed, because stubs never throw on undeclared reads. Reading the host''s own plugin bundles showed the convention: every remote namespace consumer injects both ''remote'' and the namespace-qualified ''remote.workspaceFiles'', and service consumers inject the bare service names.'
+takeaway: Treat the inject export as the entry's complete list of every ctx property apply and the components it wires will read, including remote-prefixed namespace names, and mirror the host's own bundles when unsure of a name; a failed-fiber boot with a terse reason means an undeclared read or a missing service, so bisect the entry against the real host rather than trusting stub-based materialization.
+applies_when: Any dsh plugin client entry accesses ctx services or ctx.remote namespaces beyond slots and locale, or a plugin fiber boots as failed with apply never entered.
+occurrences:
+  - origin: register-left-panel-page
+    date: '2026-10-18'
+    evidence: plugins/dsh-strict-spec/src/client.ts inject export; bisect log of variants V5 (services read, no inject) failing and V6 (same read plus inject) activating against dsh 0.2.1-rc.2 in an isolated DSH_HOME; sibling bundles @deepseek-ai/dsh-client-ui-sidebar-files and dsh-api-workspace-files declaring ['remote','remote.workspaceFiles'] in their client inject.

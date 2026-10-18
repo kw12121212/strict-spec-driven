@@ -1,0 +1,59 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: register-left-panel-page
+sections:
+  Implementation:
+    add-session-workspace-type-dependencies:
+      text: Add the pinned @deepseek-ai/dsh-api-session-controller and @deepseek-ai/dsh-api-workspace-controller packages as plugin devDependencies consumed only through type-only imports, refresh the plugin lockfile, and confirm the built bundle gains no new runtime require for them.
+      status: complete
+    wire-session-workspace-service-faces:
+      text: Verify the client service faces and their injectable names against the pinned package types, extend the client entry's inject export with them, and adapt the faces once in the entry into a plugin-owned picker seam so no component or model module touches a host service directly.
+      status: complete
+    implement-session-picker-model:
+      text: 'Implement the React-free picker model: group the sessions list snapshot by workspace with workspace paths and session summaries, keep the last chosen Session and the selected document in a root-scoped store, restore both whenever the page opens again, and dispose the previous Session''s watches on switch.'
+      status: complete
+    implement-left-panel-page:
+      text: 'Replace the placeholder page with the real two-pane page under plugins/dsh-strict-spec/src/client/: Session picker header, shared DocumentTree in the left pane, shared DocumentView in the wide right pane, the no-Session prompt, the empty state, and loading and error conditions, styled through CSS Modules consuming --dsw tokens only.'
+      status: complete
+    finalize-panel-registration:
+      text: Keep the strict-spec panel identity in the sidebar.panellist row and the main keyed slot, retire the placeholder icon and page components, and register every new user-visible string of the panel and page in the zh and en catalogs, rendering text only through those entries.
+      status: complete
+    extend-bundle-shape-assertions:
+      text: Extend the bundle-shape suite to assert the built client bundle still requires exactly the shared externals at runtime and inlines none of the newly added type-only service face dependencies.
+      status: complete
+  Testing:
+    validate-change-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready register-left-panel-page
+    run-lint:
+      text: Run the root type gate and the plugin-local bun run lint inside plugins/dsh-strict-spec so the page, picker model, and entry changes compile under the plugin strict TypeScript face.
+      status: complete
+      command: bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite including the extended component and bundle-shape suites, confirming picker grouping, last-choice restore, the no-Session prompt, selection restore, the two-pane layout, and the registration cases pass.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the addition leaves the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-shape-externals:
+      text: 'Rebuild the client bundle and confirm the shape checks hold: the ModuleLoader closure-factory wrapper opens the bundle, every shared module stays a runtime require, no new runtime require appears for the type-only service faces, and the YAML parser stays inlined.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    record-manual-page-check:
+      text: 'Record the manual check in the pinned dsh release: install the built plugin with a link: spec, open the left-sidebar page in the web client and the desktop profile, exercise Session picking, the no-Session prompt, and selection restore, and record the observed evidence; when the environment cannot run a leg, report it so review blocks on the missing evidence rather than passing silently.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the delta spec operations merge into dsh-viewer-behavior including the placeholder-load-indicator removal, and both delta scenes merge into their recorded scenes with no orphaned coverage references.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify register-left-panel-page directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-change-artifacts
+  unit_test_task: run-project-suite

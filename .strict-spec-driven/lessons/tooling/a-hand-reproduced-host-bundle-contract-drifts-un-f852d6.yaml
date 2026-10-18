@@ -8,7 +8,7 @@ lesson:
 category: tooling
 status: active
 created_at: '2026-10-17T17:11:42.716Z'
-updated_at: '2026-10-17T17:11:42.716Z'
+updated_at: '2026-10-18T12:17:55.621Z'
 context: Scaffolding the first third-party dsh client plugin required reproducing dsh's ModuleLoader closure-factory bundle wrapper and its registration timing by hand, because dsh publishes no client build preset.
 observation: 'The first built bundle looked correct and passed every static assertion but failed in the real host twice: the factory did not return module.exports (materialization yielded undefined, so the loader rejected the entry with ''invalid plugin''), and registrations issued as bare ctx.slots.register calls in apply threw ''slot is not declared'' because a dynamic plugin fiber activates before the shell entries commit their slot declarations. The final smoke check against the pinned release proved both fixes: dsh plugin --profile web add with a link: spec at 0.2.1-rc.2 in an isolated DSH_HOME booted clean, the combo route plugins/??dsh-plugin-strict-spec/client.js&rev=... answered 200 with exactly one window.__ModuleLoader__.load handoff, and a real browser loaded the client with zero plugin errors, rendering the placeholder sidebar row as a button labeled Strict documents with a 16x16 glyph and no document UI.'
 takeaway: Reproduce a host-owned build or registration contract from the host's own shipped artifacts, make the bundle-shape test assert the complete handoff including its return statement, and exercise the install-to-load path in the real host before trusting any static check; register into shell-owned slots through the declaration-aware ctx.slots.inject path rather than bare register calls in apply.
@@ -17,3 +17,6 @@ occurrences:
   - origin: scaffold-dsh-plugin-package
     date: '2026-10-17'
     evidence: plugins/dsh-strict-spec/scripts/build-client.ts; plugins/dsh-strict-spec/src/client.ts; test/suites/dsh-plugin.ts; smoke run recorded in the change review against dsh 0.2.1-rc.2 with DSH_HOME=/tmp/dsh-smoke-home.
+  - origin: register-left-panel-page
+    date: '2026-10-18'
+    evidence: 'The tree change had kept @tanstack/react-virtual external and never updated dsh.client.inject; the first real 0.2.1-rc.2 web boot of the built plugin failed with the fiber marked failed until the boot wire (__DSH_BOOT__) was inspected directly: no module-table row exists for the virtualizer, ui-primitives was missing from the manifest inject list, and the entry read ctx.remote and ctx.sessions/ctx.workspaces without declaring them in its inject export. Proven by browser-driven smoke in an isolated DSH_HOME: after inlining the virtualizer, completing the manifest list, and declaring remote, remote.workspaceFiles, sessions, and workspaces, the panel activated, the tree loaded the real .strict-spec-driven workspace, and selection restore survived panel switches.'

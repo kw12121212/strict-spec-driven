@@ -24,6 +24,11 @@ const root = path.resolve(import.meta.dir, "..");
  * Modules the dsh shell injects at load time. Inlining any of them would
  * create a second React instance or a second Cordis context whose hooks and
  * fibers do not match the host's, breaking slot rendering only at runtime.
+ *
+ * `@tanstack/react-virtual` is deliberately absent: the pinned host shares
+ * no module-table row for it (verified against `__DSH_BOOT__` of a real
+ * 0.2.1-rc.2 web boot), so the virtualizer inlines into the bundle like
+ * the YAML parser instead of staying external.
  */
 export const SHARED_EXTERNALS: readonly string[] = [
   "react",
@@ -33,7 +38,6 @@ export const SHARED_EXTERNALS: readonly string[] = [
   "react-dom/client",
   "@deepseek-ai/cordis",
   "zod",
-  "@tanstack/react-virtual",
   "@deepseek-ai/dsh-client-store",
   "@deepseek-ai/dsh-client-ui-slots",
   "@deepseek-ai/dsh-client-ui-primitives",

@@ -37,17 +37,42 @@ const INLINED_MARKERS: ReadonlyArray<{ moduleId: string; marker: string }> = [
 
 /**
  * The runtime requires the client entry must issue: the production JSX
- * runtime subpath the shell's frozen module table shares, the shared store
- * module the discovery model's store exposure consumes, and the shared
- * primitives and virtualizer modules the tree and renderer components
- * consume.
+ * runtime subpath the shell's frozen module table shares, react itself and
+ * react-dom (both pulled by the inlined virtualizer and both resolvable
+ * seed modules, proven by a real host load), the shared store module the
+ * discovery model's store exposure consumes, and the shared primitives
+ * module the tree and renderer components consume.
  */
 const REQUIRED_RUNTIME_REQUIRES: readonly string[] = [
+  'require("react")',
   'require("react/jsx-runtime")',
+  'require("react-dom")',
   'require("@deepseek-ai/dsh-client-store")',
   'require("@deepseek-ai/dsh-client-ui-primitives")',
+];
+
+/**
+ * Packages the entry consumes only through type-only imports for the
+ * session, workspace, and workspace-files faces, plus the virtualizer the
+ * bundle inlines: their merges and code never reach the host's frozen
+ * module table, so a runtime require for any of them means a value import
+ * crept in and would ask the loader for a module it does not share — the
+ * exact drift a real 0.2.1-rc.2 host load exposed for the virtualizer.
+ */
+const TYPE_ONLY_PACKAGE_REQUIRES: readonly string[] = [
+  'require("@deepseek-ai/dsh-api-session-controller")',
+  'require("@deepseek-ai/dsh-api-workspace-controller")',
+  'require("@deepseek-ai/dsh-api-workspace-files")',
   'require("@tanstack/react-virtual")',
 ];
+
+/**
+ * Literal markers proving the virtualizer is inlined like the YAML parser:
+ * the pinned host's boot wire declares no module-table row for
+ * @tanstack/react-virtual, so the tree's viewport code must ride the
+ * bundle instead of a runtime require.
+ */
+const VIRTUALIZER_INLINED_MARKERS: readonly string[] = ["getVirtualItems", "scrollToIndex"];
 
 /**
  * Literal markers proving the bundled YAML parser is inlined: one stable
@@ -82,6 +107,11 @@ export function inspectClientBundle(bundle: string): BundleFinding[] {
       findings.push({ category: "shared-require", detail: `bundle never issues the runtime require ${requireLiteral}` });
     }
   }
+  for (const requireLiteral of TYPE_ONLY_PACKAGE_REQUIRES) {
+    if (bundle.includes(requireLiteral)) {
+      findings.push({ category: "type-only-require", detail: `bundle requires the type-only dependency at runtime: ${requireLiteral}` });
+    }
+  }
   for (const { moduleId, marker } of INLINED_MARKERS) {
     if (bundle.includes(marker)) {
       findings.push({ category: "inlined-shared-module", detail: `bundle inlines shared module ${moduleId} (marker ${JSON.stringify(marker)})` });
@@ -94,6 +124,11 @@ export function inspectClientBundle(bundle: string): BundleFinding[] {
   }
   if (bundle.includes(PARSER_EXTERNAL_REQUIRE)) {
     findings.push({ category: "parser-external", detail: "bundle requires the YAML parser at runtime instead of inlining it" });
+  }
+  for (const marker of VIRTUALIZER_INLINED_MARKERS) {
+    if (!bundle.includes(marker)) {
+      findings.push({ category: "virtualizer-inline", detail: `bundle does not carry the inlined virtualizer (marker ${JSON.stringify(marker)} absent)` });
+    }
   }
   return findings;
 }
@@ -172,7 +207,8 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   context.assert(inspectCssModules(tokenOnly).length === 0, "token-only declarations pass the scan");
 
   // The externals list the build consumes and the module id it stamps must stay
-  // the reviewed ones: every shared dsh module external, package name as id.
+  // the reviewed ones: every dsh shared module external, package name as id,
+  // and no entry for the virtualizer, which the pinned host does not share.
   const expectedExternals = [
     "react",
     "react/jsx-runtime",
@@ -181,7 +217,6 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     "react-dom/client",
     "@deepseek-ai/cordis",
     "zod",
-    "@tanstack/react-virtual",
     "@deepseek-ai/dsh-client-store",
     "@deepseek-ai/dsh-client-ui-slots",
     "@deepseek-ai/dsh-client-ui-primitives",
@@ -216,6 +251,11 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     inspectClientBundle(requireStripped).some((finding) => finding.category === "shared-require"),
     "shared-require matcher fires when the runtime require is retargeted",
   );
+  const withTypeOnlyRequire = `${bundle}\nrequire("@deepseek-ai/dsh-api-session-controller");\n`;
+  context.assert(
+    inspectClientBundle(withTypeOnlyRequire).some((finding) => finding.category === "type-only-require"),
+    "type-only-require matcher fires when a type-only dependency is required at runtime",
+  );
   for (const { moduleId, marker } of INLINED_MARKERS) {
     const withInlinedModule = `${bundle}\n// synthetic inlined copy for the probe\nvar R={};R.x=1;/* ${marker} */\n`;
     context.assert(
@@ -232,6 +272,11 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   context.assert(
     inspectClientBundle(parserExternal).some((finding) => finding.category === "parser-external"),
     "parser-external matcher fires when the parser is required instead of inlined",
+  );
+  const virtualizerStripped = bundle.split("getVirtualItems").join("anUnrelatedLiteralForTheProbe");
+  context.assert(
+    inspectClientBundle(virtualizerStripped).some((finding) => finding.category === "virtualizer-inline"),
+    "virtualizer-inline matcher fires when the inlined viewport code marker is absent",
   );
 
   // The wrapper helper itself must stay the lazy-CJS shape the shell expects.
@@ -268,6 +313,22 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     "the client inject list declares the shared store module the discovery model consumes",
     `inject: ${JSON.stringify(inject)}`,
   );
+  context.assert(
+    inject.includes("@deepseek-ai/dsh-client-ui-primitives"),
+    "the client inject list declares the shared primitives module the tree rows consume",
+    `inject: ${JSON.stringify(inject)}`,
+  );
+  for (const controller of [
+    "@deepseek-ai/dsh-api-session-controller",
+    "@deepseek-ai/dsh-api-workspace-controller",
+    "@deepseek-ai/dsh-api-workspace-files",
+  ]) {
+    context.assert(
+      inject.includes(controller),
+      `the client inject list declares ${controller} so its services and remote namespace load before the entry activates`,
+      `inject: ${JSON.stringify(inject)}`,
+    );
+  }
   for (const injected of inject) {
     context.assert(
       manifest.devDependencies?.[injected] !== undefined,

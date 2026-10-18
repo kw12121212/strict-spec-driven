@@ -310,7 +310,7 @@ categories:
     a-hand-reproduced-host-bundle-contract-drifts-un-f852d6:
       title: A hand-reproduced host bundle contract drifts until the real host loads it
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/tooling/a-hand-reproduced-host-bundle-contract-drifts-un-f852d6.yaml
     bun-add-inside-a-sub-package-walks-up-and-mutate-93d904:
       title: bun add inside a sub-package walks up and mutates the repository root
@@ -328,3 +328,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/ui/a-shared-dsh-ui-package-drags-its-dependency-clo-81fa91.yaml
+    a-cordis-context-property-read-must-be-declared-b79e42:
+      title: A cordis context property read must be declared in the entry's inject
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/ui/a-cordis-context-property-read-must-be-declared-b79e42.yaml

@@ -12,6 +12,9 @@ import { DocumentTree } from "../../plugins/dsh-strict-spec/src/client/DocumentT
 import type { DocumentTreeProps } from "../../plugins/dsh-strict-spec/src/client/DocumentTree.tsx";
 import { DocumentView } from "../../plugins/dsh-strict-spec/src/client/DocumentView.tsx";
 import type { DocumentViewProps } from "../../plugins/dsh-strict-spec/src/client/DocumentView.tsx";
+import { StrictDocumentsPage } from "../../plugins/dsh-strict-spec/src/client/StrictDocumentsPage.tsx";
+import { createPageController, createPageSelectionStore } from "../../plugins/dsh-strict-spec/src/model/picker.ts";
+import type { PickerCatalog, SessionCatalogPort } from "../../plugins/dsh-strict-spec/src/model/picker.ts";
 import { flattenTreeRows, keyOutcomeFor } from "../../plugins/dsh-strict-spec/src/client/treeRows.ts";
 import { documentParts } from "../../plugins/dsh-strict-spec/src/client/documentParts.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
@@ -429,6 +432,114 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     context.assert((persistFake.listCounts.get(archiveId) ?? 0) === 1, "the restored expansion read the archive exactly once more");
   }
 
+  context.section("dsh plugin components: strict documents page");
+
+  {
+    // A scripted picker catalog: two workspaces (one sessionless) plus an
+    // ungrouped tail, mirroring the grouping the model suite asserts.
+    const catalog: PickerCatalog = {
+      workspaces: [
+        {
+          workspaceId: "w-alpha",
+          title: "Alpha",
+          path: "/home/op/alpha",
+          sessions: [
+            { sessionId: "session-components", displayTitle: "New session", updatedAt: 30 },
+            { sessionId: "session-old", displayTitle: "Old session", updatedAt: 10 },
+          ],
+        },
+        { workspaceId: "w-empty", title: "Empty", path: "/home/op/empty", sessions: [] },
+      ],
+      ungrouped: [{ sessionId: "session-free", displayTitle: "Ungrouped session", updatedAt: 15 }],
+      status: "ready",
+    };
+    const pickerListeners = new Set<() => void>();
+    const picker: SessionCatalogPort = {
+      getCatalog: () => catalog,
+      subscribe: (listener) => (pickerListeners.add(listener), () => pickerListeners.delete(listener)),
+    };
+
+    const fake = new FakeWorkspaceFiles();
+    seedComponentWorkspace(fake);
+    const stores = createViewerStores(fake.port);
+    await stores.actions.loadWorkspace("session-components");
+    await settle();
+    const page = createPageSelectionStore();
+
+    // Two-pane layout over a chosen Session: tree pane left, document pane
+    // right, picker grouped by workspace with newest-first members.
+    page.actions.chooseSession("w-alpha", "session-components");
+    await stores.actions.openDocument("session-components", `${WORKFLOW_ROOT}/config.yaml`);
+    page.actions.recordDocument(`${WORKFLOW_ROOT}/config.yaml`);
+    await settle();
+    const pageHtml = renderToString(
+      createElement(StrictDocumentsPage, { picker, pageSelection: page.store, pageActions: page.actions, controller: createPageController(stores, page.store), viewer: stores, t: fakeT }),
+    );
+    context.assert(pageHtml.includes('aria-label="page.tree-pane"') && pageHtml.includes('aria-label="page.document-pane"'), "the page renders both named panes");
+    context.assert(pageHtml.indexOf('aria-label="page.tree-pane"') < pageHtml.indexOf('aria-label="page.document-pane"'), "the tree pane precedes the document pane");
+    context.assert(pageHtml.includes('role="tree"'), "the left pane carries the shared tree");
+    context.assert(pageHtml.includes("<optgroup"), "the picker groups its sessions under workspaces");
+    context.assert(pageHtml.includes('label="Alpha"') && pageHtml.includes('label="Empty"'), "every workspace renders as a picker group, including the sessionless one");
+    context.assert(
+      pageHtml.indexOf("New session") < pageHtml.indexOf("Old session"),
+      "workspace members render newest-first in the picker",
+    );
+    context.assert(pageHtml.includes('value="workspace:w-empty"') && pageHtml.includes("page.workspace-empty"), "a sessionless workspace offers its prompt option");
+    context.assert(pageHtml.includes("workflow_config"), "the right pane renders the restored document's structured fields");
+
+    // Selection restore: reopening with the recorded selection renders the
+    // same Session tree and the recorded document without a new choice.
+    const reopened = renderToString(
+      createElement(StrictDocumentsPage, { picker, pageSelection: page.store, pageActions: page.actions, controller: createPageController(stores, page.store), viewer: stores, t: fakeT }),
+    );
+    context.assert(reopened.includes('role="tree"') && reopened.includes("workflow_config"), "a reopened page restores the chosen session and its selected document");
+    context.assert(reopened.includes('value="session:session-components"'), "the picker value reflects the restored session");
+
+    // No-Session prompt: a workspace-only selection reads nothing.
+    const promptPage = createPageSelectionStore();
+    promptPage.actions.chooseWorkspace("w-empty", false);
+    const promptHtml = renderToString(
+      createElement(StrictDocumentsPage, { picker, pageSelection: promptPage.store, pageActions: promptPage.actions, controller: createPageController(stores, promptPage.store), viewer: stores, t: fakeT }),
+    );
+    context.assert(promptHtml.includes("page.no-session-prompt"), "a sessionless workspace shows the open-a-Session prompt");
+    context.assert(!promptHtml.includes('role="tree"'), "the prompt state renders no document tree and reads no files");
+
+    // Returning-operator prompt: after a Session was chosen, picking the
+    // sessionless Workspace option reaches the prompt instead of snapping
+    // back to the stale Session.
+    const returningPage = createPageSelectionStore();
+    returningPage.actions.chooseSession("w-alpha", "session-components");
+    returningPage.actions.recordDocument(`${WORKFLOW_ROOT}/config.yaml`);
+    returningPage.actions.chooseWorkspace("w-empty", false);
+    const returningHtml = renderToString(
+      createElement(StrictDocumentsPage, { picker, pageSelection: returningPage.store, pageActions: returningPage.actions, controller: createPageController(stores, returningPage.store), viewer: stores, t: fakeT }),
+    );
+    context.assert(returningHtml.includes("page.no-session-prompt"), "choosing the sessionless workspace after a session still reaches the prompt");
+    context.assert(returningHtml.includes('value="workspace:w-empty"'), "the picker holds the sessionless workspace option");
+    context.assert(!returningHtml.includes('role="tree"'), "the returning-operator prompt state renders no document tree");
+
+    // Catalog status and empty-host conditions.
+    const loadingPicker: SessionCatalogPort = { getCatalog: () => ({ ...catalog, status: "loading" }), subscribe: (listener) => (pickerListeners.add(listener), () => pickerListeners.delete(listener)) };
+    const loadingHtml = renderToString(
+      createElement(StrictDocumentsPage, { picker: loadingPicker, pageSelection: page.store, pageActions: page.actions, controller: createPageController(stores, page.store), viewer: stores, t: fakeT }),
+    );
+    context.assert(loadingHtml.includes("page.loading") && !loadingHtml.includes("<select"), "a loading catalog shows the loading condition and no picker");
+    const errorPicker: SessionCatalogPort = { getCatalog: () => ({ ...catalog, status: "error" }), subscribe: (listener) => (pickerListeners.add(listener), () => pickerListeners.delete(listener)) };
+    context.assert(
+      renderToString(createElement(StrictDocumentsPage, { picker: errorPicker, pageSelection: page.store, pageActions: page.actions, controller: createPageController(stores, page.store), viewer: stores, t: fakeT })).includes("page.error"),
+      "a failed catalog shows the error condition",
+    );
+    const emptyPage = createPageSelectionStore();
+    const emptyPicker: SessionCatalogPort = { getCatalog: () => ({ workspaces: [], ungrouped: [], status: "ready" }), subscribe: (listener) => (pickerListeners.add(listener), () => pickerListeners.delete(listener)) };
+    const emptyHtml = renderToString(
+      createElement(StrictDocumentsPage, { picker: emptyPicker, pageSelection: emptyPage.store, pageActions: emptyPage.actions, controller: createPageController(stores, emptyPage.store), viewer: stores, t: fakeT }),
+    );
+    context.assert(emptyHtml.includes("page.no-sessions") && !emptyHtml.includes("<select"), "a sessionless host shows the no-sessions state and no picker");
+    context.assert(!emptyHtml.includes('role="alert"') && emptyHtml.includes('role="status"'), "the empty state is a status, not an alert");
+
+    stores.actions.dispose();
+  }
+
   context.section("dsh plugin components: locale catalogs");
 
   {
@@ -443,6 +554,8 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     context.assert(treeKeys.every((key) => key in zh), "every tree string is registered in both catalogs");
     const viewKeys = ["view.idle", "view.loading", "view.absent", "view.error", "view.parse-error", "view.raw-text", "view.empty-document"];
     context.assert(viewKeys.every((key) => key in zh), "every document-view string is registered in both catalogs");
+    const pageKeys = ["page.picker-label", "page.picker-placeholder", "page.workspace-empty", "page.workspace-other", "page.loading", "page.error", "page.no-sessions", "page.no-session-prompt", "page.tree-pane", "page.document-pane"];
+    context.assert(pageKeys.every((key) => key in zh), "every strict-documents-page string is registered in both catalogs");
   }
 
   stores.actions.dispose();

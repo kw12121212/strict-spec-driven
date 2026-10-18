@@ -1,0 +1,35 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+operations:
+  ADDED:
+    exception_flows:
+      no-session-for-workspace:
+        trigger: The workspace the operator wants to read holds no Session.
+        steps:
+          prompt-open-session:
+            action: The page shows a prompt to open a Session for that workspace and reads none of its files.
+            covered_by:
+              - spec_id: dsh-viewer-behavior
+                requirement_id: left-page-no-session-prompt
+    main_flow:
+      read-two-pane-layout:
+        action: The operator reads the page's two panes, with the document tree in the left pane and the open document in the wide right pane.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-two-pane-layout
+      reopen-page-restores-selection:
+        action: The operator opens the page again and the previously chosen Session and the selected document are restored without re-choosing either.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-selection-restore
+  MODIFIED:
+    main_flow:
+      open-left-panel-page:
+        action: The operator opens the left-sidebar global page and picks a Session in its Session picker, which groups Sessions by workspace, remembers the last choice, and shows the chosen Session's workspace.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-session-picker
+  REMOVED: {}

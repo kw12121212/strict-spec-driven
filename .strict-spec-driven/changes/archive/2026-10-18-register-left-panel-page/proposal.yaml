@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: register-left-panel-page
+  status: proposed
+summary:
+  what:
+    - 'Replace the scaffold placeholder with the real strict documents left-sidebar panel inside plugins/dsh-strict-spec/: the sidebar.panellist icon and the main keyed page under the existing panel id, a two-pane layout with the shared document tree in a left pane and the shared generic renderer in a wide right pane, and zh and en labels for the panel and the page.'
+    - 'Build the page''s explicit Session picker on the pinned dsh session and workspace service faces: Sessions grouped by workspace, the last chosen Session remembered across openings, a prompt to open a Session when the wanted workspace has none, and page state that restores the chosen Session and the selected document when the page is opened again.'
+    - 'Retire the placeholder registration and its observable contract: remove the placeholder-load-indicator requirement from dsh-viewer-behavior and re-point the operator-installs-viewer-plugin scene at the real panel, while extending the operator-browses-strict-documents scene with the page''s picker, two-pane reading, restore, and no-Session steps.'
+    - Add the pinned dsh api controller packages as type-only plugin devDependencies, adapt the injected service faces once in the client entry behind a plugin-owned picker seam, and extend the static-rendering component and bundle-shape suites inside bun test/run.ts.
+  why:
+    - The milestone orders both entry points last so they reuse the archived shared tree and generic renderer, and build-collapsible-document-tree is archived, so this planned change is eligible now; the left page gives operators the wide reading of strict documents that the right-sidebar pane cannot offer.
+    - The main keyed slot receives no Session binding while every remote.workspaceFiles call needs a sessionId, so the left page must choose a Session explicitly rather than a bare workspace path, and a workspace without a Session must be refused with a prompt instead of read without authority.
+scope:
+  in:
+    - 'The left panel registration: the sidebar.panellist icon, the main keyed page under the existing strict-spec panel id, and the retirement of the placeholder icon and page components.'
+    - 'The two-pane page component under plugins/dsh-strict-spec/src/client/: Session picker header, shared DocumentTree in the left pane, shared DocumentView in the wide right pane, the no-Session prompt, the empty state, and loading and error conditions, styled through CSS Modules consuming --dsw tokens only.'
+    - 'The React-free picker model and root-scoped page state: grouping the sessions list snapshot by workspace, workspace paths, the last chosen Session, selected document restore, and watch teardown on Session switch.'
+    - 'The client entry changes: the injected service faces adapted once behind the plugin-owned picker seam, type-only imports of the pinned api controller packages added as devDependencies, and zh and en catalog entries for every new visible string.'
+    - Extended static-rendering component cases for picker grouping, last-choice restore, the no-Session prompt, selection restore, and the two-pane layout, plus bundle-shape assertions that no new runtime require appears.
+    - Delta specs against dsh-viewer-behavior — modifying left-page-session-picker, adding the two-pane, no-Session-prompt, and selection-restore requirements, removing placeholder-load-indicator — and delta scenes for operator-browses-strict-documents and operator-installs-viewer-plugin.
+    - 'The host-load corrections a real pinned web client forced, discovered by the recorded manual check: completing the manifest''s dsh.client.inject list with the api controller modules and the shared primitives module the bundle already required, inlining @tanstack/react-virtual like the YAML parser because the host''s boot wire declares no shared row for it, declaring the remote and service injects the entry reads, and memoizing the picker catalog per source snapshot so useSyncExternalStore renders stably.'
+  out:
+    - 'The right-sidebar tab, its guide entry, and Session-bound rendering: owned by the register-right-sidebar-tab planned change.'
+    - Dedicated per-artifact-type renderers for roadmap, change, spec, scene, and project-context artifacts, owned by the dsh-strict-spec-viewer-renderers milestone.
+    - Any write, edit, or mutation of strict YAML; invoking strict-spec-cli or a custom host RPC namespace from the plugin; changes to strict artifact schemas, the strict CLI, the MCP server, or deepseek-harness itself.
+    - Upstream dsh changes such as a published client build preset or a Session-bound main slot.
+    - 'Widening the engines.dsh pin, changing the coverage gate scope or the config.yaml review evidence, or altering the archived discovery model, tree, and renderer behaviors beyond the activation corrections a real host load forced: the manifest inject list only gained modules the built bundle already consumed, and the virtualizer moved from external to inlined because the pinned host shares no module-table row for it.'
+unchanged_behavior:
+  - 'The archived discovery model, tree, and generic renderer behaviors keep their guarantees: fixed family order, absent-family omission, collapsed archives unread until expanded, truncation markers, declared values only, located parse errors with raw text, live refresh, per-workspace expand persistence, keyboard navigation, and status conditions.'
+  - The right-sidebar tab is not registered by this change and the host gains no viewer surface beyond the left panel page.
+  - The strict CLI, strict artifact schemas, the MCP server, and generated workflow documents are unchanged.
+  - The host compatibility gate still withholds all viewer UI outside the declared dsh release range.
+  - The client bundle keeps the ModuleLoader closure-factory wrapper with every module the pinned host actually shares — react and its subpaths, the shared dsh client modules — external, while the YAML parser and the virtualizer inline because the host's boot wire declares no shared row for either; the engines.dsh pin and the coverage gate scope are untouched.
+roadmap:
+  milestone: dsh-strict-spec-viewer-foundation
+  planned_change: register-left-panel-page

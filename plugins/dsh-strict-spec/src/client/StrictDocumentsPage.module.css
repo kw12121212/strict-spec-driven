@@ -1,0 +1,68 @@
+/* The strict documents two-pane page. Every color and radius consumes a
+   --dsw-alias design token through var(), per the plugin client standard,
+   so the page stays visually native across host theme changes. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l4);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.pickerLabel {
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+}
+
+.picker {
+  min-width: 0;
+  flex: 1;
+  max-width: 420px;
+  padding: 4px 8px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+}
+
+.pickerEmpty {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.panes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.treePane {
+  width: 320px;
+  min-width: 240px;
+  max-width: 480px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-right: 0.5px solid var(--dsw-alias-border-l4);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.documentPane {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.state {
+  padding: 24px;
+  color: var(--dsw-alias-label-tertiary);
+}

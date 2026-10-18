@@ -100,32 +100,55 @@ export interface WorkspaceFilesPort {
 }
 
 /**
+ * The wire's result envelope, mirrored structurally: every generated
+ * workspace-files method resolves to ok-with-value or fails-with-error, and
+ * the Remote face folds carrier failures into the error branch, so the port
+ * adapter unwraps instead of catching.
+ */
+export type RemoteOutcome<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: { readonly code?: string; readonly message?: string } };
+
+/**
  * The structural slice of the generated client remote the port adapts. The
  * shapes are the wire's own — `read`'s range and `readBytes`' options are
  * required objects on the wire, where the host dereferences them without a
- * guard — so a real `ctx.remote` satisfies them without any dsh import in
- * this module.
+ * guard, and every method resolves the wire's result envelope — so a real
+ * `ctx.remote` satisfies them without any dsh import in this module.
  */
 export interface RemoteWorkspaceFilesFace {
   readonly workspaceFiles: {
-    list(sessionId: string, path: string, signal?: AbortSignal): Promise<DirectoryListing>;
-    read(sessionId: string, path: string, range: TextRange, signal?: AbortSignal): Promise<TextPage>;
-    readBytes(sessionId: string, path: string, options: ByteReadOptions, signal?: AbortSignal): Promise<ByteWindow>;
+    list(sessionId: string, path: string, signal?: AbortSignal): Promise<RemoteOutcome<DirectoryListing>>;
+    read(sessionId: string, path: string, range: TextRange, signal?: AbortSignal): Promise<RemoteOutcome<TextPage>>;
+    readBytes(sessionId: string, path: string, options: ByteReadOptions, signal?: AbortSignal): Promise<RemoteOutcome<ByteWindow>>;
     changes(sessionId: string, path: string, signal?: AbortSignal): AsyncIterable<WatchFrame>;
   };
 }
 
 /**
+ * Unwraps one wire outcome: the ok branch's value resolves, the error
+ * branch's failure throws carrying its code, which is what
+ * workspaceFileErrorCode reads. Only assembly faults reject on the wire
+ * itself, and those keep their own throw shape.
+ */
+function unwrapOutcome<T>(outcome: RemoteOutcome<T>): T {
+  if (outcome.ok) {
+    return outcome.value;
+  }
+  throw outcome.error;
+}
+
+/**
  * Adapts the generated client remote face to the model's port, normalizing
- * omitted option objects to the empty objects the wire requires: a call that
+ * omitted option objects to the empty objects the wire requires and the
+ * wire's result envelope to plain values and thrown failures: a call that
  * passes no range or options still reaches the host as `{}`, never as
- * `undefined`.
+ * `undefined`, and a failed call rejects with the failure the model's
+ * error-code reader expects.
  */
 export function createRemotePort(remote: RemoteWorkspaceFilesFace): WorkspaceFilesPort {
   return {
-    list: (sessionId, path, signal) => remote.workspaceFiles.list(sessionId, path, signal),
-    read: (sessionId, path, range, signal) => remote.workspaceFiles.read(sessionId, path, range ?? {}, signal),
-    readBytes: (sessionId, path, options, signal) => remote.workspaceFiles.readBytes(sessionId, path, options ?? {}, signal),
+    list: async (sessionId, path, signal) => unwrapOutcome(await remote.workspaceFiles.list(sessionId, path, signal)),
+    read: async (sessionId, path, range, signal) => unwrapOutcome(await remote.workspaceFiles.read(sessionId, path, range ?? {}, signal)),
+    readBytes: async (sessionId, path, options, signal) => unwrapOutcome(await remote.workspaceFiles.readBytes(sessionId, path, options ?? {}, signal)),
     changes: (sessionId, path, signal) => remote.workspaceFiles.changes(sessionId, path, signal),
   };
 }
