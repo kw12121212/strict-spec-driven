@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED: {}
+  MODIFIED:
+    left-page-selection-restore:
+      strength: MUST
+      statement: The left-sidebar page keeps the chosen Session and the selected document in page state, so opening the page again — including after the operator has left it for another view during the same client session — loads the chosen Session's workspace tree and restores both.
+      scenarios:
+        reopen-restores-selection:
+          - GIVEN: the operator chose a Session and opened a strict document in the left-sidebar page
+          - WHEN: the page is opened again
+          - THEN: the same Session is chosen and the same document is selected without the operator re-choosing either
+        return-after-leaving-loads-tree:
+          - GIVEN: the operator chose a Session and opened a strict document in the left-sidebar page, then left the page for another view such as a Session's conversation
+          - WHEN: the operator opens the left-sidebar page again without reloading the client
+          - THEN: the chosen Session's workspace tree loads instead of remaining in its loading condition, and the previously selected document is restored
+  REMOVED: {}

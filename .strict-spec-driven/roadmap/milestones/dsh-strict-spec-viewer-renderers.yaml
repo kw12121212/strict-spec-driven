@@ -47,7 +47,7 @@ risks:
   - Renderers encode the current shape of each strict schema, so schema evolution in this repository can silently degrade them unless example-driven tests fail first
   - Cross-document navigation, such as scene step to requirement and planned change to dependency, depends on stable ids that the discovery model must index, and a missing index entry produces a dead link rather than an error
   - A dsh release upgrade between the foundation and release changes can break the smoke check and force an engines.dsh bump inside this milestone
-status: proposed
+status: complete
 notes:
   - Renderer tests consume the registered examples under examples/strict-spec-driven/ rather than private fixtures, which is the lockstep benefit of keeping the plugin in this repository
   - 'Answers unknown-field-display from the milestone evidence: each dedicated renderer lays out the fields it knows and appends every unrecognized top-level field through the generic renderer under an additional-fields section, and an unknown artifact_type keeps the generic renderer, so a newer strict schema never makes content disappear'

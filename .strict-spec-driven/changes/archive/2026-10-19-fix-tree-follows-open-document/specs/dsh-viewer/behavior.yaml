@@ -1,0 +1,41 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    tree-follows-open-document:
+      strength: MUST
+      statement: Whenever a document opens in a viewer surface — from a tree row, from a cross-document link in a document view, or from a restored page selection — the document tree of that surface expands every collapsed group above the document, archived groups included, as an expansion the operator's navigation requested, then moves its keyboard focus to the document's row and scrolls that row into view, while a link whose target the tree cannot hold changes nothing in the tree.
+      scenarios:
+        dependency-link-reveals-target:
+          - GIVEN: an open planned change declares a depends_on entry whose target planned change sits inside a collapsed group, such as the collapsed roadmap archive
+          - WHEN: the operator selects that dependency
+          - THEN: the target opens, the groups above it expand, and the target's row becomes the tree's focused row scrolled into view
+        visible-target-gains-focus:
+          - GIVEN: the tree already lists the row of a document a view links to
+          - WHEN: the operator follows that link
+          - THEN: the document opens and its row becomes the tree's focused row without any group changing state
+        unresolvable-target-leaves-tree:
+          - GIVEN: a view links to a path the tree cannot hold
+          - WHEN: that path is opened
+          - THEN: the tree's groups keep their expand state
+  MODIFIED:
+    archive-groups-collapsed:
+      strength: MUST
+      statement: Archived groups render collapsed by default, and the entries of a collapsed archived group are not read from the workspace until the operator expands it or opens a document inside it.
+      scenarios:
+        collapsed-unread-by-default:
+          - GIVEN: the workspace holds a change archive and a roadmap archive
+          - WHEN: the document tree first renders
+          - THEN: both archived groups are collapsed and their entries have not been read from the workspace
+        read-on-expand:
+          - GIVEN: an archived group is collapsed and its entries unread
+          - WHEN: the operator expands the group
+          - THEN: its entries are listed after being read on expansion
+        read-on-navigation:
+          - GIVEN: an archived group is collapsed and its entries unread
+          - WHEN: the operator opens a document inside it through a link in a view or a restored page selection
+          - THEN: the group expands and its entries are listed after being read, and no other archived group is read
+  REMOVED: {}

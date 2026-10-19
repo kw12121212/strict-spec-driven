@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: release-dsh-strict-spec-plugin
+approach:
+  - 'Treat the release as documentation, packaging, and verification over the finished viewer: write the en and zh plugin README files beside plugins/dsh-strict-spec/package.json, link them from the repository README files, add a files allowlist to the plugin manifest so npm pack ships exactly the built dist bundles, the cordis bundle patch, and the README files, extend the existing manifest section of the dsh-plugin suite to assert that allowlist and the README presence, then install the rebuilt plugin into an isolated DSH_HOME from a link: spec and from the npm pack tarball and record the observed smoke-check evidence in the verification tasks.'
+decisions:
+  readme-beside-package:
+    decision: Place README.md and README.zh.md inside plugins/dsh-strict-spec/ and link them from the repository README.md and README.zh.md rather than writing installation prose into the repository README files.
+    rationale: A README beside package.json travels inside the packed tarball, so an operator holding only the tarball still has the installation and compatibility instructions, while the repository README files keep a single short pointer instead of a second copy that would drift.
+  files-allowlist:
+    decision: Declare a package.json files allowlist of dist, cordis.patch.yml, README.md, and README.zh.md instead of relying on npm's default packlist.
+    rationale: The plugin dist directory is ignored by the repository root .gitignore and the default packlist depends on which ignore files npm reads, so an explicit allowlist makes the tarball contents deterministic and keeps src, scripts, test-support, and node_modules out of it.
+  isolated-dsh-home:
+    decision: Run every installation and smoke step against the pinned dsh 0.2.1-rc.2 with an isolated DSH_HOME under /tmp, and install the web profile with dsh plugin --profile web add and the desktop profile with dsh plugin --profile desktop add.
+    rationale: An isolated home proves the documented commands from a clean profile and leaves the operator's real dsh profiles untouched, and the tested release is the one engines.dsh already pins, so the pin is confirmed rather than widened.
+  desktop-leg-evidence:
+    decision: Document the desktop install as the pinned release requires it — open DeepSeek Harness Desktop once so it initializes its profile, fully quit it, then run dsh plugin --profile desktop add with the dsh command bundled in the Desktop installation — and record the desktop install and desktop UI legs as not run with their reason when no Desktop installation is available, while still proving that the npm-installed dsh refuses the reserved desktop profile.
+    rationale: The pinned dsh 0.2.1-rc.2 npm CLI rejects plugin management for the reserved desktop profile with 'profile desktop is managed exclusively by the Electron application', its README routes that operation to the Desktop-installed command, and its plugin module requires the profile to be initialized by the app first; this environment has neither a Desktop installation nor an Electron binary, so faithful evidence records those legs as not run instead of implying a check that did not happen.
+  no-delta-spec:
+    decision: Author no delta spec; carry the only flow change as a MODIFIED step in the operator-installs-viewer-plugin delta scene that widens the install step to the npm pack tarball and the desktop profile.
+    rationale: 'Documentation, the packing allowlist, and install verification change no observable viewer behavior: the tree, entry points, renderers, and the host compatibility gate are already specified in dsh-viewer-behavior and stay as they are, while the operator-facing install path is a scene flow step rather than a viewer requirement.'
+alternatives:
+  - option: Publish the plugin to npm or list it through the dsh-plugin GitHub topic so dsh can install it by name.
+    reason: The requester settled that the project is not distributed externally, so any public publication or listing is out of scope.
+  - option: Verify the tarball contents only by inspecting npm pack --dry-run output in the smoke check without a suite case.
+    reason: A manual-only check lets a later manifest edit silently drop the bundle or patch from the tarball, while a suite case on the allowlist fails the regression run first.
+risks:
+  - A dsh release other than 0.2.1-rc.2 on the operator machine makes the smoke check fail or the compatibility gate hide the UI; the smoke run pins the tested release and the README names the supported range.
+  - The desktop UI leg may be unrunnable without an Electron runtime, leaving desktop proof limited to the install command.
+  - The truncated listing notice needs a directory beyond the host listing cap, which this repository may not reach; the smoke check records it as not reproducible rather than fabricating a fixture in the operator workspace.

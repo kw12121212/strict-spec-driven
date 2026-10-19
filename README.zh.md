@@ -337,6 +337,10 @@ strict-spec-cli sop-validate
 
 迁移后，`.strict-spec-driven/` 是活跃的工作流状态。`.spec-driven/` 保留为引导或旧版历史，不作为有效的严格工作流目标处理。
 
+## dsh 文档查看器插件
+
+`plugins/dsh-strict-spec/` 中的 `dsh-plugin-strict-spec` 是一个只读的 DeepSeek Harness 插件，可在 Web 客户端和 Desktop 应用中浏览 workspace 的 `.strict-spec-driven/` 文档。关于从本仓库 checkout 构建、通过 `link:` 或本地打包的 tarball 安装以及支持的 dsh 版本，请参阅其 [README](plugins/dsh-strict-spec/README.zh.md)。该插件不会发布到 npm。
+
 ## 自托管状态
 
 本仓库自托管于严格工作流之上。`.strict-spec-driven/` 是唯一活跃的工作流状态，包含活跃的严格规范、路线图和变更历史。从旧版 `.spec-driven/` 工作流的迁移已完成，不再保留根级 `.spec-driven/` 目录。

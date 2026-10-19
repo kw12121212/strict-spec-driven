@@ -39,6 +39,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/architecture/removing-an-artifact-family-is-ordered-by-its-re-1e4fec.yaml
+    a-synthetic-node-path-breaks-the-reload-path-tha-d32eff:
+      title: A synthetic node path breaks the reload path that lists it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/architecture/a-synthetic-node-path-breaks-the-reload-path-tha-d32eff.yaml
   documentation:
     adding-cli-mutation-guidance-to-a-document-enrol-18d554:
       title: Adding CLI-mutation guidance to a document enrolls it in the mutation inventory
@@ -65,6 +70,11 @@ categories:
       status: active
       occurrences: 2
       path: .strict-spec-driven/lessons/documentation/deleting-a-delegated-section-removes-the-step-th-685892.yaml
+    run-a-planned-install-command-against-the-pinned-eecb02:
+      title: Run a planned install command against the pinned host before documenting it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/documentation/run-a-planned-install-command-against-the-pinned-eecb02.yaml
   testing:
     a-self-populating-cache-cannot-be-made-absent-by-49b4d2:
       title: A self-populating cache cannot be made absent by pointing at an empty directory
@@ -348,3 +358,18 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/ui/a-fixture-seeding-a-schema-forbidden-field-posit-d3a522.yaml
+    a-dispose-shared-across-mounts-must-reset-not-re-244785:
+      title: A dispose shared across mounts must reset, not retire, the object
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/ui/a-dispose-shared-across-mounts-must-reset-not-re-244785.yaml
+    static-rendering-drops-event-handlers-so-a-click-c4959d:
+      title: Static rendering drops event handlers, so a click path is untested by default
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/ui/static-rendering-drops-event-handlers-so-a-click-c4959d.yaml
+    scrollintoview-in-a-check-hides-a-container-nobo-bd9ea1:
+      title: scrollIntoView in a check hides a container nobody can scroll
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/ui/scrollintoview-in-a-check-hides-a-container-nobo-bd9ea1.yaml

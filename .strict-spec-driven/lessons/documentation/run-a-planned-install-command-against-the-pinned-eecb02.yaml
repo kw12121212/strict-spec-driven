@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: run-a-planned-install-command-against-the-pinned-eecb02
+  title: Run a planned install command against the pinned host before documenting it
+category: documentation
+status: active
+created_at: '2026-10-19T09:37:16.461Z'
+updated_at: '2026-10-19T09:37:16.461Z'
+context: The release-dsh-strict-spec-plugin planned change and design said to install the dsh viewer plugin into the desktop profile with dsh plugin --profile desktop add while the app is closed, and the release README was to document that command.
+observation: 'Running the planned command with the npm-installed dsh 0.2.1-rc.2 exited 1 with ''profile desktop is managed exclusively by the Electron application'': the launcher rejects the reserved desktop profile unless the Desktop installation''s bundled carrier enables profile management, and its plugin module also requires Desktop to have initialized the profile first. The design decision to verify the desktop install with the npm CLI was overturned, a resolved question recorded the Desktop-bundled carrier, and the README, delta scene, and verification task were rewritten; documenting the planned command as written would have shipped instructions that fail on first use.'
+takeaway: Before writing roadmap-planned install or setup commands into operator documentation, run each one against the pinned host release, and read the host's own README and launcher source for reserved targets; when a leg cannot run in the environment, document the command the host itself prescribes and say plainly that it has not been run end to end.
+applies_when: A change documents or plans CLI install, setup, or profile-management commands for a host application — especially for an app-owned, reserved, or Electron-managed target — and the commands come from roadmap or design text rather than from a run against the pinned release.
+occurrences:
+  - origin: release-dsh-strict-spec-plugin
+    date: '2026-10-19'
+    evidence: dsh 0.2.1-rc.2 lib/bin.js rejectElectronProfile and lib/plugin-*.js requireDesktopProfile; DSH_HOME=/tmp/rdsp-tgz-home dsh plugin --profile desktop add exited 1; release change questions desktop-install-carrier and design decision desktop-leg-evidence; plugins/dsh-strict-spec/README.md desktop section.

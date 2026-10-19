@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-tree-follows-open-document
+sections:
+  Implementation:
+    reproduce-tree-follow:
+      text: 'Add the failing regression cases: a model section in test/suites/dsh-plugin-model.ts opening a document inside the collapsed roadmap archive, under a collapsed directory group, and in a collapsed single-file family, each required to end up listed in the tree, plus an unresolvable path required to leave the tree unchanged; and a component case in test/suites/dsh-plugin-components.ts requiring the focused row to follow the open document. OBSERVED BEFORE THE FIX: bun test/run.ts exited 1 with 4/5254 failed — the three reveal cases and ''the tree''s focused row follows the open document'' (focused row: the Config family) — matching the browser smoke check where a depends_on link opened its target while the tree stayed put.'
+      status: complete
+    reveal-on-open:
+      text: 'In plugins/dsh-strict-spec/src/model/store.ts, start a reveal of the opened path inside openDocument without awaiting it before the document load: walk from the family whose canonical sources hold the path down through the group whose path prefixes it, expanding the first collapsed node with expandNode, until the document node is listed or no node holds the path, stopping when an expansion fails.'
+      status: complete
+    tree-follows-open:
+      text: In plugins/dsh-strict-spec/src/client/DocumentTree.tsx, accept an optional open-document store, keep a changed open path as a pending focus target applied during render once the document's row is present, and scroll that row into view in an effect; pass the viewer's open store from StrictDocumentsPage.tsx and StrictDocumentsTab.tsx.
+      status: complete
+    bound-tree-scroll:
+      text: 'Discovered during the real-host check: in both entry points the tree''s scroll element measured clientHeight equal to scrollHeight (9044 px on the left page, 5376 px in the tab) inside an overflow-hidden region, so rows below the first screen were unreachable and scrollToIndex had nothing to scroll. Give .viewport height: 100% in plugins/dsh-strict-spec/src/client/DocumentTree.module.css so the scroll element is bounded by the region (533 px on the left page, 269 px in the tab) and scrolls.'
+      status: complete
+    review-reveal-guards:
+      text: 'Address the review: expandNode returns without applying a listing that completes after the watched Session changed, revealDocument also stops once another document opens, a model case holds session A''s roadmap archive listing across a switch to session B and requires B''s archive to stay collapsed without A''s entries (observed failing with the guard removed and passing with it), the archive-groups-collapsed requirement is MODIFIED to name reads on navigation into an archive so the main spec no longer contradicts tree-follows-open-document, and the design risk names the restored-selection re-expansion of the changes archive.'
+      status: complete
+  Testing:
+    validate-fix-artifacts:
+      text: Validate the change artifacts, the delta scene coverage, and the added requirement through the readiness gate.
+      status: complete
+      command: strict-spec-cli ready fix-tree-follows-open-document
+    run-lint:
+      text: Run the plugin-local lint so the store, tree, and entry-point changes compile under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite and confirm the reveal and focus cases that failed before the fix now pass alongside the existing archive deferral, navigation, and tree cases.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-in-real-host:
+      text: 'Rebuild the client bundle and confirm in the pinned dsh 0.2.1-rc.2 web client that selecting a depends_on entry whose target is archived expands the roadmap archive and focuses and scrolls to the target row, that an owned planned change and a scene coverage link move the tree to their targets, and that an unresolved entry still opens nothing; record the observed evidence here. OBSERVED EVIDENCE (2026-10-19, link: install, DSH_HOME=/tmp/rdsp-link-home, dsh --profile web on 127.0.0.1:13206 and, after the scroll fix, 13207, workspace /home/wx766/Code/strict-spec-driven): (1) Selecting the register-right-sidebar-tab depends_on entry of render-change-artifacts opened that planned change and made its row the focused row, with the roadmap archive left collapsed because the target lives in roadmap/planned-changes. (2) Archived target: with the archived milestone 0003-core-strict-workflow.yaml open and the roadmap archive collapsed again, leaving the left page and returning restored the document through openDocument, which expanded the roadmap archive (expanded false to true) and focused the archived row. No depends_on entry in this repository targets an archived planned change, so the archive reveal is proven by this restore path and by the model case for a document inside the collapsed roadmap archive. (3) Scroll: the first build moved focus but measured the tree''s scroll element unbounded (clientHeight equal to scrollHeight, 9044 px on the left page and 5376 px in the tab) inside overflow-hidden regions, so followed rows stayed below the visible area and no wheel or keyboard scroll was possible; after bounding the viewport the scroll element measured 533 px of 5376 px on the left page and 269 px of 5376 px in the tab, keyboard End scrolled it to 4843 px with the last row in view, an owned planned change (render-spec-and-scene-artifacts) scrolled it to 755 px with the target row focused and in view, a scene coverage link to dsh-viewer-behavior:right-sidebar-tab scrolled it to 1931 px with the spec row focused and in view, and the same coverage link in the right-sidebar tab scrolled the tab tree to 2195 px with the spec row in view. (4) Unresolved entries: this repository holds no unresolved depends_on entry, so the unchanged unresolved marker is covered by the existing component suite. Wheel input could not be driven in this headless browser — its wheel command also failed to scroll the document pane, a control — so scrollability is proven by the bounded measurements and the programmatic scrolls above.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the ADDED tree-follows-open-document requirement merges into dsh-viewer-behavior, and the three MODIFIED navigation steps merge into the operator-browses-strict-documents scene with their coverage resolving.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify fix-tree-follows-open-document directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-fix-artifacts
+  unit_test_task: run-project-suite

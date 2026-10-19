@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: release-dsh-strict-spec-plugin
+  status: proposed
+summary:
+  what:
+    - 'Prepare the dsh-plugin-strict-spec viewer plugin for internal use: en and zh plugin README files linked from the repository README files, a package manifest whose packed tarball ships the built bundle and bundle patch, verified installation from a link: spec and from a locally packed tarball, and a recorded end-to-end smoke check on this repository with the pinned dsh release.'
+  why:
+    - Every renderer planned change of the milestone has landed, but an operator still has no documented way to build and install the viewer into the web client or the desktop profile, the tarball install path is unverified, and no smoke check proves the finished viewer works end to end in the pinned dsh release; the release lands last so its documentation and smoke check describe the finished viewer.
+scope:
+  in:
+    - 'plugins/dsh-strict-spec/README.md and README.zh.md describing what the viewer shows, building it from a local checkout, installing it into the web client with dsh plugin --profile web add using a link: spec or a locally packed tarball, installing it into the desktop profile with dsh plugin --profile desktop add while the desktop app is closed, the supported dsh version range, and the read-only guarantee'
+    - Links to the plugin README files from the repository README.md and README.zh.md
+    - A package manifest packing allowlist so npm pack produces a tarball holding the built client and host bundles, the cordis bundle patch, the README files, and package.json, with a regression case asserting the allowlist and README presence
+    - 'Verification that dsh installs the plugin from a link: spec and from an npm pack tarball, and that engines.dsh matches the dsh release actually tested'
+    - A recorded end-to-end smoke check on this repository with the pinned dsh release covering both entry points, archive collapse and expand, every dedicated renderer, live refresh, a truncated listing notice where reproducible, and the empty state
+    - A delta scene widening the operator-installs-viewer-plugin install step to the tarball install path
+  out:
+    - Any npm publication, dsh-plugin GitHub topic, or plugin market listing; the project is not distributed externally
+    - New viewer behavior, renderer changes, or strict schema changes
+    - Widening the engines.dsh pin, which is its own planned change
+unchanged_behavior:
+  - The viewer's observable behavior, every dedicated renderer, the host compatibility gate, and the strict artifact schemas stay unchanged
+  - The plugin package stays private and installable only from a local checkout or a locally packed tarball
+roadmap:
+  milestone: dsh-strict-spec-viewer-renderers
+  planned_change: release-dsh-strict-spec-plugin

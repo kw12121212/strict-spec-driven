@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: scrollintoview-in-a-check-hides-a-container-nobo-bd9ea1
+  title: scrollIntoView in a check hides a container nobody can scroll
+category: ui
+status: active
+created_at: '2026-10-19T12:36:40.797Z'
+updated_at: '2026-10-19T12:36:40.797Z'
+context: Browser-driven smoke checks of the dsh viewer reached far tree rows through a helper that called element.scrollIntoView before clicking, and the tree relied on flex sizing for its scroll element inside entry-point regions that were not flex containers.
+observation: The tree's scroll element grew to the full content height (9044 px on the left page, 5376 px in the tab) inside overflow-hidden regions, so no operator could scroll past the first screen by wheel, and the virtualizer's scrollToIndex for keyboard focus scrolled nothing. Every earlier manual check passed anyway, because scrollIntoView scrolls even an overflow-hidden ancestor that a user cannot scroll; the defect surfaced only when the tree-follows-open-document change measured whether the followed row was inside the scroll element's visible box.
+takeaway: In UI checks, never bring a target into view with scrollIntoView or programmatic scrollTop on an ancestor; scroll only through the operator's input or the component's own scroll API, and assert the scroll element is bounded (clientHeight below scrollHeight) and the target lies inside its visible box. Give a component's scroll root an explicit height relative to its region rather than relying on flex sizing a parent may not provide.
+applies_when: A browser-driven or manual check of a scrollable list, tree, or virtualized view reaches off-screen items, or a component's scroll element depends on flex sizing from a container it does not own.
+occurrences:
+  - origin: fix-tree-follows-open-document
+    date: '2026-10-19'
+    evidence: plugins/dsh-strict-spec/src/client/DocumentTree.module.css .viewport lacked a bounded height; /tmp/rdsp-clickdoc.sh used r.scrollIntoView; measurements before the fix clientHeight=scrollHeight=9044/5376, after 533/269 with keyboard End scrolling the tree to 4843 px; recorded in the change's confirm-in-real-host task.

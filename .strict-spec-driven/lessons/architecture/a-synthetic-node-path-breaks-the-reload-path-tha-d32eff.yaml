@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-synthetic-node-path-breaks-the-reload-path-tha-d32eff
+  title: A synthetic node path breaks the reload path that lists it
+category: architecture
+status: active
+created_at: '2026-10-19T11:32:33.624Z'
+updated_at: '2026-10-19T11:32:33.624Z'
+context: The dsh viewer's discovery model builds each family root from its canonical sources at initial load, but gives the family node a synthetic path such as .strict-spec-driven/config that names no directory, and the shared expand and refresh path reloads any group by listing its node path.
+observation: After the operator collapsed the Config or Architecture family, re-expanding listed the synthetic path, the not-found failure was swallowed by expandNode's retry catch, and the family stayed collapsed and empty for every input until a page reload; directory families worked only because their synthetic path happened to equal their single source directory. The initial load never exercised the reload path for families, and no test collapsed a family root, so four shipped changes carried the defect until the release smoke check collapsed one by hand.
+takeaway: When a node is built from sources rather than from its own path, make every later reload rebuild it through the same builder the initial load uses, and test collapse-then-expand and refresh for each node kind — especially single-file and multi-source roots whose id or path names nothing on disk; a swallowed reload failure makes this look like 'nothing happened' rather than an error.
+applies_when: A tree, cache, or index assigns a node an id or path that is synthetic or derived from several sources, and a separate reload, refresh, or expand path later performs I/O on that id or path.
+occurrences:
+  - origin: fix-family-reexpand-after-collapse
+    date: '2026-10-19'
+    evidence: 'plugins/dsh-strict-spec/src/model/traversal.ts loadGroupChildren listed the family node path before the fix; test/suites/dsh-plugin-model.ts re-expansion case failed for config and architecture (after: []) and passes after; real-host Architecture and Config collapse and re-expand on dsh 0.2.1-rc.2.'

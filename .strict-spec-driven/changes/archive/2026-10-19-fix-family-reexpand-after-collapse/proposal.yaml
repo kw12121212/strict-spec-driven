@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-family-reexpand-after-collapse
+  status: proposed
+summary:
+  what:
+    - Fix the dsh viewer's document tree so a single-file family root — Config, Architecture, or Design system — that the operator collapsed expands again to its document, instead of staying collapsed and empty whatever input the operator uses.
+  why:
+    - 'The release-dsh-strict-spec-plugin smoke check on dsh 0.2.1-rc.2 found that once the Config or Architecture family is collapsed, neither a click nor the keyboard can expand it again until the page reloads: a family node carries a synthetic path such as .strict-spec-driven/config that names no directory, re-expansion lists that path through loadGroupChildren, and expandNode swallows the resulting not-found failure, while the initial load builds each family from its canonical sources and never lists that path.'
+scope:
+  in:
+    - 'plugins/dsh-strict-spec/src/model/traversal.ts: make loadGroupChildren rebuild a family node from the workflow root listing through loadFamilyTree, the same path the initial load uses, while directory groups keep their directory walk'
+    - A model regression case in test/suites/dsh-plugin-model.ts collapsing and re-expanding every family root of the fixture tree and requiring the same children
+    - An ADDED collapsed-group-reexpands requirement in dsh-viewer-behavior and a MODIFIED expand-family-group scene step covered by it
+  out:
+    - depends_on tree navigation, fixed by the separate fix-dependency-tree-navigation change
+    - The archive expansion reading every archived change directory at once, and expand choices lost when the left page is left and reopened
+    - Surfacing expansion failures in the UI or changing the expandNode retry contract
+unchanged_behavior:
+  - Directory families and directory groups expand, collapse, and refresh exactly as before, including deferred archive groups
+  - The initial workspace load, family order, absent-family omission, and labels stay as they are
+  - Keyboard navigation and pointer activation behave as before

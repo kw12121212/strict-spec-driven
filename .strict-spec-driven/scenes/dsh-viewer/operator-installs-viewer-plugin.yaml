@@ -25,7 +25,7 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-session-picker
   install-plugin-with-link-spec:
-    action: 'Install the built plugin package into the running dsh release using a link: spec.'
+    action: 'Install the built plugin package from the local checkout into the running dsh release using a link: spec or a tarball produced by npm pack, into the web profile with the dsh command line and, after DeepSeek Harness Desktop has initialized its profile and been fully quit, into the desktop profile with the dsh command bundled in the Desktop installation.'
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-session-picker

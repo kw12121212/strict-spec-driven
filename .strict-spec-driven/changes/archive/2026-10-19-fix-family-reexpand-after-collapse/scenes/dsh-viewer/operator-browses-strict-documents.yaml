@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+operations:
+  ADDED: {}
+  MODIFIED:
+    main_flow:
+      expand-family-group:
+        action: The operator expands a collapsed family group, by clicking anywhere on its row or through the keyboard, and its documents are listed with labels derived from their declared fields.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-family-order
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-pointer-activation
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-keyboard-navigation
+          - spec_id: dsh-viewer-behavior
+            requirement_id: collapsed-group-reexpands
+  REMOVED: {}

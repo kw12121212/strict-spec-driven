@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-tree-row-pointer-open
+  status: proposed
+summary:
+  what:
+    - Fix the dsh viewer's strict document tree so a pointer click anywhere on a document row opens that document and moves keyboard focus to it, and a click anywhere on a group row expands or collapses it, matching what keyboard Enter and the arrow keys already do.
+  why:
+    - The release-dsh-strict-spec-plugin smoke check on dsh 0.2.1-rc.2 found that clicking a document in the tree opens nothing in either the left-sidebar page or the right-sidebar tab, and groups toggle only through their small leading icon, because TreeRowView renders the shared DisclosureRow with expandable false for document rows — which binds no click handler — and the treeitem row itself has no click handler; the only way to open a document is the keyboard, which an operator reading documents with a mouse does not discover.
+scope:
+  in:
+    - 'plugins/dsh-strict-spec/src/client/DocumentTree.tsx: give the treeitem row a click handler that activates the row through the shared toggle — opening a document row and expanding or collapsing a group row — and move tree focus to the clicked row; export the hook-free TreeRowView so the DOM-free component suite can exercise its click wiring'
+    - A component regression case in test/suites/dsh-plugin-components.ts proving a click on a document row and on a group row activates that row through the shared toggle
+    - An ADDED tree-pointer-activation requirement in dsh-viewer-behavior and MODIFIED expand-family-group and open-document steps in the operator-browses-strict-documents scene covered by it
+  out:
+    - The left-page remount loading defect, fixed and archived by fix-left-page-remount-loading
+    - The archive expansion reading every archived change directory at once, depends_on links not moving tree focus, and expand choices lost when the left page is left and reopened
+    - Double-click, context menus, drag, or hover affordances, and any change to the shared dsh DisclosureRow
+unchanged_behavior:
+  - Keyboard navigation — arrow keys, Home, End, expand, collapse, and Enter to open — behaves exactly as before
+  - The leading icon of a group row still toggles the group once per click, with no double toggle
+  - The truncation notice row stays non-interactive, and the right-sidebar tab, the left page, expand-state persistence, and every document renderer stay as they are

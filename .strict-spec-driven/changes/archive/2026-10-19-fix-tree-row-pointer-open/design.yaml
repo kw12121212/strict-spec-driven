@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-tree-row-pointer-open
+approach:
+  - 'Fix the defect in the plugin''s TreeRowView rather than the shared DisclosureRow: the treeitem row element gets an onClick that calls the row toggle, so a click anywhere on a document or group row runs the same handleToggle keyboard Enter runs, and handleToggle also sets the focused row id so the clicked row becomes the keyboard focus. The group row''s leading icon button already stops propagation, so its own toggle does not bubble into a second one. A failing component case is written first through an exported hook-free TreeRowView and must pass after the fix.'
+decisions:
+  fix-in-plugin-row:
+    decision: Attach the click handler to the plugin's treeitem row instead of passing expandOnRowClick to the shared DisclosureRow.
+    rationale: DisclosureRow binds no handler at all for non-expandable rows, so expandOnRowClick cannot make document rows clickable, and the shared host component is out of the plugin's control; one handler on the plugin-owned treeitem covers both row kinds through the toggle the keyboard already uses.
+  export-row-view-seam:
+    decision: Export TreeRowView so the component suite can call it directly and invoke the returned treeitem element's click handler.
+    rationale: The dsh-plugin-client standard keeps component tests DOM-free through static rendering, which drops event handlers; TreeRowView uses no hooks, so calling it returns the element whose onClick the suite can invoke without adding a DOM test dependency.
+  click-moves-focus:
+    decision: A click moves the tree's keyboard focus to the clicked row.
+    rationale: The requester chose click behavior where a click opens or toggles the row and moves keyboard focus to it, so a following arrow key continues from where the operator clicked.
+  click-outcome-in-row-model:
+    decision: Resolve a click's focus move and activation through a pure clickOutcomeFor helper in treeRows.ts beside keyOutcomeFor, which handleToggle applies.
+    rationale: The review found the focus move and the toggle wiring were proven only by the manual check; a React-free helper keeps the decision in the row model the keyboard already uses, so the DOM-free suite asserts focus movement, group toggling, and the inert truncation notice directly.
+alternatives:
+  - option: Pass expandOnRowClick to DisclosureRow for group rows and wrap document rows in a separate button.
+    reason: It splits one activation path into two mechanisms, changes the row's accessible structure, and still needs a plugin-side handler for document rows.
+risks:
+  - A click on the group row's leading icon could toggle twice if the icon stopped calling stopPropagation in a later dsh release; the pinned 0.2.1-rc.2 DisclosureRow stops propagation, and the real-host check confirms one toggle per icon click.

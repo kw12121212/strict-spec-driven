@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-left-page-remount-loading
+sections:
+  Implementation:
+    reproduce-remount-loading:
+      text: 'Add the failing model regression case to the page controller restore and staleness section of test/suites/dsh-plugin-model.ts: a controller that showed a Session, recorded a document, and was disposed is shown the same Session again and must reach a ready tree with the recorded document restored, and its next dispose must close every watch. OBSERVED BEFORE THE FIX: bun test/run.ts exited 1 with 2/5226 failed — ''a disposed page controller reloads the shown session''s workspace when the page mounts again (tree status: loading)'' and ''a disposed page controller restores the recorded document when the page mounts again'' — matching the browser smoke check where the left page stayed on ''Loading the document tree...'' after returning from a Session view.'
+      status: complete
+    reset-controller-on-dispose:
+      text: In plugins/dsh-strict-spec/src/model/picker.ts, make createPageController's dispose reset the controller to its not-showing state — clear the shown Session id, bump the epoch so in-flight loads and restores are abandoned, and dispose the viewer stores — and drop the permanent disposed flag, so the next mount's showSession loads the workspace and restores the recorded document; update the controller's doc comment to state the remount contract.
+      status: complete
+    cover-in-flight-remount:
+      text: 'Add a gated model case for the in-flight remount the review flagged: record a document, show a Session whose workspace load is held by createGatedPort, dispose, show the same Session again, release the gate, and assert one ready tree with the recorded document restored and no leaked watch after the next dispose.'
+      status: complete
+  Testing:
+    validate-fix-artifacts:
+      text: Validate the change artifacts, the delta scene coverage, and the delta spec through the readiness gate.
+      status: complete
+      command: strict-spec-cli ready fix-left-page-remount-loading
+    run-lint:
+      text: Run the plugin-local lint so the controller change compiles under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite and confirm the remount cases that failed before the fix now pass alongside the existing restore, supersede, and dispose cases.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-in-real-host:
+      text: 'Rebuild the client bundle and confirm in the pinned dsh 0.2.1-rc.2 web client with the plugin installed that opening the left page, selecting a Session in the sidebar, and opening the page again loads the chosen Session''s tree and restores the selected document; record the observed evidence here. OBSERVED EVIDENCE (2026-10-19): bun run build exited 0; DSH_HOME=/tmp/rdsp-link-home with the link: install booted dsh --profile web on 127.0.0.1:13202; with /home/wx766/Code/strict-spec-driven as the workspace, the left page loaded the tree, config.yaml was opened from it, selecting the New Session row in the sidebar unmounted the page, and opening Strict documents again showed the loaded tree with config.yaml restored in the document pane; the leave-and-return round was repeated two more times with the same result, where the pre-fix build had stayed on ''Loading the document tree...'' after the first return.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the MODIFIED left-page-selection-restore requirement merges into dsh-viewer-behavior with both scenarios, and the MODIFIED reopen-page-restores-selection step merges into the operator-browses-strict-documents scene with its coverage resolving.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify fix-left-page-remount-loading directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-fix-artifacts
+  unit_test_task: run-project-suite

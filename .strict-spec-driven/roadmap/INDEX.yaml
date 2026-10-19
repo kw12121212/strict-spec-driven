@@ -34,4 +34,4 @@ milestones:
   dsh-strict-spec-viewer-renderers:
     title: Dedicated strict artifact renderers and dsh plugin release
     path: roadmap/milestones/dsh-strict-spec-viewer-renderers.yaml
-    status: proposed
+    status: complete

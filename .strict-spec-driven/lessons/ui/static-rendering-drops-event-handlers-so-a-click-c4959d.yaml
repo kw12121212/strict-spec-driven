@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: static-rendering-drops-event-handlers-so-a-click-c4959d
+  title: Static rendering drops event handlers, so a click path is untested by default
+category: ui
+status: active
+created_at: '2026-10-19T09:06:40.365Z'
+updated_at: '2026-10-19T09:06:40.365Z'
+context: The dsh viewer plugin's component tests are DOM-free by standard and render through react-dom/server static rendering, while the strict document tree's rows render the shared dsh DisclosureRow.
+observation: 'Clicking a document row in the tree opened nothing in either entry point for four shipped changes: DisclosureRow binds no click handler for a non-expandable row and the plugin''s treeitem row had none, so only keyboard Enter opened documents. Static rendering omits every event handler from its output, so no component case ever exercised a click, and every recorded manual check opened documents with the keyboard; the release end-to-end smoke check found it on the first mouse click. Exporting the hook-free row view and invoking the returned element''s onClick reproduced it without a DOM.'
+takeaway: 'When component tests render statically, treat every pointer path as untested until a case invokes the handler: keep row and control views hook-free so a test can call them and fire the returned element''s onClick, move the activation decision into a pure helper the suite asserts, and make at least one manual check use the mouse rather than the keyboard.'
+applies_when: A plugin or UI change adds or relies on click, pointer, or other event handlers while its component suite renders through static or server-side rendering without a DOM, or a manual check of a UI exercises it only through the keyboard.
+occurrences:
+  - origin: fix-tree-row-pointer-open
+    date: '2026-10-19'
+    evidence: 'plugins/dsh-strict-spec/src/client/DocumentTree.tsx TreeRowView had no treeitem onClick; test/suites/dsh-plugin-components.ts pointer activation case failed 3/5231 before the fix (activated: []) and passes after; shared DisclosureRow in @deepseek-ai/dsh-client-ui-primitives binds onClick only when expandable and expandOnRowClick.'

@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-family-reexpand-after-collapse
+sections:
+  Implementation:
+    reproduce-family-reexpand:
+      text: 'Add the failing model regression case to the family taxonomy section of test/suites/dsh-plugin-model.ts: collapse and re-expand every family root of the fixture tree and require each to come back loaded with the same children. OBSERVED BEFORE THE FIX: bun test/run.ts exited 1 with 2/5246 failed — ''the config family expands again to the same children after collapsing (before: [.strict-spec-driven/config.yaml], after: [])'' and the same for architecture — while every directory family passed, matching the browser smoke check where Config and Architecture stayed collapsed after a collapse.'
+      status: complete
+    rebuild-family-on-expand:
+      text: In plugins/dsh-strict-spec/src/model/traversal.ts, make loadGroupChildren rebuild a family node by listing the workflow root and calling loadFamilyTree for the node's family, returning it marked loaded, while group nodes keep walking their own directory path; update its doc comment.
+      status: complete
+    review-absent-family:
+      text: 'Address the review: when a family''s canonical source is absent from the fresh workflow root listing, loadGroupChildren throws a workspace-file/not-found error so expandNode keeps the family collapsed and a refresh keeps its last children, instead of showing an empty group that absent-family-omitted forbids; strengthen the re-expansion case to compare child paths, labels, and loaded flags (archive deferral) for every family, and add model cases for the design-system family re-expanding and for a family whose source was deleted while collapsed staying collapsed.'
+      status: complete
+  Testing:
+    validate-fix-artifacts:
+      text: Validate the change artifacts, the delta scene coverage, and the added requirement through the readiness gate.
+      status: complete
+      command: strict-spec-cli ready fix-family-reexpand-after-collapse
+    run-lint:
+      text: Run the plugin-local lint so the traversal change compiles under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite and confirm the re-expansion cases that failed before the fix now pass alongside the existing expand, collapse, refresh, and archive deferral cases.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-in-real-host:
+      text: 'Rebuild the client bundle and confirm in the pinned dsh 0.2.1-rc.2 web client that collapsing and re-expanding the Config and Architecture families by click and by keyboard lists their document again; record the observed evidence here. OBSERVED EVIDENCE (2026-10-19, link: install, DSH_HOME=/tmp/rdsp-link-home, dsh --profile web on 127.0.0.1:13205, workspace /home/wx766/Code/strict-spec-driven, left page): a click on the Architecture family row collapsed it (expanded false, no child row) and a second click expanded it again to ''Architecture 1 entries'' with the strict-spec-driven Architecture document listed; ArrowLeft on the focused Config family collapsed it and ArrowRight expanded it again with config.yaml listed — where the pre-fix build had left both families collapsed and empty after a collapse. NOT RUN in the browser: Design system, because this workspace holds no design-system.yaml; it takes the same family rebuild path as Config and is covered by the model case that re-expands a seeded design-system family. Architecture was exercised by click and Config by keyboard; both inputs reach the same expandNode path, which the model cases cover for every family.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the ADDED collapsed-group-reexpands requirement merges into dsh-viewer-behavior, and the MODIFIED expand-family-group step merges into the operator-browses-strict-documents scene with its coverage resolving.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify fix-family-reexpand-after-collapse directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-fix-artifacts
+  unit_test_task: run-project-suite

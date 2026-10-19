@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-tree-follows-open-document
+  status: proposed
+summary:
+  what:
+    - 'Make the dsh viewer''s document tree follow the open document: whenever a document opens — from a tree row, a cross-document link in a view such as a depends_on entry, an owned planned change, or a scene coverage link, or a restored page selection — the tree expands every collapsed group above it, archived groups included, moves its keyboard focus to the document''s row, and scrolls that row into view.'
+  why:
+    - The release-dsh-strict-spec-plugin smoke check on dsh 0.2.1-rc.2 found that selecting a depends_on entry opens the target planned change but leaves the tree where it was, while the roadmap-artifact-renderers scenario and the milestone done criterion say the tree navigates to the target; the tree's focus is component state that no open action updates, and the store never expands the groups that hide a document opened from a view, so an archived target stays invisible in the tree.
+scope:
+  in:
+    - 'plugins/dsh-strict-spec/src/model/store.ts: after openDocument starts, reveal the path by expanding each collapsed family, group, or archive above the document through expandNode, one level at a time and without delaying the document load, doing nothing for a path the tree cannot hold'
+    - 'plugins/dsh-strict-spec/src/client/DocumentTree.tsx: accept the viewer''s open-document store, move focus to the open document''s row once that row is present, and scroll it into view; pass the store from StrictDocumentsPage.tsx and StrictDocumentsTab.tsx'
+    - Model regression cases revealing documents in a collapsed archive, a collapsed directory group, and a collapsed single-file family, plus a no-op for an unresolvable path, and a component case for the focused row following the open document
+    - An ADDED tree-follows-open-document requirement in dsh-viewer-behavior and MODIFIED scene steps for following a dependency, selecting an owned planned change, and following a coverage link
+    - 'plugins/dsh-strict-spec/src/client/DocumentTree.module.css: give the tree viewport the full height of its entry-point region, because neither the left page''s tree pane nor the tab''s tree region is a flex container, so the tree''s scroll element grew to the full content height inside an overflow-hidden region and no row below the first screen could be scrolled to by wheel, keyboard focus, or a followed link — scrolling the followed row into view requires a bounded scroll element'
+  out:
+    - Renderers mutating tree state or reading the workspace; navigation still flows only through the shared open action
+    - The archive expansion reading every archived change directory at once, and expand choices lost when the left page is left and reopened
+    - Changing what any renderer shows or how unresolved links render
+unchanged_behavior:
+  - Archived groups still render collapsed by default and are read only when expanded, by the operator directly or by navigating to a document inside them
+  - Opening a document from a tree row, keyboard navigation, pointer activation, and every renderer behave as before
+  - An unresolvable link still renders the unresolved marker and opens nothing

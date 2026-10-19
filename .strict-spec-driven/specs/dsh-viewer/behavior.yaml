@@ -40,7 +40,7 @@ requirements:
         - THEN: every archived entry is labeled from its directory or file name alone, without the viewer reading the archived files' contents
   archive-groups-collapsed:
     strength: MUST
-    statement: Archived groups render collapsed by default, and the entries of a collapsed archived group are not read from the workspace until the operator expands it.
+    statement: Archived groups render collapsed by default, and the entries of a collapsed archived group are not read from the workspace until the operator expands it or opens a document inside it.
     scenarios:
       collapsed-unread-by-default:
         - GIVEN: the workspace holds a change archive and a roadmap archive
@@ -50,6 +50,10 @@ requirements:
         - GIVEN: an archived group is collapsed and its entries unread
         - WHEN: the operator expands the group
         - THEN: its entries are listed after being read on expansion
+      read-on-navigation:
+        - GIVEN: an archived group is collapsed and its entries unread
+        - WHEN: the operator opens a document inside it through a link in a view or a restored page selection
+        - THEN: the group expands and its entries are listed after being read, and no other archived group is read
   truncated-listing-marker:
     strength: MUST
     statement: When the entries available for a directory are cut short by the host's directory-listing limit, the tree shows an explicit truncation marker for that directory rather than implying the listing is complete.
@@ -252,12 +256,16 @@ requirements:
         - THEN: it shows an explicit prompt to open a Session for that workspace and reads none of its workflow files
   left-page-selection-restore:
     strength: MUST
-    statement: The left-sidebar page keeps the chosen Session and the selected document in page state, so opening the page again restores both.
+    statement: The left-sidebar page keeps the chosen Session and the selected document in page state, so opening the page again — including after the operator has left it for another view during the same client session — loads the chosen Session's workspace tree and restores both.
     scenarios:
       reopen-restores-selection:
         - GIVEN: the operator chose a Session and opened a strict document in the left-sidebar page
         - WHEN: the page is opened again
         - THEN: the same Session is chosen and the same document is selected without the operator re-choosing either
+      return-after-leaving-loads-tree:
+        - GIVEN: the operator chose a Session and opened a strict document in the left-sidebar page, then left the page for another view such as a Session's conversation
+        - WHEN: the operator opens the left-sidebar page again without reloading the client
+        - THEN: the chosen Session's workspace tree loads instead of remaining in its loading condition, and the previously selected document is restored
   change-artifact-renderers:
     strength: MUST
     statement: Opening a change's proposal, design, tasks, or questions document renders its dedicated view — the proposal view with its summary what and why, scope in and out, unchanged behavior, and roadmap link; the design view with its approach, decisions and their rationale, alternatives, and risks; the tasks view with per-section grouping, a done or pending marker per task, and per-section and overall completion; the questions view separating open questions from resolved ones with their answers — and opening a change-scoped delta spec, delta scene, or delta tech file renders each operation group labeled with its declared operation, laying out requirement bodies, scene flow steps, and rule bodies through the same layouts their main counterparts use, with the same dedicated views serving archived change documents.
@@ -362,3 +370,47 @@ requirements:
         - GIVEN: An open scenes index declares areas holding scene entries with titles and statuses
         - WHEN: the scenes index view renders
         - THEN: the entries group under their declared areas, each presenting its declared title and status
+  tree-pointer-activation:
+    strength: MUST
+    statement: A pointer click anywhere on a document row of the document tree opens that document and moves the tree's keyboard focus to that row, and a click anywhere on a group row expands a collapsed group or collapses an expanded one, through the same activation keyboard Enter performs.
+    scenarios:
+      click-opens-document:
+        - GIVEN: the document tree shows a document row
+        - WHEN: the operator clicks anywhere on that row
+        - THEN: the document opens in the document view and the clicked row becomes the tree's focused row
+      click-toggles-group:
+        - GIVEN: the document tree shows a collapsed group row
+        - WHEN: the operator clicks anywhere on that row
+        - THEN: the group expands, and a further click on the row collapses it again
+      icon-click-toggles-once:
+        - GIVEN: the document tree shows a group row
+        - WHEN: the operator clicks the group's leading icon
+        - THEN: the group toggles exactly once
+  collapsed-group-reexpands:
+    strength: MUST
+    statement: Every group the operator collapses in the document tree, family roots included, expands again to its current entries on the next expand activation, whether the family's content is a directory or a single canonical file.
+    scenarios:
+      single-file-family-reexpands:
+        - GIVEN: the operator collapsed a family whose only content is a single canonical file, such as Config or Architecture
+        - WHEN: the operator expands that family again by clicking its row or through the keyboard
+        - THEN: the family expands and lists its document again without a reload
+      directory-family-reexpands:
+        - GIVEN: the operator collapsed a family whose content is a directory, such as Specs
+        - WHEN: the operator expands that family again
+        - THEN: the family expands and lists its current entries
+  tree-follows-open-document:
+    strength: MUST
+    statement: Whenever a document opens in a viewer surface — from a tree row, from a cross-document link in a document view, or from a restored page selection — the document tree of that surface expands every collapsed group above the document, archived groups included, as an expansion the operator's navigation requested, then moves its keyboard focus to the document's row and scrolls that row into view, while a link whose target the tree cannot hold changes nothing in the tree.
+    scenarios:
+      dependency-link-reveals-target:
+        - GIVEN: an open planned change declares a depends_on entry whose target planned change sits inside a collapsed group, such as the collapsed roadmap archive
+        - WHEN: the operator selects that dependency
+        - THEN: the target opens, the groups above it expand, and the target's row becomes the tree's focused row scrolled into view
+      visible-target-gains-focus:
+        - GIVEN: the tree already lists the row of a document a view links to
+        - WHEN: the operator follows that link
+        - THEN: the document opens and its row becomes the tree's focused row without any group changing state
+      unresolvable-target-leaves-tree:
+        - GIVEN: a view links to a path the tree cannot hold
+        - WHEN: that path is opened
+        - THEN: the tree's groups keep their expand state

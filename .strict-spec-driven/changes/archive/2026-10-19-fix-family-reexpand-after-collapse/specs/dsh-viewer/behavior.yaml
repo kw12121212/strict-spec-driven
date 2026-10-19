@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    collapsed-group-reexpands:
+      strength: MUST
+      statement: Every group the operator collapses in the document tree, family roots included, expands again to its current entries on the next expand activation, whether the family's content is a directory or a single canonical file.
+      scenarios:
+        single-file-family-reexpands:
+          - GIVEN: the operator collapsed a family whose only content is a single canonical file, such as Config or Architecture
+          - WHEN: the operator expands that family again by clicking its row or through the keyboard
+          - THEN: the family expands and lists its document again without a reload
+        directory-family-reexpands:
+          - GIVEN: the operator collapsed a family whose content is a directory, such as Specs
+          - WHEN: the operator expands that family again
+          - THEN: the family expands and lists its current entries
+  MODIFIED: {}
+  REMOVED: {}

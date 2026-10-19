@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-tree-follows-open-document
+approach:
+  - 'Put the reveal where every open passes: the store''s openDocument starts a reveal of the opened path alongside the document load, walking the family tree from the family that holds the path down through the group whose path prefixes it and expanding the first collapsed node with expandNode until the document node is listed or no node holds the path. The tree component reads the viewer''s open-document store and, when the open path changes, keeps it as a pending focus target that moves the focused row onto the document''s row as soon as that row is present, then scrolls it into view; entry points pass their viewer''s open store. Failing model and component cases are written first and must pass after the fix.'
+decisions:
+  reveal-in-open-document:
+    decision: Reveal ancestors inside the store's openDocument rather than in each renderer's link handler.
+    rationale: The dsh-plugin-client standard routes cross-document navigation only through the shared open action and forbids renderers from mutating tree state, and openDocument is the one action every open — tree rows, links, and restored selections — already calls, so one reveal there covers every source the requester chose.
+  reveal-without-blocking:
+    decision: Run the reveal concurrently with the document load instead of awaiting it first.
+    rationale: Expanding an archive can take seconds on a large repository, and the requester's outcome is the opened document plus a tree that catches up, so the document view must not wait on tree listings; expandNode already re-reads state after its own await, so a concurrent reveal cannot clobber a watch reload.
+  focus-follows-pending-path:
+    decision: The tree keeps the open path as pending focus and applies it during render once the row exists, scrolling in an effect.
+    rationale: The row of a revealed document appears only after its ancestors load, so focus must wait for the row rather than fire once on open; applying it during render keeps the decision statically testable without a DOM, and only the scroll needs the browser.
+  bound-tree-scroll-element:
+    decision: 'Give the tree''s viewport height: 100% of its entry-point region in DocumentTree.module.css instead of making each entry point''s region a flex container.'
+    rationale: Implementation found the tree's scroll element unbounded in both entry points — clientHeight equal to scrollHeight inside overflow-hidden regions — so the virtualizer's scrollToIndex, keyboard focus, and the followed row could never scroll; one declaration in the shared tree stylesheet bounds the scroll element for every entry point, while restyling each region would duplicate the fix and leave a future entry point exposed. Layout cannot be measured by the DOM-free component suite, so the before-and-after proof is the real-host measurement recorded in confirm-in-real-host.
+  guard-stale-expansion:
+    decision: expandNode drops a listing that completes after the watched Session changed, and a reveal stops once another document opens.
+    rationale: The review reproduced a reveal whose roadmap archive listing landed after a Session switch and grafted the previous workspace's archive entries into the new tree, because node ids are workspace-relative; automatic reveals make that race reachable without a manual click, so the expansion must check the Session after its await, and a reveal for a document no longer open has no reason to keep listing.
+alternatives:
+  - option: Expose a reveal action that renderers call from their link handlers.
+    reason: It would make renderers drive tree state, which the dsh-plugin-client navigation rule forbids, and it would miss restored selections and any future link source.
+risks:
+  - A restored page selection inside the changes archive re-expands that archive on every return to the page, which on this repository reads every archived change directory for seconds, and reveal expansions are recorded as expand choices a re-shown workspace restores; the archive listing cost is a recorded follow-up, and no in-view link targets archived change documents today.

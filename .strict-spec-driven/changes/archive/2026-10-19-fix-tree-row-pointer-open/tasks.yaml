@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-tree-row-pointer-open
+sections:
+  Implementation:
+    reproduce-pointer-open:
+      text: 'Export the hook-free TreeRowView from plugins/dsh-strict-spec/src/client/DocumentTree.tsx as a behavior-neutral test seam and add the failing component case to test/suites/dsh-plugin-components.ts: call TreeRowView for a document row and a group row, require the returned treeitem element to carry an onClick, invoke it, and require each click to activate that row through the shared toggle. OBSERVED BEFORE THE FIX: bun test/run.ts exited 1 with 3/5231 failed — ''a document row''s treeitem accepts a pointer click'', ''a group row''s treeitem accepts a pointer click'', and ''clicking a document row or a group row activates that row through the shared toggle (activated: [])'' — matching the browser smoke check where clicking config.yaml opened nothing.'
+      status: complete
+    row-click-activates:
+      text: In DocumentTree.tsx, give TreeRowView's treeitem element an onClick that calls onToggle(row) for document and group rows (never for the truncation notice), and make DocumentTree's handleToggle set the focused row id to the activated row before expanding, collapsing, or opening, so a click moves keyboard focus to the clicked row; keep the keyboard handler and the leading icon's propagation-stopping toggle unchanged.
+      status: complete
+    review-click-outcome-coverage:
+      text: 'Address the review''s SHOULD FIX findings: move the click decision into a pure clickOutcomeFor helper in plugins/dsh-strict-spec/src/client/treeRows.ts that handleToggle applies, and extend the pointer activation component case to assert the helper''s focus move and activation for document, collapsed group, open group, and truncation rows, that the truncation notice row has no click handler, and that the pinned DisclosureRow leading icon stops propagation and toggles once; restate the expand-family-group and open-document delta scene steps with tree-keyboard-navigation coverage beside their existing coverage.'
+      status: complete
+  Testing:
+    validate-fix-artifacts:
+      text: Validate the change artifacts, the delta scene coverage, and the added requirement through the readiness gate.
+      status: complete
+      command: strict-spec-cli ready fix-tree-row-pointer-open
+    run-lint:
+      text: Run the plugin-local lint so the row view change compiles under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite and confirm the pointer cases that failed before the fix now pass alongside the existing keyboard and tree cases.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-in-real-host:
+      text: 'Rebuild the client bundle and confirm in the pinned dsh 0.2.1-rc.2 web client with the plugin installed, in both the left-sidebar page and the right-sidebar tab, that clicking a document row opens it and focuses that row, clicking a group row toggles it, a leading icon click toggles once, and keyboard navigation still works; record the observed evidence here. OBSERVED EVIDENCE (2026-10-19, link: install in DSH_HOME=/tmp/rdsp-link-home, dsh --profile web on 127.0.0.1:13203, workspace /home/wx766/Code/strict-spec-driven): left page — a pointer click on the config.yaml row opened the config view, made config.yaml the focused row, and put DOM focus inside the tree; two ArrowDown presses and Enter then opened the strict-spec-driven Architecture document, so keyboard navigation continued from the clicked row; clicks on the milestones group title collapsed it (true -> false) and expanded it again (false -> true), and two clicks on its leading icon toggled it exactly once each (true -> false -> true). Right-sidebar tab — a click on config.yaml opened the config view in the tab and focused that row. Pre-existing, outside this change: once collapsed, the single-file Config and Architecture families cannot be expanded again by any input, because expanding lists the family''s file path as a directory and the failure is swallowed; keyboard ArrowRight shows the same, so it is reported as a follow-up rather than fixed here.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the ADDED tree-pointer-activation requirement merges into dsh-viewer-behavior, and the MODIFIED expand-family-group and open-document steps merge into the operator-browses-strict-documents scene with their coverage resolving.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify fix-tree-row-pointer-open directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-fix-artifacts
+  unit_test_task: run-project-suite

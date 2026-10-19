@@ -10,6 +10,12 @@
     "./client": "./dist/client.js",
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import path from "path";
 import yaml from "js-yaml";
 import { ROOT, TestContext } from "../support/harness.js";
@@ -10,8 +10,77 @@ import {
   wrapModuleLoaderHandoff,
 } from "../../plugins/dsh-strict-spec/scripts/build-client.ts";
 import { en, zh } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
+import * as localeCatalogs from "../../plugins/dsh-strict-spec/src/client/locales.ts";
 
 const PLUGIN_ROOT = path.join(ROOT, "plugins", "dsh-strict-spec");
+
+/** One release-packaging or README defect, by stable category. */
+export type ReleaseFinding = { category: string; detail: string };
+
+/** The languages of every locale catalog the plugin ships, scanned from its locale module. */
+export function shippedLocaleLanguages(): string[] {
+  return Object.entries(localeCatalogs)
+    .filter(([, value]) => typeof value === "object" && value !== null && "panel.title" in value)
+    .map(([language]) => language)
+    .sort();
+}
+
+/** The plugin README file a locale language documents in: English is the default README. */
+export function readmeFileFor(language: string): string {
+  return language === "en" ? "README.md" : `README.${language}.md`;
+}
+
+/**
+ * Checks a files allowlist against the entries a packed tarball requires:
+ * source, build-script, test-support, and dependency paths must never ship,
+ * every required entry must be listed, and nothing else may be.
+ */
+export function packlistFindings(files: readonly string[], required: readonly string[]): ReleaseFinding[] {
+  const findings: ReleaseFinding[] = [];
+  for (const entry of files) {
+    if (/^(src|scripts|test-support|node_modules)(\/|$)|^(tsconfig\.json|bun\.lock)$/.test(entry)) {
+      findings.push({ category: "unshipped-source", detail: entry });
+    } else if (!required.includes(entry)) {
+      findings.push({ category: "unexpected", detail: entry });
+    }
+  }
+  for (const entry of required) {
+    if (!files.includes(entry)) {
+      findings.push({ category: "missing", detail: entry });
+    }
+  }
+  return findings;
+}
+
+/**
+ * Checks one plugin README for the release content operators rely on: the
+ * supported engines range, the link: and packed-tarball web installs, the
+ * desktop profile install, and a link to every other language's README.
+ */
+export function readmeFindings(text: string, enginesRange: string, counterparts: readonly string[]): ReleaseFinding[] {
+  if (text.trim().length === 0) {
+    return [{ category: "absent", detail: "README is missing or empty" }];
+  }
+  const findings: ReleaseFinding[] = [];
+  if (enginesRange.length === 0 || !text.includes(enginesRange)) {
+    findings.push({ category: "engines-range", detail: enginesRange });
+  }
+  if (!text.includes("dsh plugin --profile web add \"link:")) {
+    findings.push({ category: "link-install", detail: "no link: web install command" });
+  }
+  if (!text.includes("npm pack")) {
+    findings.push({ category: "tarball-install", detail: "no npm pack tarball install" });
+  }
+  if (!text.includes("dsh plugin --profile desktop add")) {
+    findings.push({ category: "desktop-install", detail: "no desktop profile install command" });
+  }
+  for (const other of counterparts) {
+    if (!text.includes(`](${other})`)) {
+      findings.push({ category: "counterpart-link", detail: other });
+    }
+  }
+  return findings;
+}
 
 /**
  * One bundle-shape defect. Categories are stable so the negative and positive
@@ -374,6 +443,75 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   }>;
   const row = patch?.[0]?.insert?.[0];
   context.assert(row?.id === "ui-strict-spec" && row?.name === "dsh-plugin-strict-spec", "cordis patch inserts the package under id ui-strict-spec");
+
+  // The plugin's dist/ is gitignored and npm's default packlist would ship the
+  // sources, so the files allowlist alone decides what a packed tarball holds.
+  // The required entries derive from sources independent of the allowlist:
+  // the manifest's export targets, its declared bundle patch, and one README
+  // per shipped locale catalog.
+  const packed = (manifest as { files?: string[] }).files ?? [];
+  const exportTargets = Object.values((manifest as { exports?: Record<string, string> }).exports ?? {});
+  const languages = shippedLocaleLanguages();
+  const requiredPacked = [
+    ...new Set(exportTargets.map((target) => target.replace(/^\.\//, "").split("/")[0]!).filter((entry) => entry !== "package.json")),
+    path.basename(manifest.dsh?.bundle?.patch ?? ""),
+    ...languages.map(readmeFileFor),
+  ];
+  context.assert(
+    languages.includes("en") && languages.includes("zh"),
+    "the shipped locale catalogs resolve to the en and zh languages",
+    `languages: ${JSON.stringify(languages)}`,
+  );
+  context.assert(
+    packlistFindings(packed, requiredPacked).length === 0,
+    "the files allowlist packs exactly the built bundle, the cordis patch, and one README per shipped locale",
+    `findings: ${JSON.stringify(packlistFindings(packed, requiredPacked))}`,
+  );
+  // Each finding category fires on realistic input through the same function.
+  for (const [probe, category, label] of [
+    [[...packed, "src"], "unshipped-source", "a source directory added to the allowlist"],
+    [[...packed, "test-support/static-render.ts"], "unshipped-source", "a test-support path added to the allowlist"],
+    [packed.filter((entry) => entry !== "dist"), "missing", "the built dist removed from the allowlist"],
+    [packed.filter((entry) => entry !== "README.zh.md"), "missing", "a locale README removed from the allowlist"],
+    [[...packed, "CHANGELOG.md"], "unexpected", "an unrequired file added to the allowlist"],
+  ] as const) {
+    context.assert(
+      packlistFindings([...probe], requiredPacked).some((finding) => finding.category === category),
+      `the packlist check reports ${category} for ${label}`,
+    );
+  }
+
+  context.section("dsh plugin: release README files");
+
+  for (const language of languages) {
+    const file = readmeFileFor(language);
+    const readmePath = path.join(PLUGIN_ROOT, file);
+    const text = existsSync(readmePath) ? readFileSync(readmePath, "utf8") : "";
+    const counterparts = languages.filter((other) => other !== language).map(readmeFileFor);
+    const enginesRange = manifest.engines?.dsh ?? "";
+    context.assert(
+      readmeFindings(text, enginesRange, counterparts).length === 0,
+      `the ${language} plugin README documents the engines range, the link: and tarball web installs, the desktop install, and links its counterparts`,
+      `findings: ${JSON.stringify(readmeFindings(text, enginesRange, counterparts))}`,
+    );
+    if (language !== "en") {
+      continue;
+    }
+    // Each matcher category fires when its content is removed from the real README.
+    for (const [probe, category] of [
+      ["", "absent"],
+      [text.split(enginesRange).join(""), "engines-range"],
+      [text.split("--profile web add \"link:").join("--profile web add \""), "link-install"],
+      [text.split("npm pack").join("pack"), "tarball-install"],
+      [text.split("--profile desktop add").join("--profile desktop"), "desktop-install"],
+      [counterparts.reduce((stripped, other) => stripped.split(`](${other})`).join("]"), text), "counterpart-link"],
+    ] as const) {
+      context.assert(
+        readmeFindings(probe, enginesRange, counterparts).some((finding) => finding.category === category),
+        `the README check reports ${category} when that content is removed`,
+      );
+    }
+  }
 
   context.section("dsh plugin: locale catalogs");
 

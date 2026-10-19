@@ -1,0 +1,70 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: release-dsh-strict-spec-plugin
+open: []
+resolved:
+  - id: npm-publication
+    question: Is the viewer plugin published to npm in this change, or only made installable locally?
+    context: 'Impact: proposal scope, implementation files, and verification tasks; a publish step would add npm credentials, a public package name, and a dsh-plugin GitHub topic. The milestone intake question npm-publication and the planned-change details record the requester''s answer.'
+    answer: 'Not published. The project is not distributed externally, so the plugin is installed only from a local link: spec or a locally packed tarball, with no npm publish, no dsh-plugin GitHub topic, and no plugin market entry.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: desktop-ui-leg
+    question: How is the desktop profile verified when no Electron runtime is available in this environment?
+    context: 'Impact: verification tasks and smoke-check evidence only; no spec delta or implementation file depends on it. The render-spec-and-scene-artifacts manual check found no Electron binary and deferred desktop proof to this change.'
+    answer: Verify the documented dsh plugin --profile desktop add install against an isolated DSH_HOME, boot the desktop UI only when an Electron runtime is available, and otherwise record the desktop UI leg as not run with its reason rather than implying it passed.
+    status: resolved
+    kind: technical
+    answered_by: assumption
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'An operator who wants the finished strict document viewer in dsh today has no documented way to build it and install it into the web client or the desktop profile: the plugin carries no README, the repository README files never mention it, the only proven install path is a link: spec from earlier changes'' manual checks, the npm pack tarball path is unverified and may omit the gitignored built bundle, and no single smoke check shows the viewer with every renderer working end to end in the pinned dsh release.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'An operator following plugins/dsh-strict-spec/README.md or README.zh.md, reached from the repository README files, builds the plugin and installs it into dsh 0.2.1-rc.2 from a link: spec or from an npm pack tarball that holds the built bundles, bundle patch, and README files; the regression suite fails if the packing allowlist or README files regress; and the change records observed end-to-end smoke evidence on this repository covering both entry points, archive collapse and expand, every renderer family, live refresh, the truncated notice where reproducible, and the empty state, with the desktop UI leg recorded as run or not run with its reason.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: All four renderer planned changes this one depends on — render-roadmap-artifacts, render-change-artifacts, render-spec-and-scene-artifacts, and render-project-context-artifacts — are archived, roadmap-recommend reports this as the only eligible planned change, and the milestone records that release lands last so its documentation and smoke check describe the finished viewer; the render-spec-and-scene-artifacts manual check also deferred desktop proof to this change.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No npm publication, dsh-plugin GitHub topic, or plugin market listing, since the project is not distributed externally; no viewer behavior, renderer, tree, entry-point, or host-contract change; no strict artifact schema change; no widening of the engines.dsh pin, which is its own planned change; the package stays private and installable only from a local checkout or a locally packed tarball.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Only one reading is in play: release means internal-use readiness — en and zh README files beside the plugin package linked from the repository README files, a deterministic packed tarball, verified link: and tarball installs into isolated dsh profiles with the pinned 0.2.1-rc.2 release, and a recorded smoke check — and never a public publish step.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: desktop-install-carrier
+    question: Which dsh command installs the plugin into the desktop profile, given that the npm-installed dsh refuses dsh plugin --profile desktop?
+    context: 'Impact: README installation instructions, the delta scene install step, and the verify-local-installs evidence; no spec delta or implementation code depends on it. Evidence: dsh 0.2.1-rc.2 lib/bin.js rejects the desktop profile unless the installation carrier enables manageDesktopProfile, its README routes desktop plugin management to the Desktop-installed command, and its plugin module requires the profile to be initialized by the app first.'
+    answer: Use the dsh command bundled in the DeepSeek Harness Desktop installation, after opening Desktop once to initialize its profile and fully quitting it; the npm-installed dsh only manages the web and other non-reserved profiles. This supersedes the npm-CLI desktop install assumed by desktop-ui-leg.
+    status: resolved
+    kind: technical
+    answered_by: assumption
+  - id: smoke-found-viewer-defects
+    question: The end-to-end smoke check found two viewer defects outside this release change's scope; how should they be handled before the release archives?
+    context: 'Impact: proposal scope, implementation files (plugins/dsh-strict-spec/src/client/DocumentTree.tsx, plugins/dsh-strict-spec/src/model/picker.ts, src/client/StrictDocumentsPage.tsx), plugin component and model tests, and the smoke evidence of record-end-to-end-smoke. Defect 1: a mouse click on a document row in the tree opens nothing — the shared DisclosureRow binds no click handler when expandable is false and TreeRowView adds none, so only keyboard Enter opens documents, and groups toggle only through the small leading icon. Defect 2: leaving the left-sidebar page and returning leaves the tree on ''Loading the document tree...'' for every Session until a browser reload, because the page controller is created once per client load in src/client.ts while the page''s unmount effect calls controller.dispose(), which sets a permanent disposed flag that makes every later showSession a no-op; this contradicts the viewer-status-conditions requirement against frozen presentations. Observations, not blocking: expanding the 290-entry changes archive also expands and reads every archived change directory, freezing the page for over ten seconds; a depends_on link opens the target planned change but does not move tree focus to it. Options: (A) widen this change through strict-spec-modify to fix both defects with regression tests before rerunning the smoke check — one change, but release scope grows beyond documentation and packaging; (B) archive the release now with the defects recorded as known issues and fix them in follow-up strict-spec-bugfix changes — the README would describe a viewer whose mouse open and page return are broken; (C) pause this change, fix the defects in separate bugfix changes first, then finish the release smoke check against the fixed viewer — keeps scopes clean and the release describes a working viewer. Recommendation: C.'
+    answer: 'Option C, chosen by the requester: pause this release change, fix the mouse-open defect and the left-page remount defect in separate strict-spec-bugfix changes with regression tests, then return to rerun record-end-to-end-smoke against the fixed viewer before archiving this change.'
+    status: resolved
+    kind: technical
+    answered_by: human

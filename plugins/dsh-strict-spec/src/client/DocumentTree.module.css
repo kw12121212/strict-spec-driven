@@ -5,6 +5,10 @@
 .viewport {
   display: flex;
   flex-direction: column;
+  /* Fill the entry point's tree region, which is not a flex container, so
+     the scroll element below is bounded and scrolls instead of the region
+     clipping a tree as tall as its content. */
+  height: 100%;
   min-height: 0;
   flex: 1 1 auto;
   color: var(--dsw-alias-label-primary);

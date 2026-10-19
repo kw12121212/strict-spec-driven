@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-tree-follows-open-document
+open: []
+resolved:
+  - id: tree-follow-scope
+    question: When a link in a view opens a document, how should the tree respond?
+    context: 'Impact: the added requirement, the store and tree implementation, and the regression cases. Asked of the requester with concrete options.'
+    answer: 'Chosen by the requester: whenever a document opens from an in-view link — depends_on entries, a milestone''s owned planned changes, or scene coverage links — the tree expands the target''s collapsed ancestor groups, archived groups included, moves focus to the target row, and scrolls it into view.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Per the requester''s choice after the release smoke check: selecting a depends_on entry opens the target planned change but the tree does not move to it, so an operator cannot see where the target sits, and an archived target stays hidden inside the collapsed archive.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Chosen by the requester: following any in-view link expands the target''s collapsed ancestors, archives included, focuses the target row, and scrolls it into view; proven by the model and component regression cases and by following a depends_on link to an archived planned change in the pinned dsh web client.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The release-dsh-strict-spec-plugin end-to-end smoke check found the gap against the milestone done criterion that selecting a dependency navigates the tree to it, and the requester chose to fix it right after archiving the release.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'Per the requester''s earlier choices: one narrow change per defect; renderers keep navigating only through the shared open action; keyboard navigation, pointer activation, and renderer content do not change; the archive expansion cost and expand choices lost on page return stay out of scope.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'One reading: the tree follows every opened document, from any in-view link, by expanding ancestors, focusing the row, and scrolling to it; nothing about what views show or how unresolved links render changes.'
+    status: resolved
+    kind: requirement
+    answered_by: human

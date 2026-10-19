@@ -197,7 +197,9 @@ export async function loadFamilyTree(
  * Loads one group node's children from the workspace: a deferred archive
  * group gets its entries on explicit expand — listed once, its files labeled
  * from their names alone, its content never read — and a loaded directory
- * gets the same walk again on refresh invalidation.
+ * gets the same walk again on refresh invalidation. A family root rebuilds
+ * from its canonical sources against a fresh workflow root listing, because
+ * its synthetic path names no directory for a single-file family.
  */
 export async function loadGroupChildren(
   port: WorkspaceFilesPort,
@@ -205,6 +207,16 @@ export async function loadGroupChildren(
   node: DocumentNode,
   signal?: AbortSignal,
 ): Promise<DocumentNode> {
+  if (node.kind === "family") {
+    const rootListing = await port.list(sessionId, WORKFLOW_ROOT, signal);
+    // A family whose sources left the workspace fails like a missing
+    // directory, so callers keep their last state instead of an empty group.
+    if (!resolveFamilyPresence(rootListing.entries).present.includes(node.family)) {
+      throw Object.assign(new Error(`family ${node.family} is absent from the workflow root`), { code: "workspace-file/not-found" });
+    }
+    const rebuilt = await loadFamilyTree(port, sessionId, node.family, rootListing.entries, signal);
+    return { ...node, children: rebuilt.children, loaded: true };
+  }
   const walked = await walkDirectory(port, sessionId, node.path, node.family, node.archived, signal);
   return withChildren({ ...node, loaded: true }, walked.children, walked.truncated);
 }

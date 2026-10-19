@@ -10,6 +10,8 @@ dist/scripts/*
 
 # dsh plugin client build output (rebuilt by plugins/dsh-strict-spec before a link: install)
 plugins/dsh-strict-spec/dist/
+# Locally packed plugin tarballs (npm pack inside the plugin, per its README)
+plugins/dsh-strict-spec/*.tgz
 
 # Environment
 .env

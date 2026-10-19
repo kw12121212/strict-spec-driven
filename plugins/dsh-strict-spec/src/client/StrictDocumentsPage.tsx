@@ -186,7 +186,7 @@ export function StrictDocumentsPage(props: StrictDocumentsPageProps): ReactNode 
       ) : shown.sessionId !== undefined ? (
         <div className={styles.panes}>
           <div className={styles.treePane} role="region" aria-label={t("page.tree-pane")}>
-            <DocumentTree sessionId={shown.sessionId} tree={viewer.tree} actions={viewer.actions} t={t} />
+            <DocumentTree sessionId={shown.sessionId} tree={viewer.tree} actions={viewer.actions} open={viewer.open} t={t} />
           </div>
           <div className={styles.documentPane} role="region" aria-label={t("page.document-pane")}>
             <DocumentView state={openState} t={t} context={{ sessionId: shown.sessionId, viewer }} />

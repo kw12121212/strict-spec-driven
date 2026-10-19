@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    tree-pointer-activation:
+      strength: MUST
+      statement: A pointer click anywhere on a document row of the document tree opens that document and moves the tree's keyboard focus to that row, and a click anywhere on a group row expands a collapsed group or collapses an expanded one, through the same activation keyboard Enter performs.
+      scenarios:
+        click-opens-document:
+          - GIVEN: the document tree shows a document row
+          - WHEN: the operator clicks anywhere on that row
+          - THEN: the document opens in the document view and the clicked row becomes the tree's focused row
+        click-toggles-group:
+          - GIVEN: the document tree shows a collapsed group row
+          - WHEN: the operator clicks anywhere on that row
+          - THEN: the group expands, and a further click on the row collapses it again
+        icon-click-toggles-once:
+          - GIVEN: the document tree shows a group row
+          - WHEN: the operator clicks the group's leading icon
+          - THEN: the group toggles exactly once
+  MODIFIED: {}
+  REMOVED: {}

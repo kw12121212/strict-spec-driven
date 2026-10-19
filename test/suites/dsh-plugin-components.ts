@@ -11,7 +11,7 @@ import { CORE_SCHEMA, load } from "js-yaml";
 import { TestContext, ROOT } from "../support/harness.js";
 import { FakeWorkspaceFiles } from "./dsh-plugin-model.js";
 import { createElement, renderToString } from "../../plugins/dsh-strict-spec/test-support/static-render.ts";
-import { DocumentTree } from "../../plugins/dsh-strict-spec/src/client/DocumentTree.tsx";
+import { DocumentTree, TreeRowView } from "../../plugins/dsh-strict-spec/src/client/DocumentTree.tsx";
 import type { DocumentTreeProps } from "../../plugins/dsh-strict-spec/src/client/DocumentTree.tsx";
 import { DocumentView } from "../../plugins/dsh-strict-spec/src/client/DocumentView.tsx";
 import type { DocumentViewProps } from "../../plugins/dsh-strict-spec/src/client/DocumentView.tsx";
@@ -20,7 +20,7 @@ import { StrictDocumentsTab } from "../../plugins/dsh-strict-spec/src/client/Str
 import { createPageController, createPageSelectionStore } from "../../plugins/dsh-strict-spec/src/model/picker.ts";
 import type { PickerCatalog, SessionCatalogPort } from "../../plugins/dsh-strict-spec/src/model/picker.ts";
 import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.ts";
-import { flattenTreeRows, keyOutcomeFor } from "../../plugins/dsh-strict-spec/src/client/treeRows.ts";
+import { clickOutcomeFor, flattenTreeRows, keyOutcomeFor } from "../../plugins/dsh-strict-spec/src/client/treeRows.ts";
 import { documentParts } from "../../plugins/dsh-strict-spec/src/client/documentParts.ts";
 import { proposalView, questionsView, tasksView } from "../../plugins/dsh-strict-spec/src/client/changeParts.ts";
 import type { ViewContext } from "../../plugins/dsh-strict-spec/src/client/changeParts.ts";
@@ -309,6 +309,104 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
       stores.actions.collapseNode("session-components", archiveRow.id);
       const collapsedHtml = renderTree({ sessionId: "session-components", tree: stores.tree, actions: stores.actions, t: fakeT });
       context.assert(!collapsedHtml.includes("2026-01-02-gone"), "collapsing the archive again unrenders its entries");
+    }
+  }
+
+  {
+    // The tree follows the open document: once a document opens, its row
+    // becomes the focused row, whichever view opened it.
+    const openPath = `${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`;
+    await stores.actions.openDocument("session-components", openPath);
+    await settle();
+    const html = renderTree({ sessionId: "session-components", tree: stores.tree, actions: stores.actions, open: stores.open, t: fakeT } as DocumentTreeProps);
+    const focusedRow = html.split('data-focused=""')[1]?.split('role="treeitem"')[0] ?? "";
+    context.assert(
+      focusedRow.includes("Viewer Behavior"),
+      "the tree's focused row follows the open document",
+      `focused row: ${focusedRow.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80)}`,
+    );
+    stores.actions.closeDocument();
+  }
+
+  {
+    // Pointer activation: a click anywhere on a document or group row
+    // activates it through the same toggle keyboard Enter uses. The row view
+    // is hook-free, so its element is inspected without a DOM.
+    const rows = flattenTreeRows(stores.tree.getSnapshot());
+    const documentRow = rows.find((row) => row.document);
+    const groupRow = rows.find((row) => row.expandable);
+    const activated: string[] = [];
+    for (const row of [documentRow, groupRow]) {
+      if (row === undefined) {
+        context.assert(false, "the ready tree holds a document row and a group row to click");
+        continue;
+      }
+      const element = TreeRowView({ row, focused: false, t: fakeT, onToggle: (clicked) => activated.push(clicked.id) }) as {
+        props?: { role?: string; onClick?: () => void };
+      };
+      context.assert(
+        element.props?.role === "treeitem" && typeof element.props.onClick === "function",
+        `a ${row.document ? "document" : "group"} row's treeitem accepts a pointer click`,
+      );
+      element.props?.onClick?.();
+    }
+    context.assert(
+      JSON.stringify(activated) === JSON.stringify([documentRow?.id, groupRow?.id]),
+      "clicking a document row or a group row activates that row through the shared toggle",
+      `activated: ${JSON.stringify(activated)}`,
+    );
+
+    // The activation a click resolves to: focus follows the clicked row, a
+    // document opens, and a group toggles from its current state.
+    if (documentRow !== undefined && groupRow !== undefined) {
+      context.assert(
+        JSON.stringify(clickOutcomeFor(documentRow)) === JSON.stringify({ focusId: documentRow.id, activation: "open" }),
+        "a document row click opens the document and moves focus to that row",
+      );
+      context.assert(
+        JSON.stringify(clickOutcomeFor({ ...groupRow, open: false })) === JSON.stringify({ focusId: groupRow.id, activation: "expand" })
+          && JSON.stringify(clickOutcomeFor({ ...groupRow, open: true })) === JSON.stringify({ focusId: groupRow.id, activation: "collapse" }),
+        "a group row click expands a collapsed group, collapses an open one, and moves focus to that row",
+      );
+      const truncationRow = { ...documentRow, kind: "truncation" as const, document: false };
+      context.assert(clickOutcomeFor(truncationRow) === undefined, "a truncation notice resolves no click activation");
+      const truncationElement = TreeRowView({ row: truncationRow, focused: false, t: fakeT, onToggle: () => undefined }) as {
+        props?: { onClick?: unknown };
+      };
+      context.assert(truncationElement.props?.onClick === undefined, "the truncation notice row accepts no pointer click");
+
+      // The group's leading icon toggles on its own and stops propagation, so
+      // the row's click never toggles the group a second time.
+      let iconToggles = 0;
+      const groupElement = TreeRowView({ row: groupRow, focused: false, t: fakeT, onToggle: () => { iconToggles += 1; } }) as {
+        props: { children: { type: { type: (props: unknown) => unknown }; props: unknown } };
+      };
+      const disclosure = groupElement.props.children;
+      const findButton = (node: unknown): { props: { onClick: (event: unknown) => void } } | undefined => {
+        if (node === null || typeof node !== "object") {
+          return undefined;
+        }
+        const element = node as { type?: unknown; props?: { children?: unknown } };
+        if (element.type === "button") {
+          return element as { props: { onClick: (event: unknown) => void } };
+        }
+        const children = element.props?.children;
+        for (const child of Array.isArray(children) ? children : [children]) {
+          const found = findButton(child);
+          if (found !== undefined) {
+            return found;
+          }
+        }
+        return undefined;
+      };
+      const iconButton = findButton(disclosure.type.type(disclosure.props));
+      let stopped = false;
+      iconButton?.props.onClick({ stopPropagation: () => { stopped = true; } });
+      context.assert(
+        iconButton !== undefined && stopped && iconToggles === 1,
+        "a group's leading icon click toggles once and stops propagation to the row",
+        `button found: ${iconButton !== undefined}, stopped: ${stopped}, toggles: ${iconToggles}`,
+      );
     }
   }
 

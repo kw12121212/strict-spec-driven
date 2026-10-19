@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: release-dsh-strict-spec-plugin
   milestone: dsh-strict-spec-viewer-renderers
-status: planned
+status: complete
 summary: Prepare the dsh viewer plugin for internal use with documentation, local installation verification, and an end-to-end smoke check.
 details: 'The npm-publication intake question is settled: the project is not distributed externally, so this change contains no npm publish, no dsh-plugin GitHub topic, and no plugin market entry. Write en and zh README files for the plugin covering what it shows, building it from a local checkout, installation into the web client with dsh plugin add using a link: spec or a locally packed tarball, installation into the desktop profile with dsh plugin --profile desktop add while the app is closed, the supported dsh version range, and the read-only guarantee; link them from the repository README files. Verify that dsh installs the plugin from a link: spec and from a tarball produced by npm pack, and confirm engines.dsh matches the release actually tested. Run and record an end-to-end smoke check on this repository with the pinned dsh release covering both entry points, archive collapse and expand, every renderer, live refresh, a truncated listing notice where reproducible, and the empty state.'
 depends_on:

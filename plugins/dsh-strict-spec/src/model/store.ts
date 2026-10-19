@@ -21,7 +21,7 @@ import { initialMilestoneOwnershipState, resolveArchivedPlannedChangeOwners } fr
 import type { MilestoneOwnershipState } from "./roadmapOwnership.ts";
 import { parentDirectory, taskCompletion } from "./taskCompletion.ts";
 import type { TaskCompletion } from "./taskCompletion.ts";
-import { initialOpenDocumentState, initialTreeState } from "./nodes.ts";
+import { FAMILY_SOURCES, WORKFLOW_ROOT, initialOpenDocumentState, initialTreeState } from "./nodes.ts";
 import type { DocumentNode, DocumentRecord, OpenDocumentState, TreeState } from "./nodes.ts";
 import type { WorkspaceFilesPort } from "./port.ts";
 import { workspaceFileErrorCode } from "./port.ts";
@@ -69,6 +69,28 @@ interface DocumentMeta {
   status?: string;
   roadmap?: RoadmapFacts;
   spec?: SpecFacts;
+}
+
+/**
+ * Finds what still hides one document path in the tree, top-down: the family
+ * whose canonical sources hold the path, then each group whose path prefixes
+ * it. Returns the first collapsed node to expand, "listed" once the document
+ * row is in the tree, or undefined when no node can hold the path.
+ */
+function nextCollapsedAbove(families: readonly DocumentNode[], path: string): DocumentNode | "listed" | undefined {
+  const holds = (prefix: string): boolean => path === prefix || path.startsWith(`${prefix}/`);
+  let current = families.find((node) => FAMILY_SOURCES[node.family].some((source) => holds(`${WORKFLOW_ROOT}/${source}`)));
+  while (current !== undefined) {
+    if (!current.loaded) {
+      return current;
+    }
+    const child: DocumentNode | undefined = (current.children ?? []).find((node) => node.kind !== "truncation" && holds(node.path));
+    if (child === undefined || child.kind === "document") {
+      return child?.path === path ? "listed" : undefined;
+    }
+    current = child;
+  }
+  return undefined;
 }
 
 /** Finds one node by id in a family forest, depth-first. */
@@ -440,6 +462,25 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
     open.set({ status: "error", path, error: result.error });
   }
 
+  /**
+   * Expands every collapsed node above one opened document, one level per
+   * expansion, until its row is listed; stops when the Session changes,
+   * another document opens, no node can hold the path, or an expansion fails
+   * and leaves its node closed.
+   */
+  async function revealDocument(sessionId: string, path: string): Promise<void> {
+    for (let step = 0; step < 32 && watchedSessionId === sessionId && open.getSnapshot().path === path; step += 1) {
+      const next = nextCollapsedAbove(tree.getSnapshot().families, path);
+      if (next === undefined || next === "listed") {
+        return;
+      }
+      await actions.expandNode(sessionId, next.id);
+      if (findNode(tree.getSnapshot().families, next.id)?.loaded !== true) {
+        return;
+      }
+    }
+  }
+
   const actions: ViewerActions = {
     async loadWorkspace(sessionId: string): Promise<void> {
       const activeCoordinator = ensureCoordinator(sessionId);
@@ -519,6 +560,12 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         // was; the next expand retries.
         return;
       }
+      // A Session switch while the listing was in flight makes it another
+      // workspace's entries: node ids are workspace-relative, so applying it
+      // would graft them into the new Session's tree.
+      if (watchedSessionId !== sessionId) {
+        return;
+      }
       // Re-read the state: a watch invalidation may have landed while the
       // expansion was loading, and clobbering it would drop that reload.
       const current = tree.getSnapshot();
@@ -550,6 +597,9 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
     async openDocument(sessionId: string, path: string, anchor?: string): Promise<void> {
       const activeCoordinator = ensureCoordinator(sessionId);
       open.set({ status: "loading", path, anchor });
+      // The tree follows every open, from a row, a link, or a restore,
+      // without holding the document load on the tree's listings.
+      void revealDocument(sessionId, path);
       const result = await loadDocument(port, sessionId, path);
       const current = open.getSnapshot();
       if (current.status === "idle" || current.path !== path) {

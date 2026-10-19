@@ -13,15 +13,15 @@
  * model, flattening, and presentation facts live in the React-free row
  * model, so this component owns only rendering, focus, and store actions.
  */
-import { useCallback, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DisclosureRow, FileTypeIcon, Tag } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { SnapshotStore } from "@deepseek-ai/dsh-client-store";
 import type { Translate } from "@deepseek-ai/dsh-client-ui-slots";
-import type { TreeState } from "../model/nodes.ts";
+import type { OpenDocumentState, TreeState } from "../model/nodes.ts";
 import type { FamilyId } from "../model/nodes.ts";
 import type { ViewerActions } from "../model/store.ts";
-import { flattenTreeRows, keyOutcomeFor } from "./treeRows.ts";
+import { clickOutcomeFor, flattenTreeRows, keyOutcomeFor } from "./treeRows.ts";
 import type { TreeRow } from "./treeRows.ts";
 import type { StrictSpecKey } from "./locales.ts";
 import styles from "./DocumentTree.module.css";
@@ -54,7 +54,18 @@ export interface DocumentTreeProps {
   readonly actions: ViewerActions;
   /** The strictSpec translate function; every visible string renders through it. */
   readonly t: Translate<StrictSpecKey>;
+  /** The viewer's open-document store the tree follows; absent in context-free renders. */
+  readonly open?: Pick<SnapshotStore<OpenDocumentState>, "subscribe" | "getSnapshot">;
 }
+
+/** A stable idle open state, so a tree rendered without an open store keeps one snapshot. */
+const IDLE_OPEN_STATE: OpenDocumentState = { status: "idle" };
+
+/** The stable open store a tree without one follows: nothing is ever open. */
+const IDLE_OPEN_STORE: Pick<SnapshotStore<OpenDocumentState>, "subscribe" | "getSnapshot"> = {
+  subscribe: () => () => undefined,
+  getSnapshot: () => IDLE_OPEN_STATE,
+};
 
 /** The tone a declared status badges with; unknown statuses stay outlined. */
 export const STATUS_TONES: Readonly<Record<string, "success" | "info" | "neutral" | "warning" | "outline" | "quiet">> = {
@@ -69,7 +80,7 @@ export const STATUS_TONES: Readonly<Record<string, "success" | "info" | "neutral
 };
 
 /** Renders one visible tree row: a disclosure row, a document row, or a truncation notice. */
-function TreeRowView(
+export function TreeRowView(
   props: {
     readonly row: TreeRow;
     readonly focused: boolean;
@@ -116,6 +127,9 @@ function TreeRowView(
       aria-expanded={row.expandable ? row.open : undefined}
       aria-selected={row.document && focused ? true : undefined}
       data-focused={focused ? "" : undefined}
+      // DisclosureRow binds no click for a non-expandable row, so the whole
+      // row activates here; the group icon's own toggle stops propagation.
+      onClick={() => onToggle(row)}
     >
       <DisclosureRow
         icon={icon}
@@ -133,13 +147,33 @@ function TreeRowView(
 /** Renders the collapsible document tree of one Session workspace. */
 export function DocumentTree(props: DocumentTreeProps): ReactNode {
   const { sessionId, tree, actions, t } = props;
+  const openStore = props.open ?? IDLE_OPEN_STORE;
   // The third argument serves static rendering, where the server dispatcher
   // resolves the initial snapshot through it; the value equals the client's
   // own snapshot source, so the two paths can never disagree.
   const state = useSyncExternalStore(tree.subscribe, tree.getSnapshot, tree.getSnapshot);
+  const openState = useSyncExternalStore(openStore.subscribe, openStore.getSnapshot, openStore.getSnapshot);
   const [focusedId, setFocusedId] = useState<string | undefined>(undefined);
+  const [followedPath, setFollowedPath] = useState<string | undefined>(undefined);
+  const [scrollTargetId, setScrollTargetId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const rows = flattenTreeRows(state);
+
+  // Focus follows the open document: a newly opened path stays pending until
+  // its row is listed — the store expands the groups above it — and then
+  // becomes the focused row and the scroll target. Applied during render so
+  // the decision holds in static renders too.
+  const openPath = openState.status === "idle" ? undefined : openState.path;
+  if (openPath !== followedPath) {
+    const openRow = openPath === undefined ? undefined : rows.find((row) => row.document && row.path === openPath);
+    if (openPath === undefined || openRow !== undefined) {
+      setFollowedPath(openPath);
+    }
+    if (openRow !== undefined) {
+      setFocusedId(openRow.id);
+      setScrollTargetId(openRow.id);
+    }
+  }
   const effectiveFocusedId = focusedId !== undefined && rows.some((row) => row.id === focusedId)
     ? focusedId
     : rows[0]?.id;
@@ -155,18 +189,29 @@ export function DocumentTree(props: DocumentTreeProps): ReactNode {
     getItemKey: (index) => rows[index]?.id ?? index,
   });
 
-  /** Applies one row toggle: groups expand and collapse, documents open. */
+  useEffect(() => {
+    if (scrollTargetId === undefined) {
+      return;
+    }
+    const index = rows.findIndex((row) => row.id === scrollTargetId);
+    if (index >= 0) {
+      virtualizer.scrollToIndex(index, { align: "auto" });
+    }
+    // Scroll once per followed row; later row changes keep the operator's scroll.
+  }, [scrollTargetId]);
+
+  /** Applies one pointer activation through the row model: focus follows the row, groups toggle, documents open. */
   const handleToggle = useCallback(
     (row: TreeRow): void => {
-      if (row.expandable) {
-        if (row.open) {
-          actions.collapseNode(sessionId, row.id);
-        } else {
-          void actions.expandNode(sessionId, row.id);
-        }
-        return;
+      const outcome = clickOutcomeFor(row);
+      if (outcome?.focusId !== undefined) {
+        setFocusedId(outcome.focusId);
       }
-      if (row.document) {
+      if (outcome?.activation === "expand") {
+        void actions.expandNode(sessionId, row.id);
+      } else if (outcome?.activation === "collapse") {
+        actions.collapseNode(sessionId, row.id);
+      } else if (outcome?.activation === "open") {
         void actions.openDocument(sessionId, row.path);
       }
     },

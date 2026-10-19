@@ -1,0 +1,15 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+operations:
+  ADDED: {}
+  MODIFIED:
+    main_flow:
+      reopen-page-restores-selection:
+        action: The operator opens the page again, including after leaving it for another view such as a Session's conversation, and the page loads the previously chosen Session's workspace tree and restores the selected document without re-choosing either.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: left-page-selection-restore
+  REMOVED: {}

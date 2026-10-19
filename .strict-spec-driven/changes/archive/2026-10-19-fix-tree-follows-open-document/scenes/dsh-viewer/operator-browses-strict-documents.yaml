@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+operations:
+  ADDED: {}
+  MODIFIED:
+    main_flow:
+      open-planned-change-and-follow-dependency:
+        action: The operator opens a planned change, reads its summary, status, owning milestone, and depends_on entries, selects one entry whose target the tree holds and is navigated to that planned change, and sees a visible unresolved marker on an entry whose target is not found, with the tree expanding to, focusing, and scrolling to the target planned change's row.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: roadmap-artifact-renderers
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-follows-open-document
+      open-milestone-and-owned-changes:
+        action: The operator opens a milestone and reads its dedicated view — goal, scope in and out side by side, done criteria as a checklist, intake-question cards, and the planned changes the milestone owns with their declared statuses — and selects an owned planned change, which opens in the document view, and the tree moves to that planned change's row.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: roadmap-artifact-renderers
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-follows-open-document
+      open-scene-and-follow-coverage:
+        action: The operator opens a scene and reads its dedicated view — actors with their responsibilities, preconditions, the ordered main flow, and exception flows under their declared triggers — and selects a step's covering requirement, which opens the covering spec anchored at that requirement through the same open action a tree row uses, while a reference whose spec the tree does not hold presents a visible unresolved marker, a waived step presents its declared no-coverage reason, and a step declaring neither is visibly flagged, with the tree moving to the covering spec's row.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: spec-and-scene-artifact-renderers
+          - spec_id: dsh-viewer-behavior
+            requirement_id: tree-follows-open-document
+  REMOVED: {}

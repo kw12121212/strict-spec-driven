@@ -183,3 +183,18 @@ export function keyOutcomeFor(rows: readonly TreeRow[], focusedId: string | unde
       return undefined;
   }
 }
+
+/**
+ * Resolves one pointer activation of a row: focus moves to the clicked row,
+ * and the row performs the activation keyboard Enter would — a group
+ * toggles and a document opens. The truncation notice is never activated.
+ */
+export function clickOutcomeFor(row: TreeRow): KeyOutcome | undefined {
+  if (row.kind === "truncation") {
+    return undefined;
+  }
+  if (row.expandable) {
+    return { focusId: row.id, activation: row.open ? "collapse" : "expand" };
+  }
+  return row.document ? { focusId: row.id, activation: "open" } : { focusId: row.id };
+}

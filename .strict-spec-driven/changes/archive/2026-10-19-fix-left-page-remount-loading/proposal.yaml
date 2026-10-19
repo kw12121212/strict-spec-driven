@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-left-page-remount-loading
+  status: proposed
+summary:
+  what:
+    - Fix the dsh viewer's left-sidebar Strict documents page so that returning to it after leaving it for another view loads the chosen Session's workspace tree and restores the selected document, instead of staying on 'Loading the document tree...' for every Session until a browser reload.
+  why:
+    - The release-dsh-strict-spec-plugin smoke check on dsh 0.2.1-rc.2 found that an operator who opens the page, selects a Session in the sidebar, and returns to the page sees a frozen loading state for every Session, which breaks the left-page-selection-restore requirement and the viewer-status-conditions rule against frozen presentations. The client creates one page controller per load in src/client.ts, while the page's unmount effect calls controller.dispose(), which sets a permanent disposed flag so every later showSession is ignored.
+scope:
+  in:
+    - 'plugins/dsh-strict-spec/src/model/picker.ts: make the page controller''s dispose end the current showing — abandoning in-flight loads and restores and closing the viewer''s watches — without disabling the next showSession, matching the per-Session tab surfaces whose disposed surface reloads on its next show'
+    - A model regression case in test/suites/dsh-plugin-model.ts proving a disposed page controller reloads the shown Session's workspace and restores the recorded document on the next mount, and closes every watch on its next dispose
+    - A MODIFIED left-page-selection-restore requirement and a MODIFIED reopen-page-restores-selection scene step naming the return after leaving the page for another view
+  out:
+    - Mouse click opening of tree rows, which the separate fix-tree-row-pointer-open change owns
+    - The archive expansion reading every archived change directory at once, and depends_on links not moving tree focus, which stay smoke-check observations
+    - Creating the page controller per mount or any other restructuring of src/client.ts or StrictDocumentsPage.tsx
+unchanged_behavior:
+  - An in-flight load or restore abandoned by dispose or by a Session switch still never opens a document under the wrong Session
+  - Unmounting the page still closes every watch the page opened
+  - Keyboard navigation, the right-sidebar tab and its per-Session surfaces, expand-state persistence, and every document renderer stay as they are

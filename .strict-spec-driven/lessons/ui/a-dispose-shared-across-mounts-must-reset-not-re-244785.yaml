@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-dispose-shared-across-mounts-must-reset-not-re-244785
+  title: A dispose shared across mounts must reset, not retire, the object
+category: ui
+status: active
+created_at: '2026-10-19T08:28:09.609Z'
+updated_at: '2026-10-19T08:28:09.609Z'
+context: The dsh viewer plugin creates its left-page controller once per client load in src/client.ts, while the page component's unmount effect calls controller.dispose(); the per-Session tab surfaces already treated dispose as a reset that reloads on the next show.
+observation: The page controller's dispose set a permanent disposed flag, so after the operator left the left-sidebar page and came back every showSession was ignored and the tree stayed on 'Loading the document tree...' for every Session until a browser reload. The model suite only asserted that dispose closes watches and a remount simulated without dispose; three earlier changes and their manual smoke checks never left the page and returned, so the defect shipped until the release end-to-end smoke check reproduced it. React StrictMode's mount-dispose-mount sequence would have frozen the page on its first mount too.
+takeaway: When an object outlives the component that disposes it — created once in a plugin's apply or a module scope and disposed by an unmount effect — make dispose a reset to the initial state and test dispose followed by reuse, including a dispose that lands while a load is in flight; a smoke check of a page should leave the page and return before calling it working.
+applies_when: A controller, store, or surface is created once per client load or module scope and a React component's unmount or effect cleanup calls its dispose, or a model object exposes dispose and is shared across component mounts.
+occurrences:
+  - origin: fix-left-page-remount-loading
+    date: '2026-10-19'
+    evidence: 'plugins/dsh-strict-spec/src/model/picker.ts createPageController dispose (permanent disposed flag before the fix); test/suites/dsh-plugin-model.ts page controller Remount and in-flight remount cases failed 2/5226 before the fix (tree status: loading) and pass after; browser reproduction on dsh 0.2.1-rc.2 left page leave-and-return.'

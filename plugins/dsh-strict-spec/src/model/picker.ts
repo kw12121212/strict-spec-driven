@@ -297,7 +297,10 @@ export interface PageController {
    * stops observing (nothing is shown, so every watch closes).
    */
   showSession(sessionId: string | undefined): void;
-  /** Cancels any in-flight restore and closes every watch. */
+  /**
+   * Cancels any in-flight restore and closes every watch, returning to the
+   * not-showing state: the next `showSession` loads again.
+   */
   dispose(): void;
 }
 
@@ -308,6 +311,10 @@ export interface PageController {
  * at `showSession` entry — the page's recording effect clears it as soon
  * as a remounted page first renders over the disposed, idle open store,
  * so restoring it after the load's await would always read `undefined`.
+ *
+ * The client creates one controller per load and every page unmount
+ * disposes it, so dispose resets rather than retires it: the next mount's
+ * `showSession` must load the shown Session's workspace again.
  */
 export function createPageController(
   viewer: ViewerStores,
@@ -315,12 +322,8 @@ export function createPageController(
 ): PageController {
   let shownSessionId: string | undefined;
   let epoch = 0;
-  let disposed = false;
   return {
     showSession(sessionId): void {
-      if (disposed) {
-        return;
-      }
       if (sessionId === undefined) {
         if (shownSessionId === undefined) {
           return;
@@ -341,7 +344,7 @@ export function createPageController(
       const recorded = pageSelection.getSnapshot().documentPath;
       void (async () => {
         await viewer.actions.loadWorkspace(sessionId);
-        if (disposed || activeEpoch !== epoch) {
+        if (activeEpoch !== epoch) {
           return;
         }
         if (recorded !== undefined) {
@@ -350,7 +353,7 @@ export function createPageController(
       })();
     },
     dispose(): void {
-      disposed = true;
+      shownSessionId = undefined;
       epoch += 1;
       viewer.actions.dispose();
     },

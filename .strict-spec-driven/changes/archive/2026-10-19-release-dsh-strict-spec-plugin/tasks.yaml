@@ -1,0 +1,62 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: release-dsh-strict-spec-plugin
+sections:
+  Implementation:
+    plugin-readme-en:
+      text: 'Write plugins/dsh-strict-spec/README.md in English covering what the viewer shows (the document tree, both entry points, the dedicated renderers, and the generic fallback), building the plugin from a local checkout with bun install and bun run build, installing it into the web client with dsh plugin --profile web add using a link: spec or a tarball produced by npm pack, installing it into the desktop profile by opening DeepSeek Harness Desktop once to initialize its profile, fully quitting it, and running dsh plugin --profile desktop add with the Desktop installation''s bundled dsh command because the npm-installed dsh refuses that profile, the supported dsh version range matching engines.dsh, the read-only guarantee, and that the package is never published to npm.'
+      status: complete
+    plugin-readme-zh:
+      text: Write plugins/dsh-strict-spec/README.zh.md as the Chinese counterpart of README.md with the same sections, commands, version range, and read-only guarantee, and cross-link the two language files.
+      status: complete
+    link-repository-readmes:
+      text: Link the plugin README files from the repository README.md and README.zh.md with a short pointer to the dsh viewer plugin, each language linking its own plugin README.
+      status: complete
+    package-files-allowlist:
+      text: Add a files allowlist to plugins/dsh-strict-spec/package.json naming dist, cordis.patch.yml, README.md, and README.zh.md so npm pack ships the built client and host bundles, the bundle patch, and the documentation, keep the package private, and confirm engines.dsh still matches the pinned 0.2.1-rc.2 release the smoke check tests.
+      status: complete
+    extend-manifest-suite:
+      text: Extend the manifest, engines pin, and cordis patch section of test/suites/dsh-plugin.ts with cases asserting the files allowlist names dist, cordis.patch.yml, README.md, and README.zh.md and excludes source and test-support paths, and that both plugin README files exist and name the engines.dsh range declared in package.json.
+      status: complete
+    review-release-checks:
+      text: 'Address the release review: move the allowlist and README checks in test/suites/dsh-plugin.ts into named packlistFindings and readmeFindings functions whose governed set derives from independent sources (the manifest export targets, the declared bundle patch, and one README per locale catalog scanned from the locales module), drive every finding category through the same functions with realistic probes (a source path or test-support path added, dist or a locale README removed, an unrequired file added; the engines range, link: install, npm pack install, desktop install, or counterpart link removed from the real README, and an empty README); state in both plugin READMEs that the desktop steps follow the dsh 0.2.1-rc.2 documentation but have not been run end to end; replace the hard-coded tarball file name with dsh plugin --profile web add "$(pwd)/$(npm pack --silent)", verified to install 0.1.0 into a fresh DSH_HOME with the generated tarball ignored by git.'
+      status: complete
+  Testing:
+    validate-release-artifacts:
+      text: Validate the populated change artifacts and their cross-file state, including the delta scene coverage, through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready release-dsh-strict-spec-plugin
+    run-lint:
+      text: Run the plugin-local lint inside plugins/dsh-strict-spec so the plugin still compiles under its strict TypeScript face after the manifest edit.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite, confirming the new manifest allowlist and README cases and the existing viewer suites pass together.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming src/** line coverage stays at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-tarball-contents:
+      text: 'Rebuild the client bundle, run npm pack inside plugins/dsh-strict-spec, and confirm the tarball lists dist/client.js, dist/host.js, cordis.patch.yml, README.md, README.zh.md, and package.json and nothing from src, scripts, test-support, or node_modules; record the observed file list here and remove the tarball afterwards. OBSERVED EVIDENCE (2026-10-19): bun run build exited 0; before the allowlist, npm pack --dry-run listed 53 entries including bun.lock, scripts/build-client.ts, every src/ module, test-support/static-render.ts, and tsconfig.json; with the files allowlist, npm pack --pack-destination /tmp/rdsp-pack produced dsh-plugin-strict-spec-0.1.0.tgz (58049 bytes, 6 entries) listing exactly README.md, README.zh.md, cordis.patch.yml, dist/client.js, dist/host.js, and package.json; the tarball was written outside the checkout, so no tarball remains in plugins/dsh-strict-spec.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build && npm pack --dry-run
+    verify-local-installs:
+      text: 'With an isolated DSH_HOME under /tmp and the pinned dsh 0.2.1-rc.2, install the plugin into the web profile from a link: spec and, in a fresh home, from the npm pack tarball; confirm each install succeeds and the installed package holds the built bundles and bundle patch; confirm the npm-installed dsh refuses dsh plugin --profile desktop add for the reserved desktop profile and record the Desktop-bundled install as run or not run with its reason; record the commands and observed results here. OBSERVED EVIDENCE (dsh 0.2.1-rc.2, 2026-10-19): (1) DSH_HOME=/tmp/rdsp-link-home dsh plugin --profile web add link:<checkout>/plugins/dsh-strict-spec exited 0, initialized the web profile, and listed dsh-plugin-strict-spec linked to the checkout in the profile dependencies and dsh.profile.bundles. (2) DSH_HOME=/tmp/rdsp-tgz-home dsh plugin --profile web add /tmp/rdsp-pack/dsh-plugin-strict-spec-0.1.0.tgz exited 0 and installed dsh-plugin-strict-spec 0.1.0 holding README.md, README.zh.md, cordis.patch.yml, dist/client.js, dist/host.js, and package.json; dsh --profile web --dump-config composed the ui-strict-spec entry named dsh-plugin-strict-spec; booting that tarball home with dsh --profile web on 127.0.0.1:13201 served the combo route carrying dsh-plugin-strict-spec/client.js with status 200 and the Strict documents global panel registered, so engines.dsh >=0.2.1-rc.2 <0.2.2 accepts the tested release. (3) dsh plugin --profile desktop add with the npm-installed dsh exited 1 with ''profile desktop is managed exclusively by the Electron application'', matching the README''s routing to the Desktop-bundled dsh. NOT RUN: the Desktop-bundled install, because no DeepSeek Harness Desktop installation or Electron binary exists in this environment.'
+      status: complete
+    record-end-to-end-smoke:
+      text: 'Record the end-to-end smoke check on this repository with the pinned dsh release, with observed evidence written back into this task: both entry points (left-sidebar page with its Session picker and right-sidebar tab), archive collapse by default and expand, every dedicated renderer family (change, project-context, roadmap, spec, and scene) plus the generic fallback, live refresh of an open document after an on-disk change, the truncated listing notice where reproducible, and the empty state for a workspace without .strict-spec-driven/; record the desktop UI leg as run or as not run with its reason. OBSERVED EVIDENCE (dsh 0.2.1-rc.2, 2026-10-19). First pass (tarball install, DSH_HOME=/tmp/rdsp-tgz-home, 127.0.0.1:13201) found two defects, which the requester chose to fix first: a pointer click on a document row opened nothing, and the left page stayed on ''Loading the document tree...'' after the operator left it and returned; both were fixed and archived as fix-tree-row-pointer-open and fix-left-page-remount-loading. Rerun against the fixed build (link: install, DSH_HOME=/tmp/rdsp-link-home, 127.0.0.1:13204, workspace /home/wx766/Code/strict-spec-driven): (1) Entry points — the Strict documents left-sidebar row opened the two-pane page with the Session picker grouping Sessions by workspace; the right-sidebar guide entry opened the Session-bound tab; leaving the page for a Session and returning restored the tree and the open tasks view. (2) Every renderer family opened with a mouse click and rendered its dedicated view: config (Project context, rules), architecture (Components), roadmap index, milestone (Owned planned changes with declared statuses), planned change (Depends on entries that navigate to their targets, including archived ones), main spec (MUST emphasis, GIVEN/WHEN/THEN scenarios, the newly merged tree-pointer-activation requirement), technical standard (MUST/SHOULD), lesson (Takeaway), scene (actors, preconditions, main flow, coverage links that scrolled the covering requirement anchor to the top of the spec view), scenes index, and this change''s proposal, design, tasks (per-section and overall completion), questions (resolved section with answers), and delta scene (MODIFIED operation label); every artifact type present in this repository has a dedicated view, and the generic structured view renders each document''s top-level scalar header and additional fields. (3) Archives — the roadmap and change archives start collapsed with entries unread, and mouse clicks expanded and collapsed the roadmap archive with entries labeled by file name. (4) Live refresh — with tasks.yaml open, CLI writes updated the overall completion (9/14 to 10/14) and task text without a reload; a change directory created by propose and deleted by cancel appeared in and disappeared from the tree. (5) Empty state — a Session on /tmp/rdsp-empty showed ''This workspace has no .strict-spec-driven/ directory.'' in both the tab and the page, and switching back reloaded the repository tree. NOT REPRODUCIBLE: the truncated listing notice, because the host listing cap exceeds the 290-entry changes archive, the largest directory in this repository; the notice is covered by the component suite. NOT RUN: the desktop UI leg, because no DeepSeek Harness Desktop installation or Electron binary exists in this environment. FOLLOW-UP OBSERVATIONS outside this change: expanding the 290-entry changes archive also expands and reads every archived change directory and froze the page for over ten seconds; once collapsed, the single-file Config and Architecture families cannot be expanded again because expansion lists the family file as a directory and swallows the failure; depends_on links open their target without moving tree focus; expand choices reset when the left page is left and reopened; and one archive move of a change directory was not reflected by live refresh in a page loaded before it, which a propose and cancel probe did not reproduce.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the delta scene step merges into the operator-installs-viewer-plugin scene with its coverage resolving, no delta spec or delta tech is present, and roadmap status marks release-dsh-strict-spec-plugin complete on archive.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify release-dsh-strict-spec-plugin directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-release-artifacts
+  unit_test_task: run-project-suite

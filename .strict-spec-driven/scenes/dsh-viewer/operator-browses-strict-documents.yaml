@@ -33,22 +33,32 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: absent-family-omitted
   expand-family-group:
-    action: The operator expands a collapsed family group and its documents are listed with labels derived from their declared fields.
+    action: The operator expands a collapsed family group, by clicking anywhere on its row or through the keyboard, and its documents are listed with labels derived from their declared fields.
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: tree-family-order
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-pointer-activation
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-keyboard-navigation
+      - spec_id: dsh-viewer-behavior
+        requirement_id: collapsed-group-reexpands
   expand-archive:
     action: The operator expands an archived group that was collapsed by default and whose entries were unread until this expansion.
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: archive-groups-collapsed
   open-document:
-    action: 'The operator opens a strict document from the tree, which renders in the view its artifact type uses: a dedicated view for change, project-context, roadmap, spec, and scene documents, or the generic structured view for a type without one, showing declared field values exactly as written with unrecognized top-level fields appended under an additional-fields section.'
+    action: 'The operator opens a strict document from the tree, by clicking its row or through the keyboard, which renders in the view its artifact type uses: a dedicated view for change, project-context, roadmap, spec, and scene documents, or the generic structured view for a type without one, showing declared field values exactly as written with unrecognized top-level fields appended under an additional-fields section.'
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: generic-structured-rendering
       - spec_id: dsh-viewer-behavior
         requirement_id: declared-values-only
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-pointer-activation
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-keyboard-navigation
   wait-for-loading:
     action: The operator opens an entry point while the workspace loads and sees a loading condition until the families are ready.
     covered_by:
@@ -80,7 +90,7 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-two-pane-layout
   reopen-page-restores-selection:
-    action: The operator opens the page again and the previously chosen Session and the selected document are restored without re-choosing either.
+    action: The operator opens the page again, including after leaving it for another view such as a Session's conversation, and the page loads the previously chosen Session's workspace tree and restores the selected document without re-choosing either.
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-selection-restore
@@ -125,15 +135,19 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: roadmap-artifact-renderers
   open-milestone-and-owned-changes:
-    action: The operator opens a milestone and reads its dedicated view — goal, scope in and out side by side, done criteria as a checklist, intake-question cards, and the planned changes the milestone owns with their declared statuses — and selects an owned planned change, which opens in the document view.
+    action: The operator opens a milestone and reads its dedicated view — goal, scope in and out side by side, done criteria as a checklist, intake-question cards, and the planned changes the milestone owns with their declared statuses — and selects an owned planned change, which opens in the document view, and the tree moves to that planned change's row.
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: roadmap-artifact-renderers
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-follows-open-document
   open-planned-change-and-follow-dependency:
-    action: The operator opens a planned change, reads its summary, status, owning milestone, and depends_on entries, selects one entry whose target the tree holds and is navigated to that planned change, and sees a visible unresolved marker on an entry whose target is not found.
+    action: The operator opens a planned change, reads its summary, status, owning milestone, and depends_on entries, selects one entry whose target the tree holds and is navigated to that planned change, and sees a visible unresolved marker on an entry whose target is not found, with the tree expanding to, focusing, and scrolling to the target planned change's row.
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: roadmap-artifact-renderers
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-follows-open-document
   open-archived-roadmap-document:
     action: The operator expands the roadmap archive and opens an archived milestone or planned change, which renders through the same dedicated view its active counterpart uses, with the archived milestone owned entries resolved by reading the archived planned-change files.
     covered_by:
@@ -150,10 +164,12 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: spec-and-scene-artifact-renderers
   open-scene-and-follow-coverage:
-    action: The operator opens a scene and reads its dedicated view — actors with their responsibilities, preconditions, the ordered main flow, and exception flows under their declared triggers — and selects a step's covering requirement, which opens the covering spec anchored at that requirement through the same open action a tree row uses, while a reference whose spec the tree does not hold presents a visible unresolved marker, a waived step presents its declared no-coverage reason, and a step declaring neither is visibly flagged.
+    action: The operator opens a scene and reads its dedicated view — actors with their responsibilities, preconditions, the ordered main flow, and exception flows under their declared triggers — and selects a step's covering requirement, which opens the covering spec anchored at that requirement through the same open action a tree row uses, while a reference whose spec the tree does not hold presents a visible unresolved marker, a waived step presents its declared no-coverage reason, and a step declaring neither is visibly flagged, with the tree moving to the covering spec's row.
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: spec-and-scene-artifact-renderers
+      - spec_id: dsh-viewer-behavior
+        requirement_id: tree-follows-open-document
   open-scenes-index:
     action: The operator opens the scenes index and reads its dedicated view, which groups the entries under their declared scene areas, each with its title and status.
     covered_by:

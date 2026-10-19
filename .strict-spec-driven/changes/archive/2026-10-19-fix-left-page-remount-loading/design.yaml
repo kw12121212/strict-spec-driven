@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-left-page-remount-loading
+approach:
+  - 'Fix the defect at the page controller in plugins/dsh-strict-spec/src/model/picker.ts: dispose resets the controller to its not-showing state — clearing the shown Session id, bumping the epoch so in-flight loads and restores are abandoned, and disposing the viewer stores — rather than setting a permanent disposed flag, so the next mount''s showSession loads the workspace and restores the recorded document captured at its entry. A failing model regression case is written first and must pass after the fix.'
+decisions:
+  fix-at-controller:
+    decision: Change dispose semantics in createPageController instead of creating a controller per page mount.
+    rationale: The controller is deliberately created once per client load beside the root-scoped page selection that survives remounts, and the right-sidebar tab surfaces already treat dispose as a reset that reloads on the next show; making the page controller follow the same contract is the smallest change and keeps src/client.ts and the page component untouched.
+  epoch-guards-stale-work:
+    decision: Rely on the epoch counter alone to abandon work started before dispose.
+    rationale: Every showSession already captures its epoch and checks it after the workspace load, so bumping the epoch in dispose stops a pre-dispose load from restoring a document under a later mount exactly as a Session switch does, which makes the permanent disposed flag redundant.
+alternatives:
+  - option: Create the page controller inside the page component per mount with useMemo.
+    reason: It moves the restore driver into React effect lifetimes the dsh-plugin-client standard asks to keep in plain controller objects, and it would restructure the client entry wiring the release smoke check already exercised.
+risks:
+  - A load still in flight when dispose lands for the same Session that the next mount shows again overlaps the new load; the epoch check skips its restore, the disposed refresh coordinator opens no watch for it, and a gated model case proves the overlap settles on one ready tree with no leaked watch.

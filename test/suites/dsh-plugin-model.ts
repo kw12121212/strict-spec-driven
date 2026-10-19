@@ -391,6 +391,140 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
     context.assert(documents[`${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`]?.label === "Viewer Behavior", "spec label comes from the declared spec title");
     context.assert(documents[`${WORKFLOW_ROOT}/lessons/tooling/learned.yaml`]?.label === "A lesson learned", "lesson label comes from the declared lesson title");
     context.assert(documents[`${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`]?.known === true, "a known artifact_type is recorded as known");
+
+    // Re-expansion: every family root collapses and expands again to the same
+    // children, the single-file families included, whose synthetic family
+    // path names no directory on disk.
+    const childFacts = (node: DocumentNode | undefined): string =>
+      JSON.stringify((node?.children ?? []).map((child) => [child.path, child.label, child.loaded]));
+    for (const family of state.families) {
+      const before = childFacts(nodeById(stores.tree.getSnapshot(), family.id));
+      stores.actions.collapseNode(SESSION_ID, family.id);
+      await stores.actions.expandNode(SESSION_ID, family.id);
+      await settle();
+      const reexpanded = nodeById(stores.tree.getSnapshot(), family.id);
+      const after = childFacts(reexpanded);
+      context.assert(
+        reexpanded?.loaded === true && after === before,
+        `the ${family.family} family expands again to the same children, labels, and archive deferral after collapsing`,
+        `before: ${before}, after: ${after}`,
+      );
+    }
+    stores.actions.dispose();
+  }
+
+  {
+    // A single-file family re-expands too, Design system included, and a
+    // family whose source left the workspace while collapsed stays collapsed
+    // rather than turning into an empty group.
+    const fake = new FakeWorkspaceFiles();
+    seedFixtureTree(fake);
+    fake.writeFile(`${WORKFLOW_ROOT}/design-system.yaml`, "artifact_type: design_system\n");
+    const stores = await loadFakeWorkspace(fake);
+    const designId = `${WORKFLOW_ROOT}/design-system`;
+    stores.actions.collapseNode(SESSION_ID, designId);
+    await stores.actions.expandNode(SESSION_ID, designId);
+    await settle();
+    context.assert(
+      (nodeById(stores.tree.getSnapshot(), designId)?.children ?? []).some((child) => child.path === `${WORKFLOW_ROOT}/design-system.yaml`),
+      "the design-system family expands again to its document after collapsing",
+    );
+    const configId = `${WORKFLOW_ROOT}/config`;
+    stores.actions.collapseNode(SESSION_ID, configId);
+    fake.removeFile(`${WORKFLOW_ROOT}/config.yaml`);
+    await stores.actions.expandNode(SESSION_ID, configId);
+    await settle();
+    const vanished = nodeById(stores.tree.getSnapshot(), configId);
+    context.assert(
+      vanished?.loaded === false && (vanished.children?.length ?? 0) === 0,
+      "a family whose source was deleted while collapsed stays collapsed instead of expanding empty",
+      `loaded: ${String(vanished?.loaded)}`,
+    );
+    stores.actions.dispose();
+  }
+
+  context.section("dsh plugin model: opening a document reveals it in the tree");
+
+  {
+    // Every collapsed group above an opened document expands — a deferred
+    // archive, a collapsed directory group, and a collapsed single-file
+    // family alike — so the tree can move to the document's row.
+    const fake = new FakeWorkspaceFiles();
+    seedFixtureTree(fake);
+    const stores = await loadFakeWorkspace(fake);
+    const archivedPath = `${WORKFLOW_ROOT}/roadmap/archive/2026-01-01-old.yaml`;
+    context.assert(nodeById(stores.tree.getSnapshot(), archivedPath) === undefined, "the archived document starts unlisted inside the deferred roadmap archive");
+    await stores.actions.openDocument(SESSION_ID, archivedPath);
+    await settle();
+    context.assert(
+      nodeById(stores.tree.getSnapshot(), `${WORKFLOW_ROOT}/roadmap/archive`)?.loaded === true
+        && nodeById(stores.tree.getSnapshot(), archivedPath) !== undefined,
+      "opening a document inside the collapsed roadmap archive expands the archive and lists the document",
+    );
+
+    const specGroup = `${WORKFLOW_ROOT}/specs/viewer`;
+    const specPath = `${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`;
+    stores.actions.collapseNode(SESSION_ID, specGroup);
+    stores.actions.collapseNode(SESSION_ID, `${WORKFLOW_ROOT}/config`);
+    await stores.actions.openDocument(SESSION_ID, specPath);
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/config.yaml`);
+    await settle();
+    context.assert(
+      nodeById(stores.tree.getSnapshot(), specPath) !== undefined,
+      "opening a document under a collapsed directory group expands the group and lists the document",
+    );
+    context.assert(
+      nodeById(stores.tree.getSnapshot(), `${WORKFLOW_ROOT}/config.yaml`) !== undefined,
+      "opening the document of a collapsed single-file family expands the family and lists the document",
+    );
+
+    const before = JSON.stringify(stores.tree.getSnapshot().families);
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/specs/nowhere/missing.yaml`);
+    await settle();
+    context.assert(
+      JSON.stringify(stores.tree.getSnapshot().families) === before,
+      "opening a path the tree cannot hold leaves the tree unchanged",
+    );
+    stores.actions.dispose();
+  }
+
+  {
+    // A reveal whose archive listing lands after a Session switch never
+    // grafts the previous workspace's archive entries into the new tree.
+    const fakeA = new FakeWorkspaceFiles();
+    seedFixtureTree(fakeA);
+    fakeA.writeFile(`${WORKFLOW_ROOT}/roadmap/archive/2026-a.yaml`, "artifact_type: roadmap_milestone\n");
+    const fakeB = new FakeWorkspaceFiles();
+    seedFixtureTree(fakeB);
+    let releaseArchive!: () => void;
+    const archiveGate = new Promise<void>((resolve) => {
+      releaseArchive = resolve;
+    });
+    const archiveDir = `${WORKFLOW_ROOT}/roadmap/archive`;
+    const route = (sid: string): WorkspaceFilesPort => (sid === "session-a" ? fakeA.port : fakeB.port);
+    const port: WorkspaceFilesPort = {
+      list: (sid, dirPath, signal) =>
+        sid === "session-a" && dirPath === archiveDir
+          ? archiveGate.then(() => fakeA.port.list(sid, dirPath, signal))
+          : route(sid).list(sid, dirPath, signal),
+      read: (sid, filePath, range, signal) => route(sid).read(sid, filePath, range, signal),
+      readBytes: (sid, filePath, options, signal) => route(sid).readBytes(sid, filePath, options, signal),
+      changes: (sid, watchedPath, signal) => route(sid).changes(sid, watchedPath, signal),
+    };
+    const stores = createViewerStores(port);
+    await stores.actions.loadWorkspace("session-a");
+    await settle();
+    void stores.actions.openDocument("session-a", `${archiveDir}/2026-a.yaml`);
+    await settle();
+    await stores.actions.loadWorkspace("session-b");
+    await settle();
+    releaseArchive();
+    await settle();
+    context.assert(
+      nodeById(stores.tree.getSnapshot(), `${archiveDir}/2026-a.yaml`) === undefined
+        && nodeById(stores.tree.getSnapshot(), archiveDir)?.loaded === false,
+      "a reveal listing that lands after a Session switch leaves the new Session's archive collapsed and free of the old entries",
+    );
     stores.actions.dispose();
   }
 
@@ -906,6 +1040,60 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
     await settle();
     context.assert(fake.openWatches.size === 0, "deactivation closes every watch of the shown session");
     context.assert(switchFake.openWatches.size === 0, "dispose closes every watch of the driven stores");
+
+    // Remount: the client creates one page controller per load and the
+    // page's unmount disposes it, so the next mount's showSession must load
+    // the shown Session's workspace again rather than stay loading.
+    const remountFake = new FakeWorkspaceFiles();
+    seedPickerControllerWorkspace(remountFake);
+    const remountStores = createViewerStores(remountFake.port);
+    const remountPage = createPageSelectionStore();
+    const remountController = createPageController(remountStores, remountPage.store);
+    remountController.showSession(SESSION_ID);
+    await settle();
+    remountPage.actions.recordDocument(`${WORKFLOW_ROOT}/config.yaml`);
+    remountController.dispose();
+    await settle();
+    remountController.showSession(SESSION_ID);
+    await settle();
+    context.assert(
+      remountStores.tree.getSnapshot().status === "ready",
+      "a disposed page controller reloads the shown session's workspace when the page mounts again",
+      `tree status: ${remountStores.tree.getSnapshot().status}`,
+    );
+    context.assert(
+      remountStores.open.getSnapshot().status === "ready" && remountStores.open.getSnapshot().path === `${WORKFLOW_ROOT}/config.yaml`,
+      "a disposed page controller restores the recorded document when the page mounts again",
+    );
+    remountController.dispose();
+    await settle();
+    context.assert(remountFake.openWatches.size === 0, "disposing the remounted page closes every watch it opened");
+
+    // In-flight remount: an unmount that lands while the first mount's load
+    // is still pending, followed at once by a mount of the same Session (the
+    // StrictMode mount-dispose-mount sequence), still settles on one ready
+    // tree with the recorded document and leaks no watch.
+    const inFlightFake = new FakeWorkspaceFiles();
+    seedPickerControllerWorkspace(inFlightFake);
+    const inFlightGate = createGatedPort(inFlightFake, SESSION_ID);
+    const inFlightStores = createViewerStores(inFlightGate.port);
+    const inFlightPage = createPageSelectionStore();
+    const inFlightController = createPageController(inFlightStores, inFlightPage.store);
+    inFlightPage.actions.recordDocument(`${WORKFLOW_ROOT}/config.yaml`);
+    inFlightController.showSession(SESSION_ID);
+    inFlightController.dispose();
+    inFlightController.showSession(SESSION_ID);
+    inFlightGate.release();
+    await settle();
+    context.assert(
+      inFlightStores.tree.getSnapshot().status === "ready"
+        && inFlightStores.open.getSnapshot().status === "ready"
+        && inFlightStores.open.getSnapshot().path === `${WORKFLOW_ROOT}/config.yaml`,
+      "a mount that follows an in-flight dispose loads the tree and restores the recorded document",
+    );
+    inFlightController.dispose();
+    await settle();
+    context.assert(inFlightFake.openWatches.size === 0, "the in-flight remount leaks no watch after the next dispose");
   }
 
   context.section("dsh plugin model: right-sidebar tab controller and per-session surfaces");

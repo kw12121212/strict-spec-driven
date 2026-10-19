@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-left-page-remount-loading
+open: []
+resolved:
+  - id: change-split
+    question: Should the two smoke-check defects be fixed in one change or separately, and which nearby issues stay out?
+    context: 'Impact: proposal scope and non-goals. Asked of the requester with concrete options after the release smoke check.'
+    answer: 'One narrow change per defect: this change fixes the left-page remount loading defect and fix-tree-row-pointer-open fixes mouse opening; keyboard navigation, the right-sidebar tab, and expand-state persistence must not change, and the archive expansion reading every archived change directory and depends_on links not moving tree focus are left as observations.'
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Per the requester''s choice after the release smoke check: an operator who leaves the left-sidebar Strict documents page and comes back sees the tree stuck on Loading for every Session until the browser is reloaded, so the page cannot be used again within the same client session.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: Returning to the left-sidebar page after leaving it loads the chosen Session's workspace tree and restores the previously selected document without a browser reload, proven by the model regression case and by repeating the leave-and-return sequence in the pinned dsh web client.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The release-dsh-strict-spec-plugin end-to-end smoke check found the defect, and the requester chose to fix it in a separate bugfix change before the release is archived so the release documents a working viewer.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'Chosen by the requester: one narrow change per defect; mouse opening belongs to fix-tree-row-pointer-open; keyboard navigation, the right-sidebar tab, and expand-state persistence must not change; the archive expansion reading every archived change directory and depends_on links not moving tree focus stay out of scope.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'One reading: the fix makes the existing left-page-selection-restore behavior hold after the operator leaves the page for another view within the same client load; it does not change what the page shows or how Sessions are chosen.'
+    status: resolved
+    kind: requirement
+    answered_by: human
