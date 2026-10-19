@@ -85,24 +85,72 @@ export function deriveDocumentLabel(workspacePath: string, data: unknown, artifa
  * status badges: only milestones and planned changes declare a status the
  * viewer badges, and every other artifact type yields no status. The value
  * is the declared field exactly as written — never a derived roadmap state.
+ * Both schemas declare status as a top-level required field, so the reader
+ * reads exactly that position.
  */
 export function deriveDocumentStatus(data: unknown, artifactType?: string): string | undefined {
   switch (artifactType) {
+    case "roadmap_milestone":
+    case "planned_change":
+      return stringField(data, "status");
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * The cross-document identity facts one non-archived roadmap document
+ * declares, read by the same content pass that derives labels and statuses:
+ * a milestone's keyed id and declared order, and a planned change's declared
+ * id and owning milestone. Every fact is a declared field exactly as
+ * written; the roadmap views resolve navigation and ownership from them.
+ */
+export interface RoadmapFacts {
+  /** The milestone's keyed id, when exactly one keyed milestone declares it. */
+  readonly milestoneId?: string;
+  /** The milestone's declared order value, when it declares a number. */
+  readonly milestoneOrder?: number;
+  /** The planned change's declared id. */
+  readonly plannedChangeId?: string;
+  /** The planned change's declared owning milestone id. */
+  readonly plannedChangeMilestone?: string;
+}
+
+/** Reads one numeric field of a record, when it is a finite number. */
+function numberField(record: unknown, key: string): number | undefined {
+  if (typeof record === "object" && record !== null && key in record) {
+    const value = (record as Record<string, unknown>)[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Derives the roadmap identity facts of one parsed document: a roadmap
+ * milestone yields its keyed id and order value, a planned change yields
+ * its id and owning milestone, and every other artifact type yields none.
+ */
+export function deriveRoadmapFacts(data: unknown, artifactType?: string): RoadmapFacts {
+  switch (artifactType) {
     case "roadmap_milestone": {
-      // A milestone file declares one keyed milestone whose status badges it.
       const milestone = soleValue(data, "milestone");
       if (typeof milestone === "object" && milestone !== null) {
         const keyed = milestone as Record<string, unknown>;
         const ids = Object.keys(keyed);
         if (ids.length === 1) {
-          return stringField(keyed[ids[0]], "status");
+          return { milestoneId: ids[0], milestoneOrder: numberField(data, "order") };
         }
       }
-      return undefined;
+      return {};
     }
     case "planned_change":
-      return stringField(soleValue(data, "planned_change"), "status");
+      return {
+        plannedChangeId: stringField(soleValue(data, "planned_change"), "id"),
+        plannedChangeMilestone: stringField(soleValue(data, "planned_change"), "milestone"),
+      };
     default:
-      return undefined;
+      return {};
   }
 }

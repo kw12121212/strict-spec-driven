@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-fixture-seeding-a-schema-forbidden-field-posit-d3a522
+  title: A fixture seeding a schema-forbidden field position cements a defective reader
+category: ui
+status: active
+created_at: '2026-10-19T04:47:10.112Z'
+updated_at: '2026-10-19T04:47:10.112Z'
+context: 'Extending the viewer''s roadmap status handling: the tree''s status-badge reader derived milestone and planned-change statuses from positions the registered schemas forbid, because every fixture that exercised it had seeded the nested shape the reader expected.'
+observation: 'The roadmap facts suite failed four cases on first run: the real planned-change and milestone files declare status as a top-level required field (planned-change/v1 and roadmap-milestone/v2, additionalProperties false inside the keyed groups), while deriveDocumentStatus read milestone.<id>.status and planned_change.status — dead positions for schema-valid files. The reader''s own tests stayed green for the whole foundation era because their fixtures copied the nested shape, so the reader and its tests drifted together away from the schema.'
+takeaway: Derive a fixture's field positions from the registered schema rather than from the reader being tested, and give any reader of declared fields at least one case fed by a real repository artifact or the registered example, because a fixture that restates the reader's assumption cannot fail when that assumption is wrong.
+applies_when: Authoring or reviewing viewer or CLI test fixtures for artifacts with a registered strict schema, especially when the code under test reads one declared field whose schema position could be confused with a nested homonym.
+occurrences:
+  - origin: render-roadmap-artifacts
+    date: '2026-10-19'
+    evidence: bun test/run.ts failed 4/5153 cases until deriveDocumentStatus read the top-level status and the seeded roadmap fixtures moved with it; the same run then passed 5157 with the reader and fixtures both aligned to the declared schema positions.

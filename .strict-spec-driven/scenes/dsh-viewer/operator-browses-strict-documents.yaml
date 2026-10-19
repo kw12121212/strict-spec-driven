@@ -43,7 +43,7 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: archive-groups-collapsed
   open-document:
-    action: 'The operator opens a strict document from the tree, which renders in the view its artifact type uses: a dedicated view for change documents and project-context documents, or the generic structured view for a type without one, showing declared field values exactly as written with unrecognized top-level fields appended under an additional-fields section.'
+    action: 'The operator opens a strict document from the tree, which renders in the view its artifact type uses: a dedicated view for change, project-context, and roadmap documents, or the generic structured view for a type without one, showing declared field values exactly as written with unrecognized top-level fields appended under an additional-fields section.'
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: generic-structured-rendering
@@ -119,6 +119,26 @@ main_flow:
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: project-context-renderers
+  open-roadmap-index:
+    action: The operator opens the roadmap index and reads its dedicated view, which lists the milestones in the sequence their order fields assign, each with its declared status and no derived roadmap state.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: roadmap-artifact-renderers
+  open-milestone-and-owned-changes:
+    action: The operator opens a milestone and reads its dedicated view — goal, scope in and out side by side, done criteria as a checklist, intake-question cards, and the planned changes the milestone owns with their declared statuses — and selects an owned planned change, which opens in the document view.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: roadmap-artifact-renderers
+  open-planned-change-and-follow-dependency:
+    action: The operator opens a planned change, reads its summary, status, owning milestone, and depends_on entries, selects one entry whose target the tree holds and is navigated to that planned change, and sees a visible unresolved marker on an entry whose target is not found.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: roadmap-artifact-renderers
+  open-archived-roadmap-document:
+    action: The operator expands the roadmap archive and opens an archived milestone or planned change, which renders through the same dedicated view its active counterpart uses, with the archived milestone owned entries resolved by reading the archived planned-change files.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: roadmap-artifact-renderers
 exception_flows:
   missing-workflow-directory:
     trigger: The workspace of the active or chosen Session has no .strict-spec-driven/ directory.

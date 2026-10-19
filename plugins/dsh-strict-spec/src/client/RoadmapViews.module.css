@@ -1,0 +1,155 @@
+/* Roadmap view styling: shared dedicated-view looks come from
+ * ArtifactViews.module.css (view, facts, sections, cards, meta rows); this
+ * module adds the layouts the roadmap views own — side-by-side scope
+ * columns, a done-criteria checklist, owned planned-change rows, and
+ * dependency links with their unresolved marker. Every color and radius
+ * goes through --dsw-alias and --dsw tokens: no literal color, no literal
+ * radius. */
+
+.scopeColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.scopeColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checklistItem {
+  display: flex;
+  gap: 6px;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+.checkMark {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+}
+
+.ownedRows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ownedRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  text-align: start;
+  cursor: pointer;
+}
+
+.ownedRowText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: var(--dsw-alias-border-l4);
+}
+
+.ownedRowStatic {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dependencyList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dependencyRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dependencyTarget {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  cursor: pointer;
+}
+
+.dependencyId {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: var(--dsw-alias-border-l4);
+}
+
+.dependencyIdUnresolved {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.indexRows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.indexRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.indexId {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+}
+
+.indexTitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+}
+
+@media (max-width: 480px) {
+  .scopeColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

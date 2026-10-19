@@ -20,7 +20,9 @@ import { documentParts } from "./documentParts.ts";
 import { GenericBlocksView } from "./genericBlocks.tsx";
 import { DesignView, ProposalView, QuestionsView, TasksView } from "./ChangeArtifactViews.tsx";
 import type { DedicatedViewProps } from "./ChangeArtifactViews.tsx";
+import type { ViewContext } from "./changeParts.ts";
 import { DeltaSceneView, DeltaSpecView, DeltaTechView } from "./DeltaArtifactViews.tsx";
+import { MilestoneView, PlannedChangeView, RoadmapIndexView } from "./RoadmapViews.tsx";
 import {
   ArchitectureView,
   ConfigView,
@@ -42,13 +44,15 @@ export interface DocumentViewProps {
   readonly state: OpenDocumentState;
   /** The strictSpec translate function; every visible string renders through it. */
   readonly t: Translate<StrictSpecKey>;
+  /** The entry points' shared stores, for dedicated views that navigate. */
+  readonly context?: ViewContext;
 }
 
 /**
  * The dedicated renderers, keyed by declared artifact_type: the change
- * planning families, the change-scoped delta families, and the
- * project-context families. Every other or absent type keeps the generic
- * structured view.
+ * planning families, the change-scoped delta families, the roadmap
+ * planning families, and the project-context families. Every other or
+ * absent type keeps the generic structured view.
  */
 const DEDICATED_VIEWS: Readonly<Record<string, (props: DedicatedViewProps) => ReactNode>> = {
   change_proposal: ProposalView,
@@ -58,6 +62,9 @@ const DEDICATED_VIEWS: Readonly<Record<string, (props: DedicatedViewProps) => Re
   delta_spec: DeltaSpecView,
   delta_scene: DeltaSceneView,
   delta_tech: DeltaTechView,
+  roadmap_index: RoadmapIndexView,
+  roadmap_milestone: MilestoneView,
+  planned_change: PlannedChangeView,
   workflow_config: ConfigView,
   architecture: ArchitectureView,
   main_tech: TechStandardView,
@@ -102,7 +109,7 @@ export function DocumentView(props: DocumentViewProps): ReactNode {
   const artifactType = declaredArtifactType(state.data);
   const DedicatedView = artifactType === undefined ? undefined : DEDICATED_VIEWS[artifactType];
   if (DedicatedView !== undefined) {
-    return <DedicatedView data={state.data} t={t} />;
+    return <DedicatedView data={state.data} t={t} path={state.path} context={props.context} />;
   }
   const parts = documentParts(state.data);
   if (parts.header.length === 0 && parts.blocks.length === 0) {

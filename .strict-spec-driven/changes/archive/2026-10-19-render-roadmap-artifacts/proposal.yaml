@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: render-roadmap-artifacts
+  status: proposed
+summary:
+  what:
+    - 'Give roadmap planning artifacts dedicated readable views: a roadmap index view listing milestones in the sequence their order fields assign with their declared statuses, a milestone view presenting its title, declared status badge, goal, scope in and out side by side, done criteria as a checklist, dependencies, risks, notes, details, and intake questions as cards with question, context, impact, and recommendation, and a planned-change view presenting its summary, details, declared status, owning milestone, and depends_on entries.'
+    - List the planned changes a milestone owns with their declared statuses, found from the planned-change files whose milestone field names it, and make each depends_on entry of a planned change navigate the tree to its target, showing a visible unresolved marker when the target is not found.
+    - Serve archived roadmap files through the same dedicated renderers, resolving an archived milestone owned entries by reading the archived planned-change files.
+  why:
+    - 'The generic structured view makes operators decode YAML shape to read roadmap progress, and the renderers milestone exists to give each artifact family a renderer that matches how operators read it: roadmap status at a glance, milestone scope, and dependency chains.'
+    - The viewer foundation is complete with both entry points registered and the change and project-context renderers archived, so the roadmap family is the next reader surface, and its navigation seam is the one the scene coverage links will reuse.
+scope:
+  in:
+    - 'A dedicated roadmap index view: milestones listed in the sequence their order fields assign, each presenting its declared status, ordered by order values the tree content pass records from the milestone files.'
+    - 'A dedicated milestone view: title, declared status badge, goal, scope in and out presented side by side, done criteria as a checklist, dependencies, risks, notes, details, and intake questions as cards showing question, context, impact, and recommendation.'
+    - 'A milestone owned-planned-changes section: the non-archived planned-change documents whose declared milestone names the milestone, each with its declared status, selectable to open that planned change; when the milestone is archived, the archived planned-change files are read to resolve the owned entries.'
+    - 'A dedicated planned-change view: summary, details, declared status, owning milestone, and depends_on entries that navigate the tree to the target planned change, each target that is not found presenting a visible unresolved marker.'
+    - 'Declared values only: the views show field values exactly as written and present no derived roadmap status or validation result, with dependency resolution deciding only whether a target is found.'
+    - The same dedicated renderers serving archived roadmap files reached by expanding the roadmap archive.
+    - Unrecognized top-level fields appended through the generic structured view under an additional-fields section, and artifact types without a dedicated renderer keeping the generic view.
+    - Renderer suite cases rendering the registered roadmap index, milestone, and planned-change examples plus an archived milestone of this repository, and model cases for the recorded milestone and planned-change identity facts and the archived-milestone ownership reads.
+  out:
+    - Dedicated renderers for main specs, the spec index, scenes, and the scenes index, which belong to the render-spec-and-scene-artifacts planned change, and release preparation, which belongs to release-dsh-strict-spec-plugin.
+    - Editing or mutating strict artifacts from any renderer.
+    - Derived roadmap status, validation diagnostics, or computed completion for roadmap artifacts; only strict-spec-cli computes roadmap state.
+    - Navigable milestone dependencies, whose declared entries are prose sentences rather than ids; navigation is limited to planned-change entries that name a planned-change id.
+    - Changes to strict artifact schemas, the host plugin contract, the client entry registration surface, or the plugin dependencies.
+unchanged_behavior:
+  - The document tree fixed family order, absent-family omission, archive collapse, labeling, truncation markers, entry counts, status badges, keyboard navigation, and expand persistence.
+  - The generic structured view for artifact types without a dedicated renderer, the additional-fields append, the viewer read-only guarantee, located parse-error view, loading and error conditions, empty state, and live refresh behavior.
+  - Both entry points registration, Session binding and following, watch teardown, pane layouts, and selection restore.
+  - The dedicated change, delta, and project-context renderers already archived, which keep their layouts and routing.
+roadmap:
+  milestone: dsh-strict-spec-viewer-renderers
+  planned_change: render-roadmap-artifacts

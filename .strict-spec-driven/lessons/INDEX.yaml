@@ -343,3 +343,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/ui/a-view-model-written-from-one-shape-silently-dro-f7cbe7.yaml
+    a-fixture-seeding-a-schema-forbidden-field-posit-d3a522:
+      title: A fixture seeding a schema-forbidden field position cements a defective reader
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/ui/a-fixture-seeding-a-schema-forbidden-field-posit-d3a522.yaml

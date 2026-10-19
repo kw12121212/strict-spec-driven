@@ -14,8 +14,11 @@ import type { SnapshotStore } from "@deepseek-ai/dsh-client-store";
 import { loadGroupChildren, loadWorkspaceTree } from "./traversal.ts";
 import { loadDocument } from "./loader.ts";
 import { isKnownArtifactType } from "./classifier.ts";
-import { deriveDocumentLabel, deriveDocumentStatus } from "./labels.ts";
+import { deriveDocumentLabel, deriveDocumentStatus, deriveRoadmapFacts } from "./labels.ts";
+import type { RoadmapFacts } from "./labels.ts";
 import { RefreshCoordinator } from "./refresh.ts";
+import { initialMilestoneOwnershipState, resolveArchivedPlannedChangeOwners } from "./roadmapOwnership.ts";
+import type { MilestoneOwnershipState } from "./roadmapOwnership.ts";
 import { parentDirectory, taskCompletion } from "./taskCompletion.ts";
 import type { TaskCompletion } from "./taskCompletion.ts";
 import { initialOpenDocumentState, initialTreeState } from "./nodes.ts";
@@ -29,6 +32,12 @@ export interface ViewerStores {
   readonly tree: SnapshotStore<TreeState>;
   /** The state of the one document open in the view. */
   readonly open: SnapshotStore<OpenDocumentState>;
+  /**
+   * The ownership listing of the open archived roadmap milestone: its owned
+   * planned-change entries resolved by reading the archived planned-change
+   * files, which stay unread while they are only listed.
+   */
+  readonly ownership: SnapshotStore<MilestoneOwnershipState>;
   /** The explicit actions that move both stores. */
   readonly actions: ViewerActions;
 }
@@ -54,6 +63,7 @@ interface DocumentMeta {
   artifactType?: string;
   known: boolean;
   status?: string;
+  roadmap?: RoadmapFacts;
 }
 
 /** Finds one node by id in a family forest, depth-first. */
@@ -122,6 +132,7 @@ function watchLoadedDirectories(activeCoordinator: RefreshCoordinator, node: Doc
 export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
   const tree = createSnapshotStore<TreeState>(initialTreeState());
   const open = createSnapshotStore<OpenDocumentState>(initialOpenDocumentState());
+  const ownership = createSnapshotStore<MilestoneOwnershipState>(initialMilestoneOwnershipState());
   const documentMeta = new Map<string, DocumentMeta>();
   /**
    * Task completion keyed by each non-archived change's tasks-file path,
@@ -194,6 +205,10 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
             artifactType: meta?.artifactType,
             known: meta?.known ?? false,
             status: meta?.status,
+            milestoneId: meta?.roadmap?.milestoneId,
+            milestoneOrder: meta?.roadmap?.milestoneOrder,
+            plannedChangeId: meta?.roadmap?.plannedChangeId,
+            plannedChangeMilestone: meta?.roadmap?.plannedChangeMilestone,
             archived: node.archived,
           };
         }
@@ -249,6 +264,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       artifactType: result.artifactType,
       known: isKnownArtifactType(result.artifactType),
       status: deriveDocumentStatus(result.data, result.artifactType),
+      roadmap: deriveRoadmapFacts(result.data, result.artifactType),
     });
     // A change's tasks file records its completion for the change group
     // badge during this same read; an unreadable tasks list clears any
@@ -290,6 +306,42 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       watchedSessionId = sessionId;
     }
     return coordinator;
+  }
+
+  /**
+   * Updates the ownership listing for the document that just opened: an
+   * archived roadmap milestone resolves its owned planned-change entries by
+   * reading the archived planned-change files, and every other document —
+   * including a non-archived milestone, whose owned entries derive from the
+   * tree's recorded facts — returns the listing to idle. A resolution that
+   * lands after a newer open switched the view records nothing: the newer
+   * open's own update decides the state.
+   */
+  async function updateOwnershipForOpenDocument(
+    sessionId: string,
+    path: string,
+    data: unknown,
+    artifactType: string | undefined,
+    node: DocumentNode | undefined,
+  ): Promise<void> {
+    if (artifactType !== "roadmap_milestone" || node === undefined || !node.archived) {
+      ownership.set(initialMilestoneOwnershipState());
+      return;
+    }
+    const facts = deriveRoadmapFacts(data, artifactType);
+    if (facts.milestoneId === undefined) {
+      ownership.set(initialMilestoneOwnershipState());
+      return;
+    }
+    ownership.set({ status: "loading", milestoneId: facts.milestoneId, owned: [], truncated: false });
+    const resolved = await resolveArchivedPlannedChangeOwners(port, sessionId, facts.milestoneId);
+    const current = open.getSnapshot();
+    if (current.status === "idle" || current.path !== path) {
+      return;
+    }
+    ownership.set(resolved.failed
+      ? { status: "error", milestoneId: facts.milestoneId, owned: [], truncated: false }
+      : { status: "ready", milestoneId: facts.milestoneId, owned: resolved.owned, truncated: resolved.truncated });
   }
 
   /** Surfaces one watch health change onto the loaded tree nodes. */
@@ -369,6 +421,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         artifactType: result.artifactType,
         known: isKnownArtifactType(result.artifactType),
         status: deriveDocumentStatus(result.data, result.artifactType),
+        roadmap: deriveRoadmapFacts(result.data, result.artifactType),
       });
       open.set({ status: "ready", path, data: result.data });
       return;
@@ -402,6 +455,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       }
       if (loaded.status !== "ready") {
         open.set(initialOpenDocumentState());
+        ownership.set(initialMilestoneOwnershipState());
         activeCoordinator.unwatchOpenDocument();
         tree.set(loaded);
         return;
@@ -501,6 +555,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
             artifactType: result.artifactType,
             known: isKnownArtifactType(result.artifactType),
             status: deriveDocumentStatus(result.data, result.artifactType),
+            roadmap: deriveRoadmapFacts(result.data, result.artifactType),
           });
           if (node.family === "changes" && result.artifactType === "task_list") {
             const completion = taskCompletion(result.data);
@@ -517,15 +572,18 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         }
         open.set({ status: "ready", path, data: result.data });
         activeCoordinator.watchOpenDocument(path);
+        await updateOwnershipForOpenDocument(sessionId, path, result.data, result.artifactType, node);
         return;
       }
       open.set({ status: "error", path, error: result.error });
       activeCoordinator.watchOpenDocument(path);
+      ownership.set(initialMilestoneOwnershipState());
     },
 
     closeDocument(): void {
       coordinator?.unwatchOpenDocument();
       open.set(initialOpenDocumentState());
+      ownership.set(initialMilestoneOwnershipState());
     },
 
     dispose(): void {
@@ -536,9 +594,10 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       taskCompletionByFile.clear();
       expandChoices.clear();
       open.set(initialOpenDocumentState());
+      ownership.set(initialMilestoneOwnershipState());
       tree.set(initialTreeState());
     },
   };
 
-  return { tree, open, actions };
+  return { tree, open, ownership, actions };
 }

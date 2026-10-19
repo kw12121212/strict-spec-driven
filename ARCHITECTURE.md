@@ -414,7 +414,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 232 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
-| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 24 |
+| [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 25 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 10 |
@@ -460,6 +460,8 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `renderer-suites-consume-registered-examples` — Every dedicated renderer the plugin adds is covered by a suite case that renders the registered strict example of its artifact type from examples/strict-spec-driven/, so a schema change that breaks a renderer's layout fails the regression suite rather than silently degrading the view.
 - **MUST** `dedicated-renderers-react-free-view-models` — Every dedicated renderer maps a parsed strict artifact onto its presentation structure through a React-free view-model module — partitioning known and unrecognized top-level fields and computing any presented summary, such as task completion, from declared values — and renders every unrecognized top-level field through the one shared generic blocks implementation.
 - **SHOULD** `view-model-partition-helpers-single-source` — View-model mappers for dedicated renderers SHOULD import the record-field readers (stringField, soleValue, stringEntries, scalarText) and the known-keys partition helper from the one shared module (plugins/dsh-strict-spec/src/client/recordFields.ts) instead of restating them per mapper module.
+- **MUST** `rendered-view-navigation-through-open-action` — Cross-document navigation from a dedicated renderer flows only through the shared viewer open action and the tree documents record passed down as props from the entry points; a renderer never reads the workspace, mutates tree state, or opens a document by any other mechanism, and a link that resolves to no document renders the shared unresolved marker instead of acting.
+- **SHOULD** `dedicated-views-render-context-free` — A dedicated renderer that consumes entry-point stores should read them only through the view context with identity-stable context-free fallbacks, never varying its hook structure on context presence, so the same component statically renders declared data alone when no context is passed.
 
 ### [TypeScript ESM Baseline](.strict-spec-driven/tech/typescript-esm-baseline.yaml) (`typescript-esm-baseline`) — coding
 

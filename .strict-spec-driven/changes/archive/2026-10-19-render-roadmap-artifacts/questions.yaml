@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: render-roadmap-artifacts
+open: []
+resolved:
+  - id: unknown-field-display
+    question: How should a dedicated renderer present fields its artifact schema version does not know?
+    context: 'Every renderer this change adds follows one rule for unrecognized top-level fields. The milestone intake answer settles presentation, spec delta shape, and implementation files: hiding unknown fields would lose content when a schema evolves, while the generic append keeps newer projects readable. The milestone notes record this as the settled unknown-field-display answer, and the roadmap details for this planned change require applying it.'
+    answer: Render the fields the dedicated layout knows and append every unrecognized top-level field through the generic structured view under an additional-fields section; an artifact type without a dedicated renderer keeps the generic view entirely.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Operators reading roadmap artifacts in the viewer today decode generic YAML shape: the completed foundation milestone makes every strict document reachable but shows each one through a generic structured view, so an operator checking which milestone is next, what a milestone still owes, or which planned change blocks another reads field-by-field structure instead of the status-first, navigable planning views the renderers milestone exists to provide.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Opening a roadmap index, milestone, or planned-change document renders its dedicated view: the index lists milestones in the sequence their order fields assign with declared statuses; the milestone shows its goal, side-by-side scope, done-criteria checklist, and intake-question cards, and lists its owned planned changes with declared statuses that open on selection; the planned-change shows its summary, status, owning milestone, and depends_on entries that navigate to their targets, with a visible unresolved marker when a target is not found; archived roadmap documents render through the same views.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The viewer foundation milestone is complete and the change and project-context renderer changes of this milestone are archived, so this planned change carries no unfinished dependency; the milestone records that renderer changes are independent of one another and may land in any order once the foundation is complete, and roadmap-recommend reports this planned change eligible while the release change stays dependency-blocked on the renderer work finishing first.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No dedicated renderers for main specs, the spec index, scenes, or the scenes index, which belong to the render-spec-and-scene-artifacts planned change, and no release preparation, which belongs to release-dsh-strict-spec-plugin; no editing or mutating strict artifacts from any renderer; no derived roadmap status, validation diagnostics, or computed completion, because only strict-spec-cli computes roadmap state; no navigable milestone dependencies, whose declared entries are prose sentences; and no changes to strict artifact schemas, the host plugin contract, the client entry registration surface, or the plugin dependencies.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Only one reading is in play: dedicated views for exactly the roadmap index, milestone, and planned-change artifact types serving active and archived roadmap files alike; the milestone view finds its owned planned changes through the declared milestone field of planned-change files, reading the archived ones only when the milestone is itself archived; depends_on entries navigate by declared planned-change id and show a visible unresolved marker when no target is found; the index orders milestones by their declared order values; and every renderer appends unrecognized top-level fields through the generic view while presenting no derived status.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

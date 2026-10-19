@@ -16,11 +16,27 @@ import { partitionDocument, soleValue, stringEntries, stringField } from "./reco
 import type { HeaderFact } from "./recordFields.ts";
 import { taskCompletion } from "../model/taskCompletion.ts";
 import type { TaskCompletion } from "../model/taskCompletion.ts";
+import type { ViewerStores } from "../model/store.ts";
 
 // The scalar header fact and the field readers live in one shared module so
 // every dedicated renderer's partition is the same implementation; the type
 // is re-exported for the views that historically imported it from here.
 export type { HeaderFact } from "./recordFields.ts";
+
+/**
+ * The view context the entry points hand the document view: the Session
+ * whose workspace is shown and the shared viewer stores. A dedicated
+ * renderer that navigates between documents — resolving a roadmap
+ * dependency or opening an owned planned change — reads the tree's
+ * documents record from here and opens targets through the shared open
+ * action only, never through its own reads or mutations.
+ */
+export interface ViewContext {
+  /** The Session whose workspace the shown stores hold. */
+  readonly sessionId: string;
+  /** The shared viewer stores both entry points drive. */
+  readonly viewer: ViewerStores;
+}
 
 /** The shared shape every dedicated change view model returns. */
 export interface DedicatedView<B> {

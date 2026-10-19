@@ -5,7 +5,7 @@
  * scripted workspace fake the model suite uses, plus the pure row-model,
  * keyboard-model, and document-parts cases.
  */
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import path from "path";
 import { CORE_SCHEMA, load } from "js-yaml";
 import { TestContext, ROOT } from "../support/harness.js";
@@ -23,6 +23,16 @@ import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.t
 import { flattenTreeRows, keyOutcomeFor } from "../../plugins/dsh-strict-spec/src/client/treeRows.ts";
 import { documentParts } from "../../plugins/dsh-strict-spec/src/client/documentParts.ts";
 import { proposalView, questionsView, tasksView } from "../../plugins/dsh-strict-spec/src/client/changeParts.ts";
+import type { ViewContext } from "../../plugins/dsh-strict-spec/src/client/changeParts.ts";
+import {
+  createRoadmapNavigator,
+  milestoneView,
+  orderedIndexMilestones,
+  ownedPlannedChanges,
+  plannedChangeView,
+  resolvePlannedChangeTarget,
+  roadmapIndexView,
+} from "../../plugins/dsh-strict-spec/src/client/roadmapParts.ts";
 import {
   architectureView,
   configView,
@@ -70,13 +80,13 @@ function seedComponentWorkspace(fake: FakeWorkspaceFiles): void {
   fake.writeFile(`${WORKFLOW_ROOT}/roadmap/INDEX.yaml`, "artifact_type: roadmap_index\n");
   fake.writeFile(
     `${WORKFLOW_ROOT}/roadmap/milestones/foundation.yaml`,
-    "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Foundation Milestone\n    status: complete\n",
+    "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Foundation Milestone\nstatus: complete\n",
   );
   fake.writeFile(
     `${WORKFLOW_ROOT}/roadmap/planned-changes/first-step.yaml`,
-    "artifact_type: planned_change\nplanned_change:\n  id: first-step\n  status: planned\n",
+    "artifact_type: planned_change\nplanned_change:\n  id: first-step\nstatus: planned\n",
   );
-  fake.writeFile(`${WORKFLOW_ROOT}/roadmap/archive/2026-01-01-old.yaml`, "artifact_type: planned_change\nplanned_change:\n  id: old\n  status: complete\n");
+  fake.writeFile(`${WORKFLOW_ROOT}/roadmap/archive/2026-01-01-old.yaml`, "artifact_type: planned_change\nplanned_change:\n  id: old\nstatus: complete\n");
   fake.writeFile(
     `${WORKFLOW_ROOT}/changes/build-tree/proposal.yaml`,
     "artifact_type: change_proposal\nchange:\n  id: build-tree\n  status: proposed\n",
@@ -694,9 +704,9 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     context.assert(techExamplesHtml.includes("delta.example-good") && techExamplesHtml.includes("A good case."), "good examples render with their label");
     context.assert(techExamplesHtml.includes("delta.example-bad") && techExamplesHtml.includes("A bad case."), "bad examples render with their label");
 
-    const roadmapIndexHtml = renderData(readExample("roadmap-index.yaml"));
-    context.assert(roadmapIndexHtml.includes("0001-example-milestone"), "an artifact type without a dedicated renderer keeps the generic view");
-    context.assert(!roadmapIndexHtml.includes("proposal.what") && !roadmapIndexHtml.includes("view.additional-fields"), "no dedicated layout or additional section applies to an unserved type");
+    const mainSpecHtml = renderData(readExample("main-spec.yaml"));
+    context.assert(mainSpecHtml.includes("example-requirement") && mainSpecHtml.includes("requirements"), "an artifact type without a dedicated renderer keeps the generic view");
+    context.assert(!mainSpecHtml.includes("proposal.what") && !mainSpecHtml.includes("view.additional-fields"), "no dedicated layout or additional section applies to an unserved type");
 
     const archivedTasks = load(
       readFileSync(path.join(ROOT, ".strict-spec-driven", "changes", "archive", "2026-10-18-register-right-sidebar-tab", "tasks.yaml"), "utf8"),
@@ -912,6 +922,240 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     badgeStores.actions.dispose();
   }
 
+  context.section("dsh plugin components: dedicated roadmap renderers");
+
+  {
+    // Renderer cases consume the registered strict example of each artifact
+    // type, so a schema change that breaks a renderer fails the suite rather
+    // than silently degrading the view.
+    const readExample = (name: string): unknown =>
+      load(readFileSync(path.join(ROOT, "examples", "strict-spec-driven", name), "utf8"), { schema: CORE_SCHEMA });
+    const renderData = (data: unknown): string => renderView({ status: "ready", path: "example", data });
+
+    const indexExample = readExample("roadmap-index.yaml");
+    const indexModel = roadmapIndexView(indexExample);
+    context.assert(
+      indexModel.body.milestones.length === 1 && indexModel.body.milestones[0]?.id === "0001-example-milestone"
+        && indexModel.body.milestones[0]?.status === "proposed" && indexModel.body.milestones[0]?.title === "Example Milestone",
+      "the index view model reads each declared milestone entry",
+    );
+    context.assert(indexModel.additional.length === 0, "the registered index example's fields are all presented, leaving no additional fields");
+    const indexHtml = renderData(indexExample);
+    context.assert(indexHtml.includes("roadmap.milestones") && indexHtml.includes("0001-example-milestone"), "the index view lists the declared milestones");
+    context.assert(indexHtml.includes("Example Milestone") && indexHtml.includes(">proposed<"), "the index view renders each milestone's title and declared status badge");
+
+    const ordered = orderedIndexMilestones(
+      [
+        { id: "b-second" },
+        { id: "a-first" },
+        { id: "c-unordered" },
+      ],
+      {
+        "x/y.yaml": { path: "x/y.yaml", family: "roadmap", label: "y", known: true, archived: false, milestoneId: "b-second", milestoneOrder: 20 },
+        "x/z.yaml": { path: "x/z.yaml", family: "roadmap", label: "z", known: true, archived: false, milestoneId: "a-first", milestoneOrder: 10 },
+      } as Record<string, DocumentRecord>,
+    );
+    context.assert(
+      ordered.map((entry) => entry.id).join(",") === "a-first,b-second,c-unordered"
+        && ordered[0]?.order === 10 && ordered[2]?.order === undefined,
+      "index entries order by their milestone files' declared order values, keeping unrecorded entries in declaration order",
+    );
+
+    const milestonePlanning = readExample("roadmap-milestone.planning.yaml");
+    const milestoneModel = milestoneView(milestonePlanning);
+    context.assert(
+      milestoneModel.body.milestone?.id === "0002-roadmap-workflow" && milestoneModel.body.milestone?.title === "Roadmap Workflow"
+        && milestoneModel.body.status === "proposed",
+      "the milestone view model reads the keyed milestone identity and status",
+    );
+    context.assert(milestoneModel.body.in.length === 2 && milestoneModel.body.out.length === 1, "the milestone view model reads both scope groups");
+    context.assert(milestoneModel.body.doneCriteria.length === 2 && milestoneModel.body.dependencies[0] === "0001-foundation", "the milestone view model reads done criteria and dependencies");
+    context.assert(
+      milestoneModel.body.intakeQuestions.length === 3 && milestoneModel.body.intakeQuestions[0]?.impact !== undefined
+        && milestoneModel.body.intakeQuestions[0]?.recommendation !== undefined,
+      "the milestone view model reads every intake question field as a card",
+    );
+    context.assert(
+      milestoneModel.additional.length === 1 && milestoneModel.additional[0]?.title === "planned_changes",
+      "the legacy inline planned_changes mapping partitions into the additional blocks rather than presenting as the owned listing",
+    );
+    const milestoneHtml = renderData(milestonePlanning);
+    context.assert(milestoneHtml.includes("roadmap.goal") && milestoneHtml.includes("Define strict roadmap workflow behavior."), "the milestone view renders its goal");
+    context.assert(milestoneHtml.includes("proposal.in") && milestoneHtml.includes("proposal.out"), "the milestone view renders scope in and out side by side");
+    context.assert(milestoneHtml.includes("roadmap.done-criteria") && milestoneHtml.includes("Roadmap validation can inspect milestone and planned change structure."), "the milestone view renders done criteria as a checklist");
+    context.assert(milestoneHtml.includes("roadmap.dependencies") && milestoneHtml.includes("0001-foundation"), "the milestone view renders its dependencies");
+    context.assert(milestoneHtml.includes("roadmap.intake-questions") && milestoneHtml.includes("roadmap.impact") && milestoneHtml.includes("roadmap.recommendation"), "the milestone view renders intake questions as cards with impact and recommendation");
+    context.assert(
+      milestoneHtml.includes("view.additional-fields") && milestoneHtml.includes("validate-roadmap-contract"),
+      "the legacy inline planned changes render through the additional-fields append instead of hiding",
+    );
+    const plainMilestoneHtml = renderData(readExample("roadmap-milestone.yaml"));
+    context.assert(plainMilestoneHtml.includes("roadmap.goal") && plainMilestoneHtml.includes("roadmap.owned-planned-changes"), "the minimal milestone example renders its goal and the owned-planned-changes section");
+
+    const plannedChangeExample = readExample("planned-change.yaml");
+    const plannedChangeModel = plannedChangeView(plannedChangeExample);
+    context.assert(
+      plannedChangeModel.body.id === "example-change" && plannedChangeModel.body.milestone === "0001-example-milestone"
+        && plannedChangeModel.body.status === "planned" && plannedChangeModel.body.dependsOn.length === 0,
+      "the planned-change view model reads the identity, owning milestone, status, and dependencies",
+    );
+    context.assert(
+      plannedChangeModel.additional.length === 1 && plannedChangeModel.additional[0]?.title === "team",
+      "the declared team mapping partitions into the additional blocks",
+    );
+    const plannedChangeHtml = renderData(plannedChangeExample);
+    context.assert(plannedChangeHtml.includes("roadmap.summary") && plannedChangeHtml.includes("Add one standalone planned roadmap change."), "the planned-change view renders its summary");
+    context.assert(plannedChangeHtml.includes("proposal.roadmap-milestone") && plannedChangeHtml.includes("0001-example-milestone"), "the planned-change view renders the owning milestone");
+    context.assert(plannedChangeHtml.includes("view.additional-fields") && plannedChangeHtml.includes("alice"), "the team mapping renders through the additional-fields append");
+
+    // Navigation: a depends_on entry that resolves opens its target through
+    // the shared open action alone, and an unresolved entry renders the
+    // visible marker instead of acting.
+    const roadmapFake = new FakeWorkspaceFiles();
+    roadmapFake.writeFile(`${WORKFLOW_ROOT}/roadmap/INDEX.yaml`, "artifact_type: roadmap_index\nmilestones:\n  m1:\n    title: Milestone One\n    path: roadmap/milestones/m1.yaml\n    status: proposed\n");
+    roadmapFake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/milestones/m1.yaml`,
+      "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Milestone One\norder: 1\nstatus: proposed\n",
+    );
+    roadmapFake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/planned-changes/target-change.yaml`,
+      "artifact_type: planned_change\nplanned_change:\n  id: target-change\n  milestone: m1\nstatus: planned\n",
+    );
+    roadmapFake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/planned-changes/depending-change.yaml`,
+      "artifact_type: planned_change\nplanned_change:\n  id: depending-change\n  milestone: m1\nstatus: planned\ndepends_on:\n  - target-change\n  - missing-change\n",
+    );
+    const roadmapStores = createViewerStores(roadmapFake.port);
+    await roadmapStores.actions.loadWorkspace("session-roadmap");
+    await settle();
+    const roadmapContext: ViewContext = { sessionId: "session-roadmap", viewer: roadmapStores };
+    const documents = roadmapStores.tree.getSnapshot().documents;
+
+    const resolvedTarget = resolvePlannedChangeTarget(documents, "target-change");
+    context.assert(resolvedTarget?.path === `${WORKFLOW_ROOT}/roadmap/planned-changes/target-change.yaml`, "a declared planned-change id resolves against the documents record");
+
+    const openedPaths: string[] = [];
+    const recordingActions = { openDocument: async (_sessionId: string, path: string): Promise<void> => { openedPaths.push(path); } };
+    const navigator = createRoadmapNavigator(recordingActions, "session-roadmap", documents);
+    context.assert(navigator.openPlannedChange("target-change") === true && openedPaths[0] === `${WORKFLOW_ROOT}/roadmap/planned-changes/target-change.yaml`, "selecting a resolved depends_on entry calls only the shared open action with the resolved path");
+    context.assert(navigator.openPlannedChange("missing-change") === false && openedPaths.length === 1, "an unresolved entry opens nothing");
+    navigator.openPath(`${WORKFLOW_ROOT}/roadmap/planned-changes/target-change.yaml`);
+    context.assert(openedPaths.length === 2, "an owned row opens its declared path through the same shared action");
+
+    await roadmapStores.actions.openDocument("session-roadmap", `${WORKFLOW_ROOT}/roadmap/planned-changes/depending-change.yaml`);
+    await settle();
+    const dependingHtml = renderToString(createElement(DocumentView, {
+      state: roadmapStores.open.getSnapshot(),
+      t: fakeT,
+      context: roadmapContext,
+    } satisfies DocumentViewProps));
+    context.assert(dependingHtml.includes("target-change") && dependingHtml.includes("<button"), "a resolved dependency renders as a selectable link");
+    context.assert(dependingHtml.includes("missing-change") && dependingHtml.includes("roadmap.unresolved"), "an unresolved dependency renders the visible unresolved marker");
+
+    const ownedListed = ownedPlannedChanges(documents, "m1");
+    context.assert(
+      ownedListed.length === 2 && ownedListed.every((entry) => entry.status === "planned"),
+      "the owned listing derives from the planned-change documents whose declared milestone names the milestone",
+      `actual: ${JSON.stringify(ownedListed)}`,
+    );
+
+    await roadmapStores.actions.openDocument("session-roadmap", `${WORKFLOW_ROOT}/roadmap/milestones/m1.yaml`);
+    await settle();
+    const milestoneContextHtml = renderToString(createElement(DocumentView, {
+      state: roadmapStores.open.getSnapshot(),
+      t: fakeT,
+      context: roadmapContext,
+    } satisfies DocumentViewProps));
+    context.assert(
+      milestoneContextHtml.includes("roadmap.owned-planned-changes") && milestoneContextHtml.includes("depending-change") && milestoneContextHtml.includes("target-change"),
+      "the milestone view lists its owned planned changes with their declared statuses",
+    );
+
+    // The renderer suite also renders an archived milestone of this
+    // repository, so the dedicated view is proven against real archived
+    // shape, and its owned entries resolve from the archived files.
+    const archivedMilestone = load(
+      readFileSync(path.join(ROOT, ".strict-spec-driven", "roadmap", "archive", "milestones", "0001-yaml-contracts-and-naming.yaml"), "utf8"),
+      { schema: CORE_SCHEMA },
+    );
+    const archivedModel = milestoneView(archivedMilestone);
+    context.assert(archivedModel.body.milestone?.id === "0001-yaml-contracts-and-naming", "the archived milestone view model reads the keyed identity");
+    const archivedHtml = renderData(archivedMilestone);
+    context.assert(archivedHtml.includes("roadmap.goal") && archivedHtml.includes("roadmap.done-criteria"), "an archived milestone renders through the same dedicated view");
+
+    const archivedFake = new FakeWorkspaceFiles();
+    archivedFake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/archive/milestones/0001-yaml-contracts-and-naming.yaml`,
+      readFileSync(path.join(ROOT, ".strict-spec-driven", "roadmap", "archive", "milestones", "0001-yaml-contracts-and-naming.yaml"), "utf8"),
+    );
+    for (const name of ["0001-yaml-contracts-and-naming-define-yaml-spec-and-delta-model.yaml", "0001-yaml-contracts-and-naming-define-command-naming-model.yaml"]) {
+      archivedFake.writeFile(
+        `${WORKFLOW_ROOT}/roadmap/archive/planned-changes/${name}`,
+        readFileSync(path.join(ROOT, ".strict-spec-driven", "roadmap", "archive", "planned-changes", name), "utf8"),
+      );
+    }
+    const archivedStores = createViewerStores(archivedFake.port);
+    await archivedStores.actions.loadWorkspace("session-archived");
+    await settle();
+    await archivedStores.actions.expandNode("session-archived", `${WORKFLOW_ROOT}/roadmap/archive`);
+    await settle();
+    await archivedStores.actions.openDocument("session-archived", `${WORKFLOW_ROOT}/roadmap/archive/milestones/0001-yaml-contracts-and-naming.yaml`);
+    await settle();
+    const archivedOwnership = archivedStores.ownership.getSnapshot();
+    context.assert(
+      archivedOwnership.status === "ready" && archivedOwnership.owned.length === 2,
+      "opening the repository's archived milestone resolves its owned planned changes from the archived files",
+      `actual: ${JSON.stringify(archivedOwnership.owned)}`,
+    );
+    const archivedContextHtml = renderToString(createElement(DocumentView, {
+      state: archivedStores.open.getSnapshot(),
+      t: fakeT,
+      context: { sessionId: "session-archived", viewer: archivedStores },
+    } satisfies DocumentViewProps));
+    context.assert(
+      archivedContextHtml.includes("roadmap.owned-planned-changes") && archivedContextHtml.includes("define-yaml-spec-and-delta-model"),
+      "the archived milestone view lists its owned planned changes resolved from the archived files",
+    );
+
+    // The archived planned-change leg of the same-view requirement: opening
+    // one from the expanded archive renders the dedicated planned-change
+    // view exactly as an active planned change's does.
+    await archivedStores.actions.openDocument("session-archived", `${WORKFLOW_ROOT}/roadmap/archive/planned-changes/0001-yaml-contracts-and-naming-define-yaml-spec-and-delta-model.yaml`);
+    await settle();
+    const archivedPlannedChangeHtml = renderToString(createElement(DocumentView, {
+      state: archivedStores.open.getSnapshot(),
+      t: fakeT,
+      context: { sessionId: "session-archived", viewer: archivedStores },
+    } satisfies DocumentViewProps));
+    context.assert(
+      archivedPlannedChangeHtml.includes("roadmap.summary") && archivedPlannedChangeHtml.includes("translate RFC 2119 requirements"),
+      "an archived planned change renders through the same dedicated planned-change view",
+    );
+    context.assert(
+      archivedPlannedChangeHtml.includes(">complete<") && archivedPlannedChangeHtml.includes("proposal.roadmap-milestone") && archivedPlannedChangeHtml.includes("0001-yaml-contracts-and-naming"),
+      "the archived planned change presents its declared status and owning milestone",
+    );
+    context.assert(!archivedPlannedChangeHtml.includes("roadmap.depends-on"), "a planned change with no depends_on entries renders no dependency section");
+
+    // No client view module reaches the workspace port: navigation flows
+    // only through the shared open action and passed-in state. The scan and
+    // its firing probe share one predicate, so a broken pattern fails the
+    // probe before the scan can pass vacuously.
+    const portImportPattern = /from ["']\.\.\/model\/port\.ts["']/;
+    context.assert(
+      portImportPattern.test('import type { WorkspaceFilesPort } from "../model/port.ts";') && !portImportPattern.test('import type { TreeState } from "../model/nodes.ts";'),
+      "the port-import predicate fires on a synthetic offender and stays silent on a benign import",
+    );
+    const clientDir = path.join(ROOT, "plugins", "dsh-strict-spec", "src", "client");
+    const portImportingViews = readdirSync(clientDir)
+      .filter((name) => name.endsWith(".tsx") || name.endsWith(".ts"))
+      .filter((name) => portImportPattern.test(readFileSync(path.join(clientDir, name), "utf8")));
+    context.assert(portImportingViews.length === 0, "no client view module imports the workspace-files port", `offenders: ${portImportingViews.join(",")}`);
+
+    roadmapStores.actions.dispose();
+    archivedStores.actions.dispose();
+  }
+
   context.section("dsh plugin components: locale catalogs");
 
   {
@@ -936,6 +1180,7 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
       "tasks.overall", "tasks.completion", "tasks.done", "tasks.pending", "tasks.command", "tasks.gates", "tasks.gate-validation", "tasks.gate-unit-test",
       "questions.open", "questions.resolved", "questions.context", "questions.answer",
       "delta.target-spec", "delta.new-spec", "delta.target-scene", "delta.target-standard", "delta.new-standard", "delta.main-flow", "delta.exception-flow", "delta.trigger", "delta.reason", "delta.rationale", "delta.enforcement", "delta.example-good", "delta.example-bad", "delta.no-coverage",
+      "roadmap.milestones", "roadmap.intake-questions", "roadmap.owned-planned-changes", "roadmap.goal", "roadmap.done-criteria", "roadmap.dependencies", "roadmap.notes", "roadmap.details", "roadmap.summary", "roadmap.depends-on", "roadmap.unresolved", "roadmap.impact", "roadmap.recommendation", "roadmap.ownership-error",
     ];
     context.assert(rendererKeys.every((key) => key in zh), "every dedicated-renderer string is registered in both catalogs");
   }

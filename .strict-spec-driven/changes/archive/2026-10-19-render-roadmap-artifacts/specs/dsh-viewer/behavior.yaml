@@ -1,0 +1,45 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    roadmap-artifact-renderers:
+      strength: MUST
+      statement: Opening a roadmap index, milestone, or planned-change document renders its dedicated view — the roadmap index view listing milestones in the sequence their order fields assign, each with its declared status; the milestone view presenting its title, declared status badge, goal, scope in and out side by side, done criteria as a checklist, dependencies, risks, notes, details, and intake questions as cards showing question, context, impact, and recommendation, plus the planned changes the milestone owns with their declared statuses, selectable to open; the planned-change view presenting its summary, details, declared status, owning milestone, and depends_on entries that navigate the tree to the target planned change and show a visible unresolved marker when the target is not found — with the same dedicated views serving archived roadmap documents, and an archived milestone owned planned-change entries resolved by reading the archived planned-change files.
+      scenarios:
+        roadmap-index-view:
+          - GIVEN: An open roadmap index lists milestones whose files declare order values and the index declares a status for each
+          - WHEN: the roadmap index view renders
+          - THEN: the milestones appear in the sequence their order fields assign, each presenting its declared status, and no derived roadmap status is shown
+        milestone-view-sections:
+          - GIVEN: An open milestone declares its title, status, goal, scope in and out, done criteria, dependencies, risks, notes, details, and intake questions
+          - WHEN: the milestone view renders
+          - THEN: the title and declared status badge present, scope in and out appear side by side, done criteria render as a checklist, and each intake question renders as a card showing its question, context, impact, and recommendation
+        milestone-owned-planned-changes:
+          - GIVEN: A milestone document is open and the loaded tree holds non-archived planned-change documents whose declared milestone names it
+          - WHEN: the milestone view renders and one owned planned change is selected
+          - THEN: the owned planned changes list with their declared statuses and the selected one opens in the document view
+        planned-change-dependency-navigation:
+          - GIVEN: An open planned change declares depends_on entries and the loaded tree holds target planned-change documents for some of them
+          - WHEN: the planned-change view renders and a resolvable dependency is selected
+          - THEN: the tree navigates to and opens the target planned change, while each entry whose target is not found presents a visible unresolved marker
+        archived-milestone-owned-entries:
+          - GIVEN: The operator expanded the roadmap archive and opened an archived milestone whose planned changes are archived
+          - WHEN: the milestone view renders
+          - THEN: its owned planned-change entries are resolved by reading the archived planned-change files and present their declared statuses
+  MODIFIED:
+    generic-structured-rendering:
+      strength: MUST
+      statement: Opening any strict document whose artifact type has no dedicated renderer renders it as a structured view of its YAML fields, uniformly for every such type, and a document whose type has a dedicated renderer renders that renderer's layout with every top-level field the layout does not present appended through the same structured view under an additional-fields section.
+      scenarios:
+        fallback-types-stay-generic:
+          - GIVEN: An open strict document declares an artifact type no dedicated renderer serves, such as a main spec, a scene, or an unknown type
+          - WHEN: the document view renders
+          - THEN: it renders as the structured view of its YAML fields exactly as before, with no dedicated layout applied
+        additional-fields-appended:
+          - GIVEN: An open document of a served artifact type declares a top-level field its dedicated layout does not present
+          - WHEN: the document view renders
+          - THEN: that field appears under an additional-fields section rendered through the generic structured view rather than being hidden
+  REMOVED: {}

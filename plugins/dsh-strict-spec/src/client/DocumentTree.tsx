@@ -57,7 +57,7 @@ export interface DocumentTreeProps {
 }
 
 /** The tone a declared status badges with; unknown statuses stay outlined. */
-const STATUS_TONES: Readonly<Record<string, "success" | "info" | "neutral" | "warning" | "outline" | "quiet">> = {
+export const STATUS_TONES: Readonly<Record<string, "success" | "info" | "neutral" | "warning" | "outline" | "quiet">> = {
   complete: "success",
   active: "info",
   accepted: "success",

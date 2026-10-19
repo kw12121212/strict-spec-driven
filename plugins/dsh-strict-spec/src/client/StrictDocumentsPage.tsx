@@ -182,7 +182,7 @@ export function StrictDocumentsPage(props: StrictDocumentsPageProps): ReactNode 
             <DocumentTree sessionId={shown.sessionId} tree={viewer.tree} actions={viewer.actions} t={t} />
           </div>
           <div className={styles.documentPane} role="region" aria-label={t("page.document-pane")}>
-            <DocumentView state={openState} t={t} />
+            <DocumentView state={openState} t={t} context={{ sessionId: shown.sessionId, viewer }} />
           </div>
         </div>
       ) : shown.workspaceId !== undefined ? (

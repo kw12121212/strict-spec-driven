@@ -1083,4 +1083,166 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
 
     stores.actions.dispose();
   }
+
+  context.section("dsh plugin model: roadmap facts and archived-milestone ownership");
+
+  {
+    // The content pass records the declared identity facts the roadmap
+    // views navigate by: a milestone's keyed id and order value, and a
+    // planned change's id and owning milestone, refreshed by reloads.
+    const fake = new FakeWorkspaceFiles();
+    seedFixtureTree(fake);
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/milestones/foundation.yaml`,
+      "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Foundation Milestone\norder: 10\nstatus: complete\n",
+    );
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/planned-changes/first-step.yaml`,
+      "artifact_type: planned_change\nplanned_change:\n  id: first-step\n  milestone: m1\nstatus: planned\n",
+    );
+    const stores = await loadFakeWorkspace(fake);
+    const documents = stores.tree.getSnapshot().documents;
+    const milestone = documents[`${WORKFLOW_ROOT}/roadmap/milestones/foundation.yaml`];
+    context.assert(
+      milestone?.milestoneId === "m1" && milestone?.milestoneOrder === 10 && milestone?.status === "complete",
+      "the content pass records the milestone's keyed id, declared order, and status",
+    );
+    const plannedChange = documents[`${WORKFLOW_ROOT}/roadmap/planned-changes/first-step.yaml`];
+    context.assert(
+      plannedChange?.plannedChangeId === "first-step" && plannedChange?.plannedChangeMilestone === "m1" && plannedChange?.status === "planned",
+      "the content pass records the planned change's id and owning milestone",
+    );
+
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/milestones/foundation.yaml`,
+      "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Foundation Milestone\norder: 11\nstatus: complete\n",
+    );
+    fake.emit(`${WORKFLOW_ROOT}/roadmap/milestones`, "v2");
+    await settle();
+    const refreshed = stores.tree.getSnapshot().documents[`${WORKFLOW_ROOT}/roadmap/milestones/foundation.yaml`];
+    context.assert(refreshed?.milestoneOrder === 11, "a changed milestone file recomputes its recorded order through the directory reload");
+    stores.actions.dispose();
+  }
+
+  {
+    // Opening an archived milestone resolves its owned planned changes by
+    // reading the archived planned-change files; everything else keeps the
+    // ownership listing idle, and archived files stay unread while listed.
+    const fake = new FakeWorkspaceFiles();
+    seedFixtureTree(fake);
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/archive/milestones/0001-old.yaml`,
+      "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Old Milestone\n",
+    );
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/archive/planned-changes/m1-first.yaml`,
+      "artifact_type: planned_change\nplanned_change:\n  id: m1-first\n  milestone: m1\nstatus: complete\n",
+    );
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/archive/planned-changes/m2-other.yaml`,
+      "artifact_type: planned_change\nplanned_change:\n  id: m2-other\n  milestone: m2\nstatus: complete\n",
+    );
+    const stores = await loadFakeWorkspace(fake);
+    context.assert(stores.ownership.getSnapshot().status === "idle", "the ownership listing starts idle");
+
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/roadmap/planned-changes/first-step.yaml`);
+    await settle();
+    context.assert(stores.ownership.getSnapshot().status === "idle", "opening a non-archived planned change keeps the ownership listing idle");
+
+    const roadmapArchiveId = `${WORKFLOW_ROOT}/roadmap/archive`;
+    await stores.actions.expandNode(SESSION_ID, roadmapArchiveId);
+    await settle();
+    context.assert(
+      !fake.readBytesCalls.some((call) => call.startsWith(`${roadmapArchiveId}/planned-changes/`)),
+      "expanding the archive lists the archived planned changes without reading them",
+    );
+
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/roadmap/archive/milestones/0001-old.yaml`);
+    await settle();
+    const ownership = stores.ownership.getSnapshot();
+    context.assert(ownership.status === "ready" && ownership.milestoneId === "m1", "opening an archived milestone resolves its ownership listing");
+    context.assert(
+      ownership.owned.length === 1 && ownership.owned[0]?.id === "m1-first" && ownership.owned[0]?.status === "complete"
+        && ownership.owned[0]?.label === "m1-first.yaml",
+      "only the archived planned changes whose declared milestone names it are listed, labeled from their file names",
+      `actual: ${JSON.stringify(ownership.owned)}`,
+    );
+    context.assert(
+      fake.readBytesCalls.includes(`${roadmapArchiveId}/planned-changes/m2-other.yaml`) === true,
+      "resolving ownership reads the archived planned-change files once the archived milestone is open",
+    );
+
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/roadmap/milestones/foundation.yaml`);
+    await settle();
+    context.assert(stores.ownership.getSnapshot().status === "idle", "opening a non-archived milestone returns the ownership listing to idle");
+    stores.actions.dispose();
+    context.assert(stores.ownership.getSnapshot().status === "idle", "disposing the stores resets the ownership listing");
+  }
+
+  {
+    // An archived milestone whose roadmap archive holds no planned-change
+    // directory lists no owned entries rather than failing, and a listing
+    // failure other than absence reports the error state.
+    const fake = new FakeWorkspaceFiles();
+    fake.writeFile(`${WORKFLOW_ROOT}/config.yaml`, "schema: x\nartifact_type: workflow_config\n");
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/INDEX.yaml`,
+      "artifact_type: roadmap_index\nmilestones:\n  m1:\n    title: Lone\n    path: roadmap/milestones/lone.yaml\n    status: archived\n",
+    );
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/milestones/lone.yaml`,
+      "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Lone\n",
+    );
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/archive/milestones/0002-lone.yaml`,
+      "artifact_type: roadmap_milestone\nmilestone:\n  m1:\n    title: Lone\n",
+    );
+    const stores = await loadFakeWorkspace(fake);
+    await stores.actions.expandNode(SESSION_ID, `${WORKFLOW_ROOT}/roadmap/archive`);
+    await settle();
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/roadmap/archive/milestones/0002-lone.yaml`);
+    await settle();
+    const empty = stores.ownership.getSnapshot();
+    context.assert(empty.status === "ready" && empty.owned.length === 0, "an archive without planned-change files resolves to an empty owned list");
+    stores.actions.dispose();
+
+    const failing = new FakeWorkspaceFiles();
+    failing.writeFile(`${WORKFLOW_ROOT}/config.yaml`, "schema: x\nartifact_type: workflow_config\n");
+    failing.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/archive/milestones/0003-broken.yaml`,
+      "artifact_type: roadmap_milestone\nmilestone:\n  m3:\n    title: Broken\n",
+    );
+    failing.writeFile(
+      `${WORKFLOW_ROOT}/roadmap/archive/planned-changes/m3-orphan.yaml`,
+      "artifact_type: planned_change\nplanned_change:\n  id: m3-orphan\n  milestone: m3\nstatus: complete\n",
+    );
+    // The ownership listing fails after the archive expansion succeeded: the
+    // first listing of the planned-change directory serves the tree walk,
+    // and a later one fails with a code absence never produces, so the
+    // resolver reports the error state instead of an empty history.
+    let plannedChangeListings = 0;
+    const failingPort: WorkspaceFilesPort = {
+      list: (sid, dirPath, signal) => {
+        if (dirPath === `${WORKFLOW_ROOT}/roadmap/archive/planned-changes`) {
+          plannedChangeListings += 1;
+          if (plannedChangeListings > 1) {
+            return Promise.reject({ code: "workspace-file/permission-denied", path: dirPath });
+          }
+        }
+        return failing.port.list(sid, dirPath, signal);
+      },
+      read: (sid, dirPath, range, signal) => failing.port.read(sid, dirPath, range, signal),
+      readBytes: (sid, dirPath, options, signal) => failing.port.readBytes(sid, dirPath, options, signal),
+      changes: (sid, dirPath, signal) => failing.port.changes(sid, dirPath, signal),
+    };
+    const failingStores = createViewerStores(failingPort);
+    await failingStores.actions.loadWorkspace(SESSION_ID);
+    await settle();
+    await failingStores.actions.expandNode(SESSION_ID, `${WORKFLOW_ROOT}/roadmap/archive`);
+    await settle();
+    await failingStores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/roadmap/archive/milestones/0003-broken.yaml`);
+    await settle();
+    context.assert(failingStores.ownership.getSnapshot().status === "error", "a failed archive listing reports the ownership error state");
+    failingStores.actions.dispose();
+  }
 }

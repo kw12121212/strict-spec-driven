@@ -107,6 +107,18 @@ export interface DocumentRecord {
    * entries stay unread, so they carry no status.
    */
   status?: string;
+  /**
+   * The keyed milestone id and declared order of a non-archived roadmap
+   * milestone, and the declared id and owning milestone of a non-archived
+   * planned change, read by the same content pass that derives the label.
+   * The roadmap views resolve index ordering, milestone ownership, and
+   * depends_on navigation from these declared facts; archived entries stay
+   * unread, so they carry none.
+   */
+  milestoneId?: string;
+  milestoneOrder?: number;
+  plannedChangeId?: string;
+  plannedChangeMilestone?: string;
   /** Whether the document lives inside an archive directory. */
   readonly archived: boolean;
 }

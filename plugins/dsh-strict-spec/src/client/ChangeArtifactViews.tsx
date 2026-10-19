@@ -12,7 +12,7 @@ import { Tag } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { Translate } from "@deepseek-ai/dsh-client-ui-slots";
 import type { ReactNode } from "react";
 import { designView, proposalView, questionsView, tasksView } from "./changeParts.ts";
-import type { DedicatedView, HeaderFact } from "./changeParts.ts";
+import type { DedicatedView, HeaderFact, ViewContext } from "./changeParts.ts";
 import { AdditionalFieldsView } from "./genericBlocks.tsx";
 import type { StrictSpecKey } from "./locales.ts";
 import styles from "./ArtifactViews.module.css";
@@ -23,6 +23,10 @@ export interface DedicatedViewProps {
   readonly data: unknown;
   /** The strictSpec translate function; every visible string renders through it. */
   readonly t: Translate<StrictSpecKey>;
+  /** Workspace path of the open document, when the view knows it. */
+  readonly path?: string;
+  /** The entry points' shared stores, for dedicated views that navigate. */
+  readonly context?: ViewContext;
 }
 
 /** Renders one dedicated view's facts header from its scalar fields. */

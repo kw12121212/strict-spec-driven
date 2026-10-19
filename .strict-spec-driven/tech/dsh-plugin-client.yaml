@@ -162,3 +162,27 @@ rules:
         - A contextParts mapper that imports partitionDocument and the field readers from recordFields.ts and declares no local copies.
       bad:
         - A roadmap mapper module that pastes its own partitionDocument implementation, so a future fix to the partition lands everywhere except the roadmap view.
+  rendered-view-navigation-through-open-action:
+    strength: MUST
+    statement: Cross-document navigation from a dedicated renderer flows only through the shared viewer open action and the tree documents record passed down as props from the entry points; a renderer never reads the workspace, mutates tree state, or opens a document by any other mechanism, and a link that resolves to no document renders the shared unresolved marker instead of acting.
+    rationale: This change introduces the first cross-document links in the viewer, and the remaining renderer changes of the milestone, whose scene coverage links must navigate to covering requirements, would otherwise each be free to grow their own mechanism; the one open action keeps selection, live refresh, and watch behavior identical whether a document opens from a tree row or from a rendered link.
+    enforcement:
+      method: test
+      detail: Component cases render the roadmap views over fake stores and assert that selecting a depends_on entry or an owned planned change calls only the shared open action with the resolved workspace path, and a view-module import check fails any client view module that imports the workspace-files port.
+    examples:
+      good:
+        - A planned-change view that resolves a depends_on id against the documents record prop and invokes the openDocument action prop with the target path.
+      bad:
+        - A renderer that imports the workspace-files port to fetch a dependency file itself, or one that patches tree state to force a selection.
+  dedicated-views-render-context-free:
+    strength: SHOULD
+    statement: A dedicated renderer that consumes entry-point stores should read them only through the view context with identity-stable context-free fallbacks, never varying its hook structure on context presence, so the same component statically renders declared data alone when no context is passed.
+    rationale: Store-consuming dedicated renderers would otherwise need either a second context-free variant for example-driven static renders or a mandatory context that breaks the shared document view's context-optional contract; identity-stable fallback stores keep one component serving both entry points and the registered-example renderer cases that the renderer-suites rule requires.
+    enforcement:
+      method: test
+      detail: The registered-example renderer cases render each store-consuming dedicated view without a view context and assert its declared-data sections render, so a renderer that skips rendering or changes hook structure without context fails the suite.
+    examples:
+      good:
+        - A roadmap renderer whose useSyncExternalStore calls read the context's stores with stable fallback singletons and still renders its declared sections context-free.
+      bad:
+        - A dedicated view that returns null when no view context is passed, or that calls hooks conditionally on the context's presence.

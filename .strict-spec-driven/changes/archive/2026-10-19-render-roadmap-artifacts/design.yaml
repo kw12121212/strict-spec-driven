@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: render-roadmap-artifacts
+approach:
+  - Route roadmap_index, roadmap_milestone, and planned_change documents through dedicated renderers dispatched by declared artifact type, each backed by a React-free view-model module that maps declared fields onto the presentation structure, imports the shared record-field readers and partition helper, and partitions unrecognized top-level fields for the generic additional-fields append.
+  - 'Extend the model content pass to record, per non-archived roadmap document, the facts the views need for cross-document structure: a milestone id and declared order, and a planned-change id and owning milestone, alongside the status already recorded. The document view gains a navigation seam — the tree documents record and the shared open action — passed down as props from both entry points, so a depends_on entry or an owned planned change that resolves to a tree document opens through the same action a tree row uses, and one that resolves to nothing renders a visible unresolved marker.'
+  - Resolve an archived milestone owned planned changes by listing the roadmap archive planned-change directory and reading those files when such a milestone is open, while archived entries stay unread while they are only listed.
+decisions:
+  navigation-through-shared-open-action:
+    decision: Rendered-view navigation flows only through the shared viewer open action and the tree documents record passed down as props from the entry points; a depends_on entry or owned planned change that resolves to a tree document opens it through the same action the tree rows use, and an entry that resolves to no document renders a visible unresolved marker.
+    rationale: The change renderers deliberately deferred cross-document navigation to the renderer changes that own their targets; using the one open action keeps selection, live refresh, and watch behavior identical whether a document opens from a tree row or from a rendered link, and the scene coverage links of the render-spec-and-scene change reuse the same seam instead of growing a second mechanism.
+  roadmap-facts-from-content-pass:
+    decision: The milestone id and declared order and the planned-change id and owning milestone are recorded by the same non-archived content pass that already derives labels and statuses, exposed on the tree documents record, and read by the roadmap views from tree state.
+    rationale: The tree already reads every non-archived roadmap file, so the index ordering and the owned-planned-changes listing add no workspace reads and refresh through the existing directory watches; a separate index-building pass would duplicate reads and drift from the tree.
+  archived-milestone-ownership-read-on-open:
+    decision: Opening an archived milestone resolves its owned planned changes by listing the roadmap archive planned-change directory and reading those files, while archived entries stay unread while they are only listed.
+    rationale: The planned change details require the archived planned-change files to resolve an archived milestone owned entries; reading them on the operator open of the milestone preserves the archive contract that nothing is read while merely listed, exactly as opening an archived document already reads that one file.
+  order-sequence-from-declared-order:
+    decision: The roadmap index view orders milestones by the order values their milestone files declare, recorded in tree state, and presents each milestone declared status from the index file.
+    rationale: The index file carries no order field, so its declaration order is not the sequence the roadmap means; the order values are declared fields the existing content pass already reads, so the sequence presentation stays within declared values.
+  unresolved-marker-not-derived-status:
+    decision: A depends_on target that resolves to no tree document renders a visible unresolved marker, and nothing else is computed about it.
+    rationale: The declared-values requirement forbids presenting derived status; resolution answers only whether the target is found in the workspace, which is a property of the loaded tree rather than a value pretending to be written in the file.
+  viewer-reports-loaded-tree:
+    decision: The viewer resolves navigation targets against the loaded tree state alone and reads archived planned-change files solely to list an archived milestone owned entries; it never decides whether an active dependency target is satisfied for any workflow gate.
+    rationale: The workflow-scope-discipline dependency-universe rule binds consumers that gate work on dependency satisfaction, and its recorded exception covers code that reports on archived history rather than deciding satisfaction; the viewer is a read-only renderer whose unresolved marker is navigation presentation over the loaded tree, the declared planned-change design the roadmap records for this change, and the plugin has no access to the repository loader that computes the shared universe.
+alternatives:
+  - option: Resolve depends_on targets by reading each target file on demand from the view.
+    reason: Client views read data only through props and stores behind the model port; direct reads from a view would break the plugin data-flow convention and duplicate the reads the model already performs.
+  - option: List a milestone owned planned changes by matching planned-change file-name prefixes.
+    reason: Planned-change file names are a convention the roadmap treats as helpful only; ownership is declared by the milestone field, so prefix matching would list files that merely share a name shape and miss renamed ones.
+risks:
+  - Renderer view models encode the current shapes of roadmap artifacts, so schema evolution can silently degrade them; example-driven renderer tests make the break fail the regression suite first.
+  - The navigation seam is the first cross-document link in the viewer; a later renderer adding a second mechanism would fragment selection behavior, so a delta tech rule pins the seam to the one open action.

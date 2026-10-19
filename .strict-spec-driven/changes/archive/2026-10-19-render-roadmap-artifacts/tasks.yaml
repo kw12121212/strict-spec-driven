@@ -1,0 +1,59 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: render-roadmap-artifacts
+sections:
+  Implementation:
+    implement-roadmap-view-models:
+      text: 'Implement the React-free roadmap view-model module under plugins/dsh-strict-spec/src/client/: map a parsed roadmap index onto milestones ordered for presentation, a roadmap milestone onto its title, status, goal, scope in and out, done criteria, dependencies, risks, notes, details, and intake-question cards carrying question, context, impact, and recommendation, and a planned change onto its summary, details, status, owning milestone, and depends_on entries — importing the shared record-field readers and partition helper so every unrecognized top-level field survives as generic blocks for the additional-fields append.'
+      status: complete
+    extend-model-roadmap-facts:
+      text: 'Extend the model content pass and document record: record each non-archived milestone declared id and order value and each non-archived planned-change declared id and owning milestone alongside the status already recorded, expose them on the tree documents record, and keep them refreshed through the existing directory-watch reloads.'
+      status: complete
+    resolve-archived-milestone-ownership:
+      text: 'Implement archived-milestone ownership resolution in the model and stores: when an archived roadmap milestone document opens, list the roadmap archive planned-change directory through the owned port, read those files, and expose the owned entries carrying declared id, status, and milestone so the milestone view lists them; archived entries stay unread while they are only listed.'
+      status: complete
+    implement-roadmap-renderer-components:
+      text: 'Implement the dedicated roadmap renderer components and their CSS Modules under plugins/dsh-strict-spec/src/client/: roadmap index, milestone, and planned-change views rendering through the view models with the declared status badge, scope in and out side by side, done criteria as a checklist, intake-question cards, owned planned-change rows, and depends_on links with the unresolved marker, using props-only data flow, styles consuming only --dsw alias tokens, and every new user-visible string registered in both the zh and en catalogs and rendered only through them; register the three views for the roadmap_index, roadmap_milestone, and planned_change artifact types in the shared document view routing.'
+      status: complete
+    wire-view-navigation-seam:
+      text: 'Wire the rendered-view navigation seam: extend the shared document view props with the tree documents record and the shared open action, pass both from the right-sidebar tab and the left-panel page, resolve each depends_on entry and each owned planned change against the documents record by declared planned-change id, open resolved targets through the same action a tree row uses, and render the visible unresolved marker for targets that resolve to no document, keeping every existing dedicated view and the generic fallback working without the seam.'
+      status: complete
+    extend-plugin-renderer-suites:
+      text: 'Extend the plugin suites inside bun test/run.ts: component cases statically rendering every roadmap renderer against its registered strict example under examples/strict-spec-driven/ — roadmap index, roadmap milestone with its planning variant, and planned change — plus an archived milestone of this repository, the depends_on navigation and unresolved marker through fake stores asserting only the shared open action is called, the additional-fields append, and the generic fallback for a still-unserved type; model cases for the recorded milestone id, order, and planned-change id and owning milestone, and for the archived-milestone ownership reads that stay absent while archived entries are only listed.'
+      status: complete
+  Testing:
+    validate-roadmap-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready render-roadmap-artifacts
+    run-lint:
+      text: Run the plugin-local lint inside plugins/dsh-strict-spec so the roadmap view models, renderer components, and model changes compile under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite, confirming the roadmap renderer example cases, the archived-milestone case, the navigation and unresolved-marker cases, and the existing viewer behavior all pass together.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the additions leave the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-and-conventions:
+      text: 'Rebuild the client bundle and confirm the shape and convention checks hold: shared modules stay runtime requires, no unshared runtime require appears, CSS Modules carry no literal colors or radii, and both locale catalogs stay key-complete for the new roadmap renderer strings.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    record-manual-renderer-check:
+      text: 'Record the manual check in the pinned dsh release with the observed evidence written back into this task. OBSERVED EVIDENCE (dsh 0.2.1-rc.2, isolated DSH_HOME=/tmp/dsh-roadmap-home, link: install of the built plugin into the web profile, browser-driven web client on 127.0.0.1:13195, screenshots /tmp/rra-smoke-01..04): (1) dsh plugin --profile web add link: installed dsh-plugin-strict-spec from the local checkout; the client booted with the Strict documents panel registered in the global panels and no load errors. (2) After choosing /home/wx766/Code/strict-spec-driven as workspace and creating a Session, the left page showed the two panes; the tree loaded the real workspace in the fixed family order, the roadmap family listing INDEX.yaml, milestones with 8 entries and declared status badges, planned-changes with 40 entries, and the archive collapsed. (3) Keyboard-opening roadmap/INDEX.yaml rendered the dedicated index view: the facts header and a Milestones section listing all eight milestones in their declared order sequence (100 through 800), each with its declared status badge, id, and title, and no derived status anywhere. (4) Opening the renderers milestone rendered the dedicated milestone view: title with the proposed badge, Goal, Scope in and out side by side, Done criteria as a checklist, intake-question cards, details, the legacy inline planned_changes mapping carried under Additional fields, and an Owned planned changes section listing all five owned planned changes with their declared statuses. (5) Selecting the owned render-roadmap-artifacts row navigated the view to that planned change through the shared open action; its dedicated view showed the planned badge, summary, details, and a Depends on section whose two entries, register-right-sidebar-tab and register-left-panel-page, each presented the Target not found unresolved marker, because both targets are archived and unread in the loaded tree. (6) Expanding the roadmap archive listed the archived milestone and planned-change files by file name alone with no status badges; opening archive/milestones/0001-yaml-contracts-and-naming.yaml rendered the same dedicated milestone view, and its Owned planned changes section resolved nine entries with declared complete statuses by reading the archived planned-change files. NOT RUN: the desktop-profile leg — the profile is Electron-managed and no Electron binary exists in this environment, so desktop proof defers to the release-dsh-strict-spec-plugin planned change, which owns the end-to-end smoke for both profiles.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the added roadmap-artifact-renderers requirement and the modified generic-structured-rendering requirement merge into dsh-viewer-behavior, the navigation rule merges into dsh-plugin-client, and the delta scene steps merge into the browses scene with coverage resolving through the delta overlay.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify render-roadmap-artifacts directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-roadmap-artifacts
+  unit_test_task: run-project-suite
