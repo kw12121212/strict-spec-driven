@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-view-model-written-from-one-shape-silently-dro-f7cbe7
+  title: A view model written from one shape silently drops declared groups
+category: ui
+status: active
+created_at: '2026-10-18T17:12:25.750Z'
+updated_at: '2026-10-18T17:12:25.750Z'
+context: Implementing the design-system renderer's token view model from the registered example, reading each token family's entries as scalar leaves.
+observation: 'The suite failed only on the design-system cases: the registered example''s typography family nests its entries as groups (body, heading) rather than scalars, so the mapper''s scalar-only filter dropped every entry and the entire declared family vanished from the rendered view — no error, just a missing section.'
+takeaway: 'Derive a dedicated view model from the schema''s declared shape variety — scalar leaves and nested mappings — and keep the example-driven renderer case asserting the nested shape, because the drop is silent: an omitted group renders nothing instead of failing.'
+applies_when: Authoring or reviewing a dedicated renderer's view-model mapper for an artifact type whose schema permits nested mappings under a keyed group, such as design-system tokens, config rules, roadmap details, or SOP step structure.
+occurrences:
+  - origin: render-project-context-artifacts
+    date: '2026-10-18'
+    evidence: bun test/run.ts failed 2/5094 cases when the design-system mapper kept only scalar token values; after the mapper learned nested token groups the same example-driven case passes and asserts the typography family's body/heading groups with their fontFamily values.

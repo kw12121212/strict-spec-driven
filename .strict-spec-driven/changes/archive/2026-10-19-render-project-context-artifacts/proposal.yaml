@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: render-project-context-artifacts
+  status: proposed
+summary:
+  what:
+    - 'Give project-context artifacts dedicated readable views: a config view with preferred human language, project context, rules grouped by their declared categories, review evidence with its command and coverage threshold, and maintenance checks; an architecture view with components, data flows, and decisions as structured sections; a technical standard view with its category and each rule''s MUST or SHOULD strength emphasized beside a tech index view; a lesson view with its status and obsolete marking beside a lessons index grouped by category; SOP, SOP category, and SOPs index views with the SOP''s ordered steps; and a design system view with its tokens, components, and guidance.'
+    - Keep every artifact type still without a dedicated renderer on the generic structured view, and append every unrecognized top-level field of a served type through the generic structured view under an additional-fields section.
+    - Cover each dedicated renderer with suite cases that render the registered strict example of its artifact type from examples/strict-spec-driven/, so a schema change that breaks a renderer fails the regression suite.
+  why:
+    - The generic structured view makes operators decode YAML shape to read a project's review-evidence command, a standard's MUST rules, or an SOP's ordered steps, and the renderers milestone exists to give each artifact family a renderer that matches how operators read it.
+    - Renderers encode strict schema shapes, and example-driven renderer tests keep renderer and schema in lockstep, which is the lockstep benefit of keeping the plugin in this repository.
+scope:
+  in:
+    - 'A dedicated config view: preferred human language, project context, rules grouped by their declared categories, review evidence with its command and coverage threshold, and maintenance checks when declared, each as its own section presenting declared values.'
+    - 'A dedicated architecture view: architecture identity, components with their responsibilities, boundaries, and dependencies, data flows with their triggers and ordered steps, and decisions with their statements, rationale, and status, as structured sections.'
+    - 'A dedicated technical standard view: standard identity with its category, rules with their MUST or SHOULD strength emphasized, statements, rationale, enforcement, examples, and exceptions, laid out through the shared rule layout the delta tech view already uses.'
+    - A dedicated tech index view listing the recorded standards with their ids, titles, categories, and paths.
+    - 'A dedicated lesson view: lesson identity with its category and status including its obsolete marking and recorded retirement reason, context, observation, takeaway, applies-when, and occurrences; and a lessons index view grouping lessons by their declared categories with their statuses.'
+    - 'Dedicated SOP views: an SOP view with purpose, scope, trigger, roles, steps carrying their declared order, actor, action, and expected result, exceptions, and success criteria; an SOP category view with its intake questions and constraints; and an SOPs index view listing SOPs with their categories and statuses.'
+    - 'A dedicated design system view: design system identity, tokens grouped by their declared token families, components with their token references and mapping files, and guidance with its overview, do, and don''t entries.'
+    - Routing the ten artifact types workflow_config, architecture, main_tech, tech_index, lesson, lessons_index, sop, sop_category, sops_index, and design_system through the shared document view's dedicated-renderer dispatch.
+    - Unrecognized top-level fields appended through the generic structured view under an additional-fields section, and artifact types without a dedicated renderer keeping the generic view.
+    - Renderer suite cases that render the registered strict example of each served artifact type, including the ui-category standard example, plus view-model cases for the field partitions and body mappings, and the delta spec and delta scene recording the behavior.
+  out:
+    - Dedicated renderers for roadmap, milestone, planned-change, spec, spec-index, scene, and scenes-index artifacts, which are separate planned changes of the same milestone.
+    - Editing or mutating strict artifacts from any renderer.
+    - Cross-document navigation from a rendered view, such as opening a tech index entry's standard or a design-system component's mapping file; navigation belongs to the renderer changes that own those documents.
+    - Derived roadmap status, validation diagnostics, or computed values beyond declared field values; views show declared values exactly as written.
+    - Changes to strict artifact schemas, the host plugin contract, the client entry's registration surface, or the plugin's dependencies.
+    - Release preparation, including the plugin README, install instructions, packaging verification, and the end-to-end smoke check, which the release-dsh-strict-spec-plugin planned change owns.
+unchanged_behavior:
+  - The document tree's fixed family order, absent-family omission, archive collapse, labeling, truncation markers, entry counts, badges, keyboard navigation, and expand persistence.
+  - The generic structured view for artifact types without a dedicated renderer, including its header, titled sections, lists, wrapped paragraphs, and collapsible blocks, and the dedicated change-artifact views.
+  - The viewer's read-only guarantee, declared-values-only presentation, located parse-error view, loading and error conditions, empty state, and live refresh behavior.
+  - Both entry points' registration, Session binding and following, watch teardown, pane layouts, and selection restore.
+roadmap:
+  milestone: dsh-strict-spec-viewer-renderers
+  planned_change: render-project-context-artifacts

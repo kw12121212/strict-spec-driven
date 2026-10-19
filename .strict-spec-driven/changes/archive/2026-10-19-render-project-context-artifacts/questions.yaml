@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: render-project-context-artifacts
+open: []
+resolved:
+  - id: design-system-rules-reading
+    question: The planned change details ask for a design system view with its tokens and rules, but the design-system schema carries guidance with overview, do, and don't entries rather than a rules key; what does the design system view present?
+    context: 'Why this is asked: the planned change details'' word rules does not name a declared field of the design-system schema, so the view''s section layout needs one reading. The uncertainty affects the spec delta statement and the implementation files. The registered example declares tokens, components, and guidance, and its do and don''t lists are the artifact''s rule-shaped content.'
+    answer: The design system view presents its tokens grouped by their declared token families, its components with their token references and mapping files, and its guidance with its overview, do, and don't entries, which is the artifact's declared rule-shaped content; no rules section is invented, and any unrecognized top-level field still renders under the additional-fields section.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Operators reading project-context artifacts in the viewer today decode generic YAML shape: the completed foundation milestone makes every strict document reachable but shows each one through a generic structured view, so an operator checking a project''s review-evidence command, a standard''s MUST rules, a lesson''s status, or an SOP''s ordered steps reads field-by-field structure instead of the readable per-family views the renderers milestone exists to provide.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: Opening the workflow config, the architecture document, a technical standard, the tech index, a lesson, the lessons index, an SOP, an SOP category, the SOPs index, or the design system renders its dedicated view — the config's rules grouped by category with its review evidence command and coverage threshold, emphasized MUST and SHOULD rule strengths, the category-grouped lessons index, SOP steps in their declared order, and the design system's tokens — while artifact types still without a dedicated renderer keep the generic structured view.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The viewer foundation milestone is complete, with register-right-sidebar-tab and register-left-panel-page archived, so this planned change's dependencies cleared and roadmap-recommend selected it as the next eligible change; the milestone records that renderer changes are independent of one another and may land in any order once the foundation is complete.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: The document tree's family order, omission, badges, and navigation, the generic structured view for unserved types, the dedicated change-artifact views, the viewer's read-only guarantee and declared-values-only presentation, and both entry points' registration and Session behavior all stay unchanged, recorded as the proposal's unchanged_behavior items; editing strict artifacts from any renderer stays out, and release preparation belongs to the release-dsh-strict-spec-plugin planned change.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'The planned change''s details enumerate the exact views: config with preferred human language, project context, rules grouped by category, review evidence with its command and coverage threshold, and maintenance checks; architecture components and relationships as structured sections; a technical standard view with category and emphasized MUST and SHOULD rules, and a tech index view; a lesson view with status and obsolete marking, and a lessons index grouped by category; SOP, SOP category, and SOP index views; and a design system view with its tokens and rules — with any artifact type still without a dedicated renderer keeping the generic renderer and each renderer tested against its registered strict example.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

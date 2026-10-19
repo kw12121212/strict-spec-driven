@@ -11,16 +11,16 @@
  * present survives as generic blocks an additional-fields section renders,
  * so a newer schema version never makes content disappear from the reader.
  */
-import { documentParts } from "./documentParts.ts";
 import type { DocumentBlock } from "./documentParts.ts";
+import { partitionDocument, soleValue, stringEntries, stringField } from "./recordFields.ts";
+import type { HeaderFact } from "./recordFields.ts";
 import { taskCompletion } from "../model/taskCompletion.ts";
 import type { TaskCompletion } from "../model/taskCompletion.ts";
 
-/** One scalar header fact, rendered exactly as the generic header draws it. */
-export interface HeaderFact {
-  readonly key: string;
-  readonly text: string;
-}
+// The scalar header fact and the field readers live in one shared module so
+// every dedicated renderer's partition is the same implementation; the type
+// is re-exported for the views that historically imported it from here.
+export type { HeaderFact } from "./recordFields.ts";
 
 /** The shared shape every dedicated change view model returns. */
 export interface DedicatedView<B> {
@@ -30,48 +30,6 @@ export interface DedicatedView<B> {
   readonly body: B;
   /** Generic blocks of every top-level field the layout does not present. */
   readonly additional: readonly DocumentBlock[];
-}
-
-/** Reads one non-empty string field of a record, when it is one. */
-function stringField(record: unknown, key: string): string | undefined {
-  if (typeof record === "object" && record !== null && key in record) {
-    const value = (record as Record<string, unknown>)[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value;
-    }
-  }
-  return undefined;
-}
-
-/** Reads the single keyed child of a record, when the key holds it. */
-function soleValue(record: unknown, key: string): unknown {
-  if (typeof record === "object" && record !== null && key in record) {
-    return (record as Record<string, unknown>)[key];
-  }
-  return undefined;
-}
-
-/** Collects the string entries of one sequence value, skipping non-strings. */
-function stringEntries(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
-}
-
-/**
- * Partitions one parsed document for a dedicated renderer: the scalar header
- * renders as the generic view draws it, and the additional blocks carry every
- * top-level block field the dedicated layout does not present, derived from
- * the same generic mapper so the two presentations can never disagree about
- * how a YAML shape renders.
- */
-function partitionDocument(data: unknown, knownKeys: ReadonlySet<string>): { header: HeaderFact[]; additional: DocumentBlock[] } {
-  const parts = documentParts(data);
-  return {
-    header: [...parts.header],
-    additional: parts.blocks.filter((block) => !knownKeys.has(block.title)),
-  };
 }
 
 /** The proposal view body: identity, motivation, scope, and roadmap link. */

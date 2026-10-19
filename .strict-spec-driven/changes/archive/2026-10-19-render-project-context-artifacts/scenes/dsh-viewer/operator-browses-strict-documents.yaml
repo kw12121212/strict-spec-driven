@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+operations:
+  ADDED:
+    main_flow:
+      open-config-and-standards:
+        action: 'The operator opens the workflow config, a technical standard, and the tech index, and reads their dedicated views: the config''s rules grouped by category with its review evidence command and coverage threshold and maintenance checks, the standard''s category with each rule''s emphasized MUST or SHOULD strength, and the index''s list of standards.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: project-context-renderers
+      open-architecture-and-design-system:
+        action: 'The operator opens the architecture document and the design system, and reads their dedicated views: components, data flows, and decisions as structured sections, and the design system''s tokens grouped by token family, components, and guidance.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: project-context-renderers
+      open-lessons-and-sops:
+        action: 'The operator opens the lessons index, a lesson, and an SOP, and reads their dedicated views: the index grouped by category, the lesson''s status with its obsolete marking, and the SOP''s steps in their declared order with roles, exceptions, and success criteria.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: project-context-renderers
+  MODIFIED:
+    main_flow:
+      open-document:
+        action: 'The operator opens a strict document from the tree, which renders in the view its artifact type uses: a dedicated view for change documents and project-context documents, or the generic structured view for a type without one, showing declared field values exactly as written with unrecognized top-level fields appended under an additional-fields section.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: generic-structured-rendering
+          - spec_id: dsh-viewer-behavior
+            requirement_id: declared-values-only
+  REMOVED: {}

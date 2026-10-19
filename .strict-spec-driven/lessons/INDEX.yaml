@@ -338,3 +338,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/ui/a-cordis-context-property-read-must-be-declared-b79e42.yaml
+    a-view-model-written-from-one-shape-silently-dro-f7cbe7:
+      title: A view model written from one shape silently drops declared groups
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/ui/a-view-model-written-from-one-shape-silently-dro-f7cbe7.yaml

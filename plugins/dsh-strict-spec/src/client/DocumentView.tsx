@@ -21,6 +21,18 @@ import { GenericBlocksView } from "./genericBlocks.tsx";
 import { DesignView, ProposalView, QuestionsView, TasksView } from "./ChangeArtifactViews.tsx";
 import type { DedicatedViewProps } from "./ChangeArtifactViews.tsx";
 import { DeltaSceneView, DeltaSpecView, DeltaTechView } from "./DeltaArtifactViews.tsx";
+import {
+  ArchitectureView,
+  ConfigView,
+  DesignSystemView,
+  LessonView,
+  LessonsIndexView,
+  SopCategoryView,
+  SopsIndexView,
+  SopView,
+  TechIndexView,
+  TechStandardView,
+} from "./ProjectContextViews.tsx";
 import type { StrictSpecKey } from "./locales.ts";
 import styles from "./DocumentView.module.css";
 
@@ -34,8 +46,9 @@ export interface DocumentViewProps {
 
 /**
  * The dedicated renderers, keyed by declared artifact_type: the change
- * planning families and the change-scoped delta families. Every other or
- * absent type keeps the generic structured view.
+ * planning families, the change-scoped delta families, and the
+ * project-context families. Every other or absent type keeps the generic
+ * structured view.
  */
 const DEDICATED_VIEWS: Readonly<Record<string, (props: DedicatedViewProps) => ReactNode>> = {
   change_proposal: ProposalView,
@@ -45,6 +58,16 @@ const DEDICATED_VIEWS: Readonly<Record<string, (props: DedicatedViewProps) => Re
   delta_spec: DeltaSpecView,
   delta_scene: DeltaSceneView,
   delta_tech: DeltaTechView,
+  workflow_config: ConfigView,
+  architecture: ArchitectureView,
+  main_tech: TechStandardView,
+  tech_index: TechIndexView,
+  lesson: LessonView,
+  lessons_index: LessonsIndexView,
+  sop: SopView,
+  sop_category: SopCategoryView,
+  sops_index: SopsIndexView,
+  design_system: DesignSystemView,
 };
 
 /** Renders the generic structured view of one open strict document. */

@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: render-project-context-artifacts
   milestone: dsh-strict-spec-viewer-renderers
-status: planned
+status: complete
 summary: Render config, architecture, technical standards, lessons, SOPs, and design system artifacts.
 details: 'Config view: preferred human language, project context, rules grouped by category, review evidence with its command and coverage threshold, and maintenance checks. Architecture view: components and relationships as structured sections. Technical standard view with category and MUST and SHOULD rules emphasized, and a tech index view. Lesson view with status and obsolete marking, and a lessons index grouped by category. SOP view and SOP category and index views. Design system view with its tokens and rules. Any artifact type still without a dedicated renderer keeps the generic renderer. Test each renderer against its registered strict example.'
 depends_on:

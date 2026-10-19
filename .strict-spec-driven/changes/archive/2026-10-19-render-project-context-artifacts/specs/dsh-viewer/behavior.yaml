@@ -1,0 +1,49 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    project-context-renderers:
+      strength: MUST
+      statement: Opening a project-context document renders its dedicated view — the config view presenting preferred human language, project context, rules grouped by their declared categories, review evidence with its command and coverage threshold, and maintenance checks when declared; the architecture view presenting components, data flows, and decisions as structured sections; the technical standard view presenting the standard's category with each rule's declared strength emphasized, and the tech index view listing its standards; the lesson view presenting its status and obsolete marking, and the lessons index view grouping its lessons by category; the SOP, SOP category, and SOPs index views, with the SOP view presenting purpose, trigger, roles, ordered steps, exceptions, and success criteria; and the design system view presenting its tokens, components, and guidance.
+      scenarios:
+        config-view-sections:
+          - GIVEN: an open workflow config declares preferred human language, context, rules grouped by category, review evidence with its command and coverage threshold, and maintenance checks
+          - WHEN: the config view renders
+          - THEN: each group appears as its own section, the review evidence presents its command and coverage threshold, and the rules appear grouped by their declared categories
+        architecture-view-sections:
+          - GIVEN: an open architecture document declares components, data flows, and decisions
+          - WHEN: the architecture view renders
+          - THEN: components, data flows, and decisions appear as structured sections presenting their declared titles, responsibilities, boundaries, dependencies, triggers, steps, statements, rationale, and statuses
+        tech-standard-strength-emphasized:
+          - GIVEN: an open technical standard declares its category and rules carrying MUST and SHOULD strengths
+          - WHEN: the standard view renders
+          - THEN: the category presents and each rule presents its statement with its declared strength emphasized, beside a tech index view that lists its recorded standards with their categories
+        lesson-status-and-index-grouping:
+          - GIVEN: an open lesson declares its status with an obsolete marking and the lessons index groups lessons by category
+          - WHEN: the lesson and lessons index views render
+          - THEN: the lesson view presents its status and obsolete marking and the index groups its entries by their declared categories with their statuses
+        sop-ordered-steps:
+          - GIVEN: an open SOP declares purpose, trigger, roles, steps carrying order values, exceptions, and success criteria
+          - WHEN: the SOP view renders
+          - THEN: the steps list in the order their declared order values assign, each presenting its actor, action, and expected result, and the exceptions and success criteria present as their own sections
+        design-system-tokens:
+          - GIVEN: an open design system declares tokens, components, and guidance
+          - WHEN: the design system view renders
+          - THEN: the tokens present grouped by their declared token families, the components with their token references, and the guidance with its overview, do, and don't entries
+  MODIFIED:
+    generic-structured-rendering:
+      strength: MUST
+      statement: Opening any strict document whose artifact type has no dedicated renderer renders it as a structured view of its YAML fields, uniformly for every such type, and a document whose type has a dedicated renderer renders that renderer's layout with every top-level field the layout does not present appended through the same structured view under an additional-fields section.
+      scenarios:
+        fallback-types-stay-generic:
+          - GIVEN: an open strict document declares an artifact type no dedicated renderer serves, such as a roadmap index, a main spec, or an unknown type
+          - WHEN: the document view renders
+          - THEN: it renders as the structured view of its YAML fields exactly as before, with no dedicated layout applied
+        additional-fields-appended:
+          - GIVEN: an open document of a served artifact type declares a top-level field its dedicated layout does not present
+          - WHEN: the document view renders
+          - THEN: that field appears under an additional-fields section rendered through the generic structured view rather than being hidden
+  REMOVED: {}

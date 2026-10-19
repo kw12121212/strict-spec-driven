@@ -23,6 +23,18 @@ import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.t
 import { flattenTreeRows, keyOutcomeFor } from "../../plugins/dsh-strict-spec/src/client/treeRows.ts";
 import { documentParts } from "../../plugins/dsh-strict-spec/src/client/documentParts.ts";
 import { proposalView, questionsView, tasksView } from "../../plugins/dsh-strict-spec/src/client/changeParts.ts";
+import {
+  architectureView,
+  configView,
+  designSystemView,
+  lessonView,
+  lessonsIndexView,
+  sopCategoryView,
+  sopsIndexView,
+  sopView,
+  techIndexView,
+  techStandardView,
+} from "../../plugins/dsh-strict-spec/src/client/contextParts.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
 import { en, zh } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
 import type { StrictSpecKey } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
@@ -682,9 +694,9 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     context.assert(techExamplesHtml.includes("delta.example-good") && techExamplesHtml.includes("A good case."), "good examples render with their label");
     context.assert(techExamplesHtml.includes("delta.example-bad") && techExamplesHtml.includes("A bad case."), "bad examples render with their label");
 
-    const configHtml = renderData(readExample("config.yaml"));
-    context.assert(configHtml.includes("preferred_human_language"), "an artifact type without a dedicated renderer keeps the generic view");
-    context.assert(!configHtml.includes("proposal.what") && !configHtml.includes("view.additional-fields"), "no dedicated layout or additional section applies to an unserved type");
+    const roadmapIndexHtml = renderData(readExample("roadmap-index.yaml"));
+    context.assert(roadmapIndexHtml.includes("0001-example-milestone"), "an artifact type without a dedicated renderer keeps the generic view");
+    context.assert(!roadmapIndexHtml.includes("proposal.what") && !roadmapIndexHtml.includes("view.additional-fields"), "no dedicated layout or additional section applies to an unserved type");
 
     const archivedTasks = load(
       readFileSync(path.join(ROOT, ".strict-spec-driven", "changes", "archive", "2026-10-18-register-right-sidebar-tab", "tasks.yaml"), "utf8"),
@@ -693,6 +705,154 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     const archivedHtml = renderData(archivedTasks);
     context.assert(archivedHtml.includes("tasks.overall:{&quot;done&quot;:14,&quot;total&quot;:14}"), "an archived change's tasks render through the same dedicated view as an active change's");
     context.assert(archivedHtml.includes("tasks.done") && !archivedHtml.includes("tasks.pending"), "a completed task renders its Done marker from the declared status");
+  }
+
+  context.section("dsh plugin components: dedicated project-context renderers");
+
+  {
+    // Renderer cases consume the registered strict example of each artifact
+    // type, so a schema change that breaks a renderer fails the suite rather
+    // than silently degrading the view.
+    const readExample = (name: string): unknown =>
+      load(readFileSync(path.join(ROOT, "examples", "strict-spec-driven", name), "utf8"), { schema: CORE_SCHEMA });
+    const renderData = (data: unknown): string => renderView({ status: "ready", path: "example", data });
+
+    const configExample = readExample("config.yaml");
+    const configModel = configView(configExample);
+    context.assert(configModel.body.ruleGroups.length === 2 && configModel.body.ruleGroups[0]?.category === "specs", "the config view model groups rules by declared category");
+    context.assert(configModel.body.evidence.length === 1 && configModel.body.evidence[0]?.command === "npm run build && npm test -- --coverage", "the config view model reads the review evidence command");
+    context.assert(configModel.body.evidence[0]?.coverage?.threshold === "80" && configModel.body.evidence[0]?.coverage?.metric === "line", "the config view model reads the coverage threshold and metric");
+    context.assert(configModel.body.maintenanceChecks.length === 0, "the registered config example declares no maintenance checks, so none present");
+    context.assert(configModel.additional.length === 0, "the registered config example's fields are all presented, leaving no additional fields");
+    const configHtml = renderData(configExample);
+    context.assert(configHtml.includes("English"), "the config view renders the preferred human language in its facts header");
+    context.assert(configHtml.includes("config.context") && configHtml.includes("Example project using the strict spec-driven workflow."), "the config view renders its project context");
+    context.assert(configHtml.includes("config.rules") && configHtml.includes("specs") && configHtml.includes("test"), "the config view renders rules grouped by their declared categories");
+    context.assert(configHtml.includes("config.command") && configHtml.includes("npm run build &amp;&amp; npm test -- --coverage"), "the config view renders the review evidence command");
+    context.assert(configHtml.includes("config.threshold") && configHtml.includes("80"), "the config view renders the coverage threshold");
+    context.assert(!configHtml.includes("view.additional-fields"), "no additional-fields section renders when every field is presented");
+
+    const configWithMaintenance = {
+      ...(configExample as Record<string, unknown>),
+      maintenance: { checks: [{ type: "generated-doc-check" }, "lesson-staleness-check"] },
+    };
+    const maintainedHtml = renderData(configWithMaintenance);
+    context.assert(maintainedHtml.includes("config.maintenance") && maintainedHtml.includes("generated-doc-check") && maintainedHtml.includes("lesson-staleness-check"), "declared maintenance checks render, whether objects or bare strings");
+    const extendedConfigModel = configView({ ...(configExample as Record<string, unknown>), operator_notes: { owner: "unassigned" } });
+    context.assert(extendedConfigModel.additional.length === 1 && extendedConfigModel.additional[0]?.title === "operator_notes", "an unrecognized top-level field partitions into the additional blocks");
+    const extendedConfigHtml = renderData({ ...(configExample as Record<string, unknown>), operator_notes: { owner: "unassigned" } });
+    context.assert(extendedConfigHtml.includes("view.additional-fields") && extendedConfigHtml.includes("operator_notes"), "an unrecognized config field renders under the additional-fields section");
+
+    const architectureExample = readExample("architecture.yaml");
+    const architectureModel = architectureView(architectureExample);
+    context.assert(architectureModel.body.identity?.id === "example-architecture" && architectureModel.body.components.length === 1 && architectureModel.body.dataFlows.length === 1 && architectureModel.body.decisions.length === 1, "the architecture view model reads identity, components, flows, and decisions");
+    context.assert(architectureModel.body.components[0]?.boundaries[0] === "Does not own persistence." && architectureModel.body.components[0]?.dependsOn.length === 0, "the architecture view model reads component boundaries and dependencies");
+    context.assert(architectureModel.body.dataFlows[0]?.steps[1] === "The example component returns a result." && architectureModel.body.dataFlows[0]?.components[0] === "example-component", "the architecture view model reads flow steps and components");
+    context.assert(architectureModel.body.decisions[0]?.statement === "The example system keeps one component." && architectureModel.body.decisions[0]?.rationale === "A single component is enough for the example." && architectureModel.body.decisions[0]?.alternatives[0] === "Split the example into two components.", "the architecture view model reads decision statements, rationale, and alternatives");
+    const architectureHtml = renderData(architectureExample);
+    context.assert(architectureHtml.includes("architecture.components") && architectureHtml.includes("example-component"), "the architecture view renders components with their ids");
+    context.assert(architectureHtml.includes("Owns one example responsibility."), "the architecture view renders a component's responsibility");
+    context.assert(architectureHtml.includes("Does not own persistence."), "the architecture view renders a component's declared boundaries");
+    context.assert(architectureHtml.includes("architecture.data-flows") && architectureHtml.includes("example-flow") && architectureHtml.includes("An operator runs the example command."), "the architecture view renders data flows with their triggers");
+    context.assert(architectureHtml.includes("The example component receives the request.") && architectureHtml.includes("The example component returns a result."), "the architecture view renders a flow's ordered steps");
+    context.assert(architectureHtml.includes("architecture.decisions") && architectureHtml.includes("example-decision") && architectureHtml.includes("accepted"), "the architecture view renders decisions with their status");
+    context.assert(architectureHtml.includes("The example system keeps one component.") && architectureHtml.includes("A single component is enough for the example."), "the architecture view renders decision statements and rationale");
+    context.assert(architectureHtml.includes("architecture.alternatives") && architectureHtml.includes("Split the example into two components."), "the architecture view renders rejected decision alternatives");
+
+    const techExample = readExample("main-tech.yaml");
+    const techModel = techStandardView(techExample);
+    context.assert(techModel.body.category === "coding" && techModel.body.rules.length === 1, "the standard view model reads the category and rules");
+    context.assert(techModel.body.rules[0]?.strength === "MUST" && techModel.body.rules[0]?.id === "example-rule", "the standard view model reads a rule's id and strength");
+    const techHtml = renderData(techExample);
+    context.assert(techHtml.includes("ctx.category") && techHtml.includes("coding"), "the standard view renders its category");
+    context.assert(techHtml.includes("tech.rules") && techHtml.includes(">MUST<"), "the standard view renders rules with their strength emphasized");
+    context.assert(techHtml.includes("All source modules MUST be authored as ESM TypeScript."), "the standard view renders a rule's statement");
+    context.assert(techHtml.includes("delta.example-good") && techHtml.includes("delta.example-bad"), "the standard view renders rule examples through the shared rule layout");
+    const uiTechHtml = renderData(readExample("main-tech-ui.yaml"));
+    context.assert(uiTechHtml.includes(">MUST<") && uiTechHtml.includes(">SHOULD<"), "the ui-category standard renders both MUST and SHOULD strengths");
+    context.assert(uiTechHtml.includes("visual-regression-for-ui-changes"), "the ui-category standard renders each declared rule id");
+
+    const techIndexModel = techIndexView(readExample("tech-index.yaml"));
+    context.assert(techIndexModel.body.standards.length === 1 && techIndexModel.body.standards[0]?.id === "example-standard", "the tech index view model lists the recorded standards");
+    const techIndexHtml = renderData(readExample("tech-index.yaml"));
+    context.assert(techIndexHtml.includes("tech-index.standards") && techIndexHtml.includes("tech/example-standard.yaml"), "the tech index view lists standards with their paths");
+
+    const lessonExample = readExample("lesson.yaml");
+    const lessonModel = lessonView(lessonExample);
+    context.assert(lessonModel.body.status === "active" && lessonModel.body.category === "testing", "the lesson view model reads the status and category");
+    context.assert(lessonModel.body.occurrences.length === 1 && lessonModel.body.occurrences[0]?.origin === "2026-04-24-port-verify-to-yaml", "the lesson view model reads occurrences");
+    const lessonHtml = renderData(lessonExample);
+    context.assert(lessonHtml.includes("lesson.context") && lessonHtml.includes("lesson.observation") && lessonHtml.includes("lesson.takeaway"), "the lesson view renders its narrative sections");
+    context.assert(lessonHtml.includes(">active<"), "the lesson view renders its declared status as a badge");
+    context.assert(lessonHtml.includes("lesson.occurrences") && lessonHtml.includes("bun test/run.ts passed against dist/verify.js"), "the lesson view renders occurrence evidence");
+    const obsoletedHtml = renderData({ ...(lessonExample as Record<string, unknown>), status: "obsolete", obsoleted_reason: "The dist-backed suite was replaced." });
+    context.assert(obsoletedHtml.includes(">obsolete<") && obsoletedHtml.includes("lesson.obsoleted-reason") && obsoletedHtml.includes("The dist-backed suite was replaced."), "an obsolete lesson renders its status and retirement reason");
+
+    const lessonsIndexModel = lessonsIndexView(readExample("lessons-index.yaml"));
+    context.assert(lessonsIndexModel.body.categories.length === 1 && lessonsIndexModel.body.categories[0]?.category === "testing", "the lessons index view model groups by category");
+    context.assert(lessonsIndexModel.body.categories[0]?.lessons[0]?.occurrences === "1", "the lessons index view model reads the occurrence count");
+    const lessonsIndexHtml = renderData(readExample("lessons-index.yaml"));
+    context.assert(lessonsIndexHtml.includes("testing") && lessonsIndexHtml.includes("rebuild-before-trusting-dist-tests-a1b2c3"), "the lessons index view lists lessons grouped under their category");
+    context.assert(lessonsIndexHtml.includes("lessons-index.occurrences"), "the lessons index view renders the occurrence count");
+
+    const sopExample = readExample("sop.yaml");
+    const sopModel = sopView(sopExample);
+    context.assert(sopModel.body.steps.length === 2 && sopModel.body.steps[0]?.id === "drain-traffic" && sopModel.body.steps[1]?.id === "restart-process", "the SOP view model orders steps by their declared order values");
+    context.assert(sopModel.body.steps[1]?.branches.length === 1 && sopModel.body.steps[1]?.branches[0]?.gotoStep === "drain-traffic", "the SOP view model reads step branches");
+    const reorderedSop = {
+      ...(sopExample as Record<string, unknown>),
+      steps: [
+        (sopExample as { steps: unknown[] }).steps[1],
+        (sopExample as { steps: unknown[] }).steps[0],
+      ],
+    };
+    const reorderedModel = sopView(reorderedSop);
+    context.assert(reorderedModel.body.steps[0]?.id === "drain-traffic", "SOP steps sort by declared order regardless of declaration sequence");
+    const unorderedModel = sopView({ ...(sopExample as Record<string, unknown>), steps: [{ id: "bare-step", action: "No declared order." }] });
+    context.assert(unorderedModel.body.steps.length === 1 && unorderedModel.body.steps[0]?.order === undefined, "a step without a declared order value keeps declaration order and shows no order");
+    const tiedOrderModel = sopView({
+      ...(sopExample as Record<string, unknown>),
+      steps: [
+        { id: "first-tied", order: 2, action: "Declared first." },
+        { id: "second-tied", order: 2, action: "Declared second." },
+        { id: "then-earlier", order: 1, action: "Sorts before both ties." },
+      ],
+    });
+    context.assert(tiedOrderModel.body.steps.map((step) => step.id).join(",") === "then-earlier,first-tied,second-tied", "steps with equal declared order values keep their declaration order behind the lower order values");
+    const sopHtml = renderData(sopExample);
+    context.assert(sopHtml.includes("sop.purpose") && sopHtml.includes("Restore the web frontend to a healthy serving state after an unhealthy deployment."), "the SOP view renders its purpose");
+    context.assert(sopHtml.includes("sop.roles") && sopHtml.includes("on-call"), "the SOP view renders roles");
+    context.assert(sopHtml.includes("sop.steps") && sopHtml.indexOf("Drain inbound traffic") < sopHtml.indexOf("Restart the web frontend process."), "the SOP view renders steps in their declared order");
+    context.assert(sopHtml.includes("sop.expected-result") && sopHtml.includes("The process reports a healthy status."), "the SOP view renders expected results");
+    context.assert(sopHtml.includes("sop.exceptions") && sopHtml.includes("Roll back to the previous known-good deployment."), "the SOP view renders exception handling");
+    context.assert(sopHtml.includes("sop.success-criteria") && sopHtml.includes("The web frontend health check reports healthy."), "the SOP view renders success criteria");
+    context.assert(sopHtml.includes(">draft<"), "the SOP view renders its declared status as a badge");
+
+    const sopCategoryModel = sopCategoryView(readExample("sop-category.yaml"));
+    context.assert(sopCategoryModel.body.questions.length === 2 && sopCategoryModel.body.questions[0]?.mapsTo === "purpose", "the SOP category view model reads intake questions");
+    const sopCategoryHtml = renderData(readExample("sop-category.yaml"));
+    context.assert(sopCategoryHtml.includes("sop-category.questions") && sopCategoryHtml.includes("What is this procedure and why does it exist?"), "the SOP category view renders intake questions");
+    context.assert(sopCategoryHtml.includes("sop-category.required"), "a required intake question renders its marker");
+    context.assert(sopCategoryHtml.includes("sop-category.constraints") && sopCategoryHtml.includes("sop-category.min-steps"), "the SOP category view renders constraints");
+
+    const sopsIndexModel = sopsIndexView(readExample("sops-index.yaml"));
+    context.assert(sopsIndexModel.body.sops.length === 1 && sopsIndexModel.body.sops[0]?.category === "operational", "the SOPs index view model lists recorded SOPs");
+    const sopsIndexHtml = renderData(readExample("sops-index.yaml"));
+    context.assert(sopsIndexHtml.includes("sops-index.sops") && sopsIndexHtml.includes("restart-web-frontend-abc123") && sopsIndexHtml.includes(">draft<"), "the SOPs index view lists SOPs with their statuses");
+
+    const designExample = readExample("design-system.yaml");
+    const designModel = designSystemView(designExample);
+    context.assert(designModel.body.tokenFamilies.length === 5 && designModel.body.tokenFamilies.some((family) => family.family === "typography"), "the design system view model groups tokens by family, including the nested typography family");
+    context.assert(designModel.body.tokenFamilies[0]?.nodes[0]?.value === "#1A73E8", "the design system view model reads token values");
+    const typographyFamily = designModel.body.tokenFamilies.find((family) => family.family === "typography");
+    context.assert(typographyFamily?.nodes.some((node) => node.name === "body" && node.children.some((child) => child.name === "fontFamily" && child.value === "Inter, system-ui, sans-serif")), "the nested typography groups carry their token values");
+    context.assert(designModel.body.components.length === 1 && designModel.body.components[0]?.tokenRefs.length === 4, "the design system view model reads component token references");
+    const designHtml = renderData(designExample);
+    context.assert(designHtml.includes("design-system.tokens") && designHtml.includes("colors") && designHtml.includes("#1A73E8"), "the design system view renders tokens grouped by family");
+    context.assert(designHtml.includes("typography") && designHtml.includes("fontFamily") && designHtml.includes("Inter, system-ui, sans-serif"), "the design system view renders nested token groups with their values");
+    context.assert(designHtml.includes("design-system.components") && designHtml.includes("example-button") && designHtml.includes("colors.primary"), "the design system view renders components with their token references");
+    context.assert(designHtml.includes("design-system.guidance") && designHtml.includes("design-system.do") && designHtml.includes("design-system.dont"), "the design system view renders guidance with do and don't entries");
+    context.assert(designHtml.includes("test/snapshots/example-button.png"), "the design system view renders component snapshots");
   }
 
   context.section("dsh plugin components: change completion badge");

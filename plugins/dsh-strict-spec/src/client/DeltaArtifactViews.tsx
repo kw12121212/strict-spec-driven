@@ -131,8 +131,12 @@ function FlowStepView(props: { readonly step: SceneStep; readonly t: Translate<S
   );
 }
 
-/** Renders one rule body through the shared rule layout. */
-function RuleCard(props: { readonly rule: TechRule; readonly t: Translate<StrictSpecKey> }): ReactNode {
+/**
+ * Renders one rule body through the shared rule layout. The main technical
+ * standard renderer reuses this layout, because a delta tech rule and a main
+ * standard rule read the same way.
+ */
+export function RuleCard(props: { readonly rule: TechRule; readonly t: Translate<StrictSpecKey> }): ReactNode {
   const { rule, t } = props;
   return (
     <div className={styles.card}>

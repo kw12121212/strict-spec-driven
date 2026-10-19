@@ -150,3 +150,15 @@ rules:
         - The tasks renderer draws its sections, markers, and counts from tasksView's model and its additional fields through GenericBlocksView.
       bad:
         - A renderer that walks its parsed YAML inline in JSX, or renders unrecognized fields with a second private blocks implementation.
+  view-model-partition-helpers-single-source:
+    strength: SHOULD
+    statement: View-model mappers for dedicated renderers SHOULD import the record-field readers (stringField, soleValue, stringEntries, scalarText) and the known-keys partition helper from the one shared module (plugins/dsh-strict-spec/src/client/recordFields.ts) instead of restating them per mapper module.
+    rationale: The partition helper is what guarantees the additional-fields section and the generic view can never disagree about how a YAML shape renders, which is the dedicated-renderers rule's own rationale; divergent copies of that helper would let the guarantee drift silently, and the milestone's remaining renderer changes — roadmap, milestone, planned change, spec, spec index, scene, and scenes index — would otherwise each add another copy.
+    enforcement:
+      method: review
+      detail: Review compares each new or edited mapper module's imports against the shared module and fails a mapper that redefines any of the shared reader or partition helper names locally; the archive-time tech sync surfaces the check for renderer changes that add mappers.
+    examples:
+      good:
+        - A contextParts mapper that imports partitionDocument and the field readers from recordFields.ts and declares no local copies.
+      bad:
+        - A roadmap mapper module that pastes its own partitionDocument implementation, so a future fix to the partition lands everywhere except the roadmap view.

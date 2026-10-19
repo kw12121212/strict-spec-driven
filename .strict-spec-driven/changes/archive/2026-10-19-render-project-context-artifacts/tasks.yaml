@@ -1,0 +1,53 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: render-project-context-artifacts
+sections:
+  Implementation:
+    implement-project-context-view-models:
+      text: 'Implement the React-free project-context view-model module under plugins/dsh-strict-spec/src/client/: map a parsed workflow config, architecture, technical standard, tech index, lesson, lessons index, SOP, SOP category, SOPs index, and design system onto their presentation structures — config rules grouped by declared category with review evidence command and coverage threshold and maintenance checks when declared; architecture components, data flows, and decisions; standard identity with category and rules carrying emphasized strength; index entries with their declared fields; lesson identity with status, obsolete marking, and occurrences; SOP steps ordered by declared order stable by declaration with actor, action, expected result, and branches; SOP category questions and constraints; design system tokens grouped by token family, components with token references, and guidance — with the shared unknown-top-level-field partition appending every unrecognized field.'
+      status: complete
+    implement-project-context-renderer-components:
+      text: 'Implement the dedicated project-context renderer components and their CSS Modules under plugins/dsh-strict-spec/src/client/: config, architecture, technical standard, tech index, lesson, lessons index, SOP, SOP category, SOPs index, and design system views rendering through the view models with props-only data flow, the standard view reusing the shared rule layout the delta tech view draws through, styles consuming only --dsw alias tokens, and every new user-visible string registered in both the zh and en catalogs and rendered only through them.'
+      status: complete
+    route-document-view-project-context-dispatch:
+      text: Extend the shared DocumentView's dedicated-renderer registry with the ten project-context artifact types — workflow_config, architecture, main_tech, tech_index, lesson, lessons_index, sop, sop_category, sops_index, design_system — so each routes to its dedicated view, while every other or absent type keeps the generic structured view and the status conditions and parse-error rendering stay unchanged.
+      status: complete
+    extend-plugin-renderer-suites:
+      text: 'Extend the plugin suites inside bun test/run.ts: component cases statically rendering every project-context dedicated renderer against its registered strict example under examples/strict-spec-driven/ — config, architecture, main-tech and the ui-category main-tech-ui, tech-index, lesson, lessons-index, sop, sop-category, sops-index, design-system — plus the additional-fields append on a served type and the unserved-type generic fallback retargeted from the config example to a type this change does not serve; view-model cases asserting each mapper''s field partition, body mapping, the SOP order fallback, and the config maintenance-checks presence and absence.'
+      status: complete
+  Testing:
+    validate-project-context-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready render-project-context-artifacts
+    run-lint:
+      text: Run the plugin-local lint inside plugins/dsh-strict-spec so the view models, renderer components, and registry changes compile under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite, confirming the project-context renderer example cases, the view-model cases, and the existing viewer behavior all pass together.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the additions leave the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-and-conventions:
+      text: 'Rebuild the client bundle and confirm the shape and convention checks hold: shared modules stay runtime requires, no unshared runtime require appears, CSS Modules carry no literal colors or radii, and both locale catalogs stay key-complete for the new renderer strings.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    record-manual-renderer-check:
+      text: 'Recorded manual check (dsh 0.2.1-rc.2, matching the engines.dsh pin >=0.2.1-rc.2 <0.2.2; isolated DSH_HOME=/tmp/dsh-ctx-home; dsh plugin --profile web add link: of the local checkout; web client at 127.0.0.1:13193 driven by browser automation, en locale; screenshots /tmp/ctx-smoke-01..07): (1) the client booted with the Strict documents page registered and no load errors; a Session was created on /home/wx766/Code/strict-spec-driven and the tree loaded in the fixed family order with entry counts and archives collapsed. (2) Opening config.yaml rendered the dedicated config view: preferred_human_language English in the facts header, the Project context paragraph, Rules grouped by declared categories (specs, change, code, test, tech, ui), the project_regression review evidence with Method, the exact Command bun scripts/coverage-gate.ts --threshold 78, Meaning, When unavailable, and the Coverage threshold 78 line metric include/exclude scope, plus Maintenance checks rendering the declared check objects (screenshot 01). (3) The architecture document rendered identity plus Components with Title, Responsibility, boundaries, Depends on, and Implementation files (screenshot 02). (4) The dsh-plugin-client technical standard rendered Category ui and its rules with MUST and SHOULD strength badges, statements, and rationale through the shared rule layout (screenshot 03). (5) The tech INDEX rendered its Standards with Title, Category, and Path (screenshot 04). (6) A documentation lesson rendered its status badge, context, observation, takeaway, applies-when, and occurrences with Date and Evidence (screenshot 06). (7) The lessons INDEX rendered categories as sections with lesson ids, active status badges, Title, Occurrences counts, and Path (screenshots 05, 07). NOT RUN IN-HOST: the SOP, SOP category, SOPs index, and design system views, because this repository carries no .strict-spec-driven/sops/ directory and no design-system.yaml, so no such document exists to open; each is proven deterministically by the component suite, which statically renders its registered strict example through the same dedicated view (sop.yaml with order-sorted steps, branches, exceptions, and success criteria; sop-category.yaml; sops-index.yaml; design-system.yaml with nested typography token groups). NOT RUN: the desktop profile, which is Electron-managed with no Electron binary in this environment; desktop proof defers to the release-dsh-strict-spec-plugin planned change, which owns the end-to-end smoke for both profiles.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the delta spec''s added project-context-renderers requirement and its modified generic-structured-rendering requirement merge into dsh-viewer-behavior, and the delta scene''s added steps and modified open-document step merge into the operator-browses-strict-documents scene with every covering reference resolving through the delta overlay.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify render-project-context-artifacts directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-project-context-artifacts
+  unit_test_task: run-project-suite

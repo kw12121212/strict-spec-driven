@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: render-project-context-artifacts
+approach:
+  - Extend the shared document view's dedicated-renderer registry with the ten project-context artifact types, each backed by a React-free view-model module that partitions top-level fields into the ones its layout presents and the unrecognized ones appended through the generic view, mirroring the changeParts seam the render-change-artifacts change established. The technical standard rule bodies reuse the shared rule layout the delta tech view already renders through; the config, architecture, lesson, SOP, and design-system mappers derive their structures from declared fields alone; and every view renders its facts header from the scalar fields exactly as the generic view draws it.
+decisions:
+  reuse-shared-rule-layout:
+    decision: The technical standard view lays out rule bodies through the same shared rule layout component the delta tech view renders through, presenting each rule's declared strength emphasized, statement, rationale, enforcement, examples, and exceptions.
+    rationale: The render-change-artifacts change built the shared main-family layouts precisely so later renderers reuse them; a main tech standard's rule and a delta tech rule carry the same rule shape, and one layout keeps the two presentations identical by construction instead of re-derived per view.
+  indexes-as-dedicated-views:
+    decision: The tech, lessons, and SOPs index artifacts each get their own dedicated view presenting their recorded entries with their declared fields, grouped by category where the index declares categories.
+    rationale: Index documents are the family's at-a-glance surface, where an operator scans which standards, lessons, or SOPs exist and their statuses; the generic mapping-of-mappings rendering buries that scan behind nested collapsible blocks, and the planned change names the tech index and lessons index views explicitly.
+  declared-shape-driven-mappers:
+    decision: Each project-context view model reads only the fields its artifact schema declares, presenting a group only when the document declares it, with every unrecognized top-level field appended through the generic additional-fields section.
+    rationale: The repository's own config declares maintenance checks while the registered example does not, and a config may omit review evidence entirely; mapping declared fields and appending everything else keeps both readable and honors the milestone's settled unknown-field-display answer without branching on repository identity.
+  sop-steps-in-declared-order:
+    decision: The SOP view lists steps in the order their declared order values assign, stable by declaration when order values are equal or absent, presenting each step's declared order, actor, action, and expected result with its declared branches under it.
+    rationale: The SOP schema numbers steps so a procedure reads as an execution sequence even when its YAML map is edited out of sequence; presenting the declared numbers beside the sorted steps keeps the view faithful and readable, and sorting from declared values adds no derived content.
+alternatives:
+  - option: Extend the generic structured renderer with special-case sections for project-context artifacts.
+    reason: The generic mapper is deliberately artifact-type-blind; per-type branches there would scatter dedicated presentation through the one component every type shares and make the unknown-field fallback harder to guarantee.
+  - option: Fold the index views into the generic view and give only content artifacts dedicated renderers.
+    reason: Index documents are exactly where the generic nested-mapping rendering is hardest to scan, and the planned change names the tech index and the category-grouped lessons index as views of their own.
+risks:
+  - Ten dedicated views encode the current shapes of ten strict schemas, so schema evolution can silently degrade them; example-driven renderer tests make the break fail the regression suite first.
+  - The additional renderer strings widen both locale catalogs, and a missing translation in either language must stay a checkable defect; keeping every visible string behind the catalogs preserves the existing convention check.
+  - The SOP ordering decision reads the declared order field, so order values that are absent or duplicated fall back to declaration order; the view-model tests must pin that fallback so the ordering stays deterministic.

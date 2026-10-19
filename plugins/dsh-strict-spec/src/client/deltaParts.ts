@@ -11,37 +11,8 @@
  * knows, and unrecognized top-level fields survive as generic blocks the
  * additional-fields section renders.
  */
-import type { DedicatedView, HeaderFact } from "./changeParts.ts";
-import { documentParts } from "./documentParts.ts";
-import type { DocumentBlock } from "./documentParts.ts";
-
-/** Reads one non-empty string field of a record, when it is one. */
-function stringField(record: unknown, key: string): string | undefined {
-  if (typeof record === "object" && record !== null && key in record) {
-    const value = (record as Record<string, unknown>)[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value;
-    }
-  }
-  return undefined;
-}
-
-/** Reads the single keyed child of a record, when the key holds it. */
-function soleValue(record: unknown, key: string): unknown {
-  if (typeof record === "object" && record !== null && key in record) {
-    return (record as Record<string, unknown>)[key];
-  }
-  return undefined;
-}
-
-/** Partitions one parsed document for a dedicated renderer. */
-function partitionDocument(data: unknown, knownKeys: ReadonlySet<string>): { header: HeaderFact[]; additional: DocumentBlock[] } {
-  const parts = documentParts(data);
-  return {
-    header: [...parts.header],
-    additional: parts.blocks.filter((block) => !knownKeys.has(block.title)),
-  };
-}
+import type { DedicatedView } from "./changeParts.ts";
+import { partitionDocument, soleValue, stringField } from "./recordFields.ts";
 
 /** The declared operations of a delta file, in their recorded order. */
 const OPERATION_ORDER = ["ADDED", "MODIFIED", "REMOVED"] as const;
@@ -200,8 +171,12 @@ function keyedSteps(flow: unknown): SceneStep[] {
   return Object.entries(flow as Record<string, unknown>).map(([id, entry]) => sceneStep(id, entry));
 }
 
-/** Maps one declared rule body from its operation group entry. */
-function techRule(id: string, entry: unknown): TechRule {
+/**
+ * Maps one declared rule body from its operation group entry. The main
+ * technical standard renderer reuses this mapper, because a delta tech rule
+ * and a main standard rule carry the same declared shape.
+ */
+export function techRule(id: string, entry: unknown): TechRule {
   const enforcement = soleValue(entry, "enforcement");
   const examples = soleValue(entry, "examples");
   const goodSource = examples === undefined ? undefined : soleValue(examples, "good");
