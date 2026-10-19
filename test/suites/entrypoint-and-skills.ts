@@ -5779,7 +5779,7 @@ context.assert(
       ],
     },
     {
-      file: "RTK.md",
+      file: "AGENTS.md",
       phrases: [
         "## Scene-First Requirement Routing",
         "mandatory as a question and optional as an artifact",

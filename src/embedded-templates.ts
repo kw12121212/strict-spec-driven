@@ -5033,11 +5033,9 @@ exclusions:
   human-only-repository-files:
     path_patterns:
       - AGENTS.md
-      - RTK.md
     ownership: human-only
     evidence:
       - AGENTS.md
-      - RTK.md
   dsh-plugin-host-input:
     ownership: human-only
     path_patterns:
@@ -5327,7 +5325,8 @@ mutation_surfaces:
       - QUICKSTART.zh.md
       - ROADMAP_QUICKSTART.md
       - ROADMAP_QUICKSTART.zh.md
-      - RTK.md
+      - AGENTS.md
+      - CLAUDE.md
     mechanism: documentation-guidance
     classification: remaining-direct-writer
     operations:

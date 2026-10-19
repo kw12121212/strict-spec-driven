@@ -106,7 +106,7 @@ rules:
       good:
         - scripts/coverage-gate.ts setting the heap size for the process that produces the coverage report, so the recorded invocation completes unchanged.
       bad:
-        - Documenting NODE_OPTIONS=--max-old-space-size=5120 bun scripts/coverage-gate.ts in RTK.md while the workflow config still records the bare command as the gate.
+        - Documenting NODE_OPTIONS=--max-old-space-size=5120 bun scripts/coverage-gate.ts in AGENTS.md while the workflow config still records the bare command as the gate.
   manual-checks-record-observed-evidence:
     strength: MUST
     statement: A change whose acceptance needs a manual check against an external host must record each leg's observed evidence — what ran, what was observed, and which legs did not run with the reason — inside the change's own artifacts, so review verifies recorded evidence rather than trusting task completion status.
