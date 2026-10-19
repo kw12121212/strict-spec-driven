@@ -60,11 +60,20 @@ function MetaRow(props: { readonly label: string; readonly value: string }): Rea
   );
 }
 
-/** Renders one requirement body through the shared requirement layout. */
-function RequirementCard(props: { readonly requirement: RequirementBody; readonly t: Translate<StrictSpecKey> }): ReactNode {
-  const { requirement, t } = props;
+/**
+ * Renders one requirement body through the shared requirement layout. The
+ * main spec renderer reuses this layout, because a delta spec requirement
+ * and a main spec requirement read the same way.
+ */
+export function RequirementCard(props: {
+  readonly requirement: RequirementBody;
+  readonly t: Translate<StrictSpecKey>;
+  /** The stable anchor id the requirement renders under, when it carries one. */
+  readonly anchorId?: string;
+}): ReactNode {
+  const { requirement, t, anchorId } = props;
   return (
-    <div className={styles.card}>
+    <div className={styles.card} id={anchorId}>
       <div className={styles.cardHeader}>
         <span className={styles.cardId}>{requirement.id}</span>
         {requirement.strength === undefined ? null : (
@@ -92,31 +101,83 @@ function RequirementCard(props: { readonly requirement: RequirementBody; readonl
   );
 }
 
+/**
+ * The coverage seam a scene view passes down so each covering reference
+ * renders as a link: resolve reports whether the reference's spec is held
+ * in the loaded tree, and onOpen opens the covering requirement.
+ */
+export interface CoverageNavigation {
+  /** Whether one covering reference's spec resolves in the loaded tree. */
+  readonly resolve: (ref: CoverageRef) => boolean;
+  /** Opens one covering reference's requirement, when it resolves. */
+  readonly onOpen: (ref: CoverageRef) => void;
+}
+
 /** Renders one step's covering references as spec:requirement pairs. */
-function CoverageList(props: { readonly coveredBy: readonly CoverageRef[] }): ReactNode {
-  const { coveredBy } = props;
+function CoverageList(props: {
+  readonly coveredBy: readonly CoverageRef[];
+  readonly t: Translate<StrictSpecKey>;
+  readonly navigation?: CoverageNavigation;
+}): ReactNode {
+  const { coveredBy, t, navigation } = props;
   if (coveredBy.length === 0) {
     return null;
   }
   return (
     <div className={styles.coverageList}>
-      {coveredBy.map((ref, index) => (
-        <span key={index} className={styles.coverage}>{`${ref.specId}:${ref.requirementId}`}</span>
-      ))}
+      {coveredBy.map((ref, index) => {
+        const label = `${ref.specId}:${ref.requirementId}`;
+        if (navigation !== undefined && navigation.resolve(ref)) {
+          return (
+            <button
+              key={index}
+              type="button"
+              className={styles.coverageLink}
+              title={label}
+              onClick={() => navigation.onOpen(ref)}
+            >
+              {label}
+            </button>
+          );
+        }
+        if (navigation !== undefined) {
+          return (
+            <span key={index} className={styles.coverageUnresolved}>
+              {label}
+              <Tag tone="warning">{t("roadmap.unresolved")}</Tag>
+            </span>
+          );
+        }
+        return <span key={index} className={styles.coverage}>{label}</span>;
+      })}
     </div>
   );
 }
 
-/** Renders one scene flow step through the shared flow-step layout. */
-function FlowStepView(props: { readonly step: SceneStep; readonly t: Translate<StrictSpecKey> }): ReactNode {
-  const { step, t } = props;
+/**
+ * Renders one scene flow step through the shared flow-step layout. The
+ * main scene renderer reuses this layout with the optional coverage
+ * navigation, so a step's covering references read the same way in a
+ * delta scene and in the merged scene, and a step that declares neither
+ * a covering reference nor a no-coverage reason carries the visible
+ * uncovered flag the scene contract's gap makes checkable.
+ */
+export function FlowStepView(props: {
+  readonly step: SceneStep;
+  readonly t: Translate<StrictSpecKey>;
+  readonly navigation?: CoverageNavigation;
+}): ReactNode {
+  const { step, t, navigation } = props;
   return (
     <li className={styles.flowStep}>
       <div className={styles.cardHeader}>
         <span className={styles.cardId}>{step.id}</span>
+        {step.coveredBy.length === 0 && step.noCoverageReason === undefined ? (
+          <Tag tone="warning">{t("scene.uncovered-step")}</Tag>
+        ) : null}
       </div>
       {step.action === undefined ? null : <p className={styles.statement}>{step.action}</p>}
-      <CoverageList coveredBy={step.coveredBy} />
+      <CoverageList coveredBy={step.coveredBy} t={t} navigation={navigation} />
       {step.noCoverageReason === undefined ? null : (
         <div className={styles.meta}>
           <MetaRow label={t("delta.no-coverage")} value={step.noCoverageReason} />

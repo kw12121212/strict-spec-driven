@@ -119,6 +119,14 @@ export interface DocumentRecord {
   milestoneOrder?: number;
   plannedChangeId?: string;
   plannedChangeMilestone?: string;
+  /**
+   * The declared spec id and requirement ids of a non-archived main spec,
+   * read by the same content pass that derives the label. The scene views
+   * resolve a step's covering references — the requirement index — from
+   * these declared facts; archived entries stay unread, so they carry none.
+   */
+  specId?: string;
+  requirementIds?: readonly string[];
   /** Whether the document lives inside an archive directory. */
   readonly archived: boolean;
 }
@@ -180,6 +188,13 @@ export interface OpenDocumentState {
   readonly data?: unknown;
   /** The located parse error or read error when status is `error`. */
   readonly error?: LocatedParseError | ReadError;
+  /**
+   * The stable anchor id the open document carries, when it was opened
+   * anchored to one of its elements — a covering requirement a scene step
+   * names. Recorded by the open action and kept across the live refresh
+   * of the same document; cleared by the next open that names no anchor.
+   */
+  anchor?: string;
 }
 
 /** The initial, nothing-loaded tree state. */

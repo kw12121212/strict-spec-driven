@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: render-spec-and-scene-artifacts
+open: []
+resolved:
+  - id: spec-purpose-wording
+    question: The planned change says the spec view shows title, purpose, and requirements, but the main-spec schema declares only id and title — what does the spec view present as the purpose?
+    context: 'Why this is asked: the planned change''s details borrow the purpose, trigger, roles phrasing the SOP view uses, and a renderer author could read it as a mandate to synthesize a purpose section or extend the schema. What a sufficient answer contains: the fields the view actually renders and the rule that settles it. Impact: this decides the delta-spec scenario wording, the spec view implementation files, and the renderer tests for the spec view. Recommendation: present the declared identity the artifact carries and change nothing about the schema. Evidence: the main-spec schema at templates/strict-spec-driven/schemas/main-spec.yaml allows only id and title under spec with additionalProperties false, the milestone scope excludes changing strict artifact schemas so they render more easily, and the viewer''s declared-values-only requirement is an existing MUST that forbids presenting any value not written in the file.'
+    answer: The spec view presents the spec's declared identity — the id and title the main-spec schema declares — plus every requirement with its strength, statement, scenarios, and stable anchor; no purpose section is synthesized, because the schema declares no purpose field, schema changes are out of scope, and declared-values-only forbids presenting values not written in the file. A future purpose field would flow through the additional-fields append unchanged.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Operators reading main specs, the specs index, scenes, and the scenes index in the viewer today decode generic YAML shape: the completed foundation makes every strict document reachable but shows these four families through the generic structured view, so an operator checking which strength a requirement carries, which spec area holds a spec, or which requirements cover a scene step reads field-by-field structure instead of the keyword-emphasized, navigable views the renderers milestone exists to provide, and a scene step''s covering requirement is not reachable by selection at all.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Opening a main spec, specs index, scene, or scenes index document renders its dedicated view: the spec view presents the declared identity and each requirement with its RFC keyword strength emphasized, its statement and scenarios, and a stable anchor; the specs index groups entries by spec area derived from their declared paths; the scene view presents actors with their responsibilities, preconditions, the ordered main flow, and exception flows under their triggers, with each step''s covering requirements as links that open the covering requirement''s anchor in its spec, its explicit no-coverage reason shown, and a step declaring neither visibly flagged; the scenes index groups entries by their declared areas; a covering reference whose spec the loaded tree does not hold presents a visible unresolved marker.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The viewer foundation milestone is complete and this planned change's two dependencies, register-right-sidebar-tab and register-left-panel-page, are archived, so it carries no unfinished dependency; the milestone records that renderer changes are independent of one another and may land in any order once the foundation is complete, and roadmap-recommend reports this planned change the only eligible one while release-dsh-strict-spec-plugin stays dependency-blocked on the renderer work finishing first.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: No renderer work for other artifact families and no release preparation, packaging, or installation documentation, which belong to the release planned change; no editing or mutating strict artifacts from any renderer; no derived roadmap status, validation diagnostics, or computed scene coverage gaps — the scene view flags only steps whose declared coverage is empty, exactly as the milestone scope excludes; no changes to strict artifact schemas so they render more easily, including adding a purpose field to the main-spec schema; no changes to the tree behavior, the generic structured view, the additional-fields append, the entry points, the host plugin contract, or the plugin dependencies.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Only one reading is in play: dedicated views for exactly the main_spec, spec_index, scene, and scenes_index artifact types; the spec view presents the declared id and title as the identity, since the schema declares no purpose field and schema changes are out of scope; the specs index grouping derives each spec area from the declared path''s subdirectory under specs/; a scene step''s covering reference resolves by declared spec id against the tree''s documents record and opens the covering requirement''s anchor through the shared open action, while a reference resolving to no document presents the visible unresolved marker; a step declaring an explicit no-coverage reason presents that reason, and a step declaring neither coverage nor a reason is visibly flagged; and every renderer appends unrecognized top-level fields through the generic view while presenting no derived values.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

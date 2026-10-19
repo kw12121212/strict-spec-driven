@@ -23,6 +23,7 @@ import type { DedicatedViewProps } from "./ChangeArtifactViews.tsx";
 import type { ViewContext } from "./changeParts.ts";
 import { DeltaSceneView, DeltaSpecView, DeltaTechView } from "./DeltaArtifactViews.tsx";
 import { MilestoneView, PlannedChangeView, RoadmapIndexView } from "./RoadmapViews.tsx";
+import { ScenesIndexView, SceneView, SpecIndexView, SpecView } from "./SpecSceneViews.tsx";
 import {
   ArchitectureView,
   ConfigView,
@@ -51,8 +52,9 @@ export interface DocumentViewProps {
 /**
  * The dedicated renderers, keyed by declared artifact_type: the change
  * planning families, the change-scoped delta families, the roadmap
- * planning families, and the project-context families. Every other or
- * absent type keeps the generic structured view.
+ * planning families, the spec and scene families, and the
+ * project-context families — every artifact type the strict vocabulary
+ * defines. An unknown or absent type keeps the generic structured view.
  */
 const DEDICATED_VIEWS: Readonly<Record<string, (props: DedicatedViewProps) => ReactNode>> = {
   change_proposal: ProposalView,
@@ -65,6 +67,10 @@ const DEDICATED_VIEWS: Readonly<Record<string, (props: DedicatedViewProps) => Re
   roadmap_index: RoadmapIndexView,
   roadmap_milestone: MilestoneView,
   planned_change: PlannedChangeView,
+  main_spec: SpecView,
+  spec_index: SpecIndexView,
+  scene: SceneView,
+  scenes_index: ScenesIndexView,
   workflow_config: ConfigView,
   architecture: ArchitectureView,
   main_tech: TechStandardView,

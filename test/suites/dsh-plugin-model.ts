@@ -1245,4 +1245,50 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
     context.assert(failingStores.ownership.getSnapshot().status === "error", "a failed archive listing reports the ownership error state");
     failingStores.actions.dispose();
   }
+
+  context.section("dsh plugin model: spec facts and anchored opens");
+
+  {
+    // The content pass records the requirement index the scene views
+    // navigate by: each non-archived main spec's declared spec id and
+    // requirement ids, refreshed by the same directory-watch reloads that
+    // keep labels and roadmap facts fresh.
+    const fake = new FakeWorkspaceFiles();
+    seedFixtureTree(fake);
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`,
+      "artifact_type: main_spec\nspec:\n  id: viewer\n  title: Viewer Behavior\nrequirements:\n  tree-family-order:\n    strength: MUST\n    statement: The tree lists families.\n    scenarios:\n      one:\n        - GIVEN: a workspace\n        - WHEN: the tree renders\n        - THEN: families appear\n  absent-family-omitted:\n    strength: MUST\n    statement: Absent families are omitted.\n    scenarios:\n      two:\n        - GIVEN: no sops directory\n        - WHEN: the tree renders\n        - THEN: the family is omitted\n",
+    );
+    const stores = await loadFakeWorkspace(fake);
+    const documents = stores.tree.getSnapshot().documents;
+    const spec = documents[`${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`];
+    context.assert(
+      spec?.specId === "viewer" && spec?.requirementIds?.length === 2 && spec?.requirementIds[0] === "tree-family-order" && spec?.requirementIds[1] === "absent-family-omitted",
+      "the content pass records the spec's declared id and every requirement id in declaration order",
+    );
+    const scene = documents[`${WORKFLOW_ROOT}/scenes/viewer/browse.yaml`];
+    context.assert(scene?.specId === undefined && scene?.requirementIds === undefined, "a non-spec document records no spec facts");
+
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`,
+      "artifact_type: main_spec\nspec:\n  id: viewer\n  title: Viewer Behavior\nrequirements:\n  lone-requirement:\n    strength: MUST\n    statement: Only one remains.\n    scenarios:\n      one:\n        - GIVEN: a workspace\n        - WHEN: the tree renders\n        - THEN: families appear\n",
+    );
+    fake.emit(`${WORKFLOW_ROOT}/specs/viewer`, "v2");
+    await settle();
+    const refreshed = stores.tree.getSnapshot().documents[`${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`];
+    context.assert(refreshed?.requirementIds?.length === 1 && refreshed?.requirementIds[0] === "lone-requirement", "a changed spec file recomputes its recorded requirement ids through the directory reload");
+
+    // The anchored open: an anchor names the element the opened document
+    // reveals, survives the live refresh of the same document, and clears
+    // on the next open that names none.
+    const anchor = "strict-spec-req-viewer-lone-requirement";
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`, anchor);
+    context.assert(stores.open.getSnapshot().anchor === anchor, "the open action records the anchor it was opened with");
+    fake.emit(`${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`, "v3");
+    await settle();
+    context.assert(stores.open.getSnapshot().status === "ready" && stores.open.getSnapshot().anchor === anchor, "a live refresh of the anchored document keeps its anchor");
+    await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/scenes/viewer/browse.yaml`);
+    context.assert(stores.open.getSnapshot().anchor === undefined, "opening another document without an anchor clears the recorded one");
+    stores.actions.dispose();
+  }
 }

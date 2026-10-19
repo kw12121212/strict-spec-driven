@@ -14,8 +14,8 @@ import type { SnapshotStore } from "@deepseek-ai/dsh-client-store";
 import { loadGroupChildren, loadWorkspaceTree } from "./traversal.ts";
 import { loadDocument } from "./loader.ts";
 import { isKnownArtifactType } from "./classifier.ts";
-import { deriveDocumentLabel, deriveDocumentStatus, deriveRoadmapFacts } from "./labels.ts";
-import type { RoadmapFacts } from "./labels.ts";
+import { deriveDocumentLabel, deriveDocumentStatus, deriveRoadmapFacts, deriveSpecFacts } from "./labels.ts";
+import type { RoadmapFacts, SpecFacts } from "./labels.ts";
 import { RefreshCoordinator } from "./refresh.ts";
 import { initialMilestoneOwnershipState, resolveArchivedPlannedChangeOwners } from "./roadmapOwnership.ts";
 import type { MilestoneOwnershipState } from "./roadmapOwnership.ts";
@@ -50,8 +50,12 @@ export interface ViewerActions {
   expandNode(sessionId: string, nodeId: string): Promise<void>;
   /** Collapses one group node, unloading a deferred archive and closing its watch. */
   collapseNode(sessionId: string, nodeId: string): void;
-  /** Opens one strict document: loads it completely and watches it while open. */
-  openDocument(sessionId: string, path: string): Promise<void>;
+  /**
+   * Opens one strict document: loads it completely and watches it while
+   * open. The optional anchor names a stable element anchor — a covering
+   * requirement — the opened document carries so the view can reveal it.
+   */
+  openDocument(sessionId: string, path: string, anchor?: string): Promise<void>;
   /** Closes the open document and its watch. */
   closeDocument(): void;
   /** Closes every watch and resets both stores; the viewer stops observing. */
@@ -64,6 +68,7 @@ interface DocumentMeta {
   known: boolean;
   status?: string;
   roadmap?: RoadmapFacts;
+  spec?: SpecFacts;
 }
 
 /** Finds one node by id in a family forest, depth-first. */
@@ -209,6 +214,8 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
             milestoneOrder: meta?.roadmap?.milestoneOrder,
             plannedChangeId: meta?.roadmap?.plannedChangeId,
             plannedChangeMilestone: meta?.roadmap?.plannedChangeMilestone,
+            specId: meta?.spec?.specId,
+            requirementIds: meta?.spec?.requirementIds,
             archived: node.archived,
           };
         }
@@ -265,6 +272,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       known: isKnownArtifactType(result.artifactType),
       status: deriveDocumentStatus(result.data, result.artifactType),
       roadmap: deriveRoadmapFacts(result.data, result.artifactType),
+      spec: deriveSpecFacts(result.data, result.artifactType),
     });
     // A change's tasks file records its completion for the change group
     // badge during this same read; an unreadable tasks list clears any
@@ -422,8 +430,11 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
         known: isKnownArtifactType(result.artifactType),
         status: deriveDocumentStatus(result.data, result.artifactType),
         roadmap: deriveRoadmapFacts(result.data, result.artifactType),
+        spec: deriveSpecFacts(result.data, result.artifactType),
       });
-      open.set({ status: "ready", path, data: result.data });
+      // The refresh keeps the anchor the document was opened with, so a
+      // live file change does not un-anchor the element the view revealed.
+      open.set({ status: "ready", path, data: result.data, anchor: current.anchor });
       return;
     }
     open.set({ status: "error", path, error: result.error });
@@ -536,9 +547,9 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       recordExpandChoice(nodeId, "closed");
     },
 
-    async openDocument(sessionId: string, path: string): Promise<void> {
+    async openDocument(sessionId: string, path: string, anchor?: string): Promise<void> {
       const activeCoordinator = ensureCoordinator(sessionId);
-      open.set({ status: "loading", path });
+      open.set({ status: "loading", path, anchor });
       const result = await loadDocument(port, sessionId, path);
       const current = open.getSnapshot();
       if (current.status === "idle" || current.path !== path) {
@@ -556,6 +567,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
             known: isKnownArtifactType(result.artifactType),
             status: deriveDocumentStatus(result.data, result.artifactType),
             roadmap: deriveRoadmapFacts(result.data, result.artifactType),
+            spec: deriveSpecFacts(result.data, result.artifactType),
           });
           if (node.family === "changes" && result.artifactType === "task_list") {
             const completion = taskCompletion(result.data);
@@ -570,7 +582,7 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
           next = recomputeDocuments(next);
           tree.set(next);
         }
-        open.set({ status: "ready", path, data: result.data });
+        open.set({ status: "ready", path, data: result.data, anchor });
         activeCoordinator.watchOpenDocument(path);
         await updateOwnershipForOpenDocument(sessionId, path, result.data, result.artifactType, node);
         return;

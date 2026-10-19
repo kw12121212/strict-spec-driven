@@ -1,0 +1,56 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: render-spec-and-scene-artifacts
+sections:
+  Implementation:
+    spec-scene-view-models:
+      text: 'Implement the React-free view-model mappers under plugins/dsh-strict-spec/src/client/: a main-spec mapper presenting the declared spec identity and each requirement with its declared strength, statement, scenarios, and stable anchor id, a specs-index mapper grouping entries by the spec area derived from their declared paths with a fallback group for entries naming no area, a scene mapper presenting actors with responsibilities, preconditions, the ordered main flow and exception flows with trigger and steps, each step''s covering references, its no-coverage reason, and a flag when it declares neither, and a scenes-index mapper grouping entries by their declared areas with titles and statuses — importing the shared record-field readers and partition helper so every unrecognized top-level field survives as generic blocks for the additional-fields append.'
+      status: complete
+    requirement-index-model:
+      text: 'Extend the model content pass and document record: record each non-archived main spec''s declared spec id and requirement ids alongside the status and roadmap facts the pass already records, expose them on the tree documents record, keep them refreshed through the existing directory-watch reloads and open-document refresh, and add a pure coverage-target resolver mapping a (spec id, requirement id) reference to the spec document path that holds it, reporting the requirement''s recorded presence so unresolvable references can present the unresolved marker.'
+      status: complete
+    requirement-anchor-navigation:
+      text: 'Wire the requirement anchor navigation seam: render a stable per-requirement anchor id in the spec view, extend the shared open action with an optional anchor recorded in the open-document state, render each scene step''s covering references as links that resolve against the tree documents record and open the covering spec at that requirement through the same action a tree row uses, present the shared unresolved marker for references that resolve to no document, and have both entry points bring an anchored requirement into view when the opened document carries one, keeping every existing dedicated view and the generic fallback working without the anchor.'
+      status: complete
+    spec-scene-renderer-components:
+      text: 'Implement the dedicated renderer components and their CSS Modules under plugins/dsh-strict-spec/src/client/: the spec view rendering the declared identity header, each requirement with its RFC keyword strength emphasized beside its statement and its scenarios with declared step keywords, and the stable anchor ids; the specs index view grouping entries by spec area; the scene view rendering actors with their roles, preconditions, the ordered main flow, and exception flows under their triggers, with each step''s coverage links, its no-coverage reason, the visible flag for a step declaring neither, and the unresolved markers; and the scenes index view grouping entries by declared area with titles and statuses — using props-only data flow, styles consuming only --dsw alias tokens, and every new user-visible string registered in both the zh and en catalogs and rendered only through them; register the four views for the main_spec, spec_index, scene, and scenes_index artifact types in the shared document view routing.'
+      status: complete
+    extend-plugin-renderer-suites:
+      text: 'Extend the plugin suites inside bun test/run.ts: component cases statically rendering every new renderer against its registered strict example under examples/strict-spec-driven/ — main spec, spec index, scene, and scenes index — asserting the keyword emphasis, the spec-area and scene-area groupings, the scenario steps, the stable anchors, the no-coverage reason, the neither-declared flag, and the additional-fields append; component cases for this repository''s operator-browses-strict-documents scene against the real dsh-viewer-behavior spec targets, driving the coverage links through fake stores and asserting only the shared open action is called with the resolved spec path and anchor; and model cases for the recorded spec id and requirement ids, their refresh through directory-watch reloads, and the coverage-target resolver including the unresolved path.'
+      status: complete
+  Testing:
+    validate-spec-scene-artifacts:
+      text: Validate the populated change artifacts and their cross-file state through the readiness gate while tasks are still pending; the readiness gate owns artifact validity.
+      status: complete
+      command: strict-spec-cli ready render-spec-and-scene-artifacts
+    run-lint:
+      text: Run the plugin-local lint inside plugins/dsh-strict-spec so the spec and scene view models, the renderer components, and the model changes compile under the plugin strict TypeScript face.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint
+    run-project-suite:
+      text: Run the complete project regression suite, confirming the new renderer example cases, the repository-scene coverage-navigation case, the requirement-index model cases, and the existing viewer behavior all pass together.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the blocking project regression coverage gate with the declared threshold, confirming the additions leave the src/** line coverage at or above 78 percent.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    confirm-bundle-and-conventions:
+      text: 'Rebuild the client bundle and confirm the shape and convention checks hold: shared modules stay runtime requires, no unshared runtime require appears, CSS Modules carry no literal colors or radii, and both locale catalogs stay key-complete for the new spec and scene renderer strings.'
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run build
+    record-manual-renderer-check:
+      text: 'Record the manual check in the pinned dsh release with the observed evidence written back into this task. OBSERVED EVIDENCE (dsh 0.2.1-rc.2, isolated DSH_HOME=/tmp/dsh-scene-home, link: install of the rebuilt plugin into the web profile, browser-driven web client on 127.0.0.1:13196, screenshots /tmp/rsa-smoke-01..05): (1) dsh plugin --profile web add link: installed dsh-plugin-strict-spec from the local checkout; the client booted with the Strict documents panel registered in the global panels and no load errors. (2) After choosing /home/wx766/Code/strict-spec-driven as the workspace and opening a Session, the left page loaded the real workspace tree in the fixed family order, including the Scenes family with its dsh-viewer and workflow areas and the Specs family with its eleven area groups. (3) Keyboard-opening specs/dsh-viewer/behavior.yaml rendered the dedicated spec view: the facts header, the Id and Title identity rows, and a Requirements section listing each requirement with its emphasized MUST tag beside its statement and its scenarios under GIVEN/WHEN/THEN keywords; the DOM held all 25 stable anchors of the form strict-spec-req-dsh-viewer-behavior-<requirement-id>. (4) Keyboard-opening the operator-browses-strict-documents scene rendered the dedicated scene view: the draft status badge, the operator actor with its declared role, the three preconditions, the ordered main flow, and each step''s covering references as dsh-viewer-behavior:<requirement-id> links. (5) Selecting the dsh-viewer-behavior:right-sidebar-tab coverage link opened the DSH Strict Document Viewer Behavior spec with that requirement anchored and scrolled to the top of the viewport (anchor element top at 44px in a 577px viewport), through the same open action a tree row uses. (6) Opening scenes/INDEX.yaml rendered the scenes index view grouped by declared area — dsh-viewer with its two draft scenes and workflow with its active scene, each presenting title and status. (7) Opening specs/INDEX.yaml rendered the specs index view grouped by spec area — architecture, cli, contracts, design, dsh-viewer, lessons, migrate, operations, roadmap, sop, and testing — each entry presenting its spec id and title. The waived-step reason, the neither-declared uncovered flag, and the unresolved coverage marker are exercised by the component suite against the registered example and synthetic scenes, because this repository holds no scene declaring those states. NOT RUN: the desktop-profile leg — the profile is Electron-managed and no Electron binary exists in this environment, so desktop proof defers to the release-dsh-strict-spec-plugin planned change, which owns the end-to-end smoke for both profiles.'
+      status: complete
+    confirm-archive-merge-surface:
+      text: 'Confirm the archive merge surface: the added spec-and-scene-artifact-renderers requirement and the modified generic-structured-rendering requirement merge into dsh-viewer-behavior, and the delta scene steps merge into the operator-browses-strict-documents scene with coverage resolving through the delta overlay.'
+      status: complete
+    run-final-verify:
+      text: Once every other task is complete, run strict-spec-cli verify render-spec-and-scene-artifacts directly and confirm it exits zero with no diagnostics; verify is run by the operator rather than recorded as a task command because it cannot pass while the task recording it is still pending.
+      status: complete
+testing_gates:
+  validation_task: validate-spec-scene-artifacts
+  unit_test_task: run-project-suite

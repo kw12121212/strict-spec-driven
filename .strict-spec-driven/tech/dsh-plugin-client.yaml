@@ -186,3 +186,15 @@ rules:
         - A roadmap renderer whose useSyncExternalStore calls read the context's stores with stable fallback singletons and still renders its declared sections context-free.
       bad:
         - A dedicated view that returns null when no view context is passed, or that calls hooks conditionally on the context's presence.
+  dedicated-views-share-one-tree-store-reader:
+    strength: SHOULD
+    statement: A dedicated renderer that reads the tree's documents record should consume one shared context-free tree-store reader — the fallback store and the useTreeDocuments hook exported from plugins/dsh-strict-spec/src/client/viewStores.ts — rather than restating the fallback per view module, keeping one hook shape that does not vary on the view context's presence.
+    rationale: The identity-stability contract that makes context-free static renders work — a stable empty-tree snapshot returned by a fallback store — now serves two navigating renderer families, and a second module restating it could drift from the first precisely where the dedicated-views-render-context-free rule needs them identical; this is the store-side counterpart of the existing view-model-partition-helpers-single-source rule.
+    enforcement:
+      method: review
+      detail: Review compares each new or edited navigating view module's imports against the shared reader module and fails a module that redeclares the fallback tree store or its own tree-documents hook; the existing context-free renderer cases keep proving the shared reader renders declared data without a context.
+    examples:
+      good:
+        - A spec-and-scene view module importing useTreeDocuments from viewStores.ts and declaring no local fallback store.
+      bad:
+        - A navigating view module that pastes its own EMPTY_TREE_STATE and FALLBACK_TREE_STORE beside the shared module, so its context-free snapshot identity can drift from every other dedicated view's.

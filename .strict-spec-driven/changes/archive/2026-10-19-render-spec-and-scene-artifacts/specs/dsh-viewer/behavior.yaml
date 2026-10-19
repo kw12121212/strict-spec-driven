@@ -1,0 +1,49 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    spec-and-scene-artifact-renderers:
+      strength: MUST
+      statement: Opening a main spec, specs index, scene, or scenes index document renders its dedicated view — the spec view presenting the spec's declared identity and each requirement with its declared RFC keyword strength emphasized beside its statement and its scenarios, every requirement carrying a stable anchor; the specs index view grouping its entries by the spec areas their declared paths name; the scene view presenting actors with their responsibilities, preconditions, the ordered main flow, and exception flows each under its declared trigger with its steps, where every step presents its covering requirements as links that open the covering requirement's anchor in its spec, presents its explicit no-coverage reason, visibly flags a step that declares neither, and presents a visible unresolved marker for a covering reference whose spec the loaded tree does not hold; and the scenes index view grouping its entries by their declared scene areas with their titles and statuses.
+      scenarios:
+        spec-view-keyword-emphasis:
+          - GIVEN: An open main spec declares its id and title and requirements carrying MUST, SHOULD, and MAY strengths with scenarios
+          - WHEN: the spec view renders
+          - THEN: the declared identity presents, each requirement renders with its strength emphasized beside its statement and its scenario steps under their declared keywords, and each requirement carries a stable anchor
+        spec-index-grouped-by-area:
+          - GIVEN: An open specs index declares entries whose paths name spec area subdirectories under specs/
+          - WHEN: the specs index view renders
+          - THEN: the entries group under their spec areas with their declared ids and titles, and an entry whose path names no area subdirectory presents in a stable fallback group rather than disappearing
+        scene-view-sections:
+          - GIVEN: An open scene declares actors with roles, preconditions, an ordered main flow, and exception flows with triggers and steps
+          - WHEN: the scene view renders
+          - THEN: the actors present with their responsibilities, the preconditions present as their own section, the main flow steps present in their declared order, and each exception flow presents under its declared trigger with its steps
+        scene-step-coverage-navigation:
+          - GIVEN: An open scene step declares covering requirements naming spec ids and requirement ids, and the loaded tree holds non-archived main spec documents declaring some of those spec ids
+          - WHEN: the scene view renders and a resolvable coverage link is selected
+          - THEN: the covering spec opens with its named requirement anchored through the same open action a tree row uses, while a reference whose spec resolves to no held document presents a visible unresolved marker
+        scene-step-coverage-waived-and-flagged:
+          - GIVEN: An open scene declares one step carrying an explicit no-coverage reason and another step declaring neither covered_by nor no_coverage_reason
+          - WHEN: the scene view renders
+          - THEN: the waived step presents its declared reason and the step declaring neither is visibly flagged as uncovered
+        scenes-index-grouped-by-area:
+          - GIVEN: An open scenes index declares areas holding scene entries with titles and statuses
+          - WHEN: the scenes index view renders
+          - THEN: the entries group under their declared areas, each presenting its declared title and status
+  MODIFIED:
+    generic-structured-rendering:
+      strength: MUST
+      statement: Opening any strict document whose artifact type has no dedicated renderer renders it as a structured view of its YAML fields, uniformly for every such type, and a document whose type has a dedicated renderer renders that renderer's layout with every top-level field the layout does not present appended through the same structured view under an additional-fields section.
+      scenarios:
+        fallback-types-stay-generic:
+          - GIVEN: An open strict document declares an artifact type no dedicated renderer serves, such as an artifact type the strict vocabulary does not define or a document that declares none
+          - WHEN: the document view renders
+          - THEN: it renders as the structured view of its YAML fields exactly as before, with no dedicated layout applied
+        additional-fields-appended:
+          - GIVEN: An open document of a served artifact type declares a top-level field its dedicated layout does not present
+          - WHEN: the document view renders
+          - THEN: that field appears under an additional-fields section rendered through the generic structured view rather than being hidden
+  REMOVED: {}

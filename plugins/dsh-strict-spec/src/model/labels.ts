@@ -154,3 +154,35 @@ export function deriveRoadmapFacts(data: unknown, artifactType?: string): Roadma
       return {};
   }
 }
+
+/**
+ * The requirement-index facts one non-archived main spec declares, read by
+ * the same content pass that derives labels, statuses, and roadmap facts:
+ * the spec's declared id and the ids of every requirement it holds. The
+ * scene views resolve a step's covering references against these facts;
+ * every fact is a declared field exactly as written.
+ */
+export interface SpecFacts {
+  /** The spec's declared id, when it declares one. */
+  readonly specId?: string;
+  /** The declared ids of the spec's requirements, in declaration order. */
+  readonly requirementIds?: readonly string[];
+}
+
+/**
+ * Derives the requirement-index facts of one parsed document: a main spec
+ * yields its declared spec id and requirement ids, and every other
+ * artifact type yields none.
+ */
+export function deriveSpecFacts(data: unknown, artifactType?: string): SpecFacts {
+  if (artifactType !== "main_spec") {
+    return {};
+  }
+  const specId = stringField(soleValue(data, "spec"), "id");
+  const requirements = soleValue(data, "requirements");
+  const requirementIds: string[] = [];
+  if (typeof requirements === "object" && requirements !== null && !Array.isArray(requirements)) {
+    requirementIds.push(...Object.keys(requirements as Record<string, unknown>));
+  }
+  return { specId, requirementIds };
+}

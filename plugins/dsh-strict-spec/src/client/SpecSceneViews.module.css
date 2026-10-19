@@ -1,0 +1,33 @@
+/* Spec and scene view styling: shared dedicated-view looks come from
+ * ArtifactViews.module.css (view, facts, sections, cards, meta rows); this
+ * module adds the layouts the spec and scene views own — index group rows
+ * and the specs index's area-group titles. Every color and radius goes
+ * through --dsw-alias and --dsw tokens: no literal color, no literal
+ * radius. */
+
+.groupRows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.groupRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rowId {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+}
+
+.rowTitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+}

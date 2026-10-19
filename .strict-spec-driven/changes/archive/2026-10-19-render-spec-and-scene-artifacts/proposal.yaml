@@ -1,0 +1,41 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: render-spec-and-scene-artifacts
+  status: proposed
+summary:
+  what:
+    - Add dedicated renderers for main specs, the specs index, scenes, and the scenes index in the dsh strict document viewer plugin, replacing their generic structured views.
+    - 'Spec view: the declared spec identity (id and title) and every requirement with RFC keyword emphasis for its declared MUST, SHOULD, or MAY strength, its statement, and its scenarios, each requirement carrying a stable anchor.'
+    - 'Specs index view: entries grouped by spec area, the area derived from each declared spec path''s subdirectory under specs/.'
+    - 'Scene view: actors with their responsibilities, preconditions, the ordered main flow, and exception flows with their trigger and steps, where each step presents its covering requirements as links that open the covering requirement''s anchor in its spec, presents its explicit no-coverage reason, and visibly flags a step that declares neither.'
+    - 'Scenes index view: entries grouped by their declared scene areas with their titles and statuses.'
+    - 'Extend the discovery model''s read-side content pass with a requirement index: each non-archived main spec document records its declared spec id and requirement ids, so a scene step''s coverage reference resolves to the spec document that holds it.'
+    - Renderer and model tests that render the registered spec, spec-index, scene, and scenes-index examples and this repository's operator-browses-strict-documents scene against its real dsh-viewer-behavior coverage targets.
+  why:
+    - The renderers milestone replaces the generic YAML view with purpose-built, readable renderers for every strict artifact family; specs and scenes are the last families whose documents still render generically, and the release planned change that documents and ships the finished viewer is dependency-blocked on them.
+    - A scene's step coverage is only checkable by a reader when the covering requirement is one selection away in its spec with its keyword strength visible, which the generic structured view cannot express.
+scope:
+  in:
+    - React-free view-model mappers for the main_spec, spec_index, scene, and scenes_index artifact types beside the existing change, roadmap, and context mappers, importing the shared record-field readers and partition helper.
+    - Dedicated renderer components with a CSS Module consuming only --dsw alias tokens, registered for the four artifact types in the shared document view routing, with every new user-visible string registered in both the zh and en locale catalogs.
+    - Stable per-requirement anchors in the spec view and navigation from a scene step coverage reference to the covering requirement's anchor through the shared open action, with the anchored requirement brought into view.
+    - 'A requirement index in the tree model''s content pass: each non-archived main spec document records its declared spec id and requirement ids, carried through tree recomputation and live refresh.'
+    - Visible unresolved markers for coverage references whose spec the loaded tree does not hold, presentation of explicit no-coverage reasons, and a visible flag on scene steps that declare neither coverage nor a reason.
+    - Component cases statically rendering the registered examples and the repository scene, and model cases for requirement-index recording and coverage-target resolution, all under bun test/run.ts.
+  out:
+    - Editing, mutating, or writing strict artifacts from any renderer.
+    - Changing strict artifact schemas so they render more easily, including adding a purpose field to the main spec schema.
+    - Computed roadmap status, validation diagnostics, or computed scene coverage gaps; the scene view flags only steps whose declared coverage is empty, exactly as the milestone scope excludes.
+    - Renderer work for other artifact families and any release preparation, packaging, installation documentation, or npm publication, which belongs to other planned changes of the milestone.
+unchanged_behavior:
+  - The document tree, its family order, labels, badges, expand persistence, keyboard navigation, truncation markers, and live refresh.
+  - The generic structured view for artifact types without a dedicated renderer and the additional-fields append for unrecognized top-level fields in dedicated views.
+  - 'Declared-values-only rendering: views show declared field values exactly as written, with no derived status, validation result, or computed value beyond the recorded task completions.'
+  - 'Read-only viewing: no control writes, edits, or deletes strict workflow files.'
+  - The right-sidebar tab and left-sidebar page entry points, their Session handling, layout, and shared stores.
+roadmap:
+  milestone: dsh-strict-spec-viewer-renderers
+  planned_change: render-spec-and-scene-artifacts

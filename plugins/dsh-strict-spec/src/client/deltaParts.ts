@@ -107,8 +107,12 @@ export interface DeltaTechBody {
   readonly operations: readonly DeltaOperation<TechRule>[];
 }
 
-/** Maps one declared requirement body from its operation group entry. */
-function requirementBody(id: string, entry: unknown): RequirementBody {
+/**
+ * Maps one declared requirement body from its operation group entry. The
+ * main spec renderer reuses this mapper, because a delta spec requirement
+ * and a main spec requirement carry the same declared shape.
+ */
+export function requirementBody(id: string, entry: unknown): RequirementBody {
   const scenariosSource = soleValue(entry, "scenarios");
   const scenarios: ScenarioEntry[] = [];
   if (typeof scenariosSource === "object" && scenariosSource !== null && !Array.isArray(scenariosSource)) {
@@ -141,8 +145,12 @@ function requirementBody(id: string, entry: unknown): RequirementBody {
   };
 }
 
-/** Maps one declared scene flow step from its operation group entry. */
-function sceneStep(id: string, entry: unknown): SceneStep {
+/**
+ * Maps one declared scene flow step from its keyed flow entry. The main
+ * scene renderer reuses this mapper, because a delta scene step and a main
+ * scene step carry the same declared shape.
+ */
+export function sceneStep(id: string, entry: unknown): SceneStep {
   const coverageSource = soleValue(entry, "covered_by");
   const coveredBy: CoverageRef[] = [];
   if (Array.isArray(coverageSource)) {
@@ -163,8 +171,12 @@ function sceneStep(id: string, entry: unknown): SceneStep {
   };
 }
 
-/** Maps the keyed steps of one flow container, in declaration order. */
-function keyedSteps(flow: unknown): SceneStep[] {
+/**
+ * Maps the keyed steps of one flow container, in declaration order. The
+ * main scene renderer reuses this mapper over its declared main_flow and
+ * exception-flow steps containers.
+ */
+export function keyedSteps(flow: unknown): SceneStep[] {
   if (typeof flow !== "object" || flow === null) {
     return [];
   }

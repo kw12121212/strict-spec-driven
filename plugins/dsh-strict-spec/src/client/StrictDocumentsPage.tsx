@@ -19,6 +19,7 @@ import type { Translate } from "@deepseek-ai/dsh-client-ui-slots";
 import type { SnapshotStore } from "@deepseek-ai/dsh-client-store";
 import { DocumentTree } from "./DocumentTree.tsx";
 import { DocumentView } from "./DocumentView.tsx";
+import { revealAnchor } from "./anchorReveal.ts";
 import { resolveShownSession } from "../model/picker.ts";
 import type { PageController, PageSelection, PageSelectionActions, PickerCatalog, SessionCatalogPort } from "../model/picker.ts";
 import type { ViewerStores } from "../model/store.ts";
@@ -120,6 +121,12 @@ export function StrictDocumentsPage(props: StrictDocumentsPageProps): ReactNode 
     }
     pageActions.recordDocument(openState.status === "ready" || openState.status === "error" || openState.status === "absent" ? openState.path : undefined);
   }, [openState, pageActions, shown.sessionId]);
+
+  // Reveal the anchored element the open document names — a covering
+  // requirement opened from a scene step — once the view has rendered it.
+  useEffect(() => {
+    revealAnchor(openState.anchor);
+  }, [openState]);
 
   /** Applies one picker choice from its option value. */
   function handlePickerChange(value: string): void {

@@ -21,6 +21,7 @@ import type { Translate } from "@deepseek-ai/dsh-client-ui-slots";
 import type { SnapshotStore } from "@deepseek-ai/dsh-client-store";
 import { DocumentTree } from "./DocumentTree.tsx";
 import { DocumentView } from "./DocumentView.tsx";
+import { revealAnchor } from "./anchorReveal.ts";
 import type { TabSurface } from "../model/tab.ts";
 import type { StrictSpecKey } from "./locales.ts";
 import styles from "./StrictDocumentsTab.module.css";
@@ -52,6 +53,11 @@ export function StrictDocumentsTab(props: StrictDocumentsTabProps): ReactNode {
     surface.controller.show();
   }, [surface]);
   useEffect(() => () => surface.controller.dispose(), [surface]);
+  // Reveal the anchored element the open document names — a covering
+  // requirement opened from a scene step — once the view has rendered it.
+  useEffect(() => {
+    revealAnchor(openState.anchor);
+  }, [openState]);
 
   return (
     <div className={styles.tab}>

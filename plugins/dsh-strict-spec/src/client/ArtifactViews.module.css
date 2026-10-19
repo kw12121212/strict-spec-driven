@@ -180,6 +180,29 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+.coverageLink {
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  font-family: var(--dsw-mono-font-family, monospace);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-primary);
+  text-align: start;
+  text-decoration: underline;
+  text-decoration-color: var(--dsw-alias-border-l4);
+  cursor: pointer;
+}
+
+.coverageUnresolved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--dsw-mono-font-family, monospace);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-secondary);
+}
+
 .command {
   font-family: var(--dsw-mono-font-family, monospace);
   font-size: var(--dsh-content-font-size-secondary, 13px);

@@ -34,6 +34,19 @@ import {
   roadmapIndexView,
 } from "../../plugins/dsh-strict-spec/src/client/roadmapParts.ts";
 import {
+  requirementAnchor,
+  specAreaOfPath,
+  specIndexView,
+  specView,
+} from "../../plugins/dsh-strict-spec/src/client/specParts.ts";
+import {
+  createSceneNavigator,
+  resolveSpecTarget,
+  sceneView,
+  scenesIndexView,
+} from "../../plugins/dsh-strict-spec/src/client/sceneParts.ts";
+import { revealAnchor } from "../../plugins/dsh-strict-spec/src/client/anchorReveal.ts";
+import {
   architectureView,
   configView,
   designSystemView,
@@ -704,9 +717,9 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     context.assert(techExamplesHtml.includes("delta.example-good") && techExamplesHtml.includes("A good case."), "good examples render with their label");
     context.assert(techExamplesHtml.includes("delta.example-bad") && techExamplesHtml.includes("A bad case."), "bad examples render with their label");
 
-    const mainSpecHtml = renderData(readExample("main-spec.yaml"));
-    context.assert(mainSpecHtml.includes("example-requirement") && mainSpecHtml.includes("requirements"), "an artifact type without a dedicated renderer keeps the generic view");
-    context.assert(!mainSpecHtml.includes("proposal.what") && !mainSpecHtml.includes("view.additional-fields"), "no dedicated layout or additional section applies to an unserved type");
+    const unknownHtml = renderData({ schema: "mystery/v1", schema_version: 1, artifact_type: "mystery_kind", mystery: { note: "Unserved." } });
+    context.assert(unknownHtml.includes("mystery") && unknownHtml.includes("Unserved."), "an artifact type without a dedicated renderer keeps the generic view");
+    context.assert(!unknownHtml.includes("proposal.what") && !unknownHtml.includes("view.additional-fields"), "no dedicated layout or additional section applies to an unserved type");
 
     const archivedTasks = load(
       readFileSync(path.join(ROOT, ".strict-spec-driven", "changes", "archive", "2026-10-18-register-right-sidebar-tab", "tasks.yaml"), "utf8"),
@@ -1156,6 +1169,280 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     archivedStores.actions.dispose();
   }
 
+  context.section("dsh plugin components: dedicated spec and scene renderers");
+
+  {
+    // Renderer cases consume the registered strict example of each artifact
+    // type, so a schema change that breaks a renderer fails the suite rather
+    // than silently degrading the view.
+    const readExample = (name: string): unknown =>
+      load(readFileSync(path.join(ROOT, "examples", "strict-spec-driven", name), "utf8"), { schema: CORE_SCHEMA });
+    const renderData = (data: unknown): string => renderView({ status: "ready", path: "example", data });
+
+    const specExample = readExample("main-spec.yaml");
+    const specModel = specView(specExample);
+    context.assert(
+      specModel.body.spec?.id === "example-spec" && specModel.body.spec?.title === "Example Spec"
+        && specModel.body.requirements.length === 1 && specModel.body.requirements[0]?.id === "example-requirement"
+        && specModel.body.requirements[0]?.strength === "MUST"
+        && specModel.body.requirements[0]?.scenarios[0]?.steps.length === 4
+        && specModel.body.requirements[0]?.scenarios[0]?.steps[2]?.kind === "AND",
+      "the spec view model reads the declared identity, requirement, strength, and scenario steps",
+    );
+    context.assert(specModel.additional.length === 0, "the registered spec example's fields are all presented, leaving no additional fields");
+    const specHtml = renderData(specExample);
+    context.assert(specHtml.includes("ctx.id") && specHtml.includes("example-spec") && specHtml.includes("Example Spec"), "the spec view renders the declared identity");
+    context.assert(specHtml.includes("spec.requirements") && specHtml.includes("example-requirement"), "the spec view lists its requirements under the requirements section");
+    context.assert(specHtml.includes(">MUST<") && specHtml.includes("The system MUST expose one observable behavior."), "each requirement renders its emphasized strength beside its statement");
+    context.assert(specHtml.includes("GIVEN") && specHtml.includes("WHEN") && specHtml.includes("THEN"), "each scenario renders its steps under their declared keywords");
+    context.assert(
+      specHtml.includes(`id="strict-spec-req-example-spec-example-requirement"`)
+        && requirementAnchor("example-spec", "example-requirement") === "strict-spec-req-example-spec-example-requirement",
+      "each requirement carries the stable anchor the scene coverage links open",
+    );
+
+    // The additional-fields append: a top-level field the spec layout does
+    // not present survives under the generic additional-fields section,
+    // the same contract every dedicated renderer carries.
+    const extendedSpecHtml = renderView({
+      status: "ready",
+      path: "extended-spec",
+      data: {
+        schema: "strict-spec-driven/main-spec/v1",
+        schema_version: 1,
+        artifact_type: "main_spec",
+        schema_file: "templates/strict-spec-driven/schemas/main-spec.yaml",
+        spec: { id: "extended-spec", title: "Extended Spec" },
+        requirements: {
+          lone: { strength: "MAY", statement: "An optional behavior.", scenarios: { only: [{ GIVEN: "a state", WHEN: "an action", THEN: "a result" }] } },
+        },
+        review_notes: { owner: "reviewer", note: "Watch this spec." },
+      },
+    });
+    context.assert(extendedSpecHtml.includes("view.additional-fields") && extendedSpecHtml.includes("review_notes") && extendedSpecHtml.includes("Watch this spec."), "an unrecognized top-level spec field renders through the additional-fields append rather than hiding");
+
+    context.assert(
+      specAreaOfPath(".strict-spec-driven/specs/cli/foundation.yaml") === "cli"
+        && specAreaOfPath("specs/viewer/behavior.yaml") === "viewer"
+        && specAreaOfPath("specs/example-spec.yaml") === "(unspecified)"
+        && specAreaOfPath(undefined) === "(unspecified)",
+      "a declared spec path's area is the subdirectory it names under specs/, with a stable fallback",
+    );
+    const specIndexExample = readExample("spec-index.yaml");
+    const specIndexModel = specIndexView(specIndexExample);
+    context.assert(
+      specIndexModel.body.groups.length === 1 && specIndexModel.body.groups[0]?.area === "(unspecified)"
+        && specIndexModel.body.groups[0]?.specs[0]?.id === "example-spec",
+      "the spec index view model groups the example's area-less entry under the fallback group",
+    );
+    const specIndexHtml = renderData(specIndexExample);
+    context.assert(specIndexHtml.includes("spec-index.other-area") && specIndexHtml.includes("example-spec") && specIndexHtml.includes("Example Spec"), "the specs index view renders the fallback area group with its entries");
+    const areaIndexDocument = {
+      artifact_type: "spec_index",
+      specs: [
+        { id: "cli-foundation", title: "CLI Foundation", path: ".strict-spec-driven/specs/cli/foundation.yaml" },
+        { id: "viewer-behavior", title: "Viewer Behavior", path: ".strict-spec-driven/specs/dsh-viewer/behavior.yaml" },
+        { id: "cli-commands", title: "CLI Commands", path: ".strict-spec-driven/specs/cli/commands.yaml" },
+      ],
+    };
+    const areaIndexModel = specIndexView(areaIndexDocument);
+    context.assert(
+      areaIndexModel.body.groups.map((group) => `${group.area}:${group.specs.length}`).join(",") === "cli:2,dsh-viewer:1",
+      "the spec index view model groups entries by their declared spec areas in declaration order",
+    );
+    const areaIndexHtml = renderView({ status: "ready", path: "area-index", data: areaIndexDocument });
+    context.assert(areaIndexHtml.includes(">cli<") && areaIndexHtml.includes(">dsh-viewer<"), "the specs index view renders one section per spec area");
+
+    const sceneExample = readExample("scene.yaml");
+    const sceneModel = sceneView(sceneExample);
+    context.assert(
+      sceneModel.body.scene?.id === "submit-expense-claim" && sceneModel.body.area === "expenses" && sceneModel.body.status === "active",
+      "the scene view model reads the declared identity, area, and status",
+    );
+    context.assert(
+      sceneModel.body.actors.length === 2 && sceneModel.body.actors[0]?.name === "employee" && sceneModel.body.actors[0]?.role !== undefined
+        && sceneModel.body.preconditions.length === 2,
+      "the scene view model reads the cast with their responsibilities and the preconditions",
+    );
+    context.assert(
+      sceneModel.body.mainFlow.length === 4 && sceneModel.body.mainFlow[0]?.id === "open-claim-form"
+        && sceneModel.body.mainFlow[1]?.coveredBy.length === 2,
+      "the scene view model reads the ordered main flow with each step's covering references",
+    );
+    context.assert(
+      sceneModel.body.exceptionFlows.length === 2 && sceneModel.body.exceptionFlows[0]?.trigger !== undefined
+        && sceneModel.body.exceptionFlows[0]?.steps.length === 1,
+      "the scene view model reads the exception flows under their triggers",
+    );
+    context.assert(sceneModel.additional.length === 0, "the registered scene example's fields are all presented, leaving no additional fields");
+    const sceneHtml = renderData(sceneExample);
+    context.assert(sceneHtml.includes("scene.actors") && sceneHtml.includes("employee") && sceneHtml.includes("scene.actor-role"), "the scene view renders the cast with their responsibilities");
+    context.assert(sceneHtml.includes("scene.preconditions") && sceneHtml.includes("The employee is signed in"), "the scene view renders the preconditions as their own section");
+    context.assert(sceneHtml.includes("delta.main-flow") && sceneHtml.includes("open-claim-form") && sceneHtml.includes("attach-receipt"), "the scene view renders the main flow steps in declared order");
+    context.assert(sceneHtml.includes("delta.exception-flow") && sceneHtml.includes("receipt-upload-is-rejected") && sceneHtml.includes("delta.trigger"), "the scene view renders each exception flow under its trigger");
+    context.assert(sceneHtml.includes("expenses-claim-capture:claim-form-lists-the-employee-cost-centres"), "a step's covering reference renders as spec:requirement");
+    context.assert(sceneHtml.includes("delta.no-coverage") && sceneHtml.includes("governed by the design system"), "a waived step renders its declared no-coverage reason");
+    context.assert(!sceneHtml.includes("scene.uncovered-step"), "a step declaring coverage or a reason carries no uncovered flag");
+
+    // A step naming neither a covering reference nor a no-coverage reason is
+    // schema-invalid but parseable, and the viewer still opens it: the flag
+    // is exactly for that gap, asserted here against a hand-built document.
+    const uncoveredHtml = renderView({
+      status: "ready",
+      path: "uncovered",
+      data: {
+        artifact_type: "scene",
+        scene: { id: "uncovered-scene", title: "Uncovered Scene" },
+        area: "test",
+        status: "draft",
+        actors: [{ name: "operator", role: "Acts." }],
+        preconditions: ["Something holds."],
+        main_flow: { "bare-step": { action: "Nothing covers this step." } },
+        exception_flows: { failure: { trigger: "It fails.", steps: { recover: { action: "Recover.", no_coverage_reason: "Recovery is procedural." } } } },
+      },
+    });
+    context.assert(uncoveredHtml.includes("scene.uncovered-step") && uncoveredHtml.includes("bare-step"), "a step declaring neither coverage nor a reason carries the visible uncovered flag");
+    context.assert(uncoveredHtml.includes("delta.no-coverage") && uncoveredHtml.includes("Recovery is procedural."), "the exception step's declared reason still renders");
+
+    const scenesIndexExample = readExample("scenes-index.yaml");
+    const scenesIndexModel = scenesIndexView(scenesIndexExample);
+    context.assert(
+      scenesIndexModel.body.groups.length === 1 && scenesIndexModel.body.groups[0]?.area === "expenses"
+        && scenesIndexModel.body.groups[0]?.scenes[0]?.id === "submit-expense-claim"
+        && scenesIndexModel.body.groups[0]?.scenes[0]?.status === "active",
+      "the scenes index view model groups entries under their declared areas",
+    );
+    const scenesIndexHtml = renderData(scenesIndexExample);
+    context.assert(scenesIndexHtml.includes(">expenses<") && scenesIndexHtml.includes("submit-expense-claim") && scenesIndexHtml.includes("An employee submits an expense claim for approval"), "the scenes index view renders its area group with titles");
+    context.assert(scenesIndexHtml.includes(">active<"), "each scenes index entry renders its declared status");
+
+    // Navigation: this repository's real browses scene renders over fake
+    // stores holding the real dsh-viewer-behavior spec, so every covering
+    // reference resolves and renders as a link that opens the covering
+    // requirement's anchor through the shared open action alone.
+    const sceneFake = new FakeWorkspaceFiles();
+    sceneFake.writeFile(`${WORKFLOW_ROOT}/config.yaml`, "artifact_type: workflow_config\n");
+    sceneFake.writeFile(`${WORKFLOW_ROOT}/scenes/INDEX.yaml`, "artifact_type: scenes_index\n");
+    sceneFake.writeFile(
+      `${WORKFLOW_ROOT}/scenes/dsh-viewer/operator-browses-strict-documents.yaml`,
+      readFileSync(path.join(ROOT, ".strict-spec-driven", "scenes", "dsh-viewer", "operator-browses-strict-documents.yaml"), "utf8"),
+    );
+    sceneFake.writeFile(`${WORKFLOW_ROOT}/specs/INDEX.yaml`, "artifact_type: spec_index\n");
+    sceneFake.writeFile(
+      `${WORKFLOW_ROOT}/specs/dsh-viewer/behavior.yaml`,
+      readFileSync(path.join(ROOT, ".strict-spec-driven", "specs", "dsh-viewer", "behavior.yaml"), "utf8"),
+    );
+    const sceneStores = createViewerStores(sceneFake.port);
+    await sceneStores.actions.loadWorkspace("session-scene");
+    await settle();
+    const sceneContext: ViewContext = { sessionId: "session-scene", viewer: sceneStores };
+    const sceneDocuments = sceneStores.tree.getSnapshot().documents;
+    const specRecord = sceneDocuments[`${WORKFLOW_ROOT}/specs/dsh-viewer/behavior.yaml`];
+    context.assert(specRecord?.specId === "dsh-viewer-behavior" && specRecord?.requirementIds?.[0] === "tree-family-order", "the content pass records the real spec's id and requirement ids");
+
+    const resolvedSpec = resolveSpecTarget(sceneDocuments, "dsh-viewer-behavior");
+    context.assert(resolvedSpec?.path === `${WORKFLOW_ROOT}/specs/dsh-viewer/behavior.yaml`, "a covering reference's spec id resolves against the documents record");
+    context.assert(resolveSpecTarget(sceneDocuments, "missing-spec") === undefined, "a spec id no held document declares resolves to nothing");
+
+    const opened: Array<{ path: string; anchor?: string }> = [];
+    const recordingActions = {
+      openDocument: async (_sessionId: string, path: string, anchor?: string): Promise<void> => {
+        opened.push({ path, anchor });
+      },
+    };
+    const sceneNavigator = createSceneNavigator(recordingActions, "session-scene", sceneDocuments);
+    context.assert(
+      sceneNavigator.openRequirement("dsh-viewer-behavior", "right-sidebar-tab") === true
+        && opened[0]?.path === `${WORKFLOW_ROOT}/specs/dsh-viewer/behavior.yaml`
+        && opened[0]?.anchor === requirementAnchor("dsh-viewer-behavior", "right-sidebar-tab"),
+      "selecting a resolved covering reference calls only the shared open action with the spec path and requirement anchor",
+    );
+    context.assert(sceneNavigator.openRequirement("missing-spec", "any-requirement") === false && opened.length === 1, "an unresolved covering reference opens nothing");
+
+    const browsesHtml = renderToString(createElement(DocumentView, {
+      state: { status: "ready", path: `${WORKFLOW_ROOT}/scenes/dsh-viewer/operator-browses-strict-documents.yaml`, data: load(readFileSync(path.join(ROOT, ".strict-spec-driven", "scenes", "dsh-viewer", "operator-browses-strict-documents.yaml"), "utf8"), { schema: CORE_SCHEMA }) },
+      t: fakeT,
+      context: sceneContext,
+    } satisfies DocumentViewProps));
+    context.assert(browsesHtml.includes("<button") && browsesHtml.includes("dsh-viewer-behavior:right-sidebar-tab"), "a resolved covering reference renders as a selectable link");
+    context.assert(!browsesHtml.includes("roadmap.unresolved"), "the repository scene's references all resolve, rendering no unresolved markers");
+
+    const unresolvedHtml = renderToString(createElement(DocumentView, {
+      state: {
+        status: "ready",
+        path: "unresolved-scene",
+        data: {
+          artifact_type: "scene",
+          scene: { id: "unresolved-scene", title: "Unresolved Scene" },
+          area: "test",
+          status: "draft",
+          actors: [{ name: "operator", role: "Acts." }],
+          preconditions: ["Something holds."],
+          main_flow: { dangling: { action: "Points nowhere.", covered_by: [{ spec_id: "missing-spec", requirement_id: "gone" }] } },
+          exception_flows: { failure: { trigger: "It fails.", steps: { recover: { action: "Recover.", no_coverage_reason: "Recovery is procedural." } } } },
+        },
+      },
+      t: fakeT,
+      context: sceneContext,
+    } satisfies DocumentViewProps));
+    context.assert(unresolvedHtml.includes("missing-spec:gone") && unresolvedHtml.includes("roadmap.unresolved"), "a covering reference that resolves to no held document renders the visible unresolved marker");
+
+    // Requirement-level resolution: a reference naming a held spec but a
+    // requirement that spec does not declare is just as dangling — it
+    // renders the unresolved marker and opens nothing, instead of a link
+    // that would open the spec silently un-anchored.
+    context.assert(resolveSpecTarget(sceneDocuments, "dsh-viewer-behavior", "nonexistent-requirement") === undefined, "a reference naming a held spec but an undeclared requirement resolves to nothing");
+    context.assert(
+      sceneNavigator.openRequirement("dsh-viewer-behavior", "nonexistent-requirement") === false && opened.length === 1,
+      "selecting a reference whose requirement the held spec does not declare opens nothing",
+    );
+    const danglingRequirementHtml = renderToString(createElement(DocumentView, {
+      state: {
+        status: "ready",
+        path: "dangling-requirement-scene",
+        data: {
+          artifact_type: "scene",
+          scene: { id: "dangling-requirement-scene", title: "Dangling Requirement Scene" },
+          area: "test",
+          status: "draft",
+          actors: [{ name: "operator", role: "Acts." }],
+          preconditions: ["Something holds."],
+          main_flow: { "points-nowhere": { action: "Names a missing requirement.", covered_by: [{ spec_id: "dsh-viewer-behavior", requirement_id: "nonexistent-requirement" }] } },
+          exception_flows: { failure: { trigger: "It fails.", steps: { recover: { action: "Recover.", no_coverage_reason: "Recovery is procedural." } } } },
+        },
+      },
+      t: fakeT,
+      context: sceneContext,
+    } satisfies DocumentViewProps));
+    context.assert(
+      danglingRequirementHtml.includes("dsh-viewer-behavior:nonexistent-requirement") && danglingRequirementHtml.includes("roadmap.unresolved") && !danglingRequirementHtml.includes("<button"),
+      "a reference naming an undeclared requirement of a held spec renders the unresolved marker instead of a link",
+    );
+
+    // The anchored open: opening a spec with an anchor records it, the spec
+    // view renders the anchored requirement's stable id, and the reveal
+    // scrolls the element the anchor names — asserted with a scripted
+    // lookup so no DOM is needed.
+    await sceneStores.actions.openDocument("session-scene", `${WORKFLOW_ROOT}/specs/dsh-viewer/behavior.yaml`, requirementAnchor("dsh-viewer-behavior", "live-refresh"));
+    const anchoredState = sceneStores.open.getSnapshot();
+    context.assert(anchoredState.anchor === requirementAnchor("dsh-viewer-behavior", "live-refresh"), "the open action records the anchor it was opened with");
+    const anchoredHtml = renderToString(createElement(DocumentView, { state: anchoredState, t: fakeT, context: sceneContext } satisfies DocumentViewProps));
+    context.assert(anchoredHtml.includes(`id="strict-spec-req-dsh-viewer-behavior-live-refresh"`), "the spec view renders the anchored requirement's stable anchor id");
+    await sceneStores.actions.openDocument("session-scene", `${WORKFLOW_ROOT}/specs/dsh-viewer/behavior.yaml`);
+    context.assert(sceneStores.open.getSnapshot().anchor === undefined, "opening without an anchor clears any earlier one");
+
+    const revealed: string[] = [];
+    const scriptedLookups = new Map<string, { scrollIntoView: (options?: { block?: string }) => void }>([
+      ["present-anchor", { scrollIntoView: (options?: { block?: string }) => { revealed.push(`present:${options?.block}`); } }],
+    ]);
+    const lookup = (id: string) => scriptedLookups.get(id) ?? null;
+    context.assert(revealAnchor(undefined, lookup) === false && revealed.length === 0, "no anchor reveals nothing");
+    context.assert(revealAnchor("absent-anchor", lookup) === false && revealed.length === 0, "an anchor that resolves to no element reveals nothing");
+    context.assert(revealAnchor("present-anchor", lookup) === true && revealed[0] === "present:start", "a resolved anchor scrolls its element into view at the block start");
+
+    sceneStores.actions.dispose();
+  }
+
   context.section("dsh plugin components: locale catalogs");
 
   {
@@ -1181,6 +1468,7 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
       "questions.open", "questions.resolved", "questions.context", "questions.answer",
       "delta.target-spec", "delta.new-spec", "delta.target-scene", "delta.target-standard", "delta.new-standard", "delta.main-flow", "delta.exception-flow", "delta.trigger", "delta.reason", "delta.rationale", "delta.enforcement", "delta.example-good", "delta.example-bad", "delta.no-coverage",
       "roadmap.milestones", "roadmap.intake-questions", "roadmap.owned-planned-changes", "roadmap.goal", "roadmap.done-criteria", "roadmap.dependencies", "roadmap.notes", "roadmap.details", "roadmap.summary", "roadmap.depends-on", "roadmap.unresolved", "roadmap.impact", "roadmap.recommendation", "roadmap.ownership-error",
+      "spec.requirements", "spec-index.other-area", "scene.actors", "scene.actor-role", "scene.preconditions", "scene.uncovered-step",
     ];
     context.assert(rendererKeys.every((key) => key in zh), "every dedicated-renderer string is registered in both catalogs");
   }

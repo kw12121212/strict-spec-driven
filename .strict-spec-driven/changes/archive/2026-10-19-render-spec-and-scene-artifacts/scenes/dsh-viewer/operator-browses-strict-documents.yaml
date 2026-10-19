@@ -1,0 +1,38 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: operator-browses-strict-documents
+operations:
+  ADDED:
+    main_flow:
+      open-main-spec:
+        action: 'The operator opens a main spec and reads its dedicated view: the declared spec identity, and each requirement with its declared MUST, SHOULD, or MAY strength emphasized beside its statement, its scenarios under their declared keywords, and a stable anchor every requirement carries.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: spec-and-scene-artifact-renderers
+      open-specs-index:
+        action: The operator opens the specs index and reads its dedicated view, which groups the entries under the spec areas their declared paths name, each with its id and title.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: spec-and-scene-artifact-renderers
+      open-scene-and-follow-coverage:
+        action: The operator opens a scene and reads its dedicated view — actors with their responsibilities, preconditions, the ordered main flow, and exception flows under their declared triggers — and selects a step's covering requirement, which opens the covering spec anchored at that requirement through the same open action a tree row uses, while a reference whose spec the tree does not hold presents a visible unresolved marker, a waived step presents its declared no-coverage reason, and a step declaring neither is visibly flagged.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: spec-and-scene-artifact-renderers
+      open-scenes-index:
+        action: The operator opens the scenes index and reads its dedicated view, which groups the entries under their declared scene areas, each with its title and status.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: spec-and-scene-artifact-renderers
+  MODIFIED:
+    main_flow:
+      open-document:
+        action: 'The operator opens a strict document from the tree, which renders in the view its artifact type uses: a dedicated view for change, project-context, roadmap, spec, and scene documents, or the generic structured view for a type without one, showing declared field values exactly as written with unrecognized top-level fields appended under an additional-fields section.'
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: generic-structured-rendering
+          - spec_id: dsh-viewer-behavior
+            requirement_id: declared-values-only
+  REMOVED: {}

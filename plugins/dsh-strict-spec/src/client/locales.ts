@@ -178,6 +178,12 @@ export const zh = {
   "roadmap.impact": "影响",
   "roadmap.recommendation": "建议",
   "roadmap.ownership-error": "归档计划变更列表读取失败。",
+  "spec.requirements": "需求",
+  "spec-index.other-area": "其他",
+  "scene.actors": "参与者",
+  "scene.actor-role": "职责",
+  "scene.preconditions": "前置条件",
+  "scene.uncovered-step": "此步骤未声明覆盖需求，也未声明无覆盖原因。",
 } as const;
 
 /** The strictSpec namespace key union. */
@@ -356,4 +362,10 @@ export const en: LocaleDictOf<"strictSpec"> = {
   "roadmap.impact": "Impact",
   "roadmap.recommendation": "Recommendation",
   "roadmap.ownership-error": "The archived planned-change listing failed.",
+  "spec.requirements": "Requirements",
+  "spec-index.other-area": "Other",
+  "scene.actors": "Actors",
+  "scene.actor-role": "Role",
+  "scene.preconditions": "Preconditions",
+  "scene.uncovered-step": "This step declares neither a covering requirement nor a no-coverage reason.",
 };

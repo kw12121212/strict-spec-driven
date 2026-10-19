@@ -32,9 +32,9 @@ import {
   roadmapIndexView,
 } from "./roadmapParts.ts";
 import type { MilestoneIntakeQuestion, OwnedPlannedChange, RoadmapIndexEntry } from "./roadmapParts.ts";
-import type { DocumentRecord, TreeState } from "../model/nodes.ts";
 import type { MilestoneOwnershipState } from "../model/roadmapOwnership.ts";
 import { initialMilestoneOwnershipState } from "../model/roadmapOwnership.ts";
+import { useTreeDocuments } from "./viewStores.ts";
 import type { StrictSpecKey } from "./locales.ts";
 import styles from "./ArtifactViews.module.css";
 import roadmapStyles from "./RoadmapViews.module.css";
@@ -46,15 +46,6 @@ interface ReadableStore<T> {
   getSnapshot(): T;
 }
 
-/** A stable empty tree state, so context-free renders keep one snapshot. */
-const EMPTY_TREE_STATE: TreeState = { status: "ready", families: [], documents: {} };
-
-/** The stable fallback tree store for context-free renders. */
-const FALLBACK_TREE_STORE: ReadableStore<TreeState> = {
-  subscribe: () => () => undefined,
-  getSnapshot: () => EMPTY_TREE_STATE,
-};
-
 /** The stable idle ownership state for context-free renders. */
 const IDLE_OWNERSHIP_STATE = initialMilestoneOwnershipState();
 
@@ -63,12 +54,6 @@ const FALLBACK_OWNERSHIP_STORE: ReadableStore<MilestoneOwnershipState> = {
   subscribe: () => () => undefined,
   getSnapshot: () => IDLE_OWNERSHIP_STATE,
 };
-
-/** Reads the tree's documents record from the view context, when one exists. */
-function useTreeDocuments(context: ViewContext | undefined): Readonly<Record<string, DocumentRecord>> {
-  const store: ReadableStore<TreeState> = context === undefined ? FALLBACK_TREE_STORE : context.viewer.tree;
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot).documents;
-}
 
 /** Reads the archived-milestone ownership state from the view context. */
 function useOwnership(context: ViewContext | undefined): MilestoneOwnershipState {
