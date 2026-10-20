@@ -40,34 +40,29 @@ checkout 或自行打包的 tarball 安装。
 测试。在该范围之外的 dsh 版本中，插件不注册任何文档界面，而不是显示部分可用的
 查看器。
 
-## 从本地 checkout 构建
+## 安装到 Web 客户端
 
-构建产物不提交到仓库，安装前请先构建：
+构建产物不提交到仓库，从本仓库的全新 clone 开始，复制下面这一块即可一次完成
+构建与安装（在仓库根目录执行）：
 
 ```sh
 cd plugins/dsh-strict-spec
 bun install
 bun run build
-```
-
-这会生成 `dist/client.js` 和 `dist/host.js`。拉取更新后需重新构建。
-
-## 安装到 Web 客户端
-
-使用通过 npm 安装的 `dsh` 命令，可以链接到 checkout：
-
-```sh
 dsh plugin --profile web add "link:$(pwd)"
 ```
 
-也可以从 checkout 打包出的 tarball 安装：
+这会生成 `dist/client.js` 和 `dist/host.js`，并通过 npm 安装的 `dsh` 命令添加
+插件。也可以从构建好的 checkout 打包 tarball 安装：
 
 ```sh
 dsh plugin --profile web add "$(pwd)/$(npm pack --silent)"
 ```
 
-`link:` 安装会跟随 checkout 之后的重新构建；tarball 安装是固定副本，需要重新
-打包并再次 add 才能替换。然后在要查看的 workspace 中启动 Web 客户端：
+`link:` 安装会跟随 checkout 之后的重新构建——拉取更新后在
+`plugins/dsh-strict-spec` 中再次执行 `bun run build` 即可；tarball 安装是固定
+副本，需要重新打包并再次 add 才能替换。然后在要查看的 workspace 中启动 Web
+客户端：
 
 ```sh
 cd /path/to/your/project
@@ -75,6 +70,27 @@ dsh web
 ```
 
 使用 `dsh plugin --profile web remove dsh-plugin-strict-spec` 卸载插件。
+
+## 升级 dsh 宿主
+
+插件固定在其构建时所针对的 dsh 版本上（见上文 `engines.dsh`），按照本仓库
+narrow-engines-dsh-pin 技术标准，放宽该范围本身就是一次独立的 planned
+change——绝不在其他变更里顺手改动。升级 dsh 宿主之后：
+
+1. 用 `dsh --version` 核对当前版本是否仍在固定范围内。
+2. 找不到 *Strict 文档* 面板？这是版本范围在起作用，不是安装坏了：超出范围时
+   插件刻意不注册任何文档界面。
+3. 规划一次独立变更，把 `plugins/dsh-strict-spec/package.json` 的
+   `engines.dsh` 提升到新的补丁线，针对该版本重新测试查看器，并随变更落地
+   所需的适配修正。
+4. 在该变更的 checkout 中重新构建（在 `plugins/dsh-strict-spec` 内执行
+   `bun install && bun run build`）；tarball 安装需要重新打包并再次 add，
+   `link:` 安装持续指向 checkout，只需重新构建。
+5. 重启 `dsh web`（Desktop 需先完全退出）让 profile 重新组合，然后刷新页面。
+
+本 SOP 中今天可执行的命令——构建、`link:` 安装到隔离 profile、启动宿主、在
+浏览器中加载两个入口——均已对 dsh 0.2.1-rc.2 实测验证；面向未来版本的步骤
+（第 3–4 步针对超出范围的宿主）在该版本发布之前无法实际运行。
 
 ## 安装到 Desktop profile
 

@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: dsh-plugin-review-recommendations
+sections:
+  Implementation:
+    store-bounded-concurrency:
+      text: 'In plugins/dsh-strict-spec/src/model/store.ts, replace the serial await in refineLabels with a bounded-concurrency walk: collect leaf document nodes in tree order, run refineDocument over them with a small fixed concurrency limit, and assemble each refined node back into its input position, so the produced tree state is identical to the serial walk.'
+      status: complete
+    store-metadata-pruning:
+      text: In plugins/dsh-strict-spec/src/model/store.ts, prune documentMeta and taskCompletionByFile entries inside recomputeDocuments against the document path set the current tree holds, so metadata for files a reload no longer lists is dropped at that mutation instead of surviving until the next loadWorkspace.
+      status: complete
+    refresh-comment-placement:
+      text: In plugins/dsh-strict-spec/src/model/refresh.ts, move the pump doc comment (Iterates one watch's frame stream...) from above setHealth back onto the pump method it describes, with no code behavior change.
+      status: complete
+    readme-upgrade-sop-and-install-block:
+      text: 'Edit plugins/dsh-strict-spec/README.md and README.zh.md: add a dsh host upgrade SOP section covering the checked commands (dsh --version, bun install, bun run build, dsh plugin --profile web add, host restart) and stating that bumping the engines.dsh pin is its own planned change per the narrow-engines-dsh-pin standard, and fold bun install and bun run build into the install section''s first command block so a fresh clone copies one working block; keep every existing readmeFindings marker present in both files.'
+      status: complete
+    model-and-readme-suite-coverage:
+      text: 'Extend the plugin suites: in test/suites/dsh-plugin-model.ts add a gated-fake case proving label refinement reads overlap under concurrency while the assembled tree order and badges stay identical, and a delete-then-recreate case proving a re-created document no longer carries the deleted version''s recorded status or completion; in test/suites/dsh-plugin.ts add an upgrade-sop category to readmeFindings with its negative and positive probes over the dsh --version SOP marker.'
+      status: complete
+    rebuild-plugin-dist:
+      text: Run bun install and bun run build inside plugins/dsh-strict-spec so dist/client.js and dist/host.js reflect the edited sources, per the rebuild-after-source-edits standard.
+      status: complete
+  Testing:
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes, including the extended dsh plugin model and manifest suites.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured and confirm it passes at the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-ready-check:
+      text: Run strict-spec-cli ready dsh-plugin-review-recommendations and confirm it reports the change ready for implementation handoff with no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run strict-spec-cli verify dsh-plugin-review-recommendations after implementation and confirm artifact structure, task completion, and unchanged-behavior checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression

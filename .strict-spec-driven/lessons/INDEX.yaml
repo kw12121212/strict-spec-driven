@@ -161,6 +161,11 @@ categories:
       status: active
       occurrences: 2
       path: .strict-spec-driven/lessons/testing/statically-rendered-translate-params-must-be-ass-083ebf.yaml
+    a-parking-test-fake-without-a-release-flag-deadl-4a8159:
+      title: A parking test fake without a release flag deadlocks the suite
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-parking-test-fake-without-a-release-flag-deadl-4a8159.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

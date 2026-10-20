@@ -55,7 +55,8 @@ export function packlistFindings(files: readonly string[], required: readonly st
 /**
  * Checks one plugin README for the release content operators rely on: the
  * supported engines range, the link: and packed-tarball web installs, the
- * desktop profile install, and a link to every other language's README.
+ * desktop profile install, the dsh host upgrade SOP with its version check,
+ * and a link to every other language's README.
  */
 export function readmeFindings(text: string, enginesRange: string, counterparts: readonly string[]): ReleaseFinding[] {
   if (text.trim().length === 0) {
@@ -73,6 +74,9 @@ export function readmeFindings(text: string, enginesRange: string, counterparts:
   }
   if (!text.includes("dsh plugin --profile desktop add")) {
     findings.push({ category: "desktop-install", detail: "no desktop profile install command" });
+  }
+  if (!text.includes("dsh --version")) {
+    findings.push({ category: "upgrade-sop", detail: "no dsh host upgrade SOP version check" });
   }
   for (const other of counterparts) {
     if (!text.includes(`](${other})`)) {
@@ -491,7 +495,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     const enginesRange = manifest.engines?.dsh ?? "";
     context.assert(
       readmeFindings(text, enginesRange, counterparts).length === 0,
-      `the ${language} plugin README documents the engines range, the link: and tarball web installs, the desktop install, and links its counterparts`,
+      `the ${language} plugin README documents the engines range, the link: and tarball web installs, the desktop install, the dsh host upgrade SOP, and links its counterparts`,
       `findings: ${JSON.stringify(readmeFindings(text, enginesRange, counterparts))}`,
     );
     if (language !== "en") {
@@ -504,6 +508,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       [text.split("--profile web add \"link:").join("--profile web add \""), "link-install"],
       [text.split("npm pack").join("pack"), "tarball-install"],
       [text.split("--profile desktop add").join("--profile desktop"), "desktop-install"],
+      [text.split("dsh --version").join("dsh -v"), "upgrade-sop"],
       [counterparts.reduce((stripped, other) => stripped.split(`](${other})`).join("]"), text), "counterpart-link"],
     ] as const) {
       context.assert(

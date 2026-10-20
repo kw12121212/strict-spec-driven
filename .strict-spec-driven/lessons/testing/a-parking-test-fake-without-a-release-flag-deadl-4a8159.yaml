@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-parking-test-fake-without-a-release-flag-deadl-4a8159
+  title: A parking test fake without a release flag deadlocks the suite
+category: testing
+status: active
+created_at: '2026-10-20T03:52:13.430Z'
+updated_at: '2026-10-20T03:52:13.430Z'
+context: 'The dsh-plugin-review-recommendations change added a model-suite case that proves bounded-concurrency reads overlap by parking every specs-family readBytes call on a gate until the test released it. The first version released only the parked reads, with no released flag: the worker pool then started the remaining five reads, which parked forever, and the whole bun test/run.ts run hung inside the new section with no failure output.'
+observation: The suite log ended silently mid-section (last line a passing assert of the new block), the runner process sat alive until killed, and the reported exit status came from the wrapping shell rather than the runner. The existing createGatedPort harness in the same suite already routes post-release calls around its gate through a boolean flag; the new test had reimplemented the gate without that flag.
+takeaway: A test fake that parks calls to prove concurrency MUST route post-release calls around the gate (a released boolean checked before parking, as createGatedPort does), and a suite run whose log stops mid-section with no summary line should be read as a hang inside that section, not as a pass.
+applies_when: A test gates an async fake to observe interleaving or concurrency and later releases it while the code under test may still issue further calls through the same fake, especially in suites without per-case timeouts.
+occurrences:
+  - origin: dsh-plugin-review-recommendations
+    date: '2026-10-20'
+    evidence: test/suites/dsh-plugin-model.ts gated concurrency case; the hung run redirected to /tmp/suite2.log ended at the first parked-read assert with no final summary, and the corrected version (released flag before parking) passes in the same suite.

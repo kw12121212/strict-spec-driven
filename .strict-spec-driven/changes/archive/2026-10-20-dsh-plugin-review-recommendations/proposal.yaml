@@ -1,0 +1,21 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: dsh-plugin-review-recommendations
+  status: proposed
+summary:
+  what:
+    - 'Apply the five review recommendations from the dsh plugin usability review: document a dsh-upgrade SOP for the plugin in both plugin READMEs and fold the build step into the install command block, refine tree document labels with bounded concurrency instead of one serial read per document, drop read-side document metadata whose file a directory reload no longer holds, and reattach the refresh pump''s misplaced doc comment.'
+  why:
+    - The review verified the plugin loads and renders end to end against the pinned dsh 0.2.1-rc.2 host but found the initial tree load issues one serial read RPC per non-archived document, stale read metadata survives the deletion of its file until the next workspace load, the plugin README documents no procedure for keeping the plugin loadable across a dsh release upgrade, and the install section separates the build step from the install command a fresh clone must run first.
+scope:
+  in:
+    - plugins/dsh-strict-spec/README.md and README.zh.md (upgrade SOP section plus merged build-and-install command block); plugins/dsh-strict-spec/src/model/store.ts (bounded-concurrency label refinement and metadata pruning); plugins/dsh-strict-spec/src/model/refresh.ts (doc comment placement only); test/suites/dsh-plugin-model.ts (concurrency and pruning coverage)
+    - plugins/dsh-strict-spec/README.md and README.zh.md (upgrade SOP section plus merged build-and-install command block); plugins/dsh-strict-spec/src/model/store.ts (bounded-concurrency label refinement and metadata pruning); plugins/dsh-strict-spec/src/model/refresh.ts (doc comment placement only); test/suites/dsh-plugin-model.ts (concurrency and pruning coverage); test/suites/dsh-plugin.ts (upgrade-sop README check category with negative and positive probes)
+  out:
+    - The engines.dsh pin stays exactly >=0.2.1-rc.2 <0.2.2 per the narrow-engines-dsh-pin standard (widening is its own planned change); the viewer's user-visible tree, labels, badges, views, entry points, and all dsh-viewer-behavior main spec requirements stay unchanged; the plugin's package manifest, bundle shape, build script, host entry, and cordis patch stay unchanged; no delta spec, delta tech, or scene artifact is added
+    - The engines.dsh pin stays exactly >=0.2.1-rc.2 <0.2.2 per the narrow-engines-dsh-pin standard (widening is its own planned change); the viewer's user-visible tree, labels, badges, views, entry points, and all dsh-viewer-behavior main spec requirements stay unchanged; the plugin's package manifest, bundle shape, build script, host entry, and cordis patch stay unchanged; no delta spec or scene artifact is added
+unchanged_behavior:
+  - 'Every dsh-viewer-behavior main spec requirement keeps holding: family order, labels from declared fields, archived groups collapsed and unread, truncation markers, read-only viewing, declared values only, dedicated and generic renderers, parse-error and empty states, live refresh, right-sidebar tab, left page picker and restore, keyboard navigation, expand persistence, pointer activation, re-expansion, tree-follows-open, status conditions, and the host compatibility gate; the viewer still registers no UI outside the pinned range'

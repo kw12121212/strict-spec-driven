@@ -118,18 +118,18 @@ export class RefreshCoordinator {
     }
   }
 
-  /**
-   * Iterates one watch's frame stream until it ends: `ready` confirms the
-   * watcher, each `change` reports one invalidation of the watched path, an
-   * intentional close exits quietly, `watch-unsupported` records the missing
-   * live refresh, and any other end or failure records a failed watch.
-   */
   /** Records one health change and reports it to the owner. */
   private setHealth(entry: WatchEntry, path: string, health: WatchHealth): void {
     entry.health = health;
     this.callbacks.onHealthChange?.(path, health);
   }
 
+  /**
+   * Iterates one watch's frame stream until it ends: `ready` confirms the
+   * watcher, each `change` reports one invalidation of the watched path, an
+   * intentional close exits quietly, `watch-unsupported` records the missing
+   * live refresh, and any other end or failure records a failed watch.
+   */
   private async pump(entry: WatchEntry, path: string, kind: "directory" | "file"): Promise<void> {
     try {
       for await (const frame of this.port.changes(this.sessionId, path, entry.controller.signal)) {

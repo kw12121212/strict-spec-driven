@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: dsh-plugin-review-recommendations
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'The usability review of plugins/dsh-strict-spec found five findings: serial per-document reads slow the first tree paint, read metadata survives file deletion until the next workspace load, the plugin README documents no dsh host upgrade procedure, the install section separates the build step from the install command, and a doc comment in refresh.ts sits on the wrong method.'
+    answer: The operator reading a label-rich strict workspace waits on one serial read RPC per non-archived document before the tree finishes loading, a re-created file can keep showing its deleted version's status or completion badge, and an operator upgrading the dsh host has no documented procedure for keeping the plugin loadable.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: Acceptance needs to be checkable from the repository and the plugin behavior.
+    answer: The model suite proves concurrent reads overlap with identical assembled tree order and that a deleted-then-recreated document presents no stale status or completion; both plugin READMEs gain a dsh host upgrade SOP whose commands ran against the pinned host; the full suite and coverage gate pass.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: The review session just completed with end-to-end verification evidence against dsh 0.2.1-rc.2.
+    answer: The review that produced the five findings verified the plugin end to end this session, so the findings are confirmed rather than hypothetical, and the user directed applying them now.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: The narrow-engines-dsh-pin MUST standard pins engines.dsh to the built-against patch line and makes widening its own planned change.
+    answer: The engines.dsh pin, every dsh-viewer-behavior requirement, the plugin manifest, bundle shape, build script, host entry, and cordis patch stay unchanged; no delta spec, delta tech, or scene artifact is added.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: Review suggestion 1 could be read as widening the engines range or as documenting the upgrade procedure; suggestion 4 could be read as memory hygiene or as a stale-badge correctness fix.
+    answer: 'Apply all five suggestions as written: document the upgrade SOP rather than widening the pin, and prune metadata on recompute so a re-created file shows no stale badge; the other three apply literally.'
+    status: resolved
+    kind: requirement
+    answered_by: human

@@ -210,3 +210,10 @@ rules:
         - '"files": ["dist", "cordis.patch.yml", "README.md", "README.zh.md"]'
       bad:
         - A plugin package.json with no files field, whose npm pack output lists src/, scripts/, test-support/, tsconfig.json, and bun.lock beside dist/.
+  bounded-rpc-fanout-preserves-assembly-order:
+    strength: SHOULD
+    statement: Plugin model code that fans out one port RPC per collected item SHOULD run the calls through a bounded-concurrency, order-preserving map helper — a small fixed in-flight limit, results written into input-ordered slots, and every worker promise awaited by one Promise.all so no rejection is unhandled — instead of a serial await loop or an unbounded Promise.all, and its suite SHOULD prove the bound observably (reads parked on a gate with an exact in-flight count) alongside the assembled outputs order.
+    rationale: Serial fan-out makes first paint wait on one RPC per document on label-rich workspaces, and unbounded fan-out can stampede the wire; the order-preserving helper keeps the assembled tree byte-identical to the serial walk while overlapping the reads, and the gate-parking test pattern is the reproducible proof that the bound is real rather than aspirational.
+    enforcement:
+      method: review
+      detail: The first consumer is refineLabels in plugins/dsh-strict-spec/src/model/store.ts (limit 6, gate-parking suite case in test/suites/dsh-plugin-model.ts). resolveArchivedPlannedChangeOwners in roadmapOwnership.ts still walks serially; as a SHOULD rule this is the default for the next change that touches it, not a retroactive violation.

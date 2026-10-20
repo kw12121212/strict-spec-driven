@@ -93,6 +93,37 @@ function nextCollapsedAbove(families: readonly DocumentNode[], path: string): Do
   return undefined;
 }
 
+/** The most document reads label refinement keeps in flight at once. */
+const REFINE_CONCURRENCY = 6;
+
+/**
+ * Maps one array through an async operation with at most `limit` calls in
+ * flight, assembling results in input order so the outcome equals a serial
+ * await-per-item walk. A rejecting operation rejects the whole map, as the
+ * serial walk's first rejection would, and every worker promise stays handed
+ * to `Promise.all`, so a late rejection of an already-abandoned worker is
+ * never unhandled.
+ */
+async function mapWithConcurrency<T, R>(items: readonly T[], limit: number, operation: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    for (let index = next; index < items.length; index = next) {
+      next += 1;
+      results[index] = await operation(items[index]);
+    }
+  };
+  const workers: Array<Promise<void>> = [];
+  // At least one worker whenever items exist, so a non-positive limit can
+  // never leave the results array with undefined slots.
+  const workerCount = Math.min(Math.max(1, limit), items.length);
+  for (let index = 0; index < workerCount; index += 1) {
+    workers.push(worker());
+  }
+  await Promise.all(workers);
+  return results;
+}
+
 /** Finds one node by id in a family forest, depth-first. */
 function findNode(nodes: readonly DocumentNode[], id: string): DocumentNode | undefined {
   for (const node of nodes) {
@@ -247,11 +278,24 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
       }
     };
     collect(state.families);
-    const changeCompletion: Record<string, TaskCompletion> = {};
-    for (const [path, completion] of taskCompletionByFile) {
+    // Prune read-side metadata whose file the walked tree no longer holds, at
+    // the same mutation that stopped listing it: a deleted file loses its
+    // recorded status and completion here, so a re-created file cannot badge
+    // the deleted version's values, and the maps stay bounded by the tree.
+    for (const path of documentMeta.keys()) {
       if (!documentPaths.has(path)) {
-        continue;
+        documentMeta.delete(path);
       }
+    }
+    for (const path of taskCompletionByFile.keys()) {
+      if (!documentPaths.has(path)) {
+        taskCompletionByFile.delete(path);
+      }
+    }
+    const changeCompletion: Record<string, TaskCompletion> = {};
+    // The prune above left only entries whose path the tree holds, so every
+    // remaining completion records its change group here.
+    for (const [path, completion] of taskCompletionByFile) {
       const directory = parentDirectory(path);
       if (directory !== "") {
         changeCompletion[directory] = completion;
@@ -311,18 +355,37 @@ export function createViewerStores(port: WorkspaceFilesPort): ViewerStores {
     return label === node.label ? node : { ...node, label };
   }
 
-  /** Refines the labels of every non-archived document under one node tree. */
+  /**
+   * Refines the labels of every non-archived document under one node tree.
+   * The per-document reads run concurrently up to a small fixed limit, and
+   * each refined node lands back in the input position its leaf was
+   * collected from, so the assembled tree equals the serial walk's.
+   */
   async function refineLabels(sessionId: string, nodes: readonly DocumentNode[]): Promise<DocumentNode[]> {
-    const refined: DocumentNode[] = [];
-    for (const node of nodes) {
-      if (node.children !== undefined) {
-        const children = await refineLabels(sessionId, node.children);
-        refined.push(children === node.children ? node : { ...node, children });
-        continue;
+    const leaves: DocumentNode[] = [];
+    const collect = (current: readonly DocumentNode[]): void => {
+      for (const node of current) {
+        if (node.children === undefined) {
+          leaves.push(node);
+        } else {
+          collect(node.children);
+        }
       }
-      refined.push(await refineDocument(sessionId, node));
-    }
-    return refined;
+    };
+    collect(nodes);
+    const refinedLeaves = await mapWithConcurrency(leaves, REFINE_CONCURRENCY, (node) => refineDocument(sessionId, node));
+    let cursor = 0;
+    const rebuild = (current: readonly DocumentNode[]): DocumentNode[] =>
+      current.map((node) => {
+        if (node.children === undefined) {
+          const refined = refinedLeaves[cursor];
+          cursor += 1;
+          return refined;
+        }
+        const children = rebuild(node.children);
+        return children === node.children ? node : { ...node, children };
+      });
+    return rebuild(nodes);
   }
 
   /** Ensures the refresh coordinator serves one sessionId, recreating it on change. */

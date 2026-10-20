@@ -1272,6 +1272,118 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
     stores.actions.dispose();
   }
 
+  context.section("dsh plugin model: label refinement reads overlap under bounded concurrency");
+
+  {
+    // Reads of the specs family's documents park on a gate until released, so
+    // the number of reads in flight at once is observable. The family holds
+    // eleven documents after the extra seeds: a serial walk parks one, an
+    // unbounded fan-out parks eleven, and the bounded pool parks exactly six.
+    const fake = new FakeWorkspaceFiles();
+    seedFixtureTree(fake);
+    for (let index = 1; index <= 8; index += 1) {
+      fake.writeFile(`${WORKFLOW_ROOT}/specs/viewer/extra-${index}.yaml`, `artifact_type: main_spec\nspec:\n  id: extra-${index}\n  title: Extra ${index}\n`);
+    }
+    let activeReads = 0;
+    let maxInFlight = 0;
+    let released = false;
+    const parked: Array<() => void> = [];
+    const port: WorkspaceFilesPort = {
+      list: (sid, dirPath, signal) => fake.port.list(sid, dirPath, signal),
+      read: (sid, filePath, range, signal) => fake.port.read(sid, filePath, range, signal),
+      readBytes: (sid, filePath, options, signal) => {
+        if (!filePath.startsWith(`${WORKFLOW_ROOT}/specs/`) || released) {
+          return fake.port.readBytes(sid, filePath, options, signal);
+        }
+        activeReads += 1;
+        maxInFlight = Math.max(maxInFlight, activeReads);
+        const real = fake.port.readBytes(sid, filePath, options, signal);
+        const gate = new Promise<void>((resolve) => {
+          parked.push(() => {
+            activeReads -= 1;
+            resolve();
+          });
+        });
+        return Promise.all([gate, real]).then(([, window]) => window);
+      },
+      changes: (sid, watchedPath, signal) => fake.port.changes(sid, watchedPath, signal),
+    };
+    const stores = createViewerStores(port);
+    const loading = stores.actions.loadWorkspace(SESSION_ID);
+    await settle();
+    context.assert(
+      maxInFlight === 6 && parked.length === 6,
+      "label refinement keeps exactly six specs reads parked at once while the family holds eleven documents",
+      `max in flight: ${maxInFlight}, parked: ${parked.length}`,
+    );
+    released = true;
+    for (const wake of parked.splice(0)) {
+      wake();
+    }
+    await loading;
+    await settle();
+    const state = stores.tree.getSnapshot();
+    context.assert(state.status === "ready", "the workspace loads to ready once the parked reads release", `status: ${state.status}`);
+    context.assert(
+      state.documents[`${WORKFLOW_ROOT}/specs/viewer/behavior.yaml`]?.label === "Viewer Behavior"
+        && state.documents[`${WORKFLOW_ROOT}/specs/viewer/extra-8.yaml`]?.label === "Extra 8"
+        && state.documents[`${WORKFLOW_ROOT}/specs/viewer/extra-1.yaml`]?.label === "Extra 1"
+        && state.documents[`${WORKFLOW_ROOT}/specs/INDEX.yaml`]?.artifactType === "spec_index",
+      "concurrent refinement lands each label and type on its own document",
+    );
+    const specsViewer = nodeById(state, `${WORKFLOW_ROOT}/specs/viewer`);
+    const specsOrder = (specsViewer?.children ?? []).filter((node) => node.kind === "document").map((node) => node.label);
+    context.assert(
+      JSON.stringify(specsOrder)
+        === JSON.stringify(["Viewer Behavior", "Extra 1", "Extra 2", "Extra 3", "Extra 4", "Extra 5", "Extra 6", "Extra 7", "Extra 8", "widget.yaml"]),
+      "the assembled sibling order matches the serial walk's name-sorted listing order",
+      `actual: ${JSON.stringify(specsOrder)}`,
+    );
+    stores.actions.dispose();
+  }
+
+  context.section("dsh plugin model: a deleted file's recorded metadata cannot badge its recreation");
+
+  {
+    const fake = new FakeWorkspaceFiles();
+    seedFixtureTree(fake);
+    fake.writeFile(`${WORKFLOW_ROOT}/roadmap/milestones/foundation.yaml`, "artifact_type: roadmap_milestone\nstatus: complete\nmilestone:\n  m1:\n    title: Foundation Milestone\n");
+    fake.writeFile(
+      `${WORKFLOW_ROOT}/changes/great-change/tasks.yaml`,
+      "artifact_type: task_list\nchange: great-change\nsections:\n  Implementation:\n    g1:\n      text: One.\n      status: complete\n",
+    );
+    const stores = await loadFakeWorkspace(fake);
+    const milestonesDir = `${WORKFLOW_ROOT}/roadmap/milestones`;
+    const milestonePath = `${milestonesDir}/foundation.yaml`;
+    const changeDir = `${WORKFLOW_ROOT}/changes/great-change`;
+    const tasksPath = `${changeDir}/tasks.yaml`;
+    context.assert(stores.tree.getSnapshot().documents[milestonePath]?.status === "complete", "the loaded milestone records its declared status");
+    context.assert(stores.tree.getSnapshot().changeCompletion?.[changeDir]?.total === 1, "the loaded tasks file records its change completion");
+
+    fake.removeFile(milestonePath);
+    fake.emit(milestonesDir, "v2");
+    await settle();
+    fake.writeFile(milestonePath, "milestone: { unclosed\n");
+    fake.emit(milestonesDir, "v3");
+    await settle();
+    const recreated = stores.tree.getSnapshot().documents[milestonePath];
+    context.assert(recreated?.status === undefined, "a recreated unparseable milestone carries no status, not its deleted version's", `actual: ${JSON.stringify(recreated?.status)}`);
+    context.assert(recreated?.label === "foundation.yaml", "the recreated unparseable milestone falls back to its file name label");
+
+    fake.removeFile(tasksPath);
+    fake.emit(changeDir, "v2");
+    await settle();
+    fake.writeFile(tasksPath, "artifact_type: task_list\nchange: great-change\nsections: [broken\n");
+    fake.emit(changeDir, "v3");
+    await settle();
+    context.assert(
+      stores.tree.getSnapshot().changeCompletion?.[changeDir] === undefined,
+      "a recreated unparseable tasks file carries no completion badge, not its deleted version's",
+      `actual: ${JSON.stringify(stores.tree.getSnapshot().changeCompletion?.[changeDir])}`,
+    );
+    stores.actions.dispose();
+  }
+
   context.section("dsh plugin model: roadmap facts and archived-milestone ownership");
 
   {
