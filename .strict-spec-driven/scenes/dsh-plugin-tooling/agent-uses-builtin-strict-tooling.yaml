@@ -27,7 +27,7 @@ main_flow:
       - spec_id: dsh-plugin-tooling-behavior
         requirement_id: shipped-tarball-carries-tooling-assets
   agent-reads-skill-catalog:
-    action: The agent opens a session whose skill catalog is assembled, and the catalog offers every strict skill served from the plugin's bundled assets with the description its skill body declares.
+    action: The agent opens a session whose skill catalog is assembled, and the catalog offers every strict skill served from the plugin's bundled assets with the description its skill body declares plus a trailing provenance marker naming the plugin and its installed version, so a built-in entry is distinguishable from an external one before any skill is loaded.
     covered_by:
       - spec_id: dsh-plugin-tooling-behavior
         requirement_id: builtin-skills-registered

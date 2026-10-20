@@ -19,6 +19,7 @@ import {
   BUILTIN_TOOLING_RANK,
   CLI_TOKEN_PATTERN,
   buildCliInvocation,
+  buildProvenanceMarker,
   createBuiltinToolingProvider,
   listBundledSkills,
   parseSkillFrontmatter,
@@ -33,10 +34,33 @@ import {
   planBuildOutputs,
   readBundledSkillBodies,
 } from "../../plugins/dsh-strict-spec/scripts/build-client.ts";
-import { Config, apply, inject } from "../../plugins/dsh-strict-spec/src/host.ts";
+import { Config, apply, inject, readPluginVersion } from "../../plugins/dsh-strict-spec/src/host.ts";
 
 const PLUGIN_ROOT = path.join(ROOT, "plugins", "dsh-strict-spec");
 const REPO_SKILLS_DIR = path.join(ROOT, "skills");
+
+/** One catalog entry measurement the provenance predicates evaluate. */
+export type MarkedDescriptionEntry = { name: string; description: string };
+
+/**
+ * Entries whose description lacks the trailing provenance marker. A pure
+ * selector over its input: the suite runs it over the real built-in entries,
+ * and the probe adds a synthetic unmarked entry to that real input.
+ */
+export function descriptionsWithoutMarker(
+  entries: readonly MarkedDescriptionEntry[],
+  marker: string,
+): MarkedDescriptionEntry[] {
+  return entries.filter((entry) => !entry.description.endsWith(marker));
+}
+
+/**
+ * Entries whose marked description crosses the pinned host's catalog
+ * description limit. At-bound text passes; only over-limit text is flagged.
+ */
+export function descriptionsOverCatalogLimit(entries: readonly MarkedDescriptionEntry[]): MarkedDescriptionEntry[] {
+  return entries.filter((entry) => entry.description.length > 500);
+}
 
 /**
  * Stateless bare-token probe: the exported pattern carries the /g flag for
@@ -80,6 +104,8 @@ function seedFixtureSkills(): string {
 /** Probe runtime paths the fixture provider and its assertions share. */
 const PROBE_EXEC = "/usr/local/bin/node";
 const PROBE_CLI = "/opt/dsh-plugin-strict-spec/dist/cli/strict-spec-cli.js";
+/** Probe provenance marker, mirroring a real installed plugin version. */
+const PROBE_MARKER = buildProvenanceMarker("9.9.9-probe");
 
 /** The provider closed over the fixture assets with probe runtime paths. */
 function fixtureProvider(skillsDir: string): ReturnType<typeof createBuiltinToolingProvider> {
@@ -87,6 +113,7 @@ function fixtureProvider(skillsDir: string): ReturnType<typeof createBuiltinTool
     skillsDir,
     cliPath: PROBE_CLI,
     execPath: PROBE_EXEC,
+    provenanceMarker: PROBE_MARKER,
   });
 }
 
@@ -220,7 +247,10 @@ export async function runDshPluginHostSuite(context: TestContext): Promise<void>
   context.assert(candidates.length === 1, "the provider lists the intact skill alone");
   const candidate = candidates[0]!;
   context.assert(candidate.name === "alpha", "the candidate carries the frontmatter name");
-  context.assert(candidate.description === "Alpha probe skill for the provider suite.", "the candidate carries the frontmatter description");
+  context.assert(
+    candidate.description === `Alpha probe skill for the provider suite.${PROBE_MARKER}`,
+    "the candidate carries the frontmatter description plus the provenance marker",
+  );
   context.assert(candidate.rank === BUILTIN_TOOLING_RANK, "the candidate carries the fallback precedence rank");
   context.assert(candidate.source === "bundled", "the candidate marks its origin as bundled");
   context.assert(candidate.provider === BUILTIN_TOOLING_PROVIDER_NAME, "the candidate names the plugin provider");
@@ -234,6 +264,14 @@ export async function runDshPluginHostSuite(context: TestContext): Promise<void>
   );
   context.assert(!definition?.content.includes("strict-spec-cli check-workflow-state"), "the served body carries no bare CLI command");
   context.assert(!definition?.content.startsWith("---"), "the served body has its frontmatter stripped");
+  context.assert(
+    definition?.description === `Alpha probe skill for the provider suite.${PROBE_MARKER}`,
+    "the loaded definition carries the same marked description as the listed candidate",
+  );
+  context.assert(
+    buildProvenanceMarker("0.2.1") === " — built-in (dsh plugin 0.2.1)",
+    "the marker formats as an em-dash suffix naming the plugin and version",
+  );
   context.assert(
     await provider.get({ ...candidate, locator: path.join(skillsDir, "gone", "SKILL.md") }, {}) === undefined,
     "a candidate whose file disappeared resolves to undefined",
@@ -271,12 +309,15 @@ export async function runDshPluginHostSuite(context: TestContext): Promise<void>
     JSON.stringify(skillNames) === JSON.stringify([...bodies.keys()]),
     "the build helper reads exactly the discovered skill packages",
   );
+  const markedEntries: MarkedDescriptionEntry[] = [];
   for (const name of skillNames) {
     const source = readFileSync(path.join(REPO_SKILLS_DIR, name, "SKILL.md"), "utf8");
     const frontmatter = parseSkillFrontmatter(source);
+    markedEntries.push({ name, description: `${frontmatter?.description ?? ""}${PROBE_MARKER}` });
     context.assert(frontmatter !== undefined, `the shipped ${name} body parses`);
     context.assert(frontmatter?.name === name, `the shipped ${name} body declares its own name`);
     context.assert((frontmatter?.description.length ?? 0) > 0, `the shipped ${name} body declares a description`);
+
     context.assert((frontmatter?.body.length ?? 0) > 0, `the shipped ${name} body carries instructions`);
     context.assert(bodies.get(name) === source, `the build helper ships ${name} byte-identically`);
     context.assert(bundledSkillAssetPath(name) === path.join("skills", name, "SKILL.md"), `the ${name} asset path nests under skills/`);
@@ -304,6 +345,64 @@ export async function runDshPluginHostSuite(context: TestContext): Promise<void>
     protocolCarrier.includes(`${plainInvocation} verify`),
     "the rewrite keeps the artifact validation subcommand as a bundled invocation",
   );
+
+  context.section("dsh plugin host: catalog provenance marker");
+
+  context.assert(
+    descriptionsWithoutMarker(markedEntries, PROBE_MARKER).length === 0,
+    "every shipped skill's provider description carries the trailing provenance marker",
+    JSON.stringify(descriptionsWithoutMarker(markedEntries, PROBE_MARKER)),
+  );
+  context.assert(
+    descriptionsOverCatalogLimit(markedEntries).length === 0,
+    "every shipped skill's marked description stays within the pinned host's 500-character catalog limit",
+    JSON.stringify(descriptionsOverCatalogLimit(markedEntries)),
+  );
+  // Negative probes through the same selectors over the real input with
+  // synthetic defects added: an unmarked entry, an at-bound entry that must
+  // pass, and an over-limit entry must each behave as the rule requires.
+  const withUnmarked = [
+    ...markedEntries,
+    { name: "synthetic-unmarked", description: "A description that never got its marker." },
+  ];
+  context.assert(
+    descriptionsWithoutMarker(withUnmarked, PROBE_MARKER).some((entry) => entry.name === "synthetic-unmarked"),
+    "the marker selector reports an entry whose description lacks the provenance marker",
+  );
+  const withBudgetDefects = [
+    ...markedEntries,
+    { name: "synthetic-at-bound", description: "x".repeat(500) },
+    { name: "synthetic-over-limit", description: "x".repeat(501) },
+  ];
+  context.assert(
+    descriptionsOverCatalogLimit(withBudgetDefects).some((entry) => entry.name === "synthetic-over-limit"),
+    "the catalog-limit selector reports an entry beyond the 500-character limit",
+  );
+  context.assert(
+    !descriptionsOverCatalogLimit(withBudgetDefects).some((entry) => entry.name === "synthetic-at-bound"),
+    "the catalog-limit selector passes an entry exactly at the 500-character bound",
+  );
+  context.assert(
+    buildProvenanceMarker("unknown") === " — built-in (dsh plugin unknown)",
+    "a missing plugin version degrades the marker to unknown rather than failing the provision",
+  );
+
+  // The version reader's degradation legs, observed through a fixture layout.
+  const versionFixture = mkdtempSync(path.join(os.tmpdir(), "strict-version-"));
+  const versionDist = path.join(versionFixture, "dist");
+  mkdirSync(versionDist, { recursive: true });
+  process.on("exit", () => {
+    rmSync(versionFixture, { recursive: true, force: true });
+  });
+  writeFileSync(path.join(versionFixture, "package.json"), JSON.stringify({ version: "1.2.3" }));
+  context.assert(readPluginVersion(versionDist) === "1.2.3", "the version reader returns the manifest version beside dist");
+  const noManifestDist = path.join(versionFixture, "no-manifest", "dist");
+  mkdirSync(noManifestDist, { recursive: true });
+  context.assert(readPluginVersion(noManifestDist) === "unknown", "a missing manifest degrades to unknown");
+  writeFileSync(path.join(versionFixture, "package.json"), "{ not json");
+  context.assert(readPluginVersion(versionDist) === "unknown", "an unparsable manifest degrades to unknown");
+  writeFileSync(path.join(versionFixture, "package.json"), JSON.stringify({ version: "" }));
+  context.assert(readPluginVersion(versionDist) === "unknown", "an empty version degrades to unknown");
 
   context.section("dsh plugin host: switch wiring and config defaulting");
 

@@ -70,6 +70,10 @@ registration is required:
   the plugin alone. To make the built-in copy win for a name on a machine
   that also carries an external copy, remove the external copy
   (`bash install.sh --uninstall` clears the global registration).
+- You can tell the copies apart **in the catalog before loading anything**:
+  every built-in entry's description ends with a provenance marker such as
+  `— built-in (dsh plugin 0.2.1)`, naming the plugin and the version actually
+  serving; external entries carry no marker.
 - The whole provision is **one switch**, because the skills and the CLI are one
   thing: the served skill bodies are the bundled CLI's only session entry
   point. Turn it off and the built-in skills disappear, any external

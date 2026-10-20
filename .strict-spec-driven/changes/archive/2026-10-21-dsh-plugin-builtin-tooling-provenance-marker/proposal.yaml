@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: dsh-plugin-builtin-tooling-provenance-marker
+  status: proposed
+summary:
+  what:
+    - 'Make the plugin''s built-in skill copies distinguishable from external copies in the session catalog before any skill is loaded: the provider appends a short provenance marker to each built-in candidate''s description at serve time, naming the plugin and its version (an em-dash followed by built-in (dsh plugin <version>)), so a catalog entry carrying the marker is a built-in copy and one without it is an external copy; the marker is derived from the plugin''s own package version beside the bundled assets, applies to both the listed summary and the loaded definition, leaves the shipped skill bodies byte-identical and the skill names untouched, and stays inside the pinned host''s catalog description limit for every shipped skill'
+  why:
+    - Built-in and external copies of a strict skill share the same name and byte-identical body, so the session catalog cannot tell them apart and an operator cannot see which copy a session will run until a skill is loaded and its resource base inspected; the requester asked for a way to distinguish provenance up front on 2026-10-20, and a serve-time description marker makes the distinction visible in the catalog itself for both the operator and the model
+scope:
+  in:
+    - 'plugins/dsh-strict-spec/src/host/builtinTooling.ts (provenance marker builder, assets field, marker applied to candidate and definition descriptions); plugins/dsh-strict-spec/src/host.ts (read the plugin package version beside dist and pass it as the marker source); plugins/dsh-strict-spec/README.md and README.zh.md (one sentence each: the marker and how to read it); test/suites/dsh-plugin-host.ts (fixture and repository-skill marker assertions, catalog-limit guard for every shipped skill); delta artifacts MODIFYing the dsh-plugin-tooling-behavior builtin-skills-registered requirement and the agent-uses-builtin-strict-tooling scene step, and ADDing a dsh-plugin-host standard rule'
+  out:
+    - Skill names, bodies, and authored descriptions in skills/ stay untouched; no renaming, forking, or second authored variant; the external copies' descriptions and the filesystem provider stay untouched; the serve-time CLI rewrite, the fallback rank band, the switch, the assets, and the packaging stay unchanged; no dsh host or catalog configuration is modified to raise the description limit
+unchanged_behavior:
+  - 'Every behavior of the built-in tooling keeps holding: the switch defaults on and turns the provision off, external copies win same-name resolution, the built-in copies serve names no external root offers, served bodies invoke the bundled CLI through the host node executable, shipped bodies stay byte-identical to the repository skills/ packages, and a packed tarball ships the skill bodies and CLI bundle under dist; only the description the provider reports for its own candidates gains the marker suffix'

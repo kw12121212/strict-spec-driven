@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: dsh-plugin-builtin-tooling-provenance-marker
+approach:
+  - test
+  - 'The provider appends one marker string to the description of every candidate it lists and every definition it loads, built from the plugin version read out of the package.json sitting beside the bundled assets, so the marker always names the version actually installed — the same serve-time adaptation pattern the CLI token rewrite already uses: the repository skill packages stay the single authored source and only provider-reported metadata adapts.'
+  - A suffix marker keeps the catalog entry reading naturally with the authored routing text first; the suite guards that every shipped skill's marked description stays inside the pinned host's 500-character catalog description limit, so a future longer description fails the suite instead of silently losing its marker to truncation.
+decisions:
+  suffix-marker-from-package-version:
+    decision: Append an em-dash marker naming the plugin and version to each built-in candidate's description, derived from the package.json beside dist and applied identically in list() and get().
+    rationale: A suffix reads as provenance after the authored routing text rather than polluting its start; the version comes from the installed package itself so the marker reports what is actually serving; applying the marker in both the listed summary and the loaded definition keeps the catalog and the loader telling the same story; and bodies stay byte-identical because only provider metadata adapts, the exact pattern the served-skill-bodies-stay-single-source standard already governs.
+  no-name-or-body-change:
+    decision: Leave skill names and bodies untouched and differentiate only through description metadata.
+    rationale: Renaming would break every slash-command and skill reference across sessions and the catalog; forking the authored descriptions would violate the single-authored-source standard; the marker is reversible metadata that disappears the moment an external copy wins the name.
+  real-host-evidence:
+    decision: 'Recorded evidence from an isolated real-host leg on 2026-10-20 (fresh DSH_HOME, pinned dsh 0.2.1-rc.2, the rebuilt 0.2.1 plugin with the marker, the pinned line''s real SkillRegistry and filesystem provider with user roots pointed at empty directories and a planted project-root strict-spec-auto copy): all 24 built-in catalog entries'' descriptions ended with the anchored versioned marker (sample ending ''— built-in (dsh plugin 0.2.1)''), the external planted copy''s description carried no marker suffix (a probe substring check reported true only because the planted marker text itself contains the word built-in; the anchored suffix pattern is the distinguishing predicate), the served fallback body still invoked the bundled CLI through absolute paths with no bare token, and the switch-off leg still contributed no candidate. The evidence also confirms the marker reports the version of the package actually installed in the profile.'
+    rationale: The manual-checks standard requires each leg's observed evidence inside the change's own artifacts; the recorded legs observe the marked catalog, the unmarked external copy, the unchanged CLI rewrite, and the unchanged switch-off behavior through the pinned line's real registry.
+alternatives:
+  - option: Prefix the marker so it survives any catalog truncation
+    reason: 'Rejected for now: the pinned host''s catalog limit is 500 characters, the longest shipped description is 394, and the suite guards the margin for every shipped skill, so a suffix reads more naturally while staying safe; a prefix remains the fallback if a description ever grows past the guard.'
+  - option: Rely on the skill tool's provider field and resource base after loading
+    reason: 'Rejected as the primary answer: it distinguishes provenance only after a skill is loaded, while the requester asked to tell the copies apart up front in the catalog.'
+risks:
+  - A future skill description long enough that the marker crosses the pinned host's 500-character catalog limit would be truncated; the host suite asserts every shipped skill's marked description stays within the limit, so that day fails the suite and forces an explicit decision to shorten the description or move the marker to a prefix.

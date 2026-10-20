@@ -89,7 +89,7 @@ categories:
     a-content-check-whose-subject-includes-the-text-1f5d78:
       title: A content check whose subject includes the text it inserts can pass vacuously
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/testing/a-content-check-whose-subject-includes-the-text-1f5d78.yaml
     a-text-matching-check-can-be-silently-unfireable-e4f026:
       title: A text-matching check can be silently unfireable, not just vacuously scoped

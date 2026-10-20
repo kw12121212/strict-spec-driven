@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-host
+operations:
+  ADDED:
+    builtin-candidates-carry-provenance-marker:
+      strength: MUST
+      statement: 'A dsh plugin that offers built-in copies of skills MUST distinguish them from external copies in the catalog itself: each built-in candidate''s description carries a serve-time provenance marker naming the plugin and its installed version, applied identically to the listed summary and the loaded definition, leaving the skill names and shipped bodies untouched and staying within the host''s catalog description limit for every offered skill.'
+      rationale: Built-in and external copies share a name and a byte-identical body, so neither the catalog text nor the loaded body distinguishes them and provenance is invisible until a resource base is inspected after loading; a description marker makes the distinction visible where the choice is made, reports the version actually serving, and follows the same serve-time-adaptation-only pattern the single-source rule already governs.
+      enforcement:
+        method: test
+        detail: The plugin host suite asserts every built-in candidate's description equals its frontmatter description plus the marker built from the plugin package version, that the loaded definition carries the same marked description, that no shipped body changes, and that every shipped skill's marked description stays within the pinned host's 500-character catalog limit.
+  MODIFIED: {}
+  REMOVED: {}

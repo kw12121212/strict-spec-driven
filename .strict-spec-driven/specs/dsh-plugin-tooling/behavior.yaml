@@ -20,12 +20,12 @@ requirements:
         - THEN: no strict skill is offered from the plugin and the plugin's viewer surfaces behave exactly as before the built-in tooling existed
   builtin-skills-registered:
     strength: MUST
-    statement: While the switch is enabled, every strict skill package bundled with the plugin is offered in dsh session skill catalogs from the plugin's own assets, carrying the description its skill body declares, so sessions on a machine where no strict skill was installed still list the strict skills.
+    statement: While the switch is enabled, every strict skill package bundled with the plugin is offered in dsh session skill catalogs from the plugin's own assets, carrying the description its skill body declares followed by a provenance marker naming the plugin and its installed version, so a built-in entry is distinguishable from an external one in the catalog before any skill is loaded and the marker stays within the host's catalog description limit for every offered skill.
     scenarios:
-      catalog-offers-skills-without-install:
+      catalog-offers-marked-skills:
         - GIVEN: the switch is enabled and the machine has no strict skill installed through any project, user, or global root
         - WHEN: a session's skill catalog is assembled
-        - THEN: the catalog offers each bundled strict skill with the description declared in its skill body
+        - THEN: the catalog offers each bundled strict skill with its declared description followed by the built-in provenance marker naming the plugin and version
       missing-asset-skill-omitted:
         - GIVEN: the switch is enabled and one bundled skill's body file is missing or its frontmatter does not parse
         - WHEN: the provider lists its catalog

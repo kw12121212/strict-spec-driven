@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-plugin-tooling-behavior
+operations:
+  ADDED: {}
+  MODIFIED:
+    builtin-skills-registered:
+      strength: MUST
+      statement: While the switch is enabled, every strict skill package bundled with the plugin is offered in dsh session skill catalogs from the plugin's own assets, carrying the description its skill body declares followed by a provenance marker naming the plugin and its installed version, so a built-in entry is distinguishable from an external one in the catalog before any skill is loaded and the marker stays within the host's catalog description limit for every offered skill.
+      scenarios:
+        catalog-offers-marked-skills:
+          - GIVEN: the switch is enabled and the machine has no strict skill installed through any project, user, or global root
+          - WHEN: a session's skill catalog is assembled
+          - THEN: the catalog offers each bundled strict skill with its declared description followed by the built-in provenance marker naming the plugin and version
+        missing-asset-skill-omitted:
+          - GIVEN: the switch is enabled and one bundled skill's body file is missing or its frontmatter does not parse
+          - WHEN: the provider lists its catalog
+          - THEN: that skill is omitted, every intact skill still lists and loads, and the host keeps running
+  REMOVED: {}

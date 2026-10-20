@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: dsh-plugin-builtin-tooling-provenance-marker
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: Built-in and external copies of a strict skill share the same name and a byte-identical body, so nothing in the session catalog distinguishes them; the requester cannot see which copy a session will run until a skill is loaded and its resource base inspected.
+    answer: An operator or model reading the session catalog cannot tell a built-in strict skill copy from an external one before loading, so provenance — including which plugin version would serve — is invisible exactly where the choice is made.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The requester asked for a way to distinguish provenance up front on 2026-10-20 and chose the catalog-marker design from a concrete proposal.
+    answer: Every built-in catalog entry's description ends with a marker naming the plugin and its installed version, external entries carry no marker, and the distinction is visible in the catalog before any skill is loaded.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: The gap became visible the moment both sources could coexist on one machine.
+    answer: The fallback-precedence change made external and built-in copies a per-name choice resolved silently by the registry, and during the same day's live verification the requester could not tell from the catalog which copy was serving, so the distinction was requested before relying on the setup.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Boundaries stated when the requester chose the marker design.
+    answer: Skill names, shipped bodies, and the authored descriptions in skills/ stay untouched; external copies and the filesystem provider are not modified; the CLI rewrite, fallback rank, switch, assets, and packaging stay unchanged; the host's catalog description limit is not raised.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: Suffix versus prefix and summary-only versus both surfaces were the open readings when the requester chose the design.
+    answer: A suffix marker applied to both the listed summary and the loaded definition, naming the plugin and its installed version; skill names and bodies never change.
+    status: resolved
+    kind: requirement
+    answered_by: human

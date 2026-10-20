@@ -97,6 +97,23 @@ export interface BuiltinToolingAssets {
   readonly cliPath: string;
   /** Absolute path of the running host's node executable. */
   readonly execPath: string;
+  /**
+   * Provenance marker appended to every built-in candidate's description, so
+   * the catalog distinguishes a built-in entry from an external one before
+   * any skill is loaded. See {@link buildProvenanceMarker}.
+   */
+  readonly provenanceMarker: string;
+}
+
+/**
+ * Build the catalog provenance marker naming the plugin and its installed
+ * version. The em dash keeps the marker reading as trailing provenance after
+ * the authored routing text; the host entry derives the version from the
+ * package.json sitting beside the bundled assets, so the marker reports the
+ * version actually serving.
+ */
+export function buildProvenanceMarker(pluginVersion: string): string {
+  return ` — built-in (dsh plugin ${pluginVersion})`;
 }
 
 /** Quote one path for a command line, only when it needs quoting. */
@@ -205,7 +222,7 @@ export function createBuiltinToolingProvider(assets: BuiltinToolingAssets): Skil
       const records = await listBundledSkills(assets.skillsDir);
       return records.map((record): SkillCandidate => ({
         name: record.name,
-        description: record.description,
+        description: `${record.description}${assets.provenanceMarker}`,
         invocation: INVOCATION,
         source: "bundled",
         provider: BUILTIN_TOOLING_PROVIDER_NAME,
@@ -225,7 +242,7 @@ export function createBuiltinToolingProvider(assets: BuiltinToolingAssets): Skil
       if (parsed === undefined || parsed.name !== candidate.name) return undefined;
       return {
         name: parsed.name,
-        description: parsed.description,
+        description: `${parsed.description}${assets.provenanceMarker}`,
         invocation: INVOCATION,
         source: "bundled",
         provider: BUILTIN_TOOLING_PROVIDER_NAME,

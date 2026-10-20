@@ -8,7 +8,7 @@ lesson:
 category: testing
 status: active
 created_at: '2026-08-07T01:40:04.995Z'
-updated_at: '2026-08-07T01:40:04.995Z'
+updated_at: '2026-10-20T16:08:31.257Z'
 context: Adding regression assertions that every mutation-capable skill carries an inserted CLI-only authoring protocol section, where membership in the checked set was derived by scanning each SKILL.md for the owning CLI commands it names.
 observation: The inserted section itself names those owning commands, so the classification read text the check had put there. Deleting the section from a skill could remove its only command mention, reclassify it as read-only, and satisfy the 'carries no section' branch instead of failing the 'must carry it' branch. Deriving membership from the file with the section stripped fixed it, and a deliberate deletion of one skill's section then produced 7 failures instead of silence.
 takeaway: When a check both inserts content and decides its own scope from file content, exclude the inserted region before computing scope, then prove it by deleting the content and confirming the check fails. A green suite over generated content is not evidence until the negative case has been run once.
@@ -17,3 +17,6 @@ occurrences:
   - origin: migrate-agent-skills-to-cli-only
     date: '2026-08-07'
     evidence: test/suites/entrypoint-and-skills.ts bodyWithoutProtocolSection; removing the section from skills/strict-spec-spec-edit/SKILL.md produced 7 failures where the pre-fix check would have reclassified it as read-only
+  - origin: dsh-plugin-builtin-tooling-provenance-marker
+    date: '2026-10-20'
+    evidence: test/suites/dsh-plugin-host.ts catalog provenance marker section initially probed its own predicates (an unmarked-description tautology and a length check over pure synthetic input) instead of driving a selector over the real per-skill measurements with synthetic defects added; the fresh-context review caught it as a MUST FIX against static-content-checks-prove-a-negative-case, and the fix introduced descriptionsWithoutMarker and descriptionsOverCatalogLimit selectors with at-bound and over-limit synthetic entries over the real input.

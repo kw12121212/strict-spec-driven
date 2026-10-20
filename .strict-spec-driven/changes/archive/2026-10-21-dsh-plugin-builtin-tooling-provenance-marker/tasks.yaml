@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: dsh-plugin-builtin-tooling-provenance-marker
+sections:
+  Implementation:
+    provenance-marker-module:
+      text: 'In plugins/dsh-strict-spec/src/host/builtinTooling.ts, add a provenance marker: export buildProvenanceMarker(pluginVersion) returning an em-dash plus ''built-in (dsh plugin <version>)'', extend BuiltinToolingAssets with a provenanceMarker string, and append it to the description of every candidate in list() and every definition in get().'
+      status: complete
+    host-entry-version-wiring:
+      text: In plugins/dsh-strict-spec/src/host.ts, read the plugin's own package.json beside dist once per apply and pass buildProvenanceMarker of its version into createBuiltinToolingProvider, so the marker names the version actually installed.
+      status: complete
+    readme-marker-note:
+      text: 'Add one sentence to the built-in tooling section of plugins/dsh-strict-spec/README.md and README.zh.md: built-in catalog entries carry a trailing provenance marker naming the plugin and version, external entries carry none, so provenance is visible before loading a skill.'
+      status: complete
+    suite-marker-assertions:
+      text: 'Extend test/suites/dsh-plugin-host.ts: fixture candidates and definitions carry the marker appended to the frontmatter description; every repository skill''s candidate description equals its declared description plus the marker and stays within the pinned host''s 500-character catalog limit; shipped bodies remain byte-identical; and negative probes cover a missing marker and an over-limit marked description.'
+      status: complete
+    rebuild-plugin-dist:
+      text: Run bun install and bun run build inside plugins/dsh-strict-spec so dist reflects the edited sources, per the rebuild-after-source-edits standard, and confirm the CLI asset stays byte-identical to the repository build's CLI bundle.
+      status: complete
+  Testing:
+    plugin-lint:
+      text: Run the plugin's TypeScript lint and confirm it passes.
+      status: complete
+      command: bun --cwd plugins/dsh-strict-spec run lint
+    root-lint:
+      text: Run the repository root lint command and confirm it passes.
+      status: complete
+      command: bun run lint
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes with the marker assertions.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured and confirm it passes at the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    real-host-evidence:
+      text: Re-run the isolated real-host probe with the marker expectations — every built-in catalog entry's description ends with the marker naming the installed plugin version, the external planted copy carries no marker, and the served fallback body still invokes the bundled CLI — and record the observed evidence as a design decision, per the manual-checks-record-observed-evidence standard.
+      status: complete
+    strict-ready-check:
+      text: Run the ready check for dsh-plugin-builtin-tooling-provenance-marker and confirm it reports ready with no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run the verify check for dsh-plugin-builtin-tooling-provenance-marker after implementation and confirm artifact structure, task completion, scene coverage, and unchanged-behavior checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression
