@@ -56,7 +56,8 @@ export function packlistFindings(files: readonly string[], required: readonly st
  * Checks one plugin README for the release content operators rely on: the
  * supported engines range, the link: and packed-tarball web installs, the
  * desktop profile install, the dsh host upgrade SOP with its version check,
- * and a link to every other language's README.
+ * the built-in tooling switch and its `builtinTooling` config key, and a
+ * link to every other language's README.
  */
 export function readmeFindings(text: string, enginesRange: string, counterparts: readonly string[]): ReleaseFinding[] {
   if (text.trim().length === 0) {
@@ -77,6 +78,9 @@ export function readmeFindings(text: string, enginesRange: string, counterparts:
   }
   if (!text.includes("dsh --version")) {
     findings.push({ category: "upgrade-sop", detail: "no dsh host upgrade SOP version check" });
+  }
+  if (!text.includes("builtinTooling")) {
+    findings.push({ category: "builtin-tooling", detail: "no builtinTooling switch documented" });
   }
   for (const other of counterparts) {
     if (!text.includes(`](${other})`)) {
@@ -397,6 +401,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     private?: boolean;
     engines?: { dsh?: string };
     dsh?: { bundle?: { patch?: string }; client?: { platform?: string; inject?: string[] } };
+    dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
   };
   context.assert(manifest.name === "dsh-plugin-strict-spec", "package name is dsh-plugin-strict-spec");
@@ -441,6 +446,16 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       `every injected shared module is a declared dev dependency (${injected})`,
     );
   }
+  context.assert(
+    manifest.dependencies?.["@deepseek-ai/schemastery"] !== undefined,
+    "the manifest declares @deepseek-ai/schemastery as the host entry's runtime dependency for the Config schema",
+    `dependencies: ${JSON.stringify(Object.keys(manifest.dependencies ?? {}))}`,
+  );
+  context.assert(
+    manifest.devDependencies?.["@deepseek-ai/dsh-skill"] !== undefined
+      && manifest.dependencies?.["@deepseek-ai/dsh-skill"] === undefined,
+    "the manifest keeps @deepseek-ai/dsh-skill a type-only devDependency outside runtime dependencies",
+  );
 
   const patch = yaml.load(readFileSync(path.join(PLUGIN_ROOT, "cordis.patch.yml"), "utf8")) as Array<{
     insert?: Array<{ id?: string; name?: string }>;
@@ -509,6 +524,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       [text.split("npm pack").join("pack"), "tarball-install"],
       [text.split("--profile desktop add").join("--profile desktop"), "desktop-install"],
       [text.split("dsh --version").join("dsh -v"), "upgrade-sop"],
+      [text.split("builtinTooling").join("builtin tooling"), "builtin-tooling"],
       [counterparts.reduce((stripped, other) => stripped.split(`](${other})`).join("]"), text), "counterpart-link"],
     ] as const) {
       context.assert(

@@ -1,0 +1,65 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: dsh-plugin-builtin-tooling
+sections:
+  Implementation:
+    host-provider-module:
+      text: 'Create plugins/dsh-strict-spec/src/host/builtinTooling.ts implementing the bundled skill provider: locate the plugin''s bundled skill assets relative to the host module''s URL, read each bundled SKILL.md with a strict frontmatter reader for the single-line name and description, omit a skill whose file is missing or whose frontmatter does not parse, return candidates at a rank below every filesystem skill root rank so built-in copies win same-name resolution, and on get() strip the frontmatter and rewrite every bare strict-spec-cli token (boundary-guarded, not inside longer identifiers) into the running host''s node executable plus the bundled CLI path, quoting a path only when it contains characters outside the safe unquoted set.'
+      status: complete
+    host-entry-wiring:
+      text: 'Rework plugins/dsh-strict-spec/src/host.ts: inject the skills service, declare a schemastery Config with the single boolean builtinTooling defaulting to true, and register the bundled provider through ctx.skills.registerProvider when the switch is enabled while applying nothing when it is disabled, keeping the host entry the only dsh surface the plugin touches host-side.'
+      status: complete
+    build-tooling-assets:
+      text: 'Extend plugins/dsh-strict-spec/scripts/build-client.ts: copy every repository skills/<name>/SKILL.md byte-identically into the plugin dist assets, bundle the strict-spec-cli from src/strict-spec-cli.ts into the dist CLI asset with the same node ESM bundling the repository build uses, keep the host-side dsh modules (@deepseek-ai/dsh-skill, @deepseek-ai/schemastery) external beside cordis, and write the new assets in the build run beside client.js and host.js.'
+      status: complete
+    plugin-package-manifest:
+      text: 'Update plugins/dsh-strict-spec/package.json: add @deepseek-ai/schemastery pinned to ~3.18.5 as the host entry''s one runtime dependency (the Config schema module, which also serves type checking), add @deepseek-ai/dsh-skill pinned to the dsh patch line as a type-only devDependency whose imports the build erases, and leave the files allowlist, the dsh.client.inject list, and the engines.dsh pin unchanged.'
+      status: complete
+    plugin-readmes:
+      text: 'Edit plugins/dsh-strict-spec/README.md and README.zh.md: add a built-in tooling section stating what the switch enables, that it defaults to on, that the built-in skills and CLI win over same-name external copies while enabled and yield to them when disabled, how to flip the switch through the plugin row''s config in the dsh profile patch without reinstalling, that the built-in CLI runs through the host''s node runtime and is reachable in sessions rather than on PATH, and that install.sh and the global install path keep working.'
+      status: complete
+    host-suite:
+      text: 'Add the plugin host suite (test/suites/dsh-plugin-host.ts) and register it in test/run.ts: provider listing against fixture assets and against the real repository skills (every shipped skill lists with its declared description), the frontmatter reader over every shipped SKILL.md plus malformed and missing cases, the rewrite behavior covering the boundary-guarded token match, both quoting branches, no surviving bare token, and survival of the yaml-authoring-protocol pointer and artifact validation commands, the candidate rank staying below the pinned line''s project-root rank, the disabled-switch no-op, and a static wiring check that the host entry''s inject export declares the skills service.'
+      status: complete
+    release-suite-updates:
+      text: 'Extend test/suites/dsh-plugin.ts: add a builtin-tooling category to readmeFindings asserting both plugin READMEs document the builtinTooling switch, with its negative probe over the real README; assert the manifest declares @deepseek-ai/schemastery as a runtime dependency and keeps @deepseek-ai/dsh-skill a type-only devDependency outside dependencies; and keep the packlist allowlist assertion green with dist still covering the bundled tooling assets.'
+      status: complete
+    rebuild-plugin-dist:
+      text: Run bun install and bun run build inside plugins/dsh-strict-spec so dist/client.js, dist/host.js, the bundled skill assets, and the CLI asset reflect the edited sources, per the rebuild-after-source-edits standard.
+      status: complete
+  Testing:
+    plugin-lint:
+      text: Run the plugin's own TypeScript lint and confirm it passes with the new host modules and dependencies.
+      status: complete
+      command: bun --cwd plugins/dsh-strict-spec run lint
+    root-lint:
+      text: Run the repository root lint command and confirm it passes.
+      status: complete
+      command: bun run lint
+    validate-skills:
+      text: Run the bundled skill-package validation command and confirm the repository skill packages still validate unchanged.
+      status: complete
+      command: bun run validate-skills
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes, including the new plugin host suite and the extended release suite checks.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured and confirm it passes at the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    real-host-evidence:
+      text: Exercise the built-in tooling against a real pinned dsh host in an isolated profile (or record which legs did not run and why), and record the observed evidence inside this change as a design decision entry naming what ran, what was observed, and any leg that did not run with its reason, per the manual-checks-record-observed-evidence standard.
+      status: complete
+    strict-ready-check:
+      text: Run strict-spec-cli ready dsh-plugin-builtin-tooling and confirm it reports the change ready with no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run strict-spec-cli verify dsh-plugin-builtin-tooling after implementation and confirm artifact structure, task completion, scene coverage, and unchanged-behavior checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-byte-identical-bundle-reproduction-must-build-d9cff5
+  title: A byte-identical bundle reproduction must build from the original working directory
+category: tooling
+status: active
+created_at: '2026-10-20T13:26:59.779Z'
+updated_at: '2026-10-20T13:26:59.779Z'
+context: The dsh plugin build needed its bundled strict-spec-cli asset to be byte-identical to the repository build's own dist/scripts/strict-spec-driven.js, so the suite could compare the two and prove the plugin ships exactly the repository CLI.
+observation: 'Bun''s bundler writes module paths into the emitted bundle as comments relative to the process working directory: building the same entry from plugins/dsh-strict-spec produced ../../-prefixed path comments and a ~1.1KB-different bundle, while the repository build from the root produced node_modules-prefixed ones. The byte comparison failed on identical inputs and flags until the asset build changed into the repository root, and because that mutates process.cwd around an await, the helper also had to serialize builds on a promise chain to stay safe.'
+takeaway: When a build helper must reproduce another build's output byte-for-byte, reproduce the original build's working directory too — chdir to the canonical root around the build and serialize the helper so the global-state window stays exclusive — and never compare bundle bytes across builds launched from different directories.
+applies_when: Any build or bundle helper whose output is compared byte-for-byte against a bundle produced elsewhere in the repository, or whose bundler embeds cwd-relative paths.
+occurrences:
+  - origin: dsh-plugin-builtin-tooling
+    date: '2026-10-20'
+    evidence: plugins/dsh-strict-spec/scripts/build-client.ts buildCliAsset chdir and serialization; cmp of dist/cli/strict-spec-cli.js against dist/scripts/strict-spec-driven.js before and after the fix; test/suites/dsh-plugin-host.ts build-plan byte-identity assertion.

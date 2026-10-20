@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: dsh-plugin-builtin-tooling
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'A dsh user who installed the strict-spec viewer plugin still cannot run the strict workflow: every strict skill''s commands call strict-spec-cli, and the skills themselves are absent from the session catalog until install.sh has installed bun, an npm-global CLI or native executable, and registered the skill packages through the global skills CLI. The requester hit this on machines where the plugin is the only strict-spec artifact present.'
+    answer: The strict tooling is unusable in dsh sessions without a separate multi-step install, even though the plugin is already installed; the requester wants plugin installation to be the only prerequisite.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: 'Acceptance needs an observable end state: with the plugin installed and the switch on, a fresh machine with no global install offers the strict skills in the session catalog, and the commands those skills serve execute successfully by running the plugin-bundled CLI through the host''s node executable.'
+    answer: With the plugin installed and the switch enabled, sessions list the strict skills and their strict-spec-cli commands run the bundled CLI with nothing else installed; flipping the switch off removes the built-in skills and restores external installations as the effective ones; when external same-name skills or CLI exist, the built-in copies win while the switch is on.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: The trigger explains the timing of the request against the plugin's existing viewer-only capability.
+    answer: The requester uses the plugin as the strict workflow's home inside dsh and does not want to keep performing the install.sh step on every machine; the plugin already ships with the repository, so carrying the tooling itself removes the repeated setup.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Boundaries confirmed during the 2026-10-20 interrogation: no terminal PATH writes, the existing install paths keep working, and the viewer stays untouched.'
+    answer: No strict-spec-cli shim is written to any terminal PATH location (the built-in CLI is reachable only inside agent sessions through served skill bodies); install.sh, the npm-global install, and the skills-CLI registration keep working unchanged; the viewer's surfaces, the repository skills/ packages as the authored source, the engines.dsh pin, and the plugin's client bundle all stay exactly as they are.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: 'Three ambiguous readings were resolved explicitly by the requester on 2026-10-20: what built-in CLI means, the switch granularity, and the default state plus precedence. The precedence answer supersedes the earlier default-on option text that described external installations as winning.'
+    answer: 'Built-in CLI means agent-session availability: skill bodies served by the plugin run the plugin-bundled CLI directly, with no PATH installation. One single master switch controls skills and CLI together. It defaults to on, so the plugin is usable immediately after installation. When same-name external skills or an external CLI exist, the built-in copies take precedence while the switch is on; turning the switch off hands precedence back to the external installations.'
+    status: resolved
+    kind: requirement
+    answered_by: human

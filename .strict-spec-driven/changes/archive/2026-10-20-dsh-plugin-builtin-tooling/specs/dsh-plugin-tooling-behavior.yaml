@@ -1,0 +1,68 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-plugin-tooling-behavior
+spec:
+  title: DSH Strict Plugin Built-in Tooling Behavior
+  path: .strict-spec-driven/specs/dsh-plugin-tooling/behavior.yaml
+operations:
+  ADDED:
+    builtin-tooling-switch:
+      strength: MUST
+      statement: The dsh strict-spec plugin offers a single boolean configuration switch that turns its built-in strict skill and CLI provision on and off together, is enabled by default, and is set through the plugin row's config in the dsh profile patch without reinstalling the plugin, and while the switch is disabled the plugin registers no skill and serves no built-in tooling, so its observable behavior is exactly the viewer-only plugin's.
+      scenarios:
+        enabled-by-default:
+          - GIVEN: a dsh profile holds the strict-spec plugin with no explicit plugin config
+          - WHEN: the plugin loads
+          - THEN: the built-in tooling provision is enabled, so the plugin registers its bundled strict skills without any separate installation step
+        disabled-registers-nothing:
+          - GIVEN: the plugin row's config sets the switch to false in the profile patch
+          - WHEN: the plugin loads and a session catalog is assembled
+          - THEN: no strict skill is offered from the plugin and the plugin's viewer surfaces behave exactly as before the built-in tooling existed
+    builtin-skills-registered:
+      strength: MUST
+      statement: While the switch is enabled, every strict skill package bundled with the plugin is offered in dsh session skill catalogs from the plugin's own assets, carrying the description its skill body declares, so sessions on a machine where no strict skill was installed still list the strict skills.
+      scenarios:
+        catalog-offers-skills-without-install:
+          - GIVEN: the switch is enabled and the machine has no strict skill installed through any project, user, or global root
+          - WHEN: a session's skill catalog is assembled
+          - THEN: the catalog offers each bundled strict skill with the description declared in its skill body
+        missing-asset-skill-omitted:
+          - GIVEN: the switch is enabled and one bundled skill's body file is missing or its frontmatter does not parse
+          - WHEN: the provider lists its catalog
+          - THEN: that skill is omitted, every intact skill still lists and loads, and the host keeps running
+    bundled-cli-invocations:
+      strength: MUST
+      statement: Skill bodies the plugin serves state their strict-spec-cli commands as direct invocations of the plugin-bundled CLI through the running host's node executable, replacing every bare strict-spec-cli command token, so the commands a served skill instructs execute on a machine with no global install and never touch an externally installed strict-spec-cli.
+      scenarios:
+        served-body-invokes-bundled-cli:
+          - GIVEN: the switch is enabled and a strict skill body containing bare strict-spec-cli command tokens is served
+          - WHEN: the served body is loaded
+          - THEN: every command token the body states names the bundled CLI invoked through the host's node executable and no bare strict-spec-cli token remains
+        bundled-cli-executes-without-install:
+          - GIVEN: a machine with no strict-spec-cli on PATH and the switch enabled
+          - WHEN: the agent runs a CLI command a served skill states
+          - THEN: the bundled CLI executes and produces the command's output
+    builtin-outranks-external-copies:
+      strength: MUST
+      statement: While the switch is enabled, a strict skill offered by the plugin wins over same-name copies from project and user skill roots, so the session's catalog entry and loaded body are the built-in copy and its commands run the bundled CLI, and when the switch is disabled the external copies become the effective ones again.
+      scenarios:
+        builtin-wins-over-external-copies:
+          - GIVEN: the switch is enabled and the same strict skill name exists both in the plugin's assets and in a project or user skill root
+          - WHEN: the registry resolves that name for a session catalog
+          - THEN: the plugin's built-in copy wins, so the loaded body and its CLI commands are the built-in ones
+        disabled-external-copies-win:
+          - GIVEN: the same strict skill name exists in a project or user skill root and the switch is disabled
+          - WHEN: the registry resolves that name for a session catalog
+          - THEN: the external copy is the effective one and its commands run the CLI the external copy states
+    shipped-tarball-carries-tooling-assets:
+      strength: MUST
+      statement: A packed plugin tarball ships every bundled strict skill body and the bundled strict-spec-cli bundle inside the plugin's built bundle directory, so an installed plugin carries its built-in tooling with it while no source, build script, test support, or lockfile ships.
+      scenarios:
+        pack-ships-skills-and-cli:
+          - GIVEN: the plugin package is packed from a built checkout
+          - WHEN: the tarball's file entries are listed
+          - THEN: every bundled skill body and the CLI bundle are present under the built bundle directory and the tarball contains no source, build script, test support, or lockfile entry
+  MODIFIED: {}
+  REMOVED: {}

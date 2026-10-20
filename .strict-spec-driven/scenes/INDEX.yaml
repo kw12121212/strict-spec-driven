@@ -3,6 +3,11 @@ schema_version: 1
 artifact_type: scenes_index
 schema_file: templates/strict-spec-driven/schemas/scenes-index.yaml
 areas:
+  dsh-plugin-tooling:
+    agent-uses-builtin-strict-tooling:
+      title: An agent runs the strict workflow through the plugin's built-in tooling
+      status: draft
+      path: .strict-spec-driven/scenes/dsh-plugin-tooling/agent-uses-builtin-strict-tooling.yaml
   dsh-viewer:
     operator-browses-strict-documents:
       title: An operator browses strict documents in dsh

@@ -1,0 +1,67 @@
+schema: strict-spec-driven/scene/v1
+schema_version: 1
+artifact_type: scene
+schema_file: templates/strict-spec-driven/schemas/scene.yaml
+scene:
+  id: agent-uses-builtin-strict-tooling
+  title: An agent runs the strict workflow through the plugin's built-in tooling
+area: dsh-plugin-tooling
+status: draft
+actors:
+  - name: operator
+    role: Installs the strict-spec plugin into a dsh profile and controls its built-in tooling switch through the plugin row's config in the dsh profile patch.
+  - name: agent
+    role: 'Works in a dsh session: discovers the strict skills in the session catalog, loads the skill body it needs, and runs the strict-spec-cli commands that body states.'
+preconditions:
+  - A dsh host of the release line the plugin pins runs with the strict-spec plugin installed into its profile.
+  - No strict-spec-cli is installed on the machine's PATH and no strict skill package is registered through the global skills CLI.
+  - The plugin's built-in tooling switch is enabled, which is its default.
+main_flow:
+  operator-installs-plugin:
+    action: The operator installs the strict-spec plugin package, which carries the bundled skill bodies and the CLI bundle inside its built bundle directory, into the dsh profile, and the plugin's host entry loads with the built-in tooling switch enabled by default, registering the bundled skill provider onto the dsh skill registry.
+    covered_by:
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: builtin-tooling-switch
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: builtin-skills-registered
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: shipped-tarball-carries-tooling-assets
+  agent-reads-skill-catalog:
+    action: The agent opens a session whose skill catalog is assembled, and the catalog offers every strict skill served from the plugin's bundled assets with the description its skill body declares.
+    covered_by:
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: builtin-skills-registered
+  agent-loads-skill-body:
+    action: The agent loads one strict skill, and the served body states its strict-spec-cli commands as direct invocations of the plugin-bundled CLI through the running host's node executable rather than a PATH command.
+    covered_by:
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: bundled-cli-invocations
+  agent-runs-cli-command:
+    action: The agent runs one of those commands in the session, and the bundled strict-spec-cli executes through the host's node executable and produces the command's output with nothing installed beyond the plugin.
+    covered_by:
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: bundled-cli-invocations
+  operator-disables-switch:
+    action: The operator flips the single switch off through the plugin row's config in the profile patch, the built-in skills disappear from the catalog and any external installation becomes the effective one again, and the plugin's viewer surfaces keep working unchanged.
+    covered_by:
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: builtin-tooling-switch
+      - spec_id: dsh-plugin-tooling-behavior
+        requirement_id: builtin-outranks-external-copies
+exception_flows:
+  missing-skill-asset:
+    trigger: A bundled skill's body file is missing or unparsable in the plugin's assets, for example after a corrupted or partial installation.
+    steps:
+      omit-skill-keep-sessions:
+        action: The provider omits that skill from the catalog, every intact skill keeps listing and loading, and the host and the viewer keep running.
+        covered_by:
+          - spec_id: dsh-plugin-tooling-behavior
+            requirement_id: builtin-skills-registered
+  external-copies-present:
+    trigger: The machine also carries the same strict skills installed in a project or user skill root and an externally installed strict-spec-cli, for example from an earlier install.sh run.
+    steps:
+      builtin-copies-still-win:
+        action: The agent's catalog entry and loaded body for a same-name skill are still the plugin's built-in copies, so the session runs the bundled CLI rather than the external installation.
+        covered_by:
+          - spec_id: dsh-plugin-tooling-behavior
+            requirement_id: builtin-outranks-external-copies

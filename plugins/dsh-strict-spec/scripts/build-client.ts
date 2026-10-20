@@ -1,21 +1,28 @@
 /**
  * Bun-based client build for dsh-plugin-strict-spec.
  *
- * Emits two artifacts into dist/:
+ * Emits four artifact kinds into dist/:
  *   - client.js: the browser bundle wrapped in the window.__ModuleLoader__
  *     closure-factory handoff, in the lazy-CJS shape the dsh module system
  *     expects: executing the bundle only registers the factory, and module
  *     side effects run at materialization. Every module the dsh shell shares
  *     through its frozen module table stays external, so the bundle never
  *     inlines a copy of React, Cordis, or any other shared module.
- *   - host.js: the empty cordis host entry the bundle patch inserts.
+ *   - host.js: the cordis host entry the bundle patch inserts, which stays
+ *     external against every dsh module it reads at runtime.
+ *   - skills/<name>/SKILL.md: the repository skill packages' bodies, copied
+ *     byte-identically so the plugin serves exactly the authored text and
+ *     the repository packages stay the single authored source.
+ *   - cli/strict-spec-cli.js: the strict-spec-cli bundled from the
+ *     repository source with the same node ESM bundling the repository build
+ *     uses, so the plugin carries its own CLI with no global install.
  *
  * dsh publishes no client build preset, so the wrapper and the externals list
  * are reproduced here by hand and the bundle-shape test in test/suites/
  * guards both against drift. CSS Module styles the components import ride
  * the wrapper as an injected <style> element, keeping the bundle one file.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dir, "..");
@@ -42,6 +49,20 @@ export const SHARED_EXTERNALS: readonly string[] = [
   "@deepseek-ai/dsh-client-ui-slots",
   "@deepseek-ai/dsh-client-ui-primitives",
   "@deepseek-ai/dsh-client-ui-dockkit",
+];
+
+/**
+ * Modules the host entry must not inline. `@deepseek-ai/schemastery` is read
+ * at runtime for the Config schema and resolves from the plugin's declared
+ * dependency, the same convention the pinned line's own host plugins follow.
+ * `@deepseek-ai/dsh-skill` is type-only in the host entry — its imports are
+ * erased — and stays external so an accidental runtime import can never
+ * silently inline a second registry identity into the bundle.
+ */
+export const HOST_EXTERNALS: readonly string[] = [
+  ...SHARED_EXTERNALS,
+  "@deepseek-ai/schemastery",
+  "@deepseek-ai/dsh-skill",
 ];
 
 /** The module id the shell addresses this bundle by: the package name. */
@@ -113,13 +134,13 @@ export async function buildClientBundle(): Promise<string> {
   return wrapModuleLoaderHandoff(CLIENT_MODULE_ID, await output.text(), cssChunks.join("\n"));
 }
 
-/** Builds the empty cordis host entry as a Node ESM module. */
+/** Builds the cordis host entry as a Node ESM module. */
 export async function buildHostEntry(): Promise<string> {
   const result = await Bun.build({
     entrypoints: [path.join(root, "src/host.ts")],
     target: "node",
     format: "esm",
-    external: [...SHARED_EXTERNALS],
+    external: [...HOST_EXTERNALS],
   });
   if (!result.success) {
     const messages = result.logs.map((log) => String(log)).join("\n");
@@ -132,13 +153,125 @@ export async function buildHostEntry(): Promise<string> {
   return `${await output.text()}\n`;
 }
 
+/** The repository root the skill sources and the CLI entry live in. */
+export const REPO_ROOT = path.resolve(root, "..", "..");
+
+/** The dist-relative path one bundled skill body is served from. */
+export function bundledSkillAssetPath(skillName: string): string {
+  return path.join("skills", skillName, "SKILL.md");
+}
+
+/**
+ * List the repository skill packages by name, derived from the skills/
+ * directory itself so a package added there ships without touching this
+ * script. Non-directories such as marketplace.json are skipped.
+ */
+export function listBundledSkillNames(repoRoot: string = REPO_ROOT): string[] {
+  return readdirSync(path.join(repoRoot, "skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+/** Read every repository skill body byte-identically for shipping. */
+export function readBundledSkillBodies(repoRoot: string = REPO_ROOT): Map<string, string> {
+  const bodies = new Map<string, string>();
+  for (const name of listBundledSkillNames(repoRoot)) {
+    bodies.set(name, readFileSync(path.join(repoRoot, "skills", name, "SKILL.md"), "utf8"));
+  }
+  return bodies;
+}
+
+/** The dist-relative path the bundled CLI asset is written to. */
+export const CLI_ASSET_PATH = path.join("cli", "strict-spec-cli.js");
+
+/**
+ * Serializes CLI asset builds: the build temporarily changes the process
+ * working directory, so a second build started while one is in flight would
+ * resolve its paths against the wrong root. Every call chains onto the
+ * previous build's promise, keeping the global-state window exclusive.
+ */
+let cliBuildChain: Promise<unknown> = Promise.resolve();
+
+/**
+ * Bundle the strict-spec-cli from the repository source with the same node
+ * ESM bundling the repository build uses for its own dist CLI bundle, so the
+ * plugin carries exactly the CLI the repository ships. The bundler writes
+ * module paths into the bundle relative to the process working directory,
+ * so the build temporarily changes into the repository root — the directory
+ * the repository build itself runs from — keeping the emitted bundle
+ * byte-identical to dist/scripts/strict-spec-driven.js regardless of where
+ * this script runs from.
+ */
+export function buildCliAsset(): Promise<string> {
+  const build = cliBuildChain.then(async () => {
+    const previousCwd = process.cwd();
+    process.chdir(REPO_ROOT);
+    try {
+      const result = await Bun.build({
+        entrypoints: [path.join(REPO_ROOT, "src", "strict-spec-cli.ts")],
+        target: "node",
+        format: "esm",
+      });
+      if (!result.success) {
+        const messages = result.logs.map((log) => String(log)).join("\n");
+        throw new Error(`strict-spec-cli asset build failed:\n${messages}`);
+      }
+      const output = result.outputs.find((candidate) => candidate.kind === "entry-point");
+      if (!output) {
+        throw new Error("strict-spec-cli asset build produced no entry-point output");
+      }
+      // Returned exactly as the bundler emits it, so the shipped CLI asset
+      // stays byte-identical to the repository build's own CLI bundle and the
+      // suite can compare the two.
+      return output.text();
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+  cliBuildChain = build.catch(() => undefined);
+  return build;
+}
+
 const distDir = path.join(root, "dist");
+
+/** One file the build writes into dist/, by dist-relative path. */
+export interface BuildOutput {
+  /** Dist-relative file path, using forward slashes. */
+  readonly path: string;
+  /** Exact file text to write. */
+  readonly text: string;
+}
+
+/**
+ * Plan every file the build writes into dist/: the client bundle, the host
+ * entry, every repository skill body byte-identically, and the bundled CLI.
+ * The script's write loop only materializes this plan, so the suite can
+ * prove the shipped asset set — including the built-in tooling — in memory
+ * without ever writing dist/.
+ */
+export async function planBuildOutputs(): Promise<BuildOutput[]> {
+  const outputs: BuildOutput[] = [
+    { path: "client.js", text: await buildClientBundle() },
+    { path: "host.js", text: await buildHostEntry() },
+  ];
+  for (const [name, body] of readBundledSkillBodies()) {
+    outputs.push({ path: bundledSkillAssetPath(name), text: body });
+  }
+  outputs.push({ path: CLI_ASSET_PATH, text: await buildCliAsset() });
+  return outputs;
+}
 
 // Run as a script (`bun run build`), not when the test suite imports the
 // build helpers: importing must build in memory only, never write dist/.
 if (import.meta.main) {
+  const outputs = await planBuildOutputs();
   mkdirSync(distDir, { recursive: true });
-  writeFileSync(path.join(distDir, "client.js"), await buildClientBundle());
-  writeFileSync(path.join(distDir, "host.js"), await buildHostEntry());
-  console.log(`built ${path.join(distDir, "client.js")} and ${path.join(distDir, "host.js")}`);
+  for (const output of outputs) {
+    const target = path.join(distDir, output.path);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, output.text);
+  }
+  const skillCount = outputs.filter((output) => output.path.endsWith("SKILL.md")).length;
+  console.log(`built ${outputs.length} files (${skillCount} bundled skill bodies) into ${distDir}`);
 }

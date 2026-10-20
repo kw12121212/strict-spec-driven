@@ -35,3 +35,10 @@ rules:
     enforcement:
       method: review
       detail: Reviewers reject tests that assert internal implementation detail or mock owned modules without cause.
+  build-scripts-expose-pure-output-plan:
+    strength: SHOULD
+    statement: 'A repository build script SHOULD separate pure output planning from materialization: one exported function returns the complete list of output paths and exact texts the build writes, and the write loop only materializes that plan, so a suite can prove the full shipped asset set — including byte-identity against authored sources — in memory without writing build output or adding a build prerequisite.'
+    rationale: This change's plugin build exposed planBuildOutputs and the host suite proved the 32-entry shipped asset set byte-identically with zero new build prerequisites, where reading the built dist directory would have forced every suite run to build the plugin first; the pattern keeps the write loop trivially auditable and the asset set testable from sources alone.
+    enforcement:
+      method: test
+      detail: The consuming suite imports the plan function, derives the expected entry set from the authored sources, and asserts the plan's exact entries, their byte-identity, and negative probes for dropped, extra, and mutated entries.

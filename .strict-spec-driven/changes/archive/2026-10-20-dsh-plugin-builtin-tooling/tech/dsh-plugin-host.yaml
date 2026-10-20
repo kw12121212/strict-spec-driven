@@ -1,0 +1,40 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-host
+standard:
+  title: DSH Plugin Host-Side Tooling Conventions
+  category: architecture
+operations:
+  ADDED:
+    tooling-assets-live-under-bundle-dir:
+      strength: MUST
+      statement: Built-in tooling assets a dsh plugin ships — skill bodies, CLI bundles, and any asset its host entry resolves at runtime — MUST be produced into the plugin's built bundle directory by the plugin build and resolved at runtime relative to the host entry's own module URL, so the packed-tarball files allowlist keeps naming exactly the built bundle directory, the bundle patch, and the per-locale READMEs, and carrying tooling never adds a top-level tarball entry or ships sources, build scripts, or test support.
+      rationale: The packed-tarball-allowlist standard fixes the tarball's shape; tooling assets are build outputs, not sources, so folding them under the existing built bundle directory keeps the standard unchanged while the shipped asset set stays provable.
+      enforcement:
+        method: test
+        detail: The plugin host suite asserts the build plan — the pure in-memory list of every dist file the build writes — carries exactly the client bundle, the host entry, the CLI asset, and one byte-identical body per repository skill package, with negative probes proving a dropped asset, an extra entry, and a mutated body are each caught, and the release suite keeps asserting the files allowlist names exactly the built bundle directory, the bundle patch, and the per-locale READMEs.
+    builtin-tooling-outranks-external-copies:
+      strength: MUST
+      statement: A dsh plugin that offers built-in copies of skills MUST register them at a candidate rank below every filesystem skill root rank of the pinned dsh line, so while its provision is enabled the built-in copy of a same-name skill wins over project and user root copies and the session runs the bundled tooling, and disabling the provision MUST restore the external copies as the effective ones.
+      rationale: The requester required on 2026-10-20 that external same-name skills and CLI lose to the built-in copies; the dsh skill registry resolves duplicate names by lowest rank within a layer, and the filesystem roots occupy the ranks above the project roots, so only a rank below the lowest filesystem root delivers that precedence.
+      enforcement:
+        method: test
+        detail: The plugin host suite asserts the provider's candidate rank stays below the pinned line's lowest filesystem root rank (the project-dsh root, 100, of dsh 0.2.1-rc.2) and that the served body of a winning copy invokes the bundled CLI; the engines.dsh pin bounds the line the literal names — recorded as a design decision — and the change's real-host evidence leg observed the built-in copy winning a same-name resolution against a project-root copy through the pinned line's real registry.
+    served-skill-bodies-stay-single-source:
+      strength: MUST
+      statement: A dsh plugin that serves repository-authored skill packages MUST ship the authored bodies unchanged and apply any environment-specific command adaptation — such as rewriting a globally named CLI token to the bundled invocation through the running host's node executable — only at serve time, so the repository skill packages remain the single authored source, no second authored variant drifts from them, and the adaptation leaves every mandated protocol pointer and validation command a body states runnable.
+      rationale: Authoring a plugin-specific skill variant would fork the governed skill text and drift from the repository packages the skill standards govern; serve-time rewriting keeps the shipped copies byte-identical while making the commands runnable without a global install.
+      enforcement:
+        method: test
+        detail: The plugin host suite asserts every shipped skill body is byte-identical to its repository source, that the rewrite leaves no bare CLI token and keeps the yaml-authoring-protocol pointer and artifact validation commands, and that both quoting branches behave.
+    host-entry-declares-every-service-it-reads:
+      strength: MUST
+      statement: A dsh plugin host entry MUST declare in its inject export every ctx service property its apply path reads, mirroring the client entry's declaration rule, because an undeclared read fails the fiber at real-host activation with a terse failure that names no property while stub-based suites stay green.
+      rationale: The recorded inject lesson shows host fibers failing as 'entry did not activate' with no console output for undeclared context reads, and only the inject list is checked before activation; the rule keeps host-side service adoption as visible as the client-side rule the dsh-plugin-client standard already states.
+      enforcement:
+        method: review
+        detail: Review checks the host entry's inject export against every ctx property its apply path reads, supported by the plugin host suite's static wiring check over the entry's inject list.
+  MODIFIED: {}
+  REMOVED: {}

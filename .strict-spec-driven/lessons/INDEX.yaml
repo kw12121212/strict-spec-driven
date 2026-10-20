@@ -342,6 +342,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-scripted-fake-that-tolerates-what-the-wire-rej-5b45c3.yaml
+    a-byte-identical-bundle-reproduction-must-build-d9cff5:
+      title: A byte-identical bundle reproduction must build from the original working directory
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-byte-identical-bundle-reproduction-must-build-d9cff5.yaml
   ui:
     a-shared-dsh-ui-package-drags-its-dependency-clo-81fa91:
       title: A shared dsh UI package drags its dependency closure into the plugin

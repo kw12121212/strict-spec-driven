@@ -414,6 +414,7 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 232 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 125 |
 | [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 8 |
+| [DSH Strict Plugin Built-in Tooling Behavior](.strict-spec-driven/specs/dsh-plugin-tooling/behavior.yaml) | `dsh-plugin-tooling-behavior` | 5 |
 | [DSH Strict Document Viewer Behavior](.strict-spec-driven/specs/dsh-viewer/behavior.yaml) | `dsh-viewer-behavior` | 29 |
 | [Lessons Domain Behavior](.strict-spec-driven/specs/lessons/domain-behavior.yaml) | `lessons-domain-behavior` | 9 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 |
@@ -466,11 +467,19 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 - **MUST** `packed-tarball-allowlist` — A dsh plugin package MUST declare a package.json files allowlist naming exactly its built bundle directory, its declared bundle patch, and one README per shipped locale, so a locally packed tarball ships the bundle the host loads and never the plugin's sources, build scripts, test support, or lockfile.
 - **SHOULD** `bounded-rpc-fanout-preserves-assembly-order` — Plugin model code that fans out one port RPC per collected item SHOULD run the calls through a bounded-concurrency, order-preserving map helper — a small fixed in-flight limit, results written into input-ordered slots, and every worker promise awaited by one Promise.all so no rejection is unhandled — instead of a serial await loop or an unbounded Promise.all, and its suite SHOULD prove the bound observably (reads parked on a gate with an exact in-flight count) alongside the assembled outputs order.
 
+### [DSH Plugin Host-Side Tooling Conventions](.strict-spec-driven/tech/dsh-plugin-host.yaml) (`dsh-plugin-host`) — architecture
+
+- **MUST** `tooling-assets-live-under-bundle-dir` — Built-in tooling assets a dsh plugin ships — skill bodies, CLI bundles, and any asset its host entry resolves at runtime — MUST be produced into the plugin's built bundle directory by the plugin build and resolved at runtime relative to the host entry's own module URL, so the packed-tarball files allowlist keeps naming exactly the built bundle directory, the bundle patch, and the per-locale READMEs, and carrying tooling never adds a top-level tarball entry or ships sources, build scripts, or test support.
+- **MUST** `builtin-tooling-outranks-external-copies` — A dsh plugin that offers built-in copies of skills MUST register them at a candidate rank below every filesystem skill root rank of the pinned dsh line, so while its provision is enabled the built-in copy of a same-name skill wins over project and user root copies and the session runs the bundled tooling, and disabling the provision MUST restore the external copies as the effective ones.
+- **MUST** `served-skill-bodies-stay-single-source` — A dsh plugin that serves repository-authored skill packages MUST ship the authored bodies unchanged and apply any environment-specific command adaptation — such as rewriting a globally named CLI token to the bundled invocation through the running host's node executable — only at serve time, so the repository skill packages remain the single authored source, no second authored variant drifts from them, and the adaptation leaves every mandated protocol pointer and validation command a body states runnable.
+- **MUST** `host-entry-declares-every-service-it-reads` — A dsh plugin host entry MUST declare in its inject export every ctx service property its apply path reads, mirroring the client entry's declaration rule, because an undeclared read fails the fiber at real-host activation with a terse failure that names no property while stub-based suites stay green.
+
 ### [TypeScript ESM Baseline](.strict-spec-driven/tech/typescript-esm-baseline.yaml) (`typescript-esm-baseline`) — coding
 
 - **MUST** `esm-typescript-only` — Source modules MUST be authored in strict TypeScript using ESM syntax with NodeNext resolution, compiled from src/ to dist/.
 - **MUST** `rebuild-after-source-edits` — Compiled output MUST be rebuilt after editing TypeScript sources before relying on dist/ behavior or running the dist-based test suite.
 - **SHOULD** `tests-verify-observable-behavior` — Tests SHOULD verify observable behavior described in specs and prefer real dependencies over mocks for code the project owns.
+- **SHOULD** `build-scripts-expose-pure-output-plan` — A repository build script SHOULD separate pure output planning from materialization: one exported function returns the complete list of output paths and exact texts the build writes, and the write loop only materializes that plan, so a suite can prove the full shipped asset set — including byte-identity against authored sources — in memory without writing build output or adding a build prerequisite.
 
 ### [Workflow Regression Coverage](.strict-spec-driven/tech/workflow-regression-coverage.yaml) (`workflow-regression-coverage`) — testing
 

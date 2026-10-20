@@ -11,6 +11,10 @@ standards:
     title: DSH Plugin Client Conventions
     category: ui
     path: .strict-spec-driven/tech/dsh-plugin-client.yaml
+  - id: dsh-plugin-host
+    title: DSH Plugin Host-Side Tooling Conventions
+    category: architecture
+    path: .strict-spec-driven/tech/dsh-plugin-host.yaml
   - id: typescript-esm-baseline
     title: TypeScript ESM Baseline
     category: coding

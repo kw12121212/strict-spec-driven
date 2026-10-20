@@ -43,6 +43,42 @@ files, and viewing never changes a file. Views show declared field values
 exactly as written; they never compute roadmap status or validation results.
 Change strict artifacts through `strict-spec-cli` as usual.
 
+## Built-in Strict Tooling
+
+The plugin carries the strict workflow's own tooling, so installing the plugin
+is enough — no separate `install.sh` run, global `strict-spec-cli`, or skills
+registration is required:
+
+- While the built-in tooling switch is **enabled (the default)**, the plugin
+  registers every strict skill package onto the host's skill registry from the
+  skill bodies bundled inside the plugin, and the commands those skills serve
+  run the `strict-spec-cli` bundled inside the plugin, invoked through the
+  dsh host's own node runtime. Nothing is written to any `bin` directory and
+  no `PATH` lookup happens: the built-in CLI is reachable inside agent
+  sessions, not from your terminal.
+- While the switch is enabled, the built-in copies **win over external ones**:
+  a same-name strict skill installed under a project or user skill root (for
+  example by an earlier `install.sh` run) loses to the plugin's built-in copy,
+  so sessions always run the tooling version the plugin ships.
+- The whole provision is **one switch**, because the skills and the CLI are one
+  thing: the served skill bodies are the bundled CLI's only session entry
+  point. Turn it off and the built-in skills disappear, any external
+  installation becomes the effective one again, and the viewer keeps working
+  unchanged. `install.sh` and the global install path keep working either way.
+
+Flip the switch through the plugin row's config in the profile's
+`cordis.patch.yml` — no reinstall is needed:
+
+```yaml
+- id: ui-strict-spec
+  name: dsh-plugin-strict-spec
+  config:
+    builtinTooling: false
+```
+
+Omitting the `config` block (or the whole entry) keeps the switch at its
+default, enabled.
+
 ## Supported dsh Releases
 
 The plugin declares `engines.dsh` as `>=0.2.1-rc.2 <0.2.2` and was tested with
