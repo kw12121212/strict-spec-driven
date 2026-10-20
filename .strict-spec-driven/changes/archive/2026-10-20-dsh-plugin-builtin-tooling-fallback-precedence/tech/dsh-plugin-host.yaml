@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-host
+operations:
+  ADDED:
+    builtin-fallback-precedence:
+      strength: MUST
+      statement: 'A dsh plugin that offers built-in copies of skills MUST register them as a fallback: candidates carry the pinned line''s bundled rank band, so an external copy of the same name from a project or user root wins in every resolution shape — across layers, because a preset''s local discovery registers nearer than the plugin''s deployment-level registration, and within a layer, because every filesystem root rank beats the bundled band — and the built-in copies serve only names no external root offers; the plugin MUST NOT ship, or document as required, any preset-composition override that freezes the host''s shipped preset to force built-in precedence.'
+      rationale: The pinned dsh line's own composition comments state that deployment-level providers register into the skill registry's global layer while a preset's skill-filesystem registers into that preset's layer, making external-first with built-in fallback the host's designed semantics; forcing built-in precedence instead requires a profile patch that restates the whole shipped preset and silently shadows host preset improvements on every dsh upgrade, a cost the operator rejected on 2026-10-20.
+      enforcement:
+        method: test
+        detail: The plugin host suite asserts the candidate rank sits in the bundled band above every filesystem root rank (project 100 through user 500 of the pinned line) so external copies win same-layer duels, and the recorded real-host evidence observes an external project-root copy winning a same-name resolution while absent names fall through to the built-in copy through the pinned line's real registry.
+  MODIFIED:
+    builtin-tooling-outranks-external-copies:
+      strength: MUST
+      statement: 'A dsh plugin that offers built-in copies of skills MUST register them as a fallback: candidates carry the pinned line''s bundled rank band, so an external copy of the same name from a project or user root wins in every resolution shape — across layers, because a preset''s local discovery registers nearer than the plugin''s deployment-level registration, and within a layer, because every filesystem root rank beats the bundled band — and the built-in copies serve only names no external root offers; the plugin MUST NOT ship, or document as required, any preset-composition override that freezes the host''s shipped preset to force built-in precedence.'
+      rationale: The pinned dsh line's own composition comments state that deployment-level providers register into the skill registry's global layer while a preset's skill-filesystem registers into that preset's layer, making external-first with built-in fallback the host's designed semantics; forcing built-in precedence instead requires a profile patch that restates the whole shipped preset and silently shadows host preset improvements on every dsh upgrade, a cost the operator rejected on 2026-10-20.
+      enforcement:
+        method: test
+        detail: The plugin host suite asserts the candidate rank sits in the bundled band above every filesystem root rank (project 100 through user 500 of the pinned line) so external copies win same-layer duels, and the recorded real-host evidence observes an external project-root copy winning a same-name resolution while an absent-name falls through to the built-in copy through the pinned line's real registry.
+  REMOVED:
+    builtin-tooling-outranks-external-copies:
+      reason: The rule id asserted the superseded built-in-wins semantics while its revised statement states the negation; the replacement rule builtin-fallback-precedence carries the same contract under an id that matches it, keeping standard ids readable as statements of their rules.

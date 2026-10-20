@@ -1,0 +1,50 @@
+schema: strict-spec-driven/delta-scene/v1
+schema_version: 1
+artifact_type: delta_scene
+schema_file: templates/strict-spec-driven/schemas/delta-scene.yaml
+target_scene: agent-uses-builtin-strict-tooling
+operations:
+  ADDED:
+    exception_flows:
+      external-copies-present:
+        trigger: The machine also carries the same strict skills installed in a project or user skill root and an externally installed strict-spec-cli, for example from an earlier install.sh run.
+        steps:
+          external-copies-win:
+            action: The agent's catalog entry and loaded body for a same-name skill are the external installation's copies, so the session runs the external CLI the external copy states, and the plugin's built-in copy stands by as the fallback that would serve the name only if the external copy were absent.
+            covered_by:
+              - spec_id: dsh-plugin-tooling-behavior
+                requirement_id: builtin-fallback-precedence
+    main_flow:
+      operator-disables-tooling:
+        action: The operator flips the single switch off through the plugin row's config in the profile patch, the built-in skills disappear from the catalog, every name an external root offers resolves to the external copy, names without one become absent, and the plugin's viewer surfaces keep working unchanged.
+        covered_by:
+          - spec_id: dsh-plugin-tooling-behavior
+            requirement_id: builtin-tooling-switch
+          - spec_id: dsh-plugin-tooling-behavior
+            requirement_id: builtin-fallback-precedence
+  MODIFIED:
+    exception_flows:
+      external-copies-present:
+        steps:
+          builtin-copies-still-win:
+            action: The agent's catalog entry and loaded body for a same-name skill are the external installation's copies, so the session runs the external CLI the external copy states, and the plugin's built-in copy stands by as the fallback that would serve the name only if the external copy were absent.
+            covered_by:
+              - spec_id: dsh-plugin-tooling-behavior
+                requirement_id: builtin-fallback-precedence
+    main_flow:
+      operator-disables-switch:
+        action: The operator flips the single switch off through the plugin row's config in the profile patch, the built-in skills disappear from the catalog and any external installation becomes the effective one again, and the plugin's viewer surfaces keep working unchanged.
+        covered_by:
+          - spec_id: dsh-plugin-tooling-behavior
+            requirement_id: builtin-tooling-switch
+          - spec_id: dsh-plugin-tooling-behavior
+            requirement_id: builtin-fallback-precedence
+  REMOVED:
+    exception_flows:
+      external-copies-present:
+        steps:
+          builtin-copies-still-win:
+            reason: The step stated the superseded built-in-wins semantics and its id inverts under external-first; a delta scene cannot subtract a covering reference because covered_by merges as a union, so the step is retired and re-added under a new id referencing the replacement requirement.
+    main_flow:
+      operator-disables-switch:
+        reason: The step's covering references included the retired builtin-outranks-external-copies requirement, and covered_by merges as a union so a MODIFIED restatement cannot drop it; the step is retired and re-added under a new id referencing only the live requirements.

@@ -4,8 +4,8 @@
  * fixture asset directories and against the repository's real skill
  * packages, the strict frontmatter reader over every shipped body, the
  * serve-time CLI token rewrite including its quoting and boundary branches,
- * the precedence rank that makes built-in copies win over external ones, the
- * host entry's switch wiring and config defaulting, and the built host
+ * the fallback precedence rank that makes external copies win where they
+ * exist, the host entry's switch wiring and config defaulting, and the built host
  * bundle's externals shape. The CLI asset and host entry are built in memory
  * through the plugin's own build helpers, so the suite adds no build
  * prerequisite beyond the ones the repository suites already carry.
@@ -221,7 +221,7 @@ export async function runDshPluginHostSuite(context: TestContext): Promise<void>
   const candidate = candidates[0]!;
   context.assert(candidate.name === "alpha", "the candidate carries the frontmatter name");
   context.assert(candidate.description === "Alpha probe skill for the provider suite.", "the candidate carries the frontmatter description");
-  context.assert(candidate.rank === BUILTIN_TOOLING_RANK, "the candidate carries the built-in precedence rank");
+  context.assert(candidate.rank === BUILTIN_TOOLING_RANK, "the candidate carries the fallback precedence rank");
   context.assert(candidate.source === "bundled", "the candidate marks its origin as bundled");
   context.assert(candidate.provider === BUILTIN_TOOLING_PROVIDER_NAME, "the candidate names the plugin provider");
   context.assert(candidate.invocation.modelInvocable && candidate.invocation.userInvocable, "the candidate is model- and user-invocable");
@@ -247,11 +247,18 @@ export async function runDshPluginHostSuite(context: TestContext): Promise<void>
   context.section("dsh plugin host: precedence rank");
 
   // The pinned dsh line's filesystem skill roots occupy ranks 100 (project-dsh)
-  // through 600 (bundled); the registry resolves duplicate names by lowest rank
-  // within a layer, so the built-in rank must sit below the lowest root rank.
+  // through 500 (user-agents), with 600 the bundled band; the registry resolves
+  // duplicate names by lowest rank within a layer, so the built-in rank must sit
+  // above every filesystem root to make external copies win same-layer duels —
+  // the built-in copies serve only names no external root offers.
   context.assert(
-    BUILTIN_TOOLING_RANK < 100,
-    "the built-in rank beats every filesystem skill root rank of the pinned dsh line",
+    BUILTIN_TOOLING_RANK === 600,
+    "the built-in rank sits in the pinned line's bundled band",
+    `rank: ${BUILTIN_TOOLING_RANK}`,
+  );
+  context.assert(
+    BUILTIN_TOOLING_RANK > 500,
+    "every filesystem skill root rank of the pinned dsh line beats the built-in rank, so external copies win same-layer duels",
     `rank: ${BUILTIN_TOOLING_RANK}`,
   );
 

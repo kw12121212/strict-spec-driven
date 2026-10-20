@@ -42,18 +42,6 @@ requirements:
         - GIVEN: a machine with no strict-spec-cli on PATH and the switch enabled
         - WHEN: the agent runs a CLI command a served skill states
         - THEN: the bundled CLI executes and produces the command's output
-  builtin-outranks-external-copies:
-    strength: MUST
-    statement: While the switch is enabled, a strict skill offered by the plugin wins over same-name copies from project and user skill roots, so the session's catalog entry and loaded body are the built-in copy and its commands run the bundled CLI, and when the switch is disabled the external copies become the effective ones again.
-    scenarios:
-      builtin-wins-over-external-copies:
-        - GIVEN: the switch is enabled and the same strict skill name exists both in the plugin's assets and in a project or user skill root
-        - WHEN: the registry resolves that name for a session catalog
-        - THEN: the plugin's built-in copy wins, so the loaded body and its CLI commands are the built-in ones
-      disabled-external-copies-win:
-        - GIVEN: the same strict skill name exists in a project or user skill root and the switch is disabled
-        - WHEN: the registry resolves that name for a session catalog
-        - THEN: the external copy is the effective one and its commands run the CLI the external copy states
   shipped-tarball-carries-tooling-assets:
     strength: MUST
     statement: A packed plugin tarball ships every bundled strict skill body and the bundled strict-spec-cli bundle inside the plugin's built bundle directory, so an installed plugin carries its built-in tooling with it while no source, build script, test support, or lockfile ships.
@@ -62,3 +50,19 @@ requirements:
         - GIVEN: the plugin package is packed from a built checkout
         - WHEN: the tarball's file entries are listed
         - THEN: every bundled skill body and the CLI bundle are present under the built bundle directory and the tarball contains no source, build script, test support, or lockfile entry
+  builtin-fallback-precedence:
+    strength: MUST
+    statement: While the switch is enabled, an external copy of a strict skill from a project or user root wins over the plugin's built-in copy of the same name in every resolution shape — across registry layers, where a preset's local discovery sits nearer than the plugin's deployment-level registration, and within a layer, where every filesystem root rank beats the bundled band — so the session runs the external copy's body and the CLI it states, and the plugin's built-in copies serve as the zero-install fallback for names no external root offers; when the switch is disabled the plugin offers nothing and external installations are the only source.
+    scenarios:
+      external-copies-win:
+        - GIVEN: the switch is enabled and the same strict skill name exists both in the plugin's assets and in a project or user skill root
+        - WHEN: the registry resolves that name for a session catalog
+        - THEN: the external copy wins, so the catalog entry, loaded body, and CLI the session runs are the external installation's
+      fallback-serves-absent-names:
+        - GIVEN: the switch is enabled and a strict skill name has no copy in any project or user root
+        - WHEN: the registry resolves that name for a session catalog
+        - THEN: the plugin's built-in copy serves the name, so a machine with nothing installed still lists and runs every strict skill
+      disabled-plugin-offers-nothing:
+        - GIVEN: the same strict skill name exists in a project or user skill root and the switch is disabled
+        - WHEN: the registry resolves that name for a session catalog
+        - THEN: the external copy is the effective one and the plugin contributes no candidate at all

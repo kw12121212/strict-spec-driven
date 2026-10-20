@@ -41,13 +41,13 @@ main_flow:
     covered_by:
       - spec_id: dsh-plugin-tooling-behavior
         requirement_id: bundled-cli-invocations
-  operator-disables-switch:
-    action: The operator flips the single switch off through the plugin row's config in the profile patch, the built-in skills disappear from the catalog and any external installation becomes the effective one again, and the plugin's viewer surfaces keep working unchanged.
+  operator-disables-tooling:
+    action: The operator flips the single switch off through the plugin row's config in the profile patch, the built-in skills disappear from the catalog, every name an external root offers resolves to the external copy, names without one become absent, and the plugin's viewer surfaces keep working unchanged.
     covered_by:
       - spec_id: dsh-plugin-tooling-behavior
         requirement_id: builtin-tooling-switch
       - spec_id: dsh-plugin-tooling-behavior
-        requirement_id: builtin-outranks-external-copies
+        requirement_id: builtin-fallback-precedence
 exception_flows:
   missing-skill-asset:
     trigger: A bundled skill's body file is missing or unparsable in the plugin's assets, for example after a corrupted or partial installation.
@@ -60,8 +60,8 @@ exception_flows:
   external-copies-present:
     trigger: The machine also carries the same strict skills installed in a project or user skill root and an externally installed strict-spec-cli, for example from an earlier install.sh run.
     steps:
-      builtin-copies-still-win:
-        action: The agent's catalog entry and loaded body for a same-name skill are still the plugin's built-in copies, so the session runs the bundled CLI rather than the external installation.
+      external-copies-win:
+        action: The agent's catalog entry and loaded body for a same-name skill are the external installation's copies, so the session runs the external CLI the external copy states, and the plugin's built-in copy stands by as the fallback that would serve the name only if the external copy were absent.
         covered_by:
           - spec_id: dsh-plugin-tooling-behavior
-            requirement_id: builtin-outranks-external-copies
+            requirement_id: builtin-fallback-precedence

@@ -11,12 +11,16 @@
  *
  * Two behaviors are contract-bearing rather than incidental:
  *
- * - Candidates are served at {@link BUILTIN_TOOLING_RANK}, below every
- *   filesystem skill root rank of the pinned dsh line (project roots start at
- *   100), so while the provision is enabled a built-in copy of a same-name
- *   skill wins over project- and user-installed copies and the session runs
- *   the bundled CLI. The `source` field stays "bundled" because it is origin
- *   metadata, not precedence.
+ * - Candidates are served at {@link BUILTIN_TOOLING_RANK}, the pinned dsh
+ *   line's bundled band, so built-in copies are a fallback: within one
+ *   registry layer every filesystem skill root rank (project 100 through user
+ *   500) beats the bundled band and the external copy of a same-name skill
+ *   wins, and across layers a preset's local discovery registers nearer than
+ *   this deployment-level provider, so a session with an external copy runs
+ *   the external tooling. Only a name no external root offers falls through
+ *   to the built-in copy, which is what keeps zero-install machines working.
+ *   The `source` field stays "bundled" because it is origin metadata, not
+ *   precedence.
  * - Skill bodies are shipped byte-identical to the repository `skills/`
  *   packages and adapted only at serve time: every bare `strict-spec-cli`
  *   command token is rewritten into a direct invocation of the bundled CLI
@@ -35,13 +39,15 @@ import type {
 export const BUILTIN_TOOLING_PROVIDER_NAME = "strict-spec-plugin";
 
 /**
- * Candidate rank that wins same-name resolution against every filesystem
- * skill root of the pinned dsh line: the registry resolves duplicate names by
- * lowest rank inside one layer, and the filesystem provider's roots occupy
- * 100 (project-dsh) through 600 (bundled), so any rank below 100 beats every
- * external copy while the provision is enabled.
+ * Candidate rank of the pinned dsh line's bundled band: within one registry
+ * layer the resolver picks the lowest rank for a duplicate name, and the
+ * filesystem provider's roots occupy 100 (project-dsh) through 500
+ * (user-agents), so the bundled band loses every same-layer duel against an
+ * external copy. Across layers a preset's local discovery registers nearer
+ * than this deployment-level provider, which makes external copies win there
+ * too — the built-in copies serve only names no external root offers.
  */
-export const BUILTIN_TOOLING_RANK = 50;
+export const BUILTIN_TOOLING_RANK = 600;
 
 /** The file name a bundled skill package carries its body in. */
 export const SKILL_BODY_FILE = "SKILL.md";

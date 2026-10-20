@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-scope-discipline
+operations:
+  ADDED:
+    delta-scene-coverage-retarget-retires-and-readds:
+      strength: SHOULD
+      statement: 'A change that retargets a scene step''s covering requirements SHOULD retire the step (a REMOVED operation with its reason) and re-add its replacement under a new step id, rather than restating the step with a different covered_by list, because delta-scene coverage merges as a set union on archive: a MODIFIED step keeps every previously recorded covering reference, so the old reference survives the restatement and dangles once the requirement it names is retired.'
+      rationale: This change retargeted two steps' coverage from a retired requirement to its replacement and the restatement silently kept the stale references, surfacing only in fresh-context review as dangling coverage once the requirement REMOVED operation landed; retiring and re-adding under a new id is the only delta-scene shape that subtracts coverage, and the step id then also matches the new semantics instead of inverting.
+      enforcement:
+        method: review
+        detail: Review of any change carrying both a REMOVED spec requirement and a delta scene whose steps referenced it checks that the affected steps are retired and re-added rather than restated, and that no post-archive scene step names a retired requirement id.
+  MODIFIED: {}
+  REMOVED: {}

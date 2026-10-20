@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-plugin-tooling-behavior
+operations:
+  ADDED:
+    builtin-fallback-precedence:
+      strength: MUST
+      statement: While the switch is enabled, an external copy of a strict skill from a project or user root wins over the plugin's built-in copy of the same name in every resolution shape — across registry layers, where a preset's local discovery sits nearer than the plugin's deployment-level registration, and within a layer, where every filesystem root rank beats the bundled band — so the session runs the external copy's body and the CLI it states, and the plugin's built-in copies serve as the zero-install fallback for names no external root offers; when the switch is disabled the plugin offers nothing and external installations are the only source.
+      scenarios:
+        external-copies-win:
+          - GIVEN: the switch is enabled and the same strict skill name exists both in the plugin's assets and in a project or user skill root
+          - WHEN: the registry resolves that name for a session catalog
+          - THEN: the external copy wins, so the catalog entry, loaded body, and CLI the session runs are the external installation's
+        fallback-serves-absent-names:
+          - GIVEN: the switch is enabled and a strict skill name has no copy in any project or user root
+          - WHEN: the registry resolves that name for a session catalog
+          - THEN: the plugin's built-in copy serves the name, so a machine with nothing installed still lists and runs every strict skill
+        disabled-plugin-offers-nothing:
+          - GIVEN: the same strict skill name exists in a project or user skill root and the switch is disabled
+          - WHEN: the registry resolves that name for a session catalog
+          - THEN: the external copy is the effective one and the plugin contributes no candidate at all
+  MODIFIED: {}
+  REMOVED:
+    builtin-outranks-external-copies:
+      reason: 'The built-in-wins precedence this requirement stated is reversed by this change: the requester selected external-first with built-in fallback on 2026-10-20 after the built-in-wins deployment proved to require freezing the agent preset composition, and the replacement requirement builtin-fallback-precedence states the chosen semantics, so keeping both would leave the main spec holding two contradictory MUSTs.'

@@ -1,0 +1,49 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: dsh-plugin-builtin-tooling-fallback-precedence
+sections:
+  Implementation:
+    fallback-rank-band:
+      text: 'In plugins/dsh-strict-spec/src/host/builtinTooling.ts, change BUILTIN_TOOLING_RANK from 50 to 600 and rewrite its doc comment to the fallback semantics: the bundled band loses to every filesystem root rank within a layer, presets'' local discovery sits nearer across layers, and the built-in copies serve only names no external root offers.'
+      status: complete
+    readme-precedence-rewrite:
+      text: 'Rewrite the precedence bullets in plugins/dsh-strict-spec/README.md and README.zh.md: external copies win wherever they exist (across layers by design, within a layer by rank), the built-in copies are the zero-install fallback for names no external root offers, no preset override is needed, and the switch still turns the whole provision off; keep the builtinTooling marker both README checks require.'
+      status: complete
+    suite-rank-assertions:
+      text: 'Update test/suites/dsh-plugin-host.ts: the precedence-rank section asserts the bundled band (600) sits above every filesystem root rank of the pinned line (100 through 500) so external copies win same-layer duels, and rename or adjust any assertion labels that still describe built-in-wins.'
+      status: complete
+    rebuild-plugin-dist:
+      text: Run bun install and bun run build inside plugins/dsh-strict-spec so dist reflects the edited sources, per the rebuild-after-source-edits standard, and confirm the CLI asset stays byte-identical to the repository build's CLI bundle.
+      status: complete
+  Testing:
+    plugin-lint:
+      text: Run the plugin's TypeScript lint and confirm it passes.
+      status: complete
+      command: bun --cwd plugins/dsh-strict-spec run lint
+    root-lint:
+      text: Run the repository root lint command and confirm it passes.
+      status: complete
+      command: bun run lint
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes with the fallback rank assertions.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured and confirm it passes at the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    real-host-evidence:
+      text: Re-run the isolated real-host registry probe with the fallback expectations — an external project-root copy of strict-spec-auto wins while the switch is enabled, and a name with no external copy (for example strict-spec-verify) falls through to the built-in copy — and record the observed evidence as a design decision, per the manual-checks-record-observed-evidence standard.
+      status: complete
+    strict-ready-check:
+      text: Run strict-spec-cli ready dsh-plugin-builtin-tooling-fallback-precedence and confirm it reports ready with no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run strict-spec-cli verify dsh-plugin-builtin-tooling-fallback-precedence after implementation and confirm artifact structure, task completion, scene coverage, and unchanged-behavior checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression

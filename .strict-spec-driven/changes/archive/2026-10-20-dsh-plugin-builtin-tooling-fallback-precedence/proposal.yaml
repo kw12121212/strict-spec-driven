@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: dsh-plugin-builtin-tooling-fallback-precedence
+  status: proposed
+summary:
+  what:
+    - 'Reverse the built-in tooling precedence of the dsh strict-spec plugin from built-in-wins to external-wins-with-built-in-fallback: register the bundled skill candidates in the bundled rank band (600) instead of below every filesystem root (50), so an external same-name copy from a project or user root wins wherever one exists and the built-in copies serve only names no external root offers, keeping zero-install machines working; revise the dsh-plugin-tooling-behavior requirement, the operator scene step, the dsh-plugin-host standard rule, both plugin READMEs, and the host suite''s rank and provider assertions to the fallback semantics'
+  why:
+    - 'The requester chose external-first on 2026-10-20 after seeing the costs of built-in-wins: delivering it in standard web sessions required freezing the whole agent preset composition in a profile-patch override, which silently shadows every shipped preset improvement on dsh upgrades, changes the documented switch surface, and reroutes the local skill-iteration workflow through plugin rebuilds; the pinned dsh line''s own design comment states that deployment-level providers register into the registry''s global layer while a preset''s skill-filesystem registers into the preset layer, so external-first with built-in fallback is the host''s native semantics and needs no deployment tricks'
+scope:
+  in:
+    - 'plugins/dsh-strict-spec/src/host/builtinTooling.ts (BUILTIN_TOOLING_RANK 50 to the bundled band 600 with its comment rewritten to the fallback semantics); plugins/dsh-strict-spec/README.md and README.zh.md (precedence bullets rewritten: external copies win while present, built-in copies are the zero-install fallback, dsh layering rationale); test/suites/dsh-plugin-host.ts (rank assertion to the bundled band and its losing relation to every filesystem root, provider description labels); .strict-spec-driven/changes/<name>/ delta artifacts MODIFYing the dsh-plugin-tooling-behavior requirement, the agent-uses-builtin-strict-tooling scene step, and the dsh-plugin-host standard rule'
+  out:
+    - The single builtinTooling switch, its default-on state, the profile-patch switch surface, the serve-time CLI rewrite, the bundled assets, the build plan, and the plugin packaging stay unchanged; install.sh, the global install, and the user's ~/.agents/skills installation stay untouched; the viewer and every dsh-viewer-behavior requirement stay unchanged; the engines.dsh pin and dependency shape stay unchanged; no preset-composition override is introduced or documented as required
+unchanged_behavior:
+  - 'Every built-in tooling behavior other than same-name precedence keeps holding: the switch defaults on and turns the whole provision off, the bundled skills list with their declared descriptions, a missing or unparsable asset is omitted, served bodies invoke the bundled CLI through the host node executable, and a packed tarball ships the skill bodies and CLI bundle under dist; zero-install machines still get every strict skill from the plugin alone, because names with no external copy fall through to the built-in copies'

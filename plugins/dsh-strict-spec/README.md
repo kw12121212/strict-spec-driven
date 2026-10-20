@@ -56,10 +56,20 @@ registration is required:
   dsh host's own node runtime. Nothing is written to any `bin` directory and
   no `PATH` lookup happens: the built-in CLI is reachable inside agent
   sessions, not from your terminal.
-- While the switch is enabled, the built-in copies **win over external ones**:
-  a same-name strict skill installed under a project or user skill root (for
-  example by an earlier `install.sh` run) loses to the plugin's built-in copy,
-  so sessions always run the tooling version the plugin ships.
+- While the switch is enabled, **external copies win**: a same-name strict
+  skill installed under a project or user skill root (for example by an
+  earlier `install.sh` run) takes precedence over the plugin's built-in copy,
+  and the session runs the external copy's body and the CLI it states. This
+  is the dsh skill registry's designed layering — a preset's local discovery
+  registers nearer than this plugin's deployment-level registration, and
+  within one layer every filesystem root rank beats the bundled band — so no
+  preset override or other deployment trick is involved.
+- The built-in copies are the **zero-install fallback**: a skill name no
+  external root offers falls through to the plugin's built-in copy, so a
+  machine with nothing installed still lists and runs every strict skill from
+  the plugin alone. To make the built-in copy win for a name on a machine
+  that also carries an external copy, remove the external copy
+  (`bash install.sh --uninstall` clears the global registration).
 - The whole provision is **one switch**, because the skills and the CLI are one
   thing: the served skill bodies are the bundled CLI's only session entry
   point. Turn it off and the built-in skills disappear, any external

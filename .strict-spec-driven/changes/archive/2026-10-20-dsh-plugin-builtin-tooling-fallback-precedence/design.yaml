@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: dsh-plugin-builtin-tooling-fallback-precedence
+approach:
+  - One constant flips and everything else follows it. The provider's candidate rank moves from 50 to the pinned line's bundled band (600), which is exactly the band the host's own bundled skills and the filesystem provider's bundled root occupy, so within any single registry layer every filesystem root rank (project 100 through user 500) beats the built-in copies and only a name no root offers falls through to them.
+  - 'The precedence requirement, scene step, standard rule, README bullets, and suite assertions are revised to state the same one semantics: external copies win wherever they exist — across layers because a preset''s skill-filesystem sits nearer than any deployment-level provider, and within a layer because every filesystem root rank beats the bundled band — and the built-in copies are the zero-install fallback that serves names with no external copy while the switch is enabled.'
+decisions:
+  fallback-precedence-band:
+    decision: Register bundled candidates at rank 600, the pinned line's bundled band, rather than below the filesystem roots.
+    rationale: The requester selected external-first on 2026-10-20 after the built-in-wins deployment proved to require freezing the agent preset composition. Rank 600 loses to every filesystem root within a layer, matches the band the pinned host uses for its own bundled skills, and across layers the preset's skill-filesystem is nearer anyway — so external copies win in every resolution shape and the built-in copies remain the zero-install fallback, with no deployment-time override needed. A user who explicitly wants the built-in copies to shadow an external installation removes or renames the external copy (install.sh --uninstall does it in one command); the switch still turns the whole provision off.
+  no-preset-override:
+    decision: Ship no preset-composition override and document none as required; the global-layer registration the plugin already performs is the complete deployment.
+    rationale: The pinned web-app design comment states deployment-level providers register into the registry's global layer while presets own local discovery, and the web profile disables the host-level skill-filesystem row precisely so preset discovery is nearest — the host's own layering already delivers external-first for sessions, and overriding preset rows from a plugin or profile would freeze the shipped composition and shadow host upgrades.
+  real-host-evidence:
+    decision: 'Recorded evidence from an isolated real-host leg on 2026-10-20 (fresh DSH_HOME, pinned dsh 0.2.1-rc.2, the rebuilt 0.2.0 plugin with the fallback rank, the pinned line''s real SkillRegistry and dsh-skill-filesystem provider with its user roots pointed at empty directories and only a planted project-root strict-spec-auto copy): with the switch enabled, the same-name duel resolved to the external copy (provider filesystem, source project-agents, the planted marker description) while the 24 names without an external copy resolved to provider strict-spec-plugin; the served fallback body carried the bundled invocation through the host executable''s absolute path and the installed CLI asset''s absolute path with no bare strict-spec-cli token; and with config builtinTooling:false the external copy kept winning and the previously-fallback name became absent, so the plugin contributed no candidate at all.'
+    rationale: The manual-checks standard requires each leg's observed evidence inside the change's own artifacts; the recorded legs observe exactly the revised requirement's three scenarios through the pinned line's real registry — external copies win, fallback serves absent names, and a disabled switch contributes nothing.
+alternatives:
+  - option: Keep rank 50 and rely on the preset layer alone to make external copies win
+    reason: 'Rejected: profiles that leave the host-level skill-filesystem row enabled resolve same-layer duels in the global layer, where rank 50 would beat user and project roots and flip precedence by profile shape; one band makes the semantics uniform everywhere.'
+  - option: Keep built-in-wins and document the preset-override deployment
+    reason: 'Rejected by the requester on 2026-10-20: the override freezes the shipped preset list, silently shadows preset improvements on dsh upgrades, and moves local skill iteration behind plugin rebuilds.'
+risks:
+  - Ties inside the bundled band (rank 600 equals the filesystem provider's own bundled-root rank) fall to provider registration order, which favors the earlier-registered filesystem provider; acceptable because a DSH_BUNDLED_SKILL_DIR copy of a strict skill is an explicit host-level installation, which external-first semantics let win.

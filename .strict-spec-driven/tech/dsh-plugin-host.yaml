@@ -14,13 +14,6 @@ rules:
     enforcement:
       method: test
       detail: The plugin host suite asserts the build plan — the pure in-memory list of every dist file the build writes — carries exactly the client bundle, the host entry, the CLI asset, and one byte-identical body per repository skill package, with negative probes proving a dropped asset, an extra entry, and a mutated body are each caught, and the release suite keeps asserting the files allowlist names exactly the built bundle directory, the bundle patch, and the per-locale READMEs.
-  builtin-tooling-outranks-external-copies:
-    strength: MUST
-    statement: A dsh plugin that offers built-in copies of skills MUST register them at a candidate rank below every filesystem skill root rank of the pinned dsh line, so while its provision is enabled the built-in copy of a same-name skill wins over project and user root copies and the session runs the bundled tooling, and disabling the provision MUST restore the external copies as the effective ones.
-    rationale: The requester required on 2026-10-20 that external same-name skills and CLI lose to the built-in copies; the dsh skill registry resolves duplicate names by lowest rank within a layer, and the filesystem roots occupy the ranks above the project roots, so only a rank below the lowest filesystem root delivers that precedence.
-    enforcement:
-      method: test
-      detail: The plugin host suite asserts the provider's candidate rank stays below the pinned line's lowest filesystem root rank (the project-dsh root, 100, of dsh 0.2.1-rc.2) and that the served body of a winning copy invokes the bundled CLI; the engines.dsh pin bounds the line the literal names — recorded as a design decision — and the change's real-host evidence leg observed the built-in copy winning a same-name resolution against a project-root copy through the pinned line's real registry.
   served-skill-bodies-stay-single-source:
     strength: MUST
     statement: A dsh plugin that serves repository-authored skill packages MUST ship the authored bodies unchanged and apply any environment-specific command adaptation — such as rewriting a globally named CLI token to the bundled invocation through the running host's node executable — only at serve time, so the repository skill packages remain the single authored source, no second authored variant drifts from them, and the adaptation leaves every mandated protocol pointer and validation command a body states runnable.
@@ -35,3 +28,10 @@ rules:
     enforcement:
       method: review
       detail: Review checks the host entry's inject export against every ctx property its apply path reads, supported by the plugin host suite's static wiring check over the entry's inject list.
+  builtin-fallback-precedence:
+    strength: MUST
+    statement: 'A dsh plugin that offers built-in copies of skills MUST register them as a fallback: candidates carry the pinned line''s bundled rank band, so an external copy of the same name from a project or user root wins in every resolution shape — across layers, because a preset''s local discovery registers nearer than the plugin''s deployment-level registration, and within a layer, because every filesystem root rank beats the bundled band — and the built-in copies serve only names no external root offers; the plugin MUST NOT ship, or document as required, any preset-composition override that freezes the host''s shipped preset to force built-in precedence.'
+    rationale: The pinned dsh line's own composition comments state that deployment-level providers register into the skill registry's global layer while a preset's skill-filesystem registers into that preset's layer, making external-first with built-in fallback the host's designed semantics; forcing built-in precedence instead requires a profile patch that restates the whole shipped preset and silently shadows host preset improvements on every dsh upgrade, a cost the operator rejected on 2026-10-20.
+    enforcement:
+      method: test
+      detail: The plugin host suite asserts the candidate rank sits in the bundled band above every filesystem root rank (project 100 through user 500 of the pinned line) so external copies win same-layer duels, and the recorded real-host evidence observes an external project-root copy winning a same-name resolution while absent names fall through to the built-in copy through the pinned line's real registry.

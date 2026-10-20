@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: dsh-plugin-builtin-tooling-fallback-precedence
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: The archived dsh-plugin-builtin-tooling change shipped built-in-wins precedence at the requester's 2026-10-20 instruction; deploying it on the requester's standard web profile required a profile-patch override that restates the entire shipped agent preset, whose costs the requester then weighed.
+    answer: Built-in-wins needs a preset-composition override on standard web sessions that freezes the shipped preset list, silently shadows host preset improvements on every dsh upgrade, moves local skill iteration behind plugin rebuilds, and breaks the documented switch surface; the operator maintaining this machine rejected those costs.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The requester selected external-first with built-in fallback from a concrete options list on 2026-10-20.
+    answer: With external same-name copies present, sessions resolve and run the external copies and their CLI; with no external copy for a name, sessions get the plugin's built-in copy; no preset override or other deployment trick is needed; the single switch still turns the whole built-in provision on and off; zero-install machines keep working.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: The change follows immediately the costs of the shipped precedence were measured on the real deployment.
+    answer: Deploying built-in-wins on 2026-10-20 exposed the preset-freeze costs, and reading the pinned dsh line's own composition comments showed external-first is the host's designed semantics for plugin-provided skills, so the earlier instruction was revised before anyone depends on the freezing deployment.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Boundaries from the original feature that the requester reaffirmed while choosing external-first.
+    answer: The single builtinTooling switch, its default-on state, and the profile-patch switch surface stay; install.sh, the global install, and the existing ~/.agents/skills installation stay untouched; the serve-time CLI rewrite, bundled assets, build plan, packaging, viewer behavior, engines pin, and dependency shape all stay exactly as shipped.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: 'Two readings of fallback were distinguished when the requester chose the option: fallback per skill name versus fallback only on machines with nothing installed.'
+    answer: 'Fallback is per skill name in every resolution shape: any external same-name copy from a project or user root wins — across layers and within a layer — and a name no external root offers falls through to the built-in copy while the switch is enabled, which also covers zero-install machines as the whole-catalog case of the same rule.'
+    status: resolved
+    kind: requirement
+    answered_by: human
