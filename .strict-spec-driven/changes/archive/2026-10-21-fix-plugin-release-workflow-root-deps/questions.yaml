@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-plugin-release-workflow-root-deps
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today?
+    context: 'The first go-live tag run failed in the release job: the plugin build could not resolve ajv, ajv-formats, and js-yaml while bundling the CLI asset.'
+    answer: The public release channel produced no artifact on its first real tag because the workflow installs only the plugin subdirectory's dependencies.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The fix is the missing root install observed from the failed run log.
+    answer: A re-run tag build succeeds on a clean runner and the GitHub Release carries the tarball.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now?
+    context: The failure occurred at go-live on 2026-10-21 and blocks the entire public distribution.
+    answer: The channel shipped in the previous change has never produced a release.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Scope bounded to the workflow's dependency setup.
+    answer: No plugin, manifest, version, README, or standard changes; no tag operations inside the change.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended?
+    context: Only the dependency setup was in question.
+    answer: Install at the repository root before the plugin build in both shipping jobs; the tag is moved by the operator afterwards.
+    status: resolved
+    kind: requirement
+    answered_by: human

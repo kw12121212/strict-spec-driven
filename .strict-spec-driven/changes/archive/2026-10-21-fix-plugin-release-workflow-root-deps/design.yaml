@@ -1,0 +1,17 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-plugin-release-workflow-root-deps
+approach:
+  - 'Add one repository-root dependency install step before each job''s plugin build: the root lockfile makes it a fast no-op locally and a correct full install on a clean runner, and the plugin build then resolves the CLI asset''s root imports.'
+decisions:
+  root-install-before-plugin-build:
+    decision: Install repository-root dependencies with bun install at the repo root before building the plugin in both shipping jobs.
+    rationale: The plugin's build bundles the repository root's CLI entry, whose imports resolve against the root package.json dependencies; the plugin directory's own install can never satisfy them, and the clean CI runner is the honest environment that proved it. Installing at the root from the tracked lockfile is deterministic and takes seconds.
+  no-delta-spec:
+    decision: 'Author no delta spec: the fix changes CI dependency setup only.'
+    rationale: No user-observable plugin behavior changes; the publication-discipline rule already governs the workflow, and this fix changes no field it states.
+alternatives: []
+risks:
+  - The existing plugin-v0.3.0 tag still points at the broken workflow commit; until the tag is moved and re-pushed, the public release remains absent, which is the correct fail-closed state.

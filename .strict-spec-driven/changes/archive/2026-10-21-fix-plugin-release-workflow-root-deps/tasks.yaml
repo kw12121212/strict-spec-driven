@@ -1,0 +1,29 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-plugin-release-workflow-root-deps
+sections:
+  Implementation:
+    workflow-root-install:
+      text: Add a repository-root bun install step before the plugin build in both shipping jobs of .github/workflows/publish-plugin.yml, so the CLI asset's root imports resolve on a clean runner.
+      status: complete
+  Testing:
+    workflow-parse-check:
+      text: Confirm the repository YAML parser still loads the workflow and the suite's workflow-expression inspection stays green.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-ready-check:
+      text: Run the ready check and confirm no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run the verify check and confirm all checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: workflow-parse-check

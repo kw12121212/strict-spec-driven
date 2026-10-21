@@ -55,6 +55,9 @@ jobs:
           fi
           echo "releasing dsh-plugin-strict-spec@$committed"
 
+      - name: Install repository dependencies
+        run: bun install
+
       - name: Build and pack the plugin
         working-directory: plugins/dsh-strict-spec
         run: |
@@ -95,6 +98,9 @@ jobs:
             echo "tag $GITHUB_REF_NAME does not match the committed plugin version $committed" >&2
             exit 1
           fi
+
+      - name: Install repository dependencies
+        run: bun install
 
       - name: Build the plugin bundle
         working-directory: plugins/dsh-strict-spec

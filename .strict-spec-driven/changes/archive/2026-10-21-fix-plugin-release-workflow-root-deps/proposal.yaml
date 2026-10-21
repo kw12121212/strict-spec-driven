@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-plugin-release-workflow-root-deps
+  status: proposed
+summary:
+  what:
+    - 'Fix the plugin release workflow to install the repository root''s dependencies before building the plugin in both shipping jobs: the CLI asset bundling resolves the root package''s runtime dependencies (ajv, ajv-formats, js-yaml), so a clean runner that only installs plugins/dsh-strict-spec''s own dependencies fails the build; the first plugin-v0.3.0 tag run failed exactly there, and the tag must be moved to the fix once landed'
+  why:
+    - The go-live tag run on 2026-10-21 failed in the release job's Build and pack step with Could not resolve ajv/ajv-formats/js-yaml, because the workflow installs only the plugin subdirectory's dependencies while the plugin build bundles src/strict-spec-cli.ts from the repository root
+scope:
+  in:
+    - .github/workflows/publish-plugin.yml (a repository-root bun install step before the plugin build in both the release job and the publish-npm job)
+  out:
+    - No plugin behavior, manifest, version, README, standard, or suite changes; no re-tagging inside the change (the operator moves the tag after the fix lands)
+unchanged_behavior:
+  - Every shipped requirement keeps holding; the workflow's job graph, gating, permissions, and version equality checks are unchanged apart from the added root dependency install steps
