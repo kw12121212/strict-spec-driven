@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-host
+operations:
+  ADDED:
+    plugin-publishes-only-from-ci-tag:
+      strength: MUST
+      statement: A dsh plugin published to a public registry MUST publish only from a CI run triggered by a pushed tag that names exactly the committed plugin version, with registry credentials read from repository secrets and provenance enabled, so no working tree, no version mismatch, and no local machine can produce a public release.
+      rationale: The strict ship flow already makes a pushed commit the release boundary; gating npm publication on a matching plugin-v tag keeps that discipline for public releases, the version equality check prevents a stale tag from publishing wrong bits, and provenance ties the published artifact to the repository and workflow run that built it.
+      enforcement:
+        method: ci
+        detail: The workflow refuses to run its publish step unless the pushed tag equals plugin-v plus the version committed in plugins/dsh-strict-spec/package.json, and the npm step requires the NPM_TOKEN repository secret; a missing secret fails the run before anything is published.
+  MODIFIED:
+    tooling-assets-live-under-bundle-dir:
+      strength: MUST
+      statement: Built-in tooling assets a dsh plugin ships — skill bodies, CLI bundles, and any asset its host entry resolves at runtime — MUST be produced into the plugin's built bundle directory by the plugin build and resolved at runtime relative to the host entry's own module URL, so the packed-tarball files allowlist keeps naming only the built bundle directory, the bundle patch, the per-locale READMEs, and the license file, and carrying tooling never adds a top-level tarball entry or ships sources, build scripts, or test support.
+      rationale: The packed-tarball-allowlist standard fixes the tarball's shape; tooling assets are build outputs, not sources, so folding them under the existing built bundle directory keeps the standard unchanged while the shipped asset set stays provable.
+      enforcement:
+        method: test
+        detail: The plugin host suite asserts the build plan — the pure in-memory list of every dist file the build writes — carries exactly the client bundle, the host entry, the CLI asset, and one byte-identical body per repository skill package, with negative probes proving a dropped asset, an extra entry, and a mutated body are each caught, and the release suite keeps asserting the files allowlist names exactly the built bundle directory, the bundle patch, the per-locale READMEs, and the license file.
+  REMOVED: {}

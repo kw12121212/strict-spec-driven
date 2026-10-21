@@ -1,0 +1,51 @@
+# Publish dsh-plugin-strict-spec to the public npm registry.
+#
+# Publication discipline (see the dsh-plugin-host standard, rule
+# plugin-publishes-only-from-ci-tag): a release exists only as a pushed
+# plugin-v<version> tag that names exactly the version committed in
+# plugins/dsh-strict-spec/package.json. The equality check runs before any
+# network publish and fails closed, so a stale or mistyped tag can never
+# publish the wrong bits, and npm provenance ties the published artifact to
+# this repository and workflow run.
+name: publish-plugin
+
+on:
+  push:
+    tags:
+      - "plugin-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Check tag matches the committed plugin version
+        run: |
+          committed="$(node -p "require('./plugins/dsh-strict-spec/package.json').version")"
+          tagged="${GITHUB_REF_NAME#plugin-v}"
+          if [ "$committed" != "$tagged" ]; then
+            echo "tag $GITHUB_REF_NAME does not match the committed plugin version $committed" >&2
+            exit 1
+          fi
+          echo "publishing dsh-plugin-strict-spec@$committed"
+
+      - name: Build the plugin bundle
+        working-directory: plugins/dsh-strict-spec
+        run: |
+          bun install
+          bun run lint
+          bun run build
+
+      - name: Publish to npm
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm publish ./plugins/dsh-strict-spec --provenance --access public

@@ -414,7 +414,7 @@ After migration, `.strict-spec-driven/` is the active workflow state. `.spec-dri
 
 ## dsh Document Viewer Plugin
 
-`plugins/dsh-strict-spec/` holds `dsh-plugin-strict-spec`, a read-only DeepSeek Harness plugin that browses a workspace's `.strict-spec-driven/` documents in the web client and the Desktop app. See its [README](plugins/dsh-strict-spec/README.md) for building it from this checkout, installing it from a `link:` spec or a locally packed tarball, and the supported dsh releases. It is never published to npm.
+`plugins/dsh-strict-spec/` holds `dsh-plugin-strict-spec`, a read-only DeepSeek Harness plugin that browses a workspace's `.strict-spec-driven/` documents in the web client and the Desktop app. See its [README](plugins/dsh-strict-spec/README.md) for the one-command install from npm (`dsh plugin --profile web add dsh-plugin-strict-spec`), the `link:` and locally packed tarball development paths, and the supported dsh releases. The package is published to npm under the Apache-2.0 license.
 
 ## Self-Hosting Status
 

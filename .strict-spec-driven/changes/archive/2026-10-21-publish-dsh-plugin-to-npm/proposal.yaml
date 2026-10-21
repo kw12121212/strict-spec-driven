@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: publish-dsh-plugin-to-npm
+  status: proposed
+summary:
+  what:
+    - 'Publish dsh-plugin-strict-spec to the public npm registry and make public installation first-class: adopt the Apache-2.0 license (root LICENSE plus plugin LICENSE riding the packed tarball), flip the plugin manifest from private to publishConfig public with repository directory metadata while keeping the verified-free unscoped name, rewrite both plugin READMEs so the npm install command is the primary path with the link: and tarball paths kept for development, add a release-suite README check for the public install command, and add a tagged CI workflow that publishes the plugin subdirectory to npm with provenance only when the tag matches the committed plugin version'
+  why:
+    - 'The requester chose public distribution on 2026-10-21: the plugin carries the entire strict toolchain (25 skills plus the bundled CLI), and the dsh ecosystem''s install and discovery channels — dsh plugin add registry specs and the dshmarket plugin catalog fed by the awesome-dsh-plugin registry — both resolve through npm, so a public npm package is the substrate every consumer path needs; the repository today has no license at all and the plugin manifest is private, which block any redistribution'
+scope:
+  in:
+    - LICENSE at the repository root (Apache-2.0) plus license fields in both package manifests; plugins/dsh-strict-spec/LICENSE riding the packed tarball and the files allowlist entry for it; plugins/dsh-strict-spec/package.json (drop private, add publishConfig.access public, repository type/url/directory, license); plugins/dsh-strict-spec/README.md and README.zh.md (public npm install as the primary section, development link/tarball installs kept, every existing readmeFindings marker preserved); test/suites/dsh-plugin.ts (public-install README category with negative and positive probes, allowlist expectation updated for the license entry); .github/workflows/publish-plugin.yml (tag-guarded npm publish with provenance); delta artifacts MODIFYing the operator-installs-viewer-plugin scene's install step and the packed-tarball-allowlist rule in the dsh-plugin-client standard, and ADDing a publication-discipline rule
+  out:
+    - No plugin behavior, bundle shape, built-in tooling, viewer surface, engines.dsh pin, or dependency changes; the strict-spec-driven root package is not published (its own channel is a separate decision); no awesome-dsh-plugin PR is committed from this repository (the market entry is prepared for the operator to submit); no npm automation secret is committed (the workflow reads NPM_TOKEN from repository secrets); the plugin version stays 0.3.0 as the first public release
+unchanged_behavior:
+  - Every dsh-plugin-tooling-behavior and dsh-viewer-behavior requirement keeps holding; the plugin's runtime behavior, built assets, built-in skill bodies, CLI bundle, switch semantics, fallback precedence, and provenance marker are byte-for-byte unchanged; the packed tarball keeps shipping exactly the built bundle directory, the bundle patch, and the per-locale READMEs plus the new license file and nothing else

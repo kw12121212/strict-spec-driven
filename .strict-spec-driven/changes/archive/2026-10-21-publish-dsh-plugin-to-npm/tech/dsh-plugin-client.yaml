@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-client
+operations:
+  ADDED: {}
+  MODIFIED:
+    packed-tarball-allowlist:
+      strength: MUST
+      statement: A dsh plugin package MUST declare a package.json files allowlist naming exactly its built bundle directory, its declared bundle patch, one README per shipped locale, and its license file, so a locally packed tarball ships the bundle the host loads together with its redistribution terms and never the plugin's sources, build scripts, test support, or lockfile.
+      rationale: A public package must carry its license into the tarball npm serves, so the allowlist gains exactly the license file beside the READMEs; everything else the original rule excluded stays excluded.
+      enforcement:
+        method: test
+        detail: test/suites/dsh-plugin.ts packlistFindings checks the manifest files allowlist against entries derived from the manifest export targets, the declared bundle patch, the shipped locale catalogs, and the license file, and probes its unshipped-source, missing, and unexpected categories.
+      examples:
+        good:
+          - '"files": ["dist", "cordis.patch.yml", "README.md", "README.zh.md", "LICENSE"]'
+        bad:
+          - A plugin package.json with no files field, whose npm pack output lists src/, scripts/, test-support/, tsconfig.json, and bun.lock beside dist/.
+  REMOVED: {}

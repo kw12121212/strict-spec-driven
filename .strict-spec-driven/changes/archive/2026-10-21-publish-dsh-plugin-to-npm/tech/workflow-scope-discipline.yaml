@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-scope-discipline
+operations:
+  ADDED:
+    delta-tech-modified-restates-the-complete-rule:
+      strength: MUST
+      statement: A delta-tech MODIFIED operation MUST restate the complete target rule — strength, statement, rationale, and the full enforcement block including detail, together with examples and exceptions when the live rule carries them — because archive replaces the rule wholesale while the main-tech schema makes detail and examples optional, so a partial restatement silently drops every unmentioned field.
+      rationale: The scene side merges covering references by set union and already has a rule about what that forbids; the tech side replaces the whole rule, and only author discipline guards the unmentioned fields — this change's own partial restatement of the packed-tarball-allowlist rule would have silently dropped its enforcement detail and examples, caught only in fresh-context review.
+      enforcement:
+        method: review
+        detail: Review of any delta-tech MODIFIED operation compares the replacement's field set against the live rule and treats a live-rule field the replacement omits as a defect; the intended long-term enforcement is a verify-time field-set comparison in the CLI's delta-tech validation, which strict-tech-sync may propose.
+  MODIFIED: {}
+  REMOVED: {}

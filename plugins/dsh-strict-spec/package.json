@@ -1,7 +1,6 @@
 {
   "name": "dsh-plugin-strict-spec",
   "version": "0.3.0",
-  "private": true,
   "description": "Strict workflow document viewer plugin for DeepSeek Harness",
   "type": "module",
   "main": "./dist/host.js",
@@ -14,7 +13,8 @@
     "dist",
     "cordis.patch.yml",
     "README.md",
-    "README.zh.md"
+    "README.zh.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
@@ -94,5 +94,14 @@
     "simple-icons": "16.31.0",
     "typescript": "^5.9.3",
     "zustand": "~4.5.7"
+  },
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kw12121212/strict-spec-driven.git",
+    "directory": "plugins/dsh-strict-spec"
   }
 }

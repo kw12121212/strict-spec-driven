@@ -5042,6 +5042,13 @@ exclusions:
       - plugins/dsh-strict-spec/cordis.patch.yml
     evidence:
       - plugins/dsh-strict-spec/package.json
+  ci-workflow-yaml:
+    ownership: human-only
+    path_patterns:
+      - .github/workflows/*.yml
+      - .github/workflows/*.yaml
+    evidence:
+      - .github/workflows/publish-plugin.yml
 mutation_surfaces:
   shared-yaml-mutation-core:
     path_patterns:

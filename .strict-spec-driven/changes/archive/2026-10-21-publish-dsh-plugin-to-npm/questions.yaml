@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: publish-dsh-plugin-to-npm
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'The plugin is private (private: true) inside an unpublished repository with no license at all, so no dsh user outside this machine can install it except by hand-carrying a tarball, and the dsh ecosystem''s discovery and install channels (dsh plugin add registry specs, the dshmarket catalog fed by awesome-dsh-plugin) resolve through npm.'
+    answer: Public consumers cannot install the strict tooling plugin from any standard channel, and redistributing it would be legally undefined because the repository carries no license.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The requester chose public distribution with Apache-2.0 and immediate implementation on 2026-10-21.
+    answer: Any dsh user can run dsh plugin --profile web add dsh-plugin-strict-spec from the public npm registry and get the full built-in tooling with no repository checkout; the tarball carries a LICENSE; a tag push publishes through CI with provenance; and the plugin is ready for the awesome-dsh-plugin market listing.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: The built-in tooling made plugin installation the only prerequisite, which only matters if installing the plugin is actually easy.
+    answer: The zero-install capability completed on 2026-10-20 makes the plugin the whole distribution vehicle for the strict workflow, so the requester moved to public distribution the next morning.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Boundaries stated when the requester approved the plan.
+    answer: No plugin behavior, bundle, engines pin, or dependency changes; the root strict-spec-driven package is not published; no market PR is committed from this repository; no npm secret is committed; the version stays 0.3.0 as the first public release.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: License and channel were open choices when the requester approved the plan.
+    answer: Apache-2.0 (chosen over MIT), the unscoped verified-free name, publication from the plugin subdirectory without repo restructuring, and CI-only tag-gated publishing — market listing follows as an operator-submitted PR after the package is live.
+    status: resolved
+    kind: requirement
+    answered_by: human

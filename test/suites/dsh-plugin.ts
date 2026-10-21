@@ -82,6 +82,9 @@ export function readmeFindings(text: string, enginesRange: string, counterparts:
   if (!text.includes("builtinTooling")) {
     findings.push({ category: "builtin-tooling", detail: "no builtinTooling switch documented" });
   }
+  if (!text.includes("dsh plugin --profile web add dsh-plugin-strict-spec\n")) {
+    findings.push({ category: "public-install", detail: "no public npm install command documented" });
+  }
   for (const other of counterparts) {
     if (!text.includes(`](${other})`)) {
       findings.push({ category: "counterpart-link", detail: other });
@@ -405,7 +408,15 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     devDependencies?: Record<string, string>;
   };
   context.assert(manifest.name === "dsh-plugin-strict-spec", "package name is dsh-plugin-strict-spec");
-  context.assert(manifest.private === true, "package is private");
+  context.assert(
+    manifest.private === undefined && (manifest as { publishConfig?: { access?: string } }).publishConfig?.access === "public",
+    "the package is public for npm distribution with publishConfig access public",
+  );
+  context.assert(manifest.license === "Apache-2.0", "the package declares the Apache-2.0 license");
+  context.assert(
+    (manifest as { repository?: { directory?: string } }).repository?.directory === "plugins/dsh-strict-spec",
+    "the package points npm consumers at the plugin subdirectory via repository.directory",
+  );
   context.assert(
     manifest.engines?.dsh === ">=0.2.1-rc.2 <0.2.2",
     "engines.dsh is pinned to the 0.2.1 patch line from the pinned next-tag release",
@@ -466,8 +477,8 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   // The plugin's dist/ is gitignored and npm's default packlist would ship the
   // sources, so the files allowlist alone decides what a packed tarball holds.
   // The required entries derive from sources independent of the allowlist:
-  // the manifest's export targets, its declared bundle patch, and one README
-  // per shipped locale catalog.
+  // the manifest's export targets, its declared bundle patch, one README per
+  // shipped locale catalog, and the license file.
   const packed = (manifest as { files?: string[] }).files ?? [];
   const exportTargets = Object.values((manifest as { exports?: Record<string, string> }).exports ?? {});
   const languages = shippedLocaleLanguages();
@@ -475,6 +486,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     ...new Set(exportTargets.map((target) => target.replace(/^\.\//, "").split("/")[0]!).filter((entry) => entry !== "package.json")),
     path.basename(manifest.dsh?.bundle?.patch ?? ""),
     ...languages.map(readmeFileFor),
+    "LICENSE",
   ];
   context.assert(
     languages.includes("en") && languages.includes("zh"),
@@ -483,7 +495,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   );
   context.assert(
     packlistFindings(packed, requiredPacked).length === 0,
-    "the files allowlist packs exactly the built bundle, the cordis patch, and one README per shipped locale",
+    "the files allowlist packs exactly the built bundle, the cordis patch, one README per shipped locale, and the license file",
     `findings: ${JSON.stringify(packlistFindings(packed, requiredPacked))}`,
   );
   // Each finding category fires on realistic input through the same function.
@@ -492,6 +504,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     [[...packed, "test-support/static-render.ts"], "unshipped-source", "a test-support path added to the allowlist"],
     [packed.filter((entry) => entry !== "dist"), "missing", "the built dist removed from the allowlist"],
     [packed.filter((entry) => entry !== "README.zh.md"), "missing", "a locale README removed from the allowlist"],
+    [packed.filter((entry) => entry !== "LICENSE"), "missing", "the license file removed from the allowlist"],
     [[...packed, "CHANGELOG.md"], "unexpected", "an unrequired file added to the allowlist"],
   ] as const) {
     context.assert(
@@ -525,6 +538,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       [text.split("--profile desktop add").join("--profile desktop"), "desktop-install"],
       [text.split("dsh --version").join("dsh -v"), "upgrade-sop"],
       [text.split("builtinTooling").join("builtin tooling"), "builtin-tooling"],
+      [text.split("add dsh-plugin-strict-spec\n").join("add dsh-plugin-strict-spec@latest\n"), "public-install"],
       [counterparts.reduce((stripped, other) => stripped.split(`](${other})`).join("]"), text), "counterpart-link"],
     ] as const) {
       context.assert(

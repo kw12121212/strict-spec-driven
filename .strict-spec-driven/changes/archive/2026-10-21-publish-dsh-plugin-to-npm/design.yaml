@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: publish-dsh-plugin-to-npm
+approach:
+  - 'License first, then metadata, then channels: the repository adopts Apache-2.0 with a root LICENSE and matching license fields so the embedded toolchain''s redistribution is unambiguous; the plugin manifest flips from private to publishConfig-public keeping the verified-free unscoped name dsh-plugin-strict-spec; both READMEs gain the npm install command as the primary path; and a tag-guarded workflow publishes the plugin subdirectory with provenance only when the pushed tag names the committed plugin version.'
+  - The packed tarball carries its own LICENSE file beside the READMEs, and the packed-tarball-allowlist standard is amended by delta tech to name exactly that addition, so the shipped-artifact rule and the manifest stay in lockstep instead of the allowlist silently widening.
+decisions:
+  apache-2-0-license:
+    decision: 'Adopt Apache-2.0: a root LICENSE covering the repository, a copy riding the packed plugin tarball, and license fields in both manifests.'
+    rationale: 'The requester chose Apache-2.0 over MIT on 2026-10-21: the explicit patent grant suits a workflow tool that embeds a full CLI, and the license is OSI-standard and npm-conventional; without any license the default is all-rights-reserved, which blocks the public distribution the requester wants.'
+  unscoped-name-from-subdirectory:
+    decision: Publish as unscoped dsh-plugin-strict-spec (verified unclaimed on npm on 2026-10-21) directly from the plugins/dsh-strict-spec subdirectory, with repository.directory metadata, without restructuring the repository.
+    rationale: The name was verified free, matches what the READMEs and the profile installs already use, and npm publish accepts a subdirectory path, so the monorepo keeps its shape; repository.directory points npm consumers at the right source folder, the same convention the dsh line's own packages use.
+  tag-guarded-ci-publish:
+    decision: Publish only from CI on a pushed plugin-v tag that must equal the committed plugin version, using npm provenance and the NPM_TOKEN repository secret.
+    rationale: Tag-gating keeps the strict ship flow as the release discipline — a tag is cut only after a change archives and pushes — and the version equality check stops a stale tag from publishing the wrong bits; provenance ties the published artifact to the repository and workflow run; no secret ever lives in the tree.
+  readme-public-first:
+    decision: Rewrite both plugin READMEs so the one-command npm install is the primary section, keeping the link and tarball development paths and every marker the release suite checks, and add a release-suite category asserting the public install command with probes.
+    rationale: Public consumers arrive through dsh plugin add by name or the market GUI, so the README they fetch from npm must lead with the command they can run without this repository; the development paths stay documented for contributors, and the suite keeps the README honest from both directions.
+  no-delta-spec:
+    decision: 'Author no delta spec: this change alters packaging, licensing, documentation, and release channels without touching any user-observable plugin behavior.'
+    rationale: 'Precedent is the plugin release change of 2026-10-19, which carried its install-flow widening as a scene step modification rather than a viewer requirement: every dsh-plugin-tooling-behavior and dsh-viewer-behavior requirement keeps holding byte-for-byte, and the install channel widening rides the operator-installs-viewer-plugin scene step this change modifies.'
+  awesome-dsh-plugin-entry:
+    decision: 'Prepared market entry for the operator to submit as one PR against github.com/awesome-dsh-plugin/awesome-dsh-plugin after the package is live: { "name": "dsh-plugin-strict-spec", "owner": "kw12121212", "url": "https://github.com/kw12121212/strict-spec-driven", "category": "workflow", "description": { "en": "Strict spec-driven development inside DeepSeek Harness: a strict YAML document viewer plus the built-in strict tooling — 25 workflow skills and the bundled strict-spec-cli served from the plugin with a single on/off switch, zero external installation.", "zh": "DeepSeek Harness 内的严格规格驱动开发：严格 YAML 文档查看器，加上内置严格工具链——25 个工作流技能与随插件分发的 strict-spec-cli，单开关启停，零外部安装。" } } — the category value follows the catalog''s existing grouping vocabulary, and the site and the dshmarket plugin pick the entry up automatically, usually within a day.'
+    rationale: The market's README states this repository is the app and the catalog lives in the curated awesome-dsh-plugin registry, with one PR per entry; the entry is prepared rather than submitted because submitting to an external registry is the operator's act against an account that owns the listing.
+  publish-dry-run-evidence:
+    decision: 'Recorded npm publish dry-run evidence from the built checkout on 2026-10-21: npm packs dsh-plugin-strict-spec@0.3.0 as a 436.3 kB tarball (2.1 MB unpacked, shasum c9416db1b5506579152efa3bb3bb5d546a3cebfb) containing exactly 33 files — the 30 allowlisted entries plus package.json, README.md, and README.zh.md auto-included by npm, with the new LICENSE riding the tarball and no sources, scripts, or lockfile; npm reports tag latest and public access. The dry run targeted the machine''s configured mirror (registry.npmmirror.com), which affects only the registry endpoint, not the packed entry set; the CI workflow publishes to registry.npmjs.org with provenance.'
+    rationale: The manual-checks standard requires each leg's observed evidence inside the change's own artifacts; the dry run observes the exact publishable entry set and access mode before the first tag exists, so the first real publish holds no surprises.
+  public-repo-provenance-prerequisite:
+    decision: npm provenance requires a publicly visible source repository (npm stopped supporting provenance from private repositories in 2023), and github.com/kw12121212/strict-spec-driven is private today, so the first plugin-v tag must not be pushed until the repository is made public — otherwise the workflow fails closed at the publish step and the prepared market entry's repository URL would not resolve for consumers.
+    rationale: The reviewer verified the repository 404s anonymously on 2026-10-21 while the package name remains unclaimed; recording the prerequisite beside the token and tag risks keeps the release checklist honest, and making the repository public is consistent with the requester's public-distribution decision.
+alternatives:
+  - option: Widen the engines.dsh pin for broader public reach
+    reason: 'Rejected here: the narrow-engines-dsh-pin standard makes widening its own planned change, and the first public release should ship the tested pin; the README upgrade SOP covers the cadence until that change is made deliberately.'
+  - option: Publish the strict-spec-driven root package in the same change
+    reason: 'Rejected: the plugin embeds the whole toolchain and is the channel the requester asked to distribute; the root package serves non-dsh users and deserves its own decision.'
+risks:
+  - npm publication requires an NPM_TOKEN secret and a first manual tag push; a missing secret fails the workflow loudly without publishing. The workflow fails closed at the npm step, the version equality check runs before any network publish, and the evidence leg records an npm publish dry-run from the built checkout so the exact publishable entry set is known before the first tag.

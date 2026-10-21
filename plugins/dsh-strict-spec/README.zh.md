@@ -6,8 +6,8 @@
 所在 workspace 的 `.strict-spec-driven/` 目录展示为文档树，并为每种严格 YAML
 制品提供专属视图。
 
-本包仅供本仓库内部使用，不会发布到 npm，也不会登记到任何插件市场；请从本地
-checkout 或自行打包的 tarball 安装。
+本包以 `dsh-plugin-strict-spec` 名称发布到 npm（Apache-2.0），消费端机器只需
+dsh CLI 一条命令即可安装。
 
 ## 展示内容
 
@@ -77,6 +77,18 @@ checkout 或自行打包的 tarball 安装。
 查看器。
 
 ## 安装到 Web 客户端
+
+按名称安装已发布的包 —— 无需检出仓库、无需构建步骤：
+
+```sh
+dsh plugin --profile web add dsh-plugin-strict-spec
+```
+
+随后重启 dsh 宿主（systemd 用户服务：`systemctl --user restart dsh-web.service`），
+再从想阅读的工作区启动 web 客户端。升级同样一条命令：`dsh plugin --profile web
+add dsh-plugin-strict-spec@latest` 后重启宿主。
+
+### 开发安装
 
 构建产物不提交到仓库，从本仓库的全新 clone 开始，复制下面这一块即可一次完成
 构建与安装（在仓库根目录执行）：

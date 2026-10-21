@@ -200,14 +200,14 @@ rules:
         - A navigating view module that pastes its own EMPTY_TREE_STATE and FALLBACK_TREE_STORE beside the shared module, so its context-free snapshot identity can drift from every other dedicated view's.
   packed-tarball-allowlist:
     strength: MUST
-    statement: A dsh plugin package MUST declare a package.json files allowlist naming exactly its built bundle directory, its declared bundle patch, and one README per shipped locale, so a locally packed tarball ships the bundle the host loads and never the plugin's sources, build scripts, test support, or lockfile.
-    rationale: The plugin's built dist is ignored by the repository .gitignore, so npm's default packlist depends on which ignore files it reads and, for this plugin, shipped every source module, the build script, test support, and bun.lock while the installable bundle was only present by accident of a prior build; an explicit allowlist makes the tarball an operator installs deterministic.
+    statement: A dsh plugin package MUST declare a package.json files allowlist naming exactly its built bundle directory, its declared bundle patch, one README per shipped locale, and its license file, so a locally packed tarball ships the bundle the host loads together with its redistribution terms and never the plugin's sources, build scripts, test support, or lockfile.
+    rationale: A public package must carry its license into the tarball npm serves, so the allowlist gains exactly the license file beside the READMEs; everything else the original rule excluded stays excluded.
     enforcement:
       method: test
-      detail: test/suites/dsh-plugin.ts packlistFindings checks the manifest files allowlist against entries derived from the manifest export targets, the declared bundle patch, and the shipped locale catalogs, and probes its unshipped-source, missing, and unexpected categories.
+      detail: test/suites/dsh-plugin.ts packlistFindings checks the manifest files allowlist against entries derived from the manifest export targets, the declared bundle patch, the shipped locale catalogs, and the license file, and probes its unshipped-source, missing, and unexpected categories.
     examples:
       good:
-        - '"files": ["dist", "cordis.patch.yml", "README.md", "README.zh.md"]'
+        - '"files": ["dist", "cordis.patch.yml", "README.md", "README.zh.md", "LICENSE"]'
       bad:
         - A plugin package.json with no files field, whose npm pack output lists src/, scripts/, test-support/, tsconfig.json, and bun.lock beside dist/.
   bounded-rpc-fanout-preserves-assembly-order:

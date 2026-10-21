@@ -1,0 +1,58 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: publish-dsh-plugin-to-npm
+sections:
+  Implementation:
+    license-files:
+      text: Add the Apache-2.0 LICENSE at the repository root with the copyright line naming the strict-spec-driven authors, copy it to plugins/dsh-strict-spec/LICENSE so the packed tarball carries redistribution terms, add the license field to both package manifests, and add the LICENSE entry to the plugin files allowlist.
+      status: complete
+    plugin-manifest-public:
+      text: 'Flip plugins/dsh-strict-spec/package.json from private to public: remove private: true, add publishConfig.access public and repository with type, url, and directory plugins/dsh-strict-spec, keeping the verified-free unscoped name and the 0.3.0 version.'
+      status: complete
+    readme-public-install:
+      text: 'Rewrite the install sections of plugins/dsh-strict-spec/README.md and README.zh.md: lead with the public one-command install dsh plugin --profile web add dsh-plugin-strict-spec plus a host restart, keep the link: and npm pack tarball paths labeled for development, replace the internal-never-published claim, and preserve every marker the release suite checks including the upgrade SOP, desktop install, engines range, and builtinTooling sections.'
+      status: complete
+    suite-release-checks:
+      text: 'Extend test/suites/dsh-plugin.ts: add a public-install category to readmeFindings asserting both READMEs document the registry install command with negative and positive probes, and update the packlist required entries to include the shipped LICENSE file.'
+      status: complete
+    ci-publish-workflow:
+      text: 'Add .github/workflows/publish-plugin.yml: on push of tags matching plugin-v*, verify the tag equals the version committed in plugins/dsh-strict-spec/package.json, build the plugin (bun install and bun run build inside plugins/dsh-strict-spec), then npm publish ./plugins/dsh-strict-spec --provenance --access public using the NPM_TOKEN repository secret, failing closed before any publish when either check fails.'
+      status: complete
+    market-entry-preparation:
+      text: Prepare the awesome-dsh-plugin market entry (name, owner, repository url, category, and en/zh descriptions) as a ready-to-paste block recorded in the change's design so the operator can submit the listing PR after the package is live.
+      status: complete
+    rebuild-plugin-dist:
+      text: Run bun install and bun run build inside plugins/dsh-strict-spec so dist reflects the current sources, per the rebuild-after-source-edits standard.
+      status: complete
+  Testing:
+    plugin-lint:
+      text: Run the plugin's TypeScript lint and confirm it passes.
+      status: complete
+      command: bun --cwd plugins/dsh-strict-spec run lint
+    root-lint:
+      text: Run the repository root lint command and confirm it passes.
+      status: complete
+      command: bun run lint
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes with the extended release checks.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured and confirm it passes at the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    publish-dry-run-evidence:
+      text: Run npm publish --dry-run from plugins/dsh-strict-spec and record the observed publishable entry set (the allowlisted files with LICENSE, no sources) as a design decision, per the manual-checks-record-observed-evidence standard.
+      status: complete
+    strict-ready-check:
+      text: Run the ready check for publish-dsh-plugin-to-npm and confirm it reports ready with no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run the verify check for publish-dsh-plugin-to-npm after implementation and confirm artifact structure, task completion, scene coverage, and unchanged-behavior checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression
