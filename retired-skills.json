@@ -22,6 +22,7 @@
     "strict-spec-harness-session",
     "strict-spec-migrate",
     "strict-spec-propose-from-roadmap",
+    "strict-spec-release",
     "strict-spec-resync-code-mapping",
     "strict-spec-simple-task",
     "strict-spec-sop",

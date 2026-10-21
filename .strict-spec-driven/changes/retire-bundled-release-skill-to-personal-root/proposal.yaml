@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: retire-bundled-release-skill-to-personal-root
+  status: proposed
+summary:
+  what:
+    - 'Retire the bundled strict-spec-release skill package from the repository''s public distribution and keep it as the operator''s personal skill instead: remove skills/strict-spec-release/ and its marketplace entry, list the name in retired-skills.json so an installer over a newer checkout clears any copy an older checkout left, revert the suite''s pinned package count and read-only set to 25 skills, remove the guidance path from the mutation inventory, and note that the operator''s personal copy lives at the dsh user root (~/.dsh/skills), which the repository''s installer never manages'
+  why:
+    - 'The requester clarified on 2026-10-21 that the release skill is for personal use only and must not ship publicly: the repository''s skills/ directory is the public distribution surface (the plugin bundles every package and install.sh registers them on any machine), so a private operational skill belongs in the operator''s own dsh user root rather than the packaged set'
+scope:
+  in:
+    - skills/strict-spec-release/ (deleted); skills/marketplace.json (entry removed, original formatting preserved); retired-skills.json (name added); test/suites/entrypoint-and-skills.ts (pinned count 26 back to 25, read-only set without strict-spec-release); inventory/yaml-mutation-surfaces.yaml (guidance path removed through inventory-edit)
+  out:
+    - No workflow, plugin, CLI, standard, or spec changes; the operator's personal copy at ~/.dsh/skills is outside the repository and not installed, synced, or validated by it; no other skill package changes
+unchanged_behavior:
+  - Every shipped requirement keeps holding; the public plugin distribution returns to exactly the 25 packages shipped in plugin-v0.3.0; the release workflow and its discipline are unchanged and still documented by the archived changes and the workflow itself

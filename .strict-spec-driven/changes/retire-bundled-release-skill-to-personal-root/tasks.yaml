@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: retire-bundled-release-skill-to-personal-root
+sections:
+  Implementation:
+    remove-bundled-skill:
+      text: Delete skills/strict-spec-release/, remove its marketplace entry restoring the file's original formatting, add strict-spec-release to retired-skills.json so an installer over a newer checkout clears any copy an older checkout installed, revert the suite's pinned package count to 25 and drop the name from the pinned read-only set, and remove the guidance path from the mutation inventory through inventory-edit.
+      status: complete
+  Testing:
+    validate-skills:
+      text: Run the bundled skill-package validation and confirm 25 skills with marketplace parity and no diagnostics.
+      status: complete
+      command: bun run validate-skills
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes back at the 25-package surface.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    personal-copy-evidence:
+      text: Confirm the operator's personal copy at ~/.dsh/skills/strict-spec-release/SKILL.md exists and that a session catalog resolves the name to that external copy, recording the observation as a design decision.
+      status: pending
+    strict-ready-check:
+      text: Run the ready check and confirm no blocking diagnostics.
+      status: pending
+    strict-verify-check:
+      text: Run the verify check and confirm all checks pass.
+      status: pending
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression

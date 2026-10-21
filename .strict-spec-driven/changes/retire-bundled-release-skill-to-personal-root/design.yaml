@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: retire-bundled-release-skill-to-personal-root
+approach:
+  - Reverse the packaging leg of the previous change inside the repository while relocating the skill text to the operator's dsh user root, so the public bundle returns to its released shape and the private guidance survives where no installer touches it.
+decisions:
+  personal-copy-at-dsh-user-root:
+    decision: Keep the operator's copy at ~/.dsh/skills/strict-spec-release/, the dsh user root, rather than ~/.agents/skills/.
+    rationale: 'The dsh user root ranks above the agents root in skill resolution and is never managed by the repository''s installers: the skills CLI that install.sh drives only adds and removes under ~/.agents/skills, so a retire-list removal cannot delete the personal copy, while any project-local or user-agents copy of the same name still gets cleaned as the retire rule requires.'
+  retire-list-entry:
+    decision: Add strict-spec-release to retired-skills.json even though no released plugin ever shipped it.
+    rationale: 'The repository rule says a skill deleted from skills/ belongs in the retire list: a checkout between the two commits could have installed the name onto a machine, and the installer removes retired names only where they are present, so the entry costs nothing for machines that never saw it.'
+  no-delta-spec:
+    decision: 'Author no delta spec: removing an unpublished guidance package changes no observable system behavior.'
+    rationale: The skill never reached a release; the packaged surface and its counts are test-pinned, not spec-pinned, and the public distribution returns to the plugin-v0.3.0 shape.
+  no-scene:
+    decision: 'Record no scene: guidance packaging only, with no new actor flow.'
+    rationale: The release operator flow is unchanged; this change only moves where its guidance text lives.
+alternatives: []
+risks:
+  - A machine that ran install.sh from a checkout between the two commits holds the name under ~/.agents/skills; its next install.sh run removes it as retired, which is the intended cleanup.

@@ -3928,7 +3928,7 @@ const PINNED_MUTATION_CAPABLE_SKILLS = [
   "strict-tech-edit",
   "strict-tech-sync",
 ];
-const PINNED_READ_ONLY_SKILLS = ["strict-spec-release", "strict-spec-ship", "strict-spec-verify"];
+const PINNED_READ_ONLY_SKILLS = ["strict-spec-ship", "strict-spec-verify"];
 
 const classifiedMutationCapable: string[] = [];
 const classifiedReadOnly: string[] = [];
@@ -3954,12 +3954,13 @@ context.assert(
 );
 // The packaged surface is pinned here rather than asserted in a change record, so a skill added or
 // restored later fails a test instead of quietly moving the count. It went from 24 to 25 when the
-// standalone scene-editing package landed, and from 25 to 26 when the plugin-release skill landed.
+// standalone scene-editing package landed; the plugin-release skill went 25→26→25 when it
+// moved from the bundled set to the operator's personal dsh user root.
 context.assert(
-  packageValidation.summary.skillCount === 26
-    && packageValidation.summary.marketplaceCount === 26
+  packageValidation.summary.skillCount === 25
+    && packageValidation.summary.marketplaceCount === 25
     && packageValidation.summary.diagnosticsCount === 0,
-  "validate-skills reports 26 bundled skills with marketplace parity and no diagnostics",
+  "validate-skills reports 25 bundled skills with marketplace parity and no diagnostics",
   `skillCount: ${packageValidation.summary.skillCount}, marketplaceCount: ${packageValidation.summary.marketplaceCount}, diagnosticsCount: ${packageValidation.summary.diagnosticsCount}`,
 );
 

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: retire-bundled-release-skill-to-personal-root
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today?
+    context: 'The release skill sits in skills/, the repository''s public distribution surface: the plugin bundles every package and install.sh registers them on any machine.'
+    answer: A skill the requester meant for personal use only would ship publicly in the next plugin release and install itself onto every machine that runs the installer.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The requester stated on 2026-10-21 that the skill is personal and belongs in the .agents/dsh personal roots.
+    answer: The repository's packaged set returns to the 25 skills shipped in plugin-v0.3.0 with the name retired for installer cleanup, and the operator's personal copy lives at the dsh user root where installers never manage it.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now?
+    context: The clarification arrived hours after the skill change shipped to main.
+    answer: The public release cycle is active, so the next plugin build would bundle the personal skill into a public artifact.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Scope bounded to the packaging reversal.
+    answer: No workflow, plugin, CLI, standard, or spec changes; the personal copy is not managed by the repository.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: Which personal root to use was open, given the retire-list cleanup danger.
+    answer: 'The dsh user root (~/.dsh/skills), not the agents root: the installer''s retire cleanup only ever touches ~/.agents/skills, so the personal copy there survives future installs.'
+    status: resolved
+    kind: requirement
+    answered_by: human
