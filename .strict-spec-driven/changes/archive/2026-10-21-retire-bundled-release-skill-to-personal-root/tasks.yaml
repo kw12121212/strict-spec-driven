@@ -24,13 +24,13 @@ sections:
   Verification:
     personal-copy-evidence:
       text: Confirm the operator's personal copy at ~/.dsh/skills/strict-spec-release/SKILL.md exists and that a session catalog resolves the name to that external copy, recording the observation as a design decision.
-      status: pending
+      status: complete
     strict-ready-check:
       text: Run the ready check and confirm no blocking diagnostics.
-      status: pending
+      status: complete
     strict-verify-check:
       text: Run the verify check and confirm all checks pass.
-      status: pending
+      status: complete
 testing_gates:
   validation_task: coverage-gate-regression
   unit_test_task: plugin-suite-regression

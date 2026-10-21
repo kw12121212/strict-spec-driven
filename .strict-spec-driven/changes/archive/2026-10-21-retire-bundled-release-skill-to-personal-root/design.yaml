@@ -18,6 +18,9 @@ decisions:
   no-scene:
     decision: 'Record no scene: guidance packaging only, with no new actor flow.'
     rationale: The release operator flow is unchanged; this change only moves where its guidance text lives.
+  personal-copy-evidence:
+    decision: 'Recorded evidence on 2026-10-21: the operator''s personal copy exists at ~/.dsh/skills/strict-spec-release/SKILL.md (dsh user root), and the live session catalog republished through the registry''s file watchers with strict-spec-release present and carrying no built-in provenance marker — the external user-root copy serving the name, exactly the relocation this change intended; the repository''s bundled set returned to the 25 packages shipped in plugin-v0.3.0, and the retire-list cross-check turned green once the deletion was committed, confirming the name''s history deletion and retire entry agree.'
+    rationale: The manual-checks standard requires each leg's observed evidence inside the change's own artifacts; the catalog observation proves the personal copy serves sessions from a root the repository's installer never manages.
 alternatives: []
 risks:
   - A machine that ran install.sh from a checkout between the two commits holds the name under ~/.agents/skills; its next install.sh run removes it as retired, which is the intended cleanup.
