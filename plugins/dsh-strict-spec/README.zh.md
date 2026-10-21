@@ -83,7 +83,7 @@
 选最新的 `plugin-v*` 标签安装其 tarball（以 0.3.0 为例）：
 
 ```sh
-dsh plugin --profile web add https://github.com/kw12121212/strict-spec-driven/releases/download/plugin-v0.3.0/dsh-plugin-strict-spec-0.3.0.tgz
+dsh plugin --profile web add https://github.com/kw12121212/strict-spec-driven/releases/download/plugin-v0.4.0/dsh-plugin-strict-spec-0.4.0.tgz
 ```
 
 若存在 registry 发布，按名称安装亦可：

@@ -107,7 +107,7 @@ page](https://github.com/kw12121212/strict-spec-driven/releases) and install
 its tarball (0.3.0 shown):
 
 ```sh
-dsh plugin --profile web add https://github.com/kw12121212/strict-spec-driven/releases/download/plugin-v0.3.0/dsh-plugin-strict-spec-0.3.0.tgz
+dsh plugin --profile web add https://github.com/kw12121212/strict-spec-driven/releases/download/plugin-v0.4.0/dsh-plugin-strict-spec-0.4.0.tgz
 ```
 
 When a registry release exists, the name form works too:
