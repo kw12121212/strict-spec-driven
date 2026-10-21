@@ -19,6 +19,7 @@
     { "name": "strict-spec-design", "family": "strict-spec" },
     { "name": "strict-spec-design-sync", "family": "strict-spec" },
     { "name": "strict-spec-propose", "family": "strict-spec" },
+    { "name": "strict-spec-release", "family": "strict-spec" },
     { "name": "strict-spec-review", "family": "strict-spec" },
     { "name": "strict-spec-ship", "family": "strict-spec" },
     { "name": "strict-spec-spec-edit", "family": "strict-spec" },

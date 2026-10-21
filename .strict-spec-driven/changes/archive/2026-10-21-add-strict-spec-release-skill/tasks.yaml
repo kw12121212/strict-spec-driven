@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-strict-spec-release-skill
+sections:
+  Implementation:
+    author-release-skill:
+      text: Write skills/strict-spec-release/SKILL.md in the repository's skill-package shape (frontmatter name, description, metadata; imperative body) covering preconditions, the ordered release steps, the expected workflow outcome, verification legs, and failure handling, and add its strict-spec family entry to skills/marketplace.json.
+      status: complete
+  Testing:
+    validate-skills:
+      text: Run the bundled skill-package validation and confirm the new skill passes with no diagnostics.
+      status: complete
+      command: bun run validate-skills
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes with the new skill package present.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-ready-check:
+      text: Run the ready check and confirm no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run the verify check and confirm all checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression

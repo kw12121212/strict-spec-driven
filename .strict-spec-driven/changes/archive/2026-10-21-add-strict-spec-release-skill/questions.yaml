@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-strict-spec-release-skill
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today?
+    context: 'The public release channel works but its operational knowledge lives only in the 2026-10-21 session: tag discipline, the dormant npm job, the root-dependency trap, and the verification legs were all discovered live.'
+    answer: A requester asking to cut a plugin release has no bundled guidance and must rediscover the procedure against a public channel, including failure modes that already bit once.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The requester asked for a project skill for releasing versions on 2026-10-21.
+    answer: A strict-spec-release skill package ships in skills/, is listed in marketplace.json, passes the repository's skill validation and suite, and an agent asked to release a version follows its steps from preconditions through verified public asset.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now?
+    context: The channel went live the same day and two runs produced one failure and one success.
+    answer: Releasing is now a recurring operation, and the live session that learned the procedure is the cheapest moment to distill it into the bundled skill the requester asked for.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: The skill is guidance only.
+    answer: No workflow, CLI, plugin, standard, spec, family-registry, or retired-skills changes; the change cuts no release itself.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: Project skill versus operational script versus new family was open.
+    answer: A skills/ package in the existing strict-spec family, authored per the repository's own skill conventions and validated by validate-skills, not a generic external skill format or a new family prefix.
+    status: resolved
+    kind: requirement
+    answered_by: human

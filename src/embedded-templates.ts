@@ -5291,6 +5291,7 @@ mutation_surfaces:
       - skills/strict-roadmap-transition/SKILL.md
       - skills/strict-roadmap-reorder/SKILL.md
       - skills/strict-scene-edit/SKILL.md
+      - skills/strict-spec-release/SKILL.md
     mechanism: agent-guidance
     classification: remaining-direct-writer
     operations:

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-strict-spec-release-skill
+  status: proposed
+summary:
+  what:
+    - 'Add the strict-spec-release project skill: a bundled skill package under skills/strict-spec-release/ that operationalizes cutting and publishing a dsh-plugin-strict-spec release — preconditions (clean tree, archived changes, gh auth, version choice), the release steps (version bump, README example-URL refresh in both locales, plugin rebuild, commit and push, plugin-v tag, watching the workflow with the expected skipped npm job), verification (release view, anonymous asset download, optional isolated install smoke), and failure handling (narrow bugfix change, tag movement, the known clean-runner root-dependency trap) — plus its marketplace.json entry'
+  why:
+    - 'The public release channel went live on 2026-10-21 and every step of its first two runs was discovered live: the tag discipline, the intentionally dormant npm job, the root-dependency trap that failed the first run, and the anonymous verification legs; a requester asking to cut a release should get that operational knowledge from a bundled skill instead of rediscovering it against a public channel'
+scope:
+  in:
+    - skills/strict-spec-release/SKILL.md (new skill package in the strict-spec family, non-mutating so it carries no yaml-authoring-protocol pointer); skills/marketplace.json (one entry in the strict-spec family); the release suite's skill validation keeps governing it
+  out:
+    - No workflow code, CLI, plugin, standard, or spec changes; no new skill family prefix (strict-spec- is already registered); no release is cut by this change itself; no retired-skills change
+unchanged_behavior:
+  - Every shipped requirement keeps holding; the new skill only packages existing operational behavior — the release workflow, its gating, and its standards are unchanged, and the plugin bundle picks the skill up automatically at the next plugin build

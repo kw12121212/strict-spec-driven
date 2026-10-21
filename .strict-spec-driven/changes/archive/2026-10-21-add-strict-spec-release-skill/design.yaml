@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-strict-spec-release-skill
+approach:
+  - 'One skill package in the existing strict-spec family, written from the two live release runs of 2026-10-21: preconditions, ordered release steps, the expected workflow outcome including the skipped npm job, verification legs, and failure handling with the root-dependency trap — no scripts or references, because every command is a one-liner already named in the body.'
+decisions:
+  strict-spec-family-naming:
+    decision: Name the skill strict-spec-release in the registered strict-spec family rather than introducing a strict-plugin- family.
+    rationale: The shared family registry exists so every check agrees on recognized names; reusing strict-spec- needs no registry edit, the name sorts naturally beside its siblings, and the skill's subject is the repository's own release flow.
+  no-delta-spec:
+    decision: 'Author no delta spec: the skill packages existing operational behavior without changing any observable system behavior.'
+    rationale: The release workflow, its gating, and its discipline are already specified by the dsh-plugin-host publication rule and enforced by CI and the release suite; guidance that restates how to operate them adds no requirement.
+  no-scene:
+    decision: 'Record no scene: the change is skill guidance, a technical-only category with no new actor flow.'
+    rationale: The operator release flow already exists and is exercised by the plugin-publishes-only-from-ci-tag rule's CI enforcement; this change documents it rather than altering it.
+  archive-checkpoint-convention:
+    decision: Classified the review's convention candidate — bundled-skill guidance must name each command it directs as a runnable literal in the same file, never by a definite-article nickname — as not yet reusable, and the dangling nickname was fixed in file instead.
+    rationale: This is the first observed instance, it was caught in fresh-context review before archive, the fixed skill now inlines the literal one-liner, and the proposed enforcement is a phrase heuristic rather than a check shape the repository has needed; if a second instance appears, promote it then with a concrete validator rule rather than from one caught case.
+alternatives: []
+risks:
+  - The skill will ride the next plugin release automatically because the plugin build copies every skills/ package, so a wrong command inside the skill propagates publicly. The skill carries only commands actually run during the two live releases of 2026-10-21, the repository's skill validation and the full suite gate the package, and fresh-context review checks every command against the shipped workflow.
