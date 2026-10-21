@@ -6,8 +6,9 @@ A read-only viewer for strict workflow documents inside DeepSeek Harness (dsh).
 It shows the `.strict-spec-driven/` directory of a Session's workspace as a
 document tree and renders each strict YAML artifact in a view made for it.
 
-The package is published to npm as `dsh-plugin-strict-spec` (Apache-2.0), so a
-consumer machine needs nothing but the dsh CLI.
+The package is distributed as a GitHub Release tarball (Apache-2.0), so a
+consumer machine needs nothing but the dsh CLI and the release URL; an npm
+registry path is optional and activates only when one is published.
 
 ## What It Shows
 
@@ -100,7 +101,16 @@ UI at all rather than showing a partially working viewer.
 
 ## Install Into the Web Client
 
-Install the published package by name — no checkout, no build step:
+Install the published release tarball by URL — no checkout, no build step, no
+npm account. Pick the latest `plugin-v*` tag from the repository's [Releases
+page](https://github.com/kw12121212/strict-spec-driven/releases) and install
+its tarball (0.3.0 shown):
+
+```sh
+dsh plugin --profile web add https://github.com/kw12121212/strict-spec-driven/releases/download/plugin-v0.3.0/dsh-plugin-strict-spec-0.3.0.tgz
+```
+
+When a registry release exists, the name form works too:
 
 ```sh
 dsh plugin --profile web add dsh-plugin-strict-spec
@@ -115,8 +125,7 @@ cd /path/to/your/project
 dsh web
 ```
 
-Upgrades follow the same command: bump the spec (`dsh plugin --profile web add
-dsh-plugin-strict-spec@latest`) and restart the host.
+Upgrades install the newer release's URL the same way and restart the host.
 
 ### Development installs
 

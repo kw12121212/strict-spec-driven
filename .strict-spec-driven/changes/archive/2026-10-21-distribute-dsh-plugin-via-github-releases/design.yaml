@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: distribute-dsh-plugin-via-github-releases
+approach:
+  - 'One workflow, two independently-gated outcomes: every plugin-v tag builds and packs the plugin and attaches the tarball to the tag''s GitHub Release, while the npm publish step runs only when the NPM_TOKEN secret exists, so the requester''s release-only flow stays green with zero npm configuration.'
+  - The READMEs lead with the release-URL install because that is the channel the requester ships; the npm command stays documented as the optional registry path so the existing release-suite check keeps holding, and a new release-install check asserts the Releases URL form with probes.
+decisions:
+  release-job-always-npm-gated:
+    decision: The workflow gains a release job that always runs on a plugin-v tag and uploads npm pack's tarball to the GitHub Release, and the npm publish job becomes conditional on the NPM_TOKEN secret being present.
+    rationale: GitHub Releases need no account beyond the repository itself and pnpm installs remote tarballs directly, so the tag alone produces a public artifact; gating npm on the secret keeps the dormant registry path available without letting its absence redden release runs, and per-job permissions keep contents write separate from the npm job's id-token write.
+  readme-leads-with-release-url:
+    decision: Both READMEs lead the install section with the release-tarball URL form and keep the npm command as the optional registry path, with a new release-install suite category asserting the URL marker.
+    rationale: The README must lead with the channel consumers actually use; keeping the npm command documented preserves the existing public-install check and the option to activate the registry later, and the new category keeps the release-URL claim honest from both directions.
+  no-delta-spec:
+    decision: 'Author no delta spec: this change alters distribution automation and documentation without touching any user-observable plugin behavior.'
+    rationale: Every dsh-plugin-tooling-behavior and dsh-viewer-behavior requirement keeps holding; the install-channel wording rides the operator-installs-viewer-plugin scene step this change modifies, matching the precedent of the two release-channel changes before it.
+  workflow-parse-evidence:
+    decision: 'Recorded workflow-parse evidence on 2026-10-21, refreshed after the review fix: .github/workflows/publish-plugin.yml parses cleanly and carries three jobs — npm-token-gate (exports has_token from the NPM_TOKEN secret comparison through a step env and GITHUB_OUTPUT), release (no if, so it runs on every plugin-v tag, contents: write, an Attach-the-tarball step using gh release upload), and publish-npm (needs release and npm-token-gate, if needs.npm-token-gate.outputs.has_token == ''true'' — a form job-level if may read — permissions contents: read plus id-token: write) — with both shipping jobs opening on the tag-equals-committed-version check. The review caught the original job-level if reading env, which GitHub rejects at push; the suite now inspects every workflow for that shape, and the CI leg itself still runs only on the first real tag, enforced by the ci method on the publication-discipline rule.'
+    rationale: The manual-checks standard requires each leg's observed evidence inside the change's own artifacts; the refreshed parse observes the corrected job graph, and the decision names both the defect the review caught and the local check that now guards it.
+alternatives:
+  - option: Strip the npm job entirely
+    reason: 'Rejected: the dormant path costs nothing while secret-gated, and removing it would churn the publication-discipline standard and README checks the previous change just established.'
+  - option: Commit prebuilt tarballs to the repository
+    reason: 'Rejected: dist is gitignored by design, committed build outputs rot, and release assets give the same one-command install without polluting the tree.'
+risks:
+  - A release-only tag with a missing or mistyped tag name still fails the version equality check before any upload, and a failed upload leaves the release absent rather than half-published; both fail closed. The workflow YAML is parsed as part of the evidence leg because the suite cannot run CI, per the ci enforcement method recorded on the publication-discipline rule.

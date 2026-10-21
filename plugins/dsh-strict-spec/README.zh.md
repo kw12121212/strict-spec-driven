@@ -6,8 +6,8 @@
 所在 workspace 的 `.strict-spec-driven/` 目录展示为文档树，并为每种严格 YAML
 制品提供专属视图。
 
-本包以 `dsh-plugin-strict-spec` 名称发布到 npm（Apache-2.0），消费端机器只需
-dsh CLI 一条命令即可安装。
+本包以 GitHub Release tarball 形式分发（Apache-2.0），消费端机器只需 dsh CLI
+与 Release URL；npm registry 路径为可选，仅在实际发布后可用。
 
 ## 展示内容
 
@@ -78,15 +78,22 @@ dsh CLI 一条命令即可安装。
 
 ## 安装到 Web 客户端
 
-按名称安装已发布的包 —— 无需检出仓库、无需构建步骤：
+按 URL 安装已发布的 Release tarball —— 无需检出仓库、无需构建、无需 npm 账号。
+从仓库的 [Releases 页面](https://github.com/kw12121212/strict-spec-driven/releases)
+选最新的 `plugin-v*` 标签安装其 tarball（以 0.3.0 为例）：
+
+```sh
+dsh plugin --profile web add https://github.com/kw12121212/strict-spec-driven/releases/download/plugin-v0.3.0/dsh-plugin-strict-spec-0.3.0.tgz
+```
+
+若存在 registry 发布，按名称安装亦可：
 
 ```sh
 dsh plugin --profile web add dsh-plugin-strict-spec
 ```
 
 随后重启 dsh 宿主（systemd 用户服务：`systemctl --user restart dsh-web.service`），
-再从想阅读的工作区启动 web 客户端。升级同样一条命令：`dsh plugin --profile web
-add dsh-plugin-strict-spec@latest` 后重启宿主。
+再从想阅读的工作区启动 web 客户端。升级时按同法安装新版本的 Release URL 并重启宿主。
 
 ### 开发安装
 

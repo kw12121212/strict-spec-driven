@@ -25,7 +25,7 @@ main_flow:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-session-picker
   install-plugin-with-link-spec:
-    action: 'Install the plugin into the running dsh release from the channel that fits the machine: the public npm registry by name (dsh plugin --profile web add dsh-plugin-strict-spec) for consumers, a link: spec of the local checkout or a tarball produced by npm pack for development; and, after DeepSeek Harness Desktop has initialized its profile and been fully quit, into the desktop profile with the dsh command bundled in the Desktop installation.'
+    action: 'Install the plugin into the running dsh release from the channel that fits the machine: the repository''s published GitHub Release tarball by URL for consumers (or the public npm registry by name when a registry release exists), a link: spec of the local checkout or a tarball produced by npm pack for development; and, after DeepSeek Harness Desktop has initialized its profile and been fully quit, into the desktop profile with the dsh command bundled in the Desktop installation.'
     covered_by:
       - spec_id: dsh-viewer-behavior
         requirement_id: left-page-session-picker

@@ -30,6 +30,37 @@ export function readmeFileFor(language: string): string {
   return language === "en" ? "README.md" : `README.${language}.md`;
 }
 
+/** One workflow expression defect: a job-level if reading an unavailable context. */
+export type WorkflowIfFinding = { path: string; job: string; detail: string };
+
+/**
+ * Inspect GitHub Actions workflow texts for job-level `if` conditions that
+ * reference the env or secrets contexts: a job-level if may read only the
+ * github, needs, vars, and inputs contexts, and a violation makes GitHub
+ * reject the whole workflow file at push time. Pure over its input: the
+ * suite runs it over every workflow file in .github/workflows, and the
+ * probes run synthetic job definitions through this same function.
+ */
+export function inspectWorkflowJobIfs(files: ReadonlyArray<{ path: string; text: string }>): WorkflowIfFinding[] {
+  const findings: WorkflowIfFinding[] = [];
+  for (const file of files) {
+    let doc: Record<string, unknown>;
+    try {
+      doc = yaml.load(file.text) as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+    const jobs = (doc?.jobs ?? {}) as Record<string, Record<string, unknown>>;
+    for (const [job, definition] of Object.entries(jobs)) {
+      const condition = definition?.if;
+      if (typeof condition === "string" && /\b(env|secrets)\./.test(condition)) {
+        findings.push({ path: file.path, job, detail: condition });
+      }
+    }
+  }
+  return findings;
+}
+
 /**
  * Checks a files allowlist against the entries a packed tarball requires:
  * source, build-script, test-support, and dependency paths must never ship,
@@ -54,10 +85,11 @@ export function packlistFindings(files: readonly string[], required: readonly st
 
 /**
  * Checks one plugin README for the release content operators rely on: the
- * supported engines range, the link: and packed-tarball web installs, the
- * desktop profile install, the dsh host upgrade SOP with its version check,
- * the built-in tooling switch and its `builtinTooling` config key, and a
- * link to every other language's README.
+ * supported engines range, the GitHub Release tarball install, the optional
+ * npm registry install, the link: and packed-tarball development installs,
+ * the desktop profile install, the dsh host upgrade SOP with its version
+ * check, the built-in tooling switch and its `builtinTooling` config key,
+ * and a link to every other language's README.
  */
 export function readmeFindings(text: string, enginesRange: string, counterparts: readonly string[]): ReleaseFinding[] {
   if (text.trim().length === 0) {
@@ -84,6 +116,9 @@ export function readmeFindings(text: string, enginesRange: string, counterparts:
   }
   if (!text.includes("dsh plugin --profile web add dsh-plugin-strict-spec\n")) {
     findings.push({ category: "public-install", detail: "no public npm install command documented" });
+  }
+  if (!(text.includes("releases/download/") && text.includes(".tgz"))) {
+    findings.push({ category: "release-install", detail: "no GitHub Release tarball URL install documented" });
   }
   for (const other of counterparts) {
     if (!text.includes(`](${other})`)) {
@@ -539,6 +574,8 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       [text.split("dsh --version").join("dsh -v"), "upgrade-sop"],
       [text.split("builtinTooling").join("builtin tooling"), "builtin-tooling"],
       [text.split("add dsh-plugin-strict-spec\n").join("add dsh-plugin-strict-spec@latest\n"), "public-install"],
+      [text.split("releases/download/").join("releases/tag/"), "release-install"],
+      [text.split(".tgz").join(".tar.gz"), "release-install"],
       [counterparts.reduce((stripped, other) => stripped.split(`](${other})`).join("]"), text), "counterpart-link"],
     ] as const) {
       context.assert(
@@ -547,6 +584,45 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       );
     }
   }
+
+  context.section("dsh plugin: workflow expression contexts");
+
+  const workflowDir = path.join(ROOT, ".github", "workflows");
+  const workflowFiles = existsSync(workflowDir)
+    ? readdirSync(workflowDir).filter((name) => /\.ya?ml$/.test(name)).map((name) => ({
+        path: path.join(workflowDir, name),
+        text: readFileSync(path.join(workflowDir, name), "utf8"),
+      }))
+    : [];
+  context.assert(workflowFiles.length > 0, "the repository declares workflow files to scan");
+  context.assert(
+    inspectWorkflowJobIfs(workflowFiles).length === 0,
+    "no job-level workflow if reads the env or secrets contexts GitHub does not offer there",
+    JSON.stringify(inspectWorkflowJobIfs(workflowFiles)),
+  );
+  // Negative probes through the same inspector over the real input with
+  // synthetic defect workflows added; the needs-outputs form stays clean.
+  const withEnvGate = [
+    ...workflowFiles,
+    { path: "synthetic-env-gate.yml", text: "jobs:\n  ship:\n    if: env.HAS_TOKEN == 'true'\n" },
+  ];
+  context.assert(
+    inspectWorkflowJobIfs(withEnvGate).some((f) => f.path === "synthetic-env-gate.yml" && f.detail.includes("env.")),
+    "the workflow if inspector reports a job-level if reading the env context",
+  );
+  const withSecretsGate = [
+    ...workflowFiles,
+    { path: "synthetic-secrets-gate.yml", text: "jobs:\n  ship:\n    if: secrets.NPM_TOKEN != ''\n" },
+  ];
+  context.assert(
+    inspectWorkflowJobIfs(withSecretsGate).some((f) => f.path === "synthetic-secrets-gate.yml" && f.detail.includes("secrets.")),
+    "the workflow if inspector reports a job-level if reading the secrets context",
+  );
+  const needsGate = [{ path: "synthetic-needs-gate.yml", text: "jobs:\n  gate:\n    outputs:\n      ok: x\n  ship:\n    needs: gate\n    if: needs.gate.outputs.ok == 'true'\n" }];
+  context.assert(
+    inspectWorkflowJobIfs(needsGate).length === 0,
+    "the workflow if inspector passes the needs-outputs form job-level if may use",
+  );
 
   context.section("dsh plugin: locale catalogs");
 

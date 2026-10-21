@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-host
+operations:
+  ADDED: {}
+  MODIFIED:
+    plugin-publishes-only-from-ci-tag:
+      strength: MUST
+      statement: A dsh plugin distributed publicly — through a package registry or as release assets — MUST ship only from a CI run triggered by a pushed tag that names exactly the committed plugin version, with registry credentials read from repository secrets and provenance enabled where the channel supports it, so no working tree, no version mismatch, and no local machine can produce a public release; a release-asset channel MUST attach exactly the packed tarball the tag's CI build produced.
+      rationale: The strict ship flow already makes a pushed commit the release boundary; gating both public channels — release assets and the optional npm publish — on one matching plugin-v tag keeps that discipline uniform, the version equality check prevents a stale tag from shipping wrong bits in either channel, and attaching the CI-built tarball keeps the published artifact reproducible from the tag.
+      enforcement:
+        method: ci
+        detail: The workflow refuses to run either channel's shipping step unless the pushed tag equals plugin-v plus the version committed in plugins/dsh-strict-spec/package.json; the release job uploads the tarball the same run packed with contents-write permission; the npm job runs only when a token-gate job's needs output says the NPM_TOKEN repository secret exists — a job-level if may read only github, needs, vars, and inputs, so the token decision travels through the gate's output rather than env or secrets — and the npm step keeps provenance for when that channel is activated; the release suite additionally inspects every workflow file for job-level if conditions reading contexts GitHub does not offer there.
+  REMOVED: {}

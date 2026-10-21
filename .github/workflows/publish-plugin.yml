@@ -1,12 +1,22 @@
-# Publish dsh-plugin-strict-spec to the public npm registry.
+# Distribute dsh-plugin-strict-spec publicly.
 #
 # Publication discipline (see the dsh-plugin-host standard, rule
 # plugin-publishes-only-from-ci-tag): a release exists only as a pushed
 # plugin-v<version> tag that names exactly the version committed in
-# plugins/dsh-strict-spec/package.json. The equality check runs before any
-# network publish and fails closed, so a stale or mistyped tag can never
-# publish the wrong bits, and npm provenance ties the published artifact to
-# this repository and workflow run.
+# plugins/dsh-strict-spec/package.json. The equality check runs first and
+# fails closed, so a stale or mistyped tag can never ship wrong bits.
+#
+# Three jobs share that tag:
+#   - npm-token-gate: exports whether the NPM_TOKEN secret exists. A
+#     job-level `if` may read only github/needs/vars/inputs — not env or
+#     secrets — so the token decision travels through a needs output.
+#   - release (always): builds the plugin, packs the npm-shaped tarball,
+#     and attaches it to the tag's GitHub Release — the primary public
+#     channel, needing nothing but this repository.
+#   - publish-npm (only when the gate says the token exists): publishes
+#     the same build to the npm registry with provenance; dormant until
+#     the operator configures the secret, and skipped as a whole job on
+#     release-only tags so those runs stay green without a wasted build.
 name: publish-plugin
 
 on:
@@ -14,13 +24,22 @@ on:
     tags:
       - "plugin-v*"
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
-  publish:
+  npm-token-gate:
     runs-on: ubuntu-latest
+    outputs:
+      has_token: ${{ steps.gate.outputs.has_token }}
+    steps:
+      - name: Export whether the NPM_TOKEN secret exists
+        id: gate
+        env:
+          HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
+        run: echo "has_token=$HAS_NPM_TOKEN" >> "$GITHUB_OUTPUT"
+
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +53,48 @@ jobs:
             echo "tag $GITHUB_REF_NAME does not match the committed plugin version $committed" >&2
             exit 1
           fi
-          echo "publishing dsh-plugin-strict-spec@$committed"
+          echo "releasing dsh-plugin-strict-spec@$committed"
+
+      - name: Build and pack the plugin
+        working-directory: plugins/dsh-strict-spec
+        run: |
+          bun install
+          bun run lint
+          bun run build
+          npm pack --silent
+
+      - name: Attach the tarball to the tag's GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="$(node -p "require('./plugins/dsh-strict-spec/package.json').version")"
+          file="plugins/dsh-strict-spec/dsh-plugin-strict-spec-${version}.tgz"
+          gh release view "$tag" >/dev/null 2>&1 \
+            || gh release create "$tag" --title "dsh-plugin-strict-spec ${version}" \
+                 --notes "Plugin release ${version}. Install paths are documented in plugins/dsh-strict-spec/README.md."
+          gh release upload "$tag" "$file" --clobber
+
+  publish-npm:
+    runs-on: ubuntu-latest
+    needs: [release, npm-token-gate]
+    if: needs.npm-token-gate.outputs.has_token == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Check tag matches the committed plugin version
+        run: |
+          committed="$(node -p "require('./plugins/dsh-strict-spec/package.json').version")"
+          tagged="${GITHUB_REF_NAME#plugin-v}"
+          if [ "$committed" != "$tagged" ]; then
+            echo "tag $GITHUB_REF_NAME does not match the committed plugin version $committed" >&2
+            exit 1
+          fi
 
       - name: Build the plugin bundle
         working-directory: plugins/dsh-strict-spec

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-parse-clean-github-workflow-can-still-be-rejec-3b0951
+  title: A parse-clean GitHub workflow can still be rejected at push time
+category: tooling
+status: active
+created_at: '2026-10-21T04:48:55.113Z'
+updated_at: '2026-10-21T04:48:55.113Z'
+context: 'A change shipped a tag-triggered publish workflow whose npm job was gated by a job-level if: env.HAS_NPM_TOKEN == ''true'', with the value fed from a job-level env mapping of the secret comparison.'
+observation: 'The local evidence leg parsed the YAML and recorded the job graph as green, but GitHub Actions evaluates job-level if against only the github, needs, vars, and inputs contexts: env and secrets are unavailable there, and a file carrying such a condition is rejected whole at push (''Unrecognized named value: env''), which would have killed the unconditional release job on the very first go-live tag. The defect surfaced only in fresh-context review against GitHub''s context-availability documentation.'
+takeaway: 'Treat a YAML parse as syntax evidence only: validate every workflow expression against the documented context availability for its position, keep job-level if within github/needs/vars/inputs, and route secrets decisions through a gate job''s needs outputs or a step-level if — then guard the whole class with a static scan of every workflow file for job-level if reading env or secrets, because no local run ever observes the push-time rejection.'
+applies_when: Authoring or reviewing GitHub Actions workflow changes whose CI leg cannot run locally, especially any job-level condition meant to depend on repository secrets.
+occurrences:
+  - origin: distribute-dsh-plugin-via-github-releases
+    date: '2026-10-21'
+    evidence: .github/workflows/publish-plugin.yml npm-token-gate job with needs-output gating; test/suites/dsh-plugin.ts inspectWorkflowJobIfs scan with synthetic probes; .strict-spec-driven/tech/workflow-regression-coverage.yaml rule workflow-job-if-uses-available-contexts.

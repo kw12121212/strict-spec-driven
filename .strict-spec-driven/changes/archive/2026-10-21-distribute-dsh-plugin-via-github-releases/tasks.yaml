@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: distribute-dsh-plugin-via-github-releases
+sections:
+  Implementation:
+    ci-release-job:
+      text: 'Extend .github/workflows/publish-plugin.yml with a release job that runs on every plugin-v tag after the version equality check: build the plugin, pack the npm-shaped tarball, and attach it to the tag''s GitHub Release with gh and contents-write permission; gate the npm publish job on the NPM_TOKEN secret being present via an env-carried condition so release-only tags stay green.'
+      status: complete
+    readme-release-first:
+      text: Rewrite the install sections of plugins/dsh-strict-spec/README.md and README.zh.md to lead with the release-tarball URL install (plugin-v0.3.0 example, noting the Releases page for the latest), keep the npm command as the optional registry path and the link and tarball development paths, and preserve every marker the release suite checks including the npm public-install command line.
+      status: complete
+    suite-release-install-check:
+      text: Extend test/suites/dsh-plugin.ts with a release-install README category asserting both READMEs document the releases-download tarball URL install, with negative and positive probes through the same readmeFindings function.
+      status: complete
+  Testing:
+    root-lint:
+      text: Run the repository root lint command and confirm it passes.
+      status: complete
+      command: bun run lint
+    plugin-suite-regression:
+      text: Run the complete project test suite and confirm every suite passes with the release-install check.
+      status: complete
+      command: bun test/run.ts
+    coverage-gate-regression:
+      text: Run the recorded project regression coverage gate exactly as configured and confirm it passes at the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    workflow-parse-evidence:
+      text: Parse .github/workflows/publish-plugin.yml with the repository YAML parser and record the observed job graph (release job unconditional on plugin-v tags, npm job conditioned on the NPM_TOKEN secret) as a design decision, per the manual-checks-record-observed-evidence standard; the CI leg itself cannot run locally and is enforced by the ci method on the publication-discipline rule.
+      status: complete
+    strict-ready-check:
+      text: Run the ready check for distribute-dsh-plugin-via-github-releases and confirm it reports ready with no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run the verify check for distribute-dsh-plugin-via-github-releases after implementation and confirm artifact structure, task completion, scene coverage, and unchanged-behavior checks pass.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate-regression
+  unit_test_task: plugin-suite-regression

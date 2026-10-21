@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-regression-coverage
+operations:
+  ADDED:
+    workflow-job-if-uses-available-contexts:
+      strength: MUST
+      statement: 'A change that ships a GitHub Actions workflow MUST keep every job-level if condition within the contexts GitHub offers there — github, needs, vars, and inputs — reading env and secrets only inside step-level env or through a gate job''s needs outputs, and MUST check this statically because a YAML parse proves syntax only: an unavailable context in a job-level if makes GitHub reject the whole workflow file at push time, which no local run observes.'
+      rationale: This change shipped a parse-clean workflow whose job-level if read the env context; GitHub documents job-level if as github/needs/vars/inputs only and rejects such files at push, which would have killed the release job on the first tag — caught only in fresh-context review because the local evidence leg parses YAML and cannot evaluate expressions.
+      enforcement:
+        method: test
+        detail: The release suite's inspectWorkflowJobIfs scans every .github/workflows file for job-level if conditions referencing the env or secrets contexts and fails naming the file and job, with synthetic-workflow probes proving both defect shapes fire and the needs-outputs form passes.
+  MODIFIED: {}
+  REMOVED: {}

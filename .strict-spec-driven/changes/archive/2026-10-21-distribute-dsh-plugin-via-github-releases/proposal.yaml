@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: distribute-dsh-plugin-via-github-releases
+  status: proposed
+summary:
+  what:
+    - 'Make GitHub Releases the primary public distribution channel for dsh-plugin-strict-spec: extend the tag-triggered CI workflow with a release job that builds the plugin, packs the npm-shaped tarball, and attaches it to a GitHub Release named by the tag, with the npm publish step kept but gated on the NPM_TOKEN secret being present so a release-only tag never fails the run; rewrite both plugin README install sections to lead with the release-tarball URL install while keeping the npm command as the optional registry path and the link and tarball development paths; and add a release-install README check with probes to the release suite'
+  why:
+    - 'The requester chose release-asset distribution over npm publication on 2026-10-21: a public GitHub Release tarball installs with one dsh plugin add command from pnpm''s remote-tarball support, needs no npm account or token, and keeps the repository the single home of the artifact, while the already-shipped npm path stays dormant until a token exists'
+scope:
+  in:
+    - .github/workflows/publish-plugin.yml (a release job uploading the packed tarball to the tag's GitHub Release with contents write permission, and the npm job conditioned on the NPM_TOKEN secret so release-only tags stay green); plugins/dsh-strict-spec/README.md and README.zh.md (release-URL install first, npm optional, development paths kept, every release-suite marker preserved); test/suites/dsh-plugin.ts (release-install README category with negative and positive probes); delta artifacts MODIFYing the operator-installs-viewer-plugin install step and the plugin-publishes-only-from-ci-tag rule, and recording the no-delta-spec decision
+  out:
+    - No plugin behavior, bundle, manifest, license, engines pin, or dependency changes; no npm publication happens (the npm job stays secret-gated and inert until a token is configured); no market listing; no repository restructuring; the version stays 0.3.0
+unchanged_behavior:
+  - Every dsh-plugin-tooling-behavior and dsh-viewer-behavior requirement keeps holding; the packed tarball shape, the allowlist with LICENSE, the built-in tooling, and all runtime behavior stay exactly as shipped; the packed artifact the release job uploads is byte-for-byte what npm pack produces today

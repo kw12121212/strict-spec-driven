@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: distribute-dsh-plugin-via-github-releases
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: The previous change prepared npm as the only public channel, but the requester declined npm publication and the market listing on 2026-10-21, leaving public consumers with no channel that actually ships.
+    answer: 'A public consumer still cannot install the plugin: the npm path is dormant by the requester''s choice, and no release automation exists to turn a tag into a downloadable artifact.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The requester chose the GitHub Releases option from a concrete list on 2026-10-21.
+    answer: Pushing a plugin-v tag produces a public GitHub Release carrying the packed plugin tarball, and a consumer installs it with one dsh plugin add command using the release URL, with no npm account, token, or repository checkout involved; a release-only tag run stays green.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now, what forced this?
+    context: 'The distribution decision chain: public distribution was chosen, then the market was declined, then npm was declined.'
+    answer: Each refusal narrowed the channel; after declining npm the only remaining path to the already-decided public distribution is release assets from the repository itself.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: Boundaries the requester set across the distribution decisions.
+    answer: No npm publication (the job stays secret-gated and inert), no market listing, no plugin behavior, manifest, license, engines pin, or dependency changes; the version stays 0.3.0.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading is intended, where more than one exists?
+    context: Whether the npm artifacts from the previous change should be removed was the open reading.
+    answer: 'Keep every npm artifact dormant rather than reverting: the workflow''s npm job, publishConfig, and README mentions stay so the registry path can be activated later by adding a token, and only the README''s primary install command changes to the release URL.'
+    status: resolved
+    kind: requirement
+    answered_by: human
