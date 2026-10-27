@@ -1,0 +1,81 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: dsh-viewer-behavior
+operations:
+  ADDED:
+    roadmap-index-milestone-goal-control:
+      strength: MUST
+      statement: The roadmap index view offers one milestone goal launch control whenever its viewer surface is bound to a Session — the right-sidebar tab to the Session rendering it and the left-sidebar page to the Session chosen in its picker — and offers no such control when no Session is bound or in any other document view.
+      scenarios:
+        control-offered-when-bound:
+          - GIVEN: the roadmap index document is open in the right-sidebar tab of an active Session
+          - WHEN: the operator looks at the roadmap index view
+          - THEN: one milestone goal launch control is shown in the view
+        control-absent-without-session:
+          - GIVEN: the left-sidebar page shows a roadmap index with no Session chosen
+          - WHEN: the roadmap index view renders
+          - THEN: no milestone goal launch control is shown
+        control-only-on-index:
+          - GIVEN: a milestone or planned-change document is open in a viewer surface bound to a Session
+          - WHEN: its document view renders
+          - THEN: no milestone goal launch control is shown
+    milestone-goal-confirmation:
+      strength: MUST
+      statement: Activating the milestone goal launch control submits nothing; it shows an inline confirmation presenting the exact goal objective that will be submitted and the target Session, and cancelling that confirmation closes it without submitting anything to the Session.
+      scenarios:
+        confirmation-shows-objective:
+          - GIVEN: the roadmap index view offers the launch control in a Session-bound surface
+          - WHEN: the operator activates the control
+          - THEN: an inline confirmation shows the full objective text and the target Session, and the Session has received no command
+        cancel-submits-nothing:
+          - GIVEN: the inline confirmation is shown
+          - WHEN: the operator cancels it
+          - THEN: the confirmation closes, the Session receives no command, and the launch control is offered again
+    milestone-goal-submission:
+      strength: MUST
+      statement: Confirming submits exactly one /goal command, carrying the fixed English objective, to the bound Session, and the launch control is unavailable while that submission is pending; the objective instructs the agent to repeatedly run the strict-roadmap-recommend skill, to treat the milestone owning the first recommended planned change as the target milestone and select it on every later round, to complete the goal once every planned change of that milestone is complete, and to block the goal when the recommendation reports a roadmap error, a milestone awaiting refinement, or no eligible candidate before the milestone is complete, or when a created change has open questions that need a human answer.
+      scenarios:
+        confirm-submits-goal-command:
+          - GIVEN: the inline confirmation is shown for a Session-bound roadmap index view
+          - WHEN: the operator confirms
+          - THEN: the bound Session receives one /goal command whose objective is the text the confirmation showed
+        objective-states-loop-and-stops:
+          - GIVEN: the operator has opened the inline confirmation
+          - WHEN: the operator reads the presented objective
+          - THEN: it names the strict-roadmap-recommend skill, the lock onto the first recommendation's milestone, the completion condition for that milestone, and each block condition
+        single-flight-while-pending:
+          - GIVEN: a confirmed submission has not yet settled
+          - WHEN: the operator tries to activate the launch control again
+          - THEN: the control is unavailable and no second command is submitted
+        accepted-submission-acknowledged:
+          - GIVEN: a confirmed submission is pending
+          - WHEN: the bound Session accepts the /goal command
+          - THEN: the view shows an inline notice that the goal was submitted and the launch control is usable again
+    milestone-goal-refusal-shown:
+      strength: MUST
+      statement: When the bound Session refuses or fails the /goal submission, the roadmap index view shows the refusal inline with the reason the Session reported, leaves any existing goal of that Session unchanged, and makes the launch control usable again.
+      scenarios:
+        existing-goal-refused:
+          - GIVEN: the bound Session already holds an unfinished goal
+          - WHEN: the operator confirms a milestone goal launch
+          - THEN: the view shows the Session's refusal reason inline, the existing goal keeps its objective and phase, and the launch control is usable again
+        command-unavailable-refused:
+          - GIVEN: the bound Session offers no /goal command
+          - WHEN: the operator confirms a milestone goal launch
+          - THEN: the view shows the failure reason inline and the launch control is usable again
+  MODIFIED:
+    read-only-viewing:
+      strength: MUST
+      statement: The viewer offers no control that writes, edits, or deletes strict workflow files, and viewing interactions leave the contents of every listed file unchanged; the single control that hands work to a Session is the confirmed milestone goal launch control of the roadmap index view, which submits a goal to the bound Session's agent and itself writes no file.
+      scenarios:
+        no-mutation-controls:
+          - GIVEN: the viewer is open on a workspace
+          - WHEN: its tree and document views are inspected and their controls exercised
+          - THEN: no control writes, edits, or deletes strict workflow files, and the contents of every listed file are unchanged after viewing
+        goal-launch-writes-no-file:
+          - GIVEN: the roadmap index view is open in a Session-bound surface
+          - WHEN: the operator activates and then cancels or confirms the milestone goal launch control
+          - THEN: the viewer itself writes no strict workflow file, and any file change afterwards comes only from the Session agent running the submitted goal
+  REMOVED: {}

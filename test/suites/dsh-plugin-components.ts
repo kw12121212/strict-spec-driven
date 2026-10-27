@@ -59,6 +59,9 @@ import {
   techStandardView,
 } from "../../plugins/dsh-strict-spec/src/client/contextParts.ts";
 import { createViewerStores } from "../../plugins/dsh-strict-spec/src/model/store.ts";
+import { GoalLaunchControl, GoalLaunchControlView } from "../../plugins/dsh-strict-spec/src/client/GoalLaunchControl.tsx";
+import { MILESTONE_GOAL_COMMAND_LINE, createGoalLauncher, createGoalLaunchers } from "../../plugins/dsh-strict-spec/src/model/goalLaunch.ts";
+import type { CommandOutcome, GoalLaunchState } from "../../plugins/dsh-strict-spec/src/model/goalLaunch.ts";
 import { en, zh } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
 import type { StrictSpecKey } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
 import type { DocumentRecord, OpenDocumentState, TreeState } from "../../plugins/dsh-strict-spec/src/model/nodes.ts";
@@ -1541,6 +1544,218 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
     sceneStores.actions.dispose();
   }
 
+  context.section("dsh plugin components: roadmap index milestone goal launch control");
+
+  {
+    // The control renders only on the roadmap index view of a surface whose
+    // view context carries the bound Session's launcher; its hook-free view
+    // returns elements whose button handlers fire here without a DOM.
+    const submitted: string[] = [];
+    let release: (outcome: CommandOutcome) => void = () => undefined;
+    const launcher = createGoalLauncher(
+      {
+        execute: (_sessionId, line) => {
+          submitted.push(line);
+          return new Promise<CommandOutcome>((resolve) => {
+            release = resolve;
+          });
+        },
+      },
+      "session-goal",
+    );
+    const goalStores = createViewerStores(new FakeWorkspaceFiles().port);
+    const indexData = load(readFileSync(path.join(ROOT, "examples", "strict-spec-driven", "roadmap-index.yaml"), "utf8"), { schema: CORE_SCHEMA });
+    const milestoneData = load(readFileSync(path.join(ROOT, "examples", "strict-spec-driven", "roadmap-milestone.planning.yaml"), "utf8"), { schema: CORE_SCHEMA });
+    const renderWith = (data: unknown, context?: ViewContext): string =>
+      renderToString(createElement(DocumentView, { state: { status: "ready", path: "example", data }, t: fakeT, context } satisfies DocumentViewProps));
+
+    context.assert(!renderWith(indexData).includes("roadmap.goal-launch"), "a context-free roadmap index render offers no launch control");
+    context.assert(
+      !renderWith(indexData, { sessionId: "session-goal", viewer: goalStores }).includes("roadmap.goal-launch"),
+      "a roadmap index view whose surface wires no launcher offers no launch control",
+    );
+    const boundIndexHtml = renderWith(indexData, { sessionId: "session-goal", viewer: goalStores, goal: launcher });
+    context.assert(
+      boundIndexHtml.includes("roadmap.goal-launch") && boundIndexHtml.includes("roadmap.goal-launch-hint") && boundIndexHtml.includes("0001-example-milestone"),
+      "a Session-bound roadmap index view offers the launch control beside its milestones",
+    );
+    context.assert(
+      !renderWith(milestoneData, { sessionId: "session-goal", viewer: goalStores, goal: launcher }).includes("roadmap.goal-launch"),
+      "a milestone view offers no launch control even when a launcher is wired",
+    );
+    context.assert(
+      renderToString(createElement(GoalLaunchControl, { launcher: undefined, t: fakeT })) === "",
+      "the launch control renders nothing without a launcher",
+    );
+
+    type ButtonElement = { props: { onClick?: () => void; disabled?: boolean; children?: unknown } };
+    const buttonsOf = (node: unknown): ButtonElement[] => {
+      const found: ButtonElement[] = [];
+      const walk = (value: unknown): void => {
+        if (Array.isArray(value)) {
+          value.forEach(walk);
+          return;
+        }
+        if (typeof value !== "object" || value === null || !("props" in value)) {
+          return;
+        }
+        const element = value as ButtonElement;
+        if (typeof element.props.onClick === "function") {
+          found.push(element);
+        }
+        walk(element.props.children);
+      };
+      walk(node);
+      return found;
+    };
+    const viewFor = (state: GoalLaunchState): unknown =>
+      GoalLaunchControlView({ state, objective: launcher.objective, sessionId: launcher.sessionId, actions: launcher.actions, t: fakeT });
+    const renderState = (state: GoalLaunchState): string => renderToString(viewFor(state) as Parameters<typeof renderToString>[0]);
+
+    const idleButtons = buttonsOf(viewFor(launcher.state.getSnapshot()));
+    context.assert(idleButtons.length === 1 && idleButtons[0]?.props.children === "roadmap.goal-launch", "the idle control offers exactly the launch button");
+    idleButtons[0]?.props.onClick?.();
+    context.assert(launcher.state.getSnapshot().phase === "confirming" && submitted.length === 0, "clicking the launch button opens the confirmation and submits nothing");
+
+    const confirmingHtml = renderState(launcher.state.getSnapshot());
+    context.assert(
+      confirmingHtml.includes("roadmap.goal-confirm-title")
+        && confirmingHtml.includes("roadmap.goal-confirm-session:{&quot;sessionId&quot;:&quot;session-goal&quot;}")
+        && confirmingHtml.includes("--milestone &lt;target-milestone-id&gt;")
+        && confirmingHtml.includes("Repeatedly run the strict-roadmap-recommend skill"),
+      "the confirmation presents the target Session and the exact objective",
+    );
+    const confirmButtons = buttonsOf(viewFor(launcher.state.getSnapshot()));
+    const confirmButton = confirmButtons.find((button) => button.props.children === "roadmap.goal-confirm");
+    const cancelButton = confirmButtons.find((button) => button.props.children === "roadmap.goal-cancel");
+    context.assert(confirmButton !== undefined && cancelButton !== undefined, "the confirmation offers confirm and cancel buttons");
+    cancelButton?.props.onClick?.();
+    context.assert(launcher.state.getSnapshot().phase === "idle" && submitted.length === 0, "clicking cancel closes the confirmation with nothing submitted");
+
+    buttonsOf(viewFor(launcher.state.getSnapshot()))[0]?.props.onClick?.();
+    buttonsOf(viewFor(launcher.state.getSnapshot())).find((button) => button.props.children === "roadmap.goal-confirm")?.props.onClick?.();
+    context.assert(
+      launcher.state.getSnapshot().phase === "pending" && submitted.length === 1 && submitted[0] === MILESTONE_GOAL_COMMAND_LINE,
+      "clicking confirm submits the /goal line once and moves to pending",
+    );
+    const pendingButtons = buttonsOf(viewFor(launcher.state.getSnapshot()));
+    const pendingHtml = renderState(launcher.state.getSnapshot());
+    context.assert(
+      pendingButtons.length === 2
+        && pendingButtons.every((button) => button.props.disabled === true)
+        && !pendingButtons.some((button) => button.props.children === "roadmap.goal-launch")
+        && pendingHtml.includes("roadmap.goal-pending"),
+      "while pending only the two disabled confirmation buttons render, with the pending label and no launch button",
+    );
+    release({ kind: "executed", result: { kind: "success" } });
+    await settle();
+    const launchedHtml = renderState(launcher.state.getSnapshot());
+    context.assert(launchedHtml.includes("roadmap.goal-launched") && launchedHtml.includes("roadmap.goal-launch"), "a launched Session shows the launched notice beside a usable launch button");
+
+    const refusedHtml = renderState({ phase: "refused", refusal: { kind: "refused", text: "A goal is already active." } });
+    context.assert(
+      refusedHtml.includes('role="alert"') && refusedHtml.includes("roadmap.goal-refused:{&quot;reason&quot;:&quot;A goal is already active.&quot;}"),
+      "a Session refusal renders inline with the Session's own reason",
+    );
+    context.assert(
+      buttonsOf(viewFor({ phase: "refused", refusal: { kind: "unavailable" } })).length === 1,
+      "a refused control keeps its launch button usable",
+    );
+    context.assert(renderState({ phase: "refused", refusal: { kind: "unavailable" } }).includes("roadmap.goal-unavailable"), "a missing /goal command renders the unavailable reason");
+    context.assert(
+      renderState({ phase: "refused", refusal: { kind: "failed", message: "no agent" } }).includes("roadmap.goal-failed:{&quot;reason&quot;:&quot;no agent&quot;}"),
+      "a failed submission renders the failure reason",
+    );
+    goalStores.actions.dispose();
+  }
+
+  context.section("dsh plugin components: goal launcher bound to each entry point's Session");
+
+  {
+    // Each entry point hands the roadmap index view the launcher of the
+    // Session it is bound to: the page the Session its picker shows, the tab
+    // the Session its surface was created for. A launcher put into the
+    // confirming state beforehand renders its own Session id, so the
+    // rendered confirmation proves which launcher the entry point wired.
+    const executed: string[] = [];
+    const launchers = createGoalLaunchers({
+      execute: async (sessionId) => {
+        executed.push(sessionId);
+        return { kind: "executed", result: { kind: "success" } };
+      },
+    });
+    const indexPath = `${WORKFLOW_ROOT}/roadmap/INDEX.yaml`;
+    const bindingCatalog: PickerCatalog = {
+      workspaces: [
+        {
+          workspaceId: "w-goal",
+          title: "Goal",
+          path: "/home/op/goal",
+          sessions: [
+            { sessionId: "session-picked", displayTitle: "Picked session", updatedAt: 20 },
+            { sessionId: "session-other", displayTitle: "Other session", updatedAt: 10 },
+          ],
+        },
+      ],
+      ungrouped: [],
+      status: "ready",
+    };
+    const bindingPicker: SessionCatalogPort = { getCatalog: () => bindingCatalog, subscribe: () => () => undefined };
+    const pageFake = new FakeWorkspaceFiles();
+    seedComponentWorkspace(pageFake);
+    const pageStores = createViewerStores(pageFake.port);
+    const renderPage = async (sessionId: string, withLaunchers: boolean): Promise<string> => {
+      const selection = createPageSelectionStore();
+      selection.actions.chooseSession("w-goal", sessionId);
+      await pageStores.actions.loadWorkspace(sessionId);
+      await pageStores.actions.openDocument(sessionId, indexPath);
+      await settle();
+      return renderToString(
+        createElement(StrictDocumentsPage, {
+          picker: bindingPicker,
+          pageSelection: selection.store,
+          pageActions: selection.actions,
+          controller: createPageController(pageStores, selection.store),
+          viewer: pageStores,
+          ...(withLaunchers ? { goalLaunchers: launchers } : {}),
+          t: fakeT,
+        }),
+      );
+    };
+
+    launchers.get("session-picked").actions.request();
+    const pickedHtml = await renderPage("session-picked", true);
+    context.assert(
+      pickedHtml.includes("roadmap.goal-confirm-session:{&quot;sessionId&quot;:&quot;session-picked&quot;}"),
+      "the left page wires the launcher of the Session its picker shows",
+    );
+    const otherHtml = await renderPage("session-other", true);
+    context.assert(
+      otherHtml.includes("roadmap.goal-launch") && !otherHtml.includes("roadmap.goal-confirm-session"),
+      "switching the picker to another Session wires that Session's own idle launcher",
+    );
+    context.assert(!(await renderPage("session-picked", false)).includes("roadmap.goal-launch"), "a page given no launchers offers no launch control");
+    await launchers.get("session-picked").actions.confirm();
+    context.assert(executed.length === 1 && executed[0] === "session-picked", "confirming from the page's launcher submits to the picker's Session");
+    pageStores.actions.dispose();
+
+    const tabFake = new FakeWorkspaceFiles();
+    seedComponentWorkspace(tabFake);
+    const tabSurfaces = createTabSurfaces(tabFake.port, launchers);
+    const tabSurface = tabSurfaces.get("session-tab");
+    tabSurface.controller.show();
+    await settle();
+    await tabSurface.viewer.actions.openDocument("session-tab", indexPath);
+    await settle();
+    launchers.get("session-tab").actions.request();
+    const tabHtml = renderToString(createElement(StrictDocumentsTab, { surface: tabSurface, t: fakeT }));
+    context.assert(
+      tabHtml.includes("roadmap.goal-confirm-session:{&quot;sessionId&quot;:&quot;session-tab&quot;}"),
+      "the right-sidebar tab wires the launcher of the Session its surface is bound to",
+    );
+    tabSurfaces.dispose();
+  }
+
   context.section("dsh plugin components: locale catalogs");
 
   {
@@ -1567,6 +1782,8 @@ export async function runDshPluginComponentSuite(context: TestContext): Promise<
       "delta.target-spec", "delta.new-spec", "delta.target-scene", "delta.target-standard", "delta.new-standard", "delta.main-flow", "delta.exception-flow", "delta.trigger", "delta.reason", "delta.rationale", "delta.enforcement", "delta.example-good", "delta.example-bad", "delta.no-coverage",
       "roadmap.milestones", "roadmap.intake-questions", "roadmap.owned-planned-changes", "roadmap.goal", "roadmap.done-criteria", "roadmap.dependencies", "roadmap.notes", "roadmap.details", "roadmap.summary", "roadmap.depends-on", "roadmap.unresolved", "roadmap.impact", "roadmap.recommendation", "roadmap.ownership-error",
       "spec.requirements", "spec-index.other-area", "scene.actors", "scene.actor-role", "scene.preconditions", "scene.uncovered-step",
+      "roadmap.goal-launch", "roadmap.goal-launch-hint", "roadmap.goal-confirm-title", "roadmap.goal-confirm-session", "roadmap.goal-confirm", "roadmap.goal-cancel",
+      "roadmap.goal-pending", "roadmap.goal-launched", "roadmap.goal-refused", "roadmap.goal-unavailable", "roadmap.goal-failed",
     ];
     context.assert(rendererKeys.every((key) => key in zh), "every dedicated-renderer string is registered in both catalogs");
   }

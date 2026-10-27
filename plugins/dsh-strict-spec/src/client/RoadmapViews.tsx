@@ -22,6 +22,7 @@ import type { Translate } from "@deepseek-ai/dsh-client-ui-slots";
 import type { DedicatedViewProps } from "./ChangeArtifactViews.tsx";
 import type { HeaderFact, ViewContext } from "./changeParts.ts";
 import { AdditionalFieldsView } from "./genericBlocks.tsx";
+import { GoalLaunchControl } from "./GoalLaunchControl.tsx";
 import {
   createRoadmapNavigator,
   milestoneView,
@@ -197,7 +198,11 @@ function OwnedPlannedChangeRow(
   );
 }
 
-/** Renders the roadmap index view: milestones in their declared order sequence. */
+/**
+ * Renders the roadmap index view: milestones in their declared order
+ * sequence, preceded by the milestone goal launch control when the view
+ * context carries the bound Session's launcher.
+ */
 export function RoadmapIndexView(props: DedicatedViewProps): ReactNode {
   const { data, t, context } = props;
   const model = roadmapIndexView(data);
@@ -206,6 +211,7 @@ export function RoadmapIndexView(props: DedicatedViewProps): ReactNode {
   return (
     <div className={styles.view}>
       <ViewFacts header={model.header} />
+      <GoalLaunchControl launcher={context?.goal} t={t} />
       {milestones.length === 0 ? null : (
         <ViewSection title={t("roadmap.milestones")}>
           <div className={roadmapStyles.indexRows}>

@@ -68,16 +68,16 @@ rules:
       detail: The load smoke check boots the pinned dsh web client with the plugin installed and fails when the plugin entry reports an activation error, which a bare registration into a not-yet-declared slot produces.
   model-modules-behind-owned-remote-port:
     strength: MUST
-    statement: 'Plugin model and business modules must not import generated dsh client remote modules or touch the client remote face directly; they close over a plugin-owned port interface that mirrors the pinned wire contract — including parameter requiredness, so a wire-required options object is never forwarded as undefined — with a single adapter at the client entry converting the real remote face, and their tests script a fake that reproduces the pinned wire semantics: the directory-listing entry cap with its truncated flag and no paging, the complete-file cap with its too-large refusal, line pages terminated by eof, non-recursive per-target watches, and the typed workspace-files error codes.'
-    rationale: Keeping remote access behind one owned seam keeps model logic runnable under bun test/run.ts with no dsh host and collapses contract drift onto a single typed boundary; the fake encoding the wire's exact shapes is what makes cap, truncation, watch, and error-code behaviors deterministically testable, and a fake looser than the wire hides divergence until the real host runs, which is precisely when it is most expensive to find.
+    statement: 'Plugin model and business modules must not import generated dsh client remote modules or touch the client remote face directly; they close over a plugin-owned port interface per remote namespace that mirrors the pinned wire contract — including parameter requiredness, so a wire-required options object or array is never forwarded as undefined — with a single adapter at the client entry converting the real remote face, and their tests script a fake that reproduces that namespace''s pinned wire semantics: for workspace files, the directory-listing entry cap with its truncated flag and no paging, the complete-file cap with its too-large refusal, line pages terminated by eof, non-recursive per-target watches, and the typed workspace-files error codes; for commands, the wire-required attachments array sent as empty, an undefined value meaning an unknown or malformed command line, a settled error result as the handler''s refusal, and a failed result envelope as a rejection.'
+    rationale: Keeping remote access behind one owned seam per namespace keeps model logic runnable under bun test/run.ts with no dsh host and collapses contract drift onto a single typed boundary; the fake encoding each namespace's exact wire shapes is what makes its behaviors deterministically testable, and a fake looser than the wire hides divergence until the real host runs, which is precisely when it is most expensive to find.
     enforcement:
       method: test
-      detail: Model suites import only the port type — a scan fails on any @deepseek-ai remote import under the plugin's model sources — and the fake port rejects shapes the pinned remote rejects, so a call forwarding a wire-required option as undefined fails in the suite instead of in the host.
+      detail: Model suites import only the port types — a scan fails on any @deepseek-ai remote import under the plugin's model sources — and each fake port rejects or distinguishes the shapes its pinned remote does, so a call forwarding a wire-required option as undefined, or an adapter conflating an unknown command with a refusal, fails in the suite instead of in the host.
     examples:
       good:
-        - A loader calling port.readBytes(sessionId, path, {}, signal) for a complete-file read, against a fake that throws when options is undefined.
+        - A loader calling port.readBytes(sessionId, path, {}, signal) for a complete-file read, against a fake that throws when options is undefined; a command port adapter passing [] as attachments and mapping an undefined execute value to unknown-command.
       bad:
-        - A model module importing the generated remote client directly, or a fake whose readBytes accepts an undefined options argument the pinned host dereferences without a guard.
+        - A model module importing the generated remote client directly, or a fake whose readBytes accepts an undefined options argument the pinned host dereferences without a guard, or a command adapter that forwards undefined attachments.
   shared-primitives-runtime-devdependencies:
     strength: MUST
     statement: A plugin whose dsh-free component tests or build import a shared dsh UI package must declare that package's own runtime dependencies as plugin devDependencies, because bun resolves the unbundled shared lib's imports from the plugin's node_modules, and the served bundle must inline every module the host does not share.
@@ -217,3 +217,15 @@ rules:
     enforcement:
       method: review
       detail: The first consumer is refineLabels in plugins/dsh-strict-spec/src/model/store.ts (limit 6, gate-parking suite case in test/suites/dsh-plugin-model.ts). resolveArchivedPlannedChangeOwners in roadmapOwnership.ts still walks serially; as a SHOULD rule this is the default for the next change that touches it, not a retroactive violation.
+  interactive-controls-hook-free-views:
+    strength: SHOULD
+    statement: An interactive plugin control SHOULD be split into a hook-free view function that takes its state and actions as props and returns elements, plus a thin wrapper that only reads its store, and the component suite SHOULD prove each click path by calling the view and invoking the returned elements' onClick props for every state the control renders.
+    rationale: Static rendering drops event handlers, so a component suite that only renders markup never exercises a pointer path; a hook-free view lets the DOM-free suite fire every handler directly, which keeps the dsh-free-component-tests rule satisfiable for interactive controls.
+    enforcement:
+      method: review
+      detail: Review checks that each new interactive control exports a hook-free view and that the component suite fires every handler of each rendered state, including disabled and absent buttons.
+    examples:
+      good:
+        - GoalLaunchControlView and TreeRowView return elements whose button and treeitem onClick props the component suite invokes for the idle, confirming, and pending states.
+      bad:
+        - A control whose handlers live only inside a hooked component, tested solely through renderToString markup, so a missing onClick ships unnoticed.

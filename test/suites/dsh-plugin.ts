@@ -168,7 +168,7 @@ const REQUIRED_RUNTIME_REQUIRES: readonly string[] = [
 
 /**
  * Packages the entry consumes only through type-only imports for the
- * session, workspace, workspace-files, shortcuts, and sidebar-right faces,
+ * session, workspace, workspace-files, commands, shortcuts, and sidebar-right faces,
  * plus the virtualizer the bundle inlines: their merges and code never
  * reach the host's frozen module table, so a runtime require for any of
  * them means a value import crept in and would ask the loader for a module
@@ -179,6 +179,7 @@ const TYPE_ONLY_PACKAGE_REQUIRES: readonly string[] = [
   'require("@deepseek-ai/dsh-api-session-controller")',
   'require("@deepseek-ai/dsh-api-workspace-controller")',
   'require("@deepseek-ai/dsh-api-workspace-files")',
+  'require("@deepseek-ai/dsh-commands")',
   'require("@deepseek-ai/dsh-client-shortcuts")',
   'require("@deepseek-ai/dsh-client-ui-sidebar-right")',
   'require("@tanstack/react-virtual")',
@@ -480,6 +481,22 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
       `the client inject list declares ${controller} so its services and remote namespace load before the entry activates`,
       `inject: ${JSON.stringify(inject)}`,
     );
+  }
+  context.assert(
+    inject.includes("@deepseek-ai/dsh-commands"),
+    "the client inject list declares the commands package whose remote namespace the milestone goal launcher submits through",
+    `inject: ${JSON.stringify(inject)}`,
+  );
+  context.assert(
+    manifest.dependencies?.["@deepseek-ai/dsh-commands"] === undefined,
+    "the manifest keeps @deepseek-ai/dsh-commands a type-only devDependency outside runtime dependencies",
+  );
+  // The entry's own inject export must declare every remote namespace its
+  // apply path reads, or the fiber activates before the face exists.
+  const clientSource = readFileSync(path.join(PLUGIN_ROOT, "src", "client.ts"), "utf8");
+  const clientInject = /export const inject\s*=\s*\[([^\]]*)\]/.exec(clientSource)?.[1] ?? "";
+  for (const face of ['"remote"', '"remote.workspaceFiles"', '"remote.commands"']) {
+    context.assert(clientInject.includes(face), `the client entry's inject export declares ${face}`, `inject export: [${clientInject}]`);
   }
   context.assert(
     inject.includes("@deepseek-ai/dsh-client-ui-sidebar-right"),

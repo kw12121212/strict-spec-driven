@@ -65,7 +65,7 @@ export function StrictDocumentsTab(props: StrictDocumentsTabProps): ReactNode {
         <DocumentTree sessionId={surface.sessionId} tree={surface.viewer.tree} actions={surface.viewer.actions} open={surface.viewer.open} t={t} />
       </div>
       <div className={styles.documentRegion} role="region" aria-label={t("tab.document-region")}>
-        <DocumentView state={openState} t={t} context={{ sessionId: surface.sessionId, viewer: surface.viewer }} />
+        <DocumentView state={openState} t={t} context={{ sessionId: surface.sessionId, viewer: surface.viewer, goal: surface.goal }} />
       </div>
     </div>
   );

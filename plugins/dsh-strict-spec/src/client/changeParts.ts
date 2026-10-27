@@ -17,6 +17,7 @@ import type { HeaderFact } from "./recordFields.ts";
 import { taskCompletion } from "../model/taskCompletion.ts";
 import type { TaskCompletion } from "../model/taskCompletion.ts";
 import type { ViewerStores } from "../model/store.ts";
+import type { GoalLauncher } from "../model/goalLaunch.ts";
 
 // The scalar header fact and the field readers live in one shared module so
 // every dedicated renderer's partition is the same implementation; the type
@@ -36,6 +37,12 @@ export interface ViewContext {
   readonly sessionId: string;
   /** The shared viewer stores both entry points drive. */
   readonly viewer: ViewerStores;
+  /**
+   * The bound Session's milestone goal launcher, which the roadmap index
+   * view renders its launch control from; absent where no launcher is
+   * wired, so no launch control renders.
+   */
+  readonly goal?: GoalLauncher;
 }
 
 /** The shared shape every dedicated change view model returns. */

@@ -18,6 +18,7 @@
 import { createViewerStores } from "./store.ts";
 import type { ViewerStores } from "./store.ts";
 import type { WorkspaceFilesPort } from "./port.ts";
+import type { GoalLauncher, GoalLaunchers } from "./goalLaunch.ts";
 
 /**
  * Drives one tab surface's viewer from the Session the seat bound it to.
@@ -46,6 +47,8 @@ export interface TabSurface {
   readonly viewer: ViewerStores;
   /** The effect-free controller the body's mount effects delegate to. */
   readonly controller: TabController;
+  /** This Session's milestone goal launcher, when the registration wires one. */
+  readonly goal?: GoalLauncher;
 }
 
 /** The per-Session surface cache the tab registration owns. */
@@ -87,9 +90,12 @@ export function createTabController(viewer: ViewerStores, sessionId: string): Ta
  * share it; the stores are per surface, so a Session switch never mixes two
  * workspaces' trees. Cached surfaces survive their body's unmount disposed
  * and idle, and the registration's disposer calls `dispose()` to clear them
- * all when the plugin unloads.
+ * all when the plugin unloads. When the registration passes the goal
+ * launcher cache, each surface carries its Session's launcher, so the
+ * roadmap index launch control always submits to the Session the tab is
+ * bound to.
  */
-export function createTabSurfaces(port: WorkspaceFilesPort): TabSurfaces {
+export function createTabSurfaces(port: WorkspaceFilesPort, launchers?: GoalLaunchers): TabSurfaces {
   const surfaces = new Map<string, TabSurface>();
   return {
     get(sessionId: string): TabSurface {
@@ -98,7 +104,12 @@ export function createTabSurfaces(port: WorkspaceFilesPort): TabSurfaces {
         return cached;
       }
       const viewer = createViewerStores(port);
-      const surface: TabSurface = { sessionId, viewer, controller: createTabController(viewer, sessionId) };
+      const surface: TabSurface = {
+        sessionId,
+        viewer,
+        controller: createTabController(viewer, sessionId),
+        goal: launchers?.get(sessionId),
+      };
       surfaces.set(sessionId, surface);
       return surface;
     },

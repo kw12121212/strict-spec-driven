@@ -1,0 +1,65 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-roadmap-milestone-goal-launcher
+sections:
+  Implementation:
+    goal-launch-port:
+      text: Add a plugin-owned goal-launch port in plugins/dsh-strict-spec/src/model mirroring the pinned commands/execute wire contract, plus a React-free module that builds the fixed English goal objective (strict-roadmap-recommend, milestone lock from the first recommendation, --milestone on later rounds, complete when the milestone is complete, block on roadmap-error, refine-milestone, no-candidate before completion, or open questions) and a launch state machine for idle, confirming, pending, and refused states with single-flight submission.
+      status: complete
+    client-entry-wiring:
+      text: 'Wire the port in plugins/dsh-strict-spec/src/client.ts from ctx.remote.commands: add remote.commands to the inject export, add the commands package to package.json dsh.client.inject, add @deepseek-ai/dsh-commands as a pinned 0.2.1-rc.2 type-only devDependency, and pass the launcher with the bound sessionId to the right-sidebar tab surface and the picker-chosen Session to the left page.'
+      status: complete
+    index-view-control:
+      text: Render the launch control, inline confirmation strip showing the exact objective and target Session, pending-disabled state, and inline refusal reason in RoadmapIndexView (plugins/dsh-strict-spec/src/client/RoadmapViews.tsx) through the view context with identity-stable context-free fallbacks, rendering no control when no Session is bound; style with CSS Modules using --dsw-alias tokens only.
+      status: complete
+    locale-entries:
+      text: Register every new control, confirmation, pending, and refusal string in both the zh and en catalogs of plugins/dsh-strict-spec/src/client/locales.ts.
+      status: complete
+    plugin-readme:
+      text: Document the roadmap index goal launch control, its confirmation, its refusal behavior, and the fixed objective in plugins/dsh-strict-spec/README.md and plugins/dsh-strict-spec/README.zh.md.
+      status: complete
+    live-host-check:
+      text: 'Install the rebuilt plugin into an isolated dsh 0.2.1-rc.2 profile, open the roadmap index in the right-sidebar tab, confirm a launch, and record whether the goal is created and armed and whether the command-input bubble appears; then confirm a second launch is refused inline while the first goal is unfinished. OBSERVED EVIDENCE (2026-10-27, dsh 0.2.1-rc.2, isolated DSH_HOME=/tmp/goal-launch-home, link: install of the rebuilt plugin, dsh --profile web on 127.0.0.1:13230, fixture workspace /tmp/goal-launch-ws holding only config.yaml and an empty roadmap INDEX.yaml, no model credentials configured so no round could do real work; screenshots /tmp/goal-launch-01..05): (1) Right-sidebar tab: opening roadmap/INDEX.yaml rendered the Complete next milestone button and its hint under the facts header. (2) Clicking it showed the inline confirmation with ''Submit this goal to the Session?'', ''Target Session: session-fca3eb32-...'', the full objective text, and Submit goal / Cancel buttons. (3) Cancel closed it, offered the button again, and the conversation held no command bubble and no goal strip. (4) Submit goal showed ''The goal was submitted to this Session.''; the conversation then held a ''Command input'' bubble with the /goal chip and the full objective, the host result ''Goal created Status: active ... Rounds: 0/256 Activation: armed'', and a ''Continuing goal'' round; with no credentials the round could not run and the host goal strip showed the goal inactive with Resume, Edit, and Clear. (5) A second launch was refused inline with the host text ''The Session refused the goal: A goal is already active. Use /goal edit <objective> to change it or /goal clear before replacing it.'', the button stayed usable, and the goal strip kept the same objective. (6) Left-sidebar page with the picker on the goal-launch-ws Session: the roadmap INDEX view rendered the same control with that Session''s launch state; config.yaml rendered no control. (7) The fixture workspace files were unchanged by every launch interaction.'
+      status: complete
+  Testing:
+    model-tests:
+      text: Add dsh-plugin-model suite cases for the objective builder (names strict-roadmap-recommend, the milestone lock, the later --milestone selector, the completion condition, and each block condition), the launch state machine (confirm, cancel submits nothing, single-flight while pending, refusal returns to usable), and the port adapter passing the bound sessionId and the exact '/goal <objective>' line.
+      status: complete
+    component-tests:
+      text: Add dsh-plugin-components suite cases that statically render the roadmap index view with and without a bound Session, in the confirming, pending, and refused states, and invoke the launch, confirm, and cancel handlers directly so the click paths are exercised without a DOM.
+      status: complete
+    bundle-shape-tests:
+      text: Extend the dsh-plugin bundle-shape and inject-declaration assertions so remote.commands is declared in the client inject, the commands package is listed in dsh.client.inject, and @deepseek-ai/dsh-commands stays a type-only devDependency with no runtime require in the bundle.
+      status: complete
+    plugin-lint-build:
+      text: Type-check and build the plugin bundle.
+      status: complete
+      command: cd plugins/dsh-strict-spec && bun run lint && bun run build
+    run-regression:
+      text: Run the complete regression suite and confirm no FAIL lines.
+      status: complete
+      command: bun run build && bun test/run.ts > /tmp/suite.log 2>&1; echo EXIT=$?; grep -n FAIL /tmp/suite.log
+    coverage-gate:
+      text: Run the declared review-evidence coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78 > /tmp/coverage.log 2>&1; echo EXIT=$?
+  Verification:
+    check-ready:
+      text: Confirm the change is ready.
+      status: complete
+      command: strict-spec-cli ready add-roadmap-milestone-goal-launcher
+    check-verify:
+      text: Confirm strict verification passes, including delta scene coverage of every step.
+      status: complete
+      command: strict-spec-cli verify add-roadmap-milestone-goal-launcher
+    check-scope:
+      text: Confirm the delivered behavior matches proposal scope and unchanged behavior, that the viewer writes no file itself, and that the delta spec reflects what was actually built.
+      status: complete
+    check-archive-merge:
+      text: Confirm the dsh-viewer-behavior delta spec and the new scene merge cleanly at archive, with read-only-viewing modified and the four new requirements added.
+      status: complete
+testing_gates:
+  validation_task: run-regression
+  unit_test_task: model-tests

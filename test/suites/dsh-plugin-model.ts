@@ -22,6 +22,14 @@ import type { ViewerStores } from "../../plugins/dsh-strict-spec/src/model/store
 import { parentDirectory, taskCompletion } from "../../plugins/dsh-strict-spec/src/model/taskCompletion.ts";
 import { createTabSurfaces } from "../../plugins/dsh-strict-spec/src/model/tab.ts";
 import {
+  MILESTONE_GOAL_COMMAND_LINE,
+  MILESTONE_GOAL_OBJECTIVE,
+  createCommandPort,
+  createGoalLauncher,
+  createGoalLaunchers,
+} from "../../plugins/dsh-strict-spec/src/model/goalLaunch.ts";
+import type { CommandOutcome, CommandPort } from "../../plugins/dsh-strict-spec/src/model/goalLaunch.ts";
+import {
   computePickerCatalog,
   createPageController,
   createPageSelectionStore,
@@ -1590,5 +1598,171 @@ export async function runDshPluginModelSuite(context: TestContext): Promise<void
     await stores.actions.openDocument(SESSION_ID, `${WORKFLOW_ROOT}/scenes/viewer/browse.yaml`);
     context.assert(stores.open.getSnapshot().anchor === undefined, "opening another document without an anchor clears the recorded one");
     stores.actions.dispose();
+  }
+
+  context.section("dsh plugin model: milestone goal objective and command line");
+
+  {
+    const objective = MILESTONE_GOAL_OBJECTIVE;
+    context.assert(MILESTONE_GOAL_COMMAND_LINE === `/goal ${objective}`, "the command line is /goal followed by the objective");
+    context.assert(!objective.includes("\n"), "the objective is one line, so the /goal grammar reads it whole");
+    context.assert(objective.includes("strict-roadmap-recommend skill"), "the objective names the strict-roadmap-recommend skill");
+    context.assert(
+      objective.includes("first round, run it without a milestone hint") && objective.includes("owns the planned change it recommends is the target milestone"),
+      "the objective locks onto the milestone owning the first recommendation",
+    );
+    context.assert(objective.includes("--milestone <target-milestone-id>"), "the objective selects the target milestone on later rounds");
+    context.assert(
+      objective.includes("roadmap-status reports every planned change of the target milestone complete"),
+      "the objective completes the goal when the target milestone is complete",
+    );
+    for (const stop of ["roadmap-error", "refine-milestone", "no-candidate before the target milestone is complete", "open questions that need a human answer"]) {
+      context.assert(objective.includes(stop), `the objective blocks on ${stop}`);
+    }
+  }
+
+  context.section("dsh plugin model: command port adapter over the commands wire");
+
+  {
+    const calls: Array<{ agentId: string; line: string; attachments: unknown }> = [];
+    let next: { ok: true; value: { result: { kind: "success"; text?: string } | { kind: "error"; text: string } } | undefined } | { ok: false; error: { code: string; message: string } } = {
+      ok: true,
+      value: { result: { kind: "success", text: "Goal created" } },
+    };
+    const port = createCommandPort({
+      commands: {
+        execute: async (agentId: string, line: string, attachments: readonly never[]) => {
+          calls.push({ agentId, line, attachments });
+          return next;
+        },
+      },
+    });
+    const executed = await port.execute(SESSION_ID, "/goal ship it");
+    context.assert(
+      executed.kind === "executed" && executed.result.kind === "success",
+      "a settled execution resolves as executed with the handler result",
+    );
+    context.assert(
+      calls[0]?.agentId === SESSION_ID && calls[0]?.line === "/goal ship it" && Array.isArray(calls[0]?.attachments) && (calls[0]?.attachments as unknown[]).length === 0,
+      "the call carries the sessionId, the exact line, and the wire-required attachments as an empty array",
+    );
+    next = { ok: true, value: undefined };
+    context.assert((await port.execute(SESSION_ID, "/goal x")).kind === "unknown-command", "an undefined wire value resolves as unknown-command");
+    next = { ok: false, error: { code: "agent-missing", message: "no agent" } };
+    let thrown: unknown;
+    try {
+      await port.execute(SESSION_ID, "/goal x");
+    } catch (error) {
+      thrown = error;
+    }
+    context.assert((thrown as { code?: string } | undefined)?.code === "agent-missing", "a failed envelope rejects with the wire error");
+  }
+
+  context.section("dsh plugin model: milestone goal launcher confirmation and single flight");
+
+  {
+    // A scripted command port whose submissions park on a gate, so the
+    // pending phase is observable and repeated activations can be fired
+    // while one submission is still in flight.
+    const submitted: Array<{ sessionId: string; line: string }> = [];
+    let release: (outcome: CommandOutcome) => void = () => undefined;
+    const port: CommandPort = {
+      execute: (sessionId, line) => {
+        submitted.push({ sessionId, line });
+        return new Promise<CommandOutcome>((resolve) => {
+          release = resolve;
+        });
+      },
+    };
+    const launcher = createGoalLauncher(port, SESSION_ID);
+    context.assert(launcher.sessionId === SESSION_ID && launcher.objective === MILESTONE_GOAL_OBJECTIVE, "the launcher exposes its Session and the exact objective");
+    context.assert(launcher.state.getSnapshot().phase === "idle", "a fresh launcher is idle");
+
+    await launcher.actions.confirm();
+    context.assert(submitted.length === 0 && launcher.state.getSnapshot().phase === "idle", "confirm without an open confirmation submits nothing");
+
+    launcher.actions.request();
+    context.assert(launcher.state.getSnapshot().phase === "confirming" && submitted.length === 0, "request opens the confirmation and submits nothing");
+    launcher.actions.cancel();
+    context.assert(launcher.state.getSnapshot().phase === "idle" && submitted.length === 0, "cancel closes the confirmation with nothing submitted");
+
+    launcher.actions.request();
+    const inFlight = launcher.actions.confirm();
+    context.assert(launcher.state.getSnapshot().phase === "pending", "confirm moves to pending while the submission is in flight");
+    launcher.actions.request();
+    launcher.actions.cancel();
+    await launcher.actions.confirm();
+    context.assert(
+      submitted.length === 1 && launcher.state.getSnapshot().phase === "pending",
+      "request, cancel, and confirm while pending neither submit again nor leave pending",
+    );
+    context.assert(
+      submitted[0]?.sessionId === SESSION_ID && submitted[0]?.line === MILESTONE_GOAL_COMMAND_LINE,
+      "the one submission sends the fixed /goal line to the bound Session",
+    );
+    release({ kind: "executed", result: { kind: "success", text: "Goal created" } });
+    await inFlight;
+    context.assert(launcher.state.getSnapshot().phase === "launched", "an accepted submission settles as launched");
+    launcher.actions.request();
+    context.assert(launcher.state.getSnapshot().phase === "confirming", "the control is usable again after a launch");
+    launcher.actions.cancel();
+  }
+
+  context.section("dsh plugin model: milestone goal launcher refusals");
+
+  {
+    const outcomes: Array<() => Promise<CommandOutcome>> = [
+      async () => ({ kind: "executed", result: { kind: "error", text: "A goal is already active." } }),
+      async () => ({ kind: "unknown-command" }),
+      async () => {
+        throw { code: "agent-missing", message: "the Session has no live agent" };
+      },
+      async () => {
+        throw { code: "only-code" };
+      },
+    ];
+    let index = 0;
+    const port: CommandPort = { execute: () => outcomes[index++]!() };
+    const launcher = createGoalLauncher(port, SESSION_ID);
+    const launch = async () => {
+      launcher.actions.request();
+      await launcher.actions.confirm();
+      return launcher.state.getSnapshot();
+    };
+    const refusedByHandler = await launch();
+    context.assert(
+      refusedByHandler.phase === "refused" && refusedByHandler.refusal.kind === "refused" && refusedByHandler.refusal.text === "A goal is already active.",
+      "a handler error settles as refused carrying the Session's own text",
+    );
+    const unavailable = await launch();
+    context.assert(
+      unavailable.phase === "refused" && unavailable.refusal.kind === "unavailable",
+      "an unknown /goal command settles as unavailable, and a refused control can launch again",
+    );
+    const failed = await launch();
+    context.assert(
+      failed.phase === "refused" && failed.refusal.kind === "failed" && failed.refusal.message === "the Session has no live agent",
+      "a rejected call settles as failed carrying the failure message",
+    );
+    const codeOnly = await launch();
+    context.assert(
+      codeOnly.phase === "refused" && codeOnly.refusal.kind === "failed" && codeOnly.refusal.message === "only-code",
+      "a rejected call without a message falls back to its error code",
+    );
+  }
+
+  context.section("dsh plugin model: per-Session goal launchers on tab surfaces");
+
+  {
+    const port: CommandPort = { execute: async () => ({ kind: "unknown-command" }) };
+    const launchers = createGoalLaunchers(port);
+    context.assert(launchers.get("session-a") === launchers.get("session-a"), "one Session keeps one launcher");
+    context.assert(launchers.get("session-a") !== launchers.get("session-b"), "two Sessions never share a launcher");
+    const fake = new FakeWorkspaceFiles();
+    const surfaces = createTabSurfaces(fake.port, launchers);
+    context.assert(surfaces.get("session-a").goal === launchers.get("session-a"), "a tab surface carries its own Session's launcher");
+    context.assert(surfaces.get("session-b").goal?.sessionId === "session-b", "each tab surface's launcher submits to that surface's Session");
+    context.assert(createTabSurfaces(fake.port).get("session-a").goal === undefined, "surfaces created without launchers carry none");
+    surfaces.dispose();
   }
 }

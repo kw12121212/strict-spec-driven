@@ -43,6 +43,34 @@ files, and viewing never changes a file. Views show declared field values
 exactly as written; they never compute roadmap status or validation results.
 Change strict artifacts through `strict-spec-cli` as usual.
 
+The one control that hands work to a Session is the milestone goal launcher
+described below. It writes no file itself; any file change afterwards comes
+from the Session's agent running the submitted goal.
+
+## Complete the Next Milestone With One Goal
+
+When the roadmap index document is open in a surface bound to a Session — the
+right-sidebar tab's active Session, or the Session chosen in the left page's
+picker — the index view offers a **Complete next milestone** button. It shows
+an inline confirmation with the target Session and the exact objective, and
+nothing is sent until you confirm. Confirming submits one `/goal` command to
+that Session, exactly as if you had typed it, so the host creates and arms the
+goal and its own goal strip shows progress, pause, and resume.
+
+The objective is fixed English text. It tells the agent to repeatedly run the
+`strict-roadmap-recommend` skill; the milestone owning the first recommended
+planned change becomes the target, and later rounds pass it as the milestone
+hint while each change runs through `strict-spec-auto` to archive. The goal
+completes once `strict-spec-cli roadmap-status` reports every planned change of
+that milestone complete, and blocks with a reason on `roadmap-error`,
+`refine-milestone`, `no-candidate` before completion, or open questions that
+need a human answer.
+
+If the Session refuses — for example because it already holds an unfinished
+goal, or it offers no `/goal` command — the view shows the reason inline,
+leaves the existing goal untouched, and the button is usable again. The view
+derives no next milestone itself; the scripted recommendation chooses it.
+
 ## Built-in Strict Tooling
 
 The plugin carries the strict workflow's own tooling, so installing the plugin

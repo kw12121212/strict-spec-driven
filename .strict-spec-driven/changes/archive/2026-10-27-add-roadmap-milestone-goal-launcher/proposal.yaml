@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-roadmap-milestone-goal-launcher
+  status: proposed
+summary:
+  what:
+    - Add a launch control to the roadmap index view of the strict documents viewer that, after an inline confirmation, submits one /goal command to the Session the viewer surface is bound to, whose fixed English objective repeatedly runs the strict-roadmap-recommend skill until the milestone the first recommendation selects is complete.
+  why:
+    - The operator already drives milestones through DSH goals but has to retype or paste the same long goal prompt for every milestone, which is repetitive and risks a wrong or missing stop condition.
+    - Several roadmap milestones are about to be pushed through one after another, so the retyping cost and its error risk recur for each of them.
+scope:
+  in:
+    - One launch control in the roadmap index view, offered in both the right-sidebar tab and the left-sidebar page whenever the surface is bound to a Session, and not offered when no Session is bound.
+    - An inline confirmation that shows the exact objective text and the target Session before anything is submitted; cancelling submits nothing.
+    - Submitting the objective as a /goal command line to the bound Session through the host command execution remote, the same path a typed /goal takes, with the control disabled while a submission is pending.
+    - A fixed English objective that names the strict-roadmap-recommend skill, locks onto the milestone owning the first recommended planned change, passes that milestone selector on later rounds, completes the goal when that milestone's planned changes are all complete, and blocks on roadmap-error, refine-milestone, no-candidate before completion, or open questions needing a human answer.
+    - Showing a refused or failed submission inline with the reason, leaving any existing goal untouched and the control usable again.
+    - A MODIFIED read-only-viewing requirement that admits this confirmed launch control as the one control that hands work to the Session agent, while the viewer itself still writes no file.
+    - Plugin README updates in both shipped locales describing the control.
+  out:
+    - Per-milestone launch controls in the index rows or in the milestone document view.
+    - Showing, pausing, resuming, or clearing goals inside the viewer; the host goal strip owns goal state presentation.
+    - Creating a new Session for the goal, choosing a custom round cap, or replacing an existing unfinished goal.
+    - Changing the strict-roadmap-recommend or strict-spec-auto skills, or the roadmap-recommend CLI.
+    - Deriving the next milestone or any roadmap status inside the viewer.
+unchanged_behavior:
+  - The document tree, every dedicated and generic document view, live refresh, and the Session picker behave as before.
+  - The viewer itself still writes, edits, and deletes no strict workflow file.
+  - The built-in skill and CLI provision of the plugin host entry is unchanged.

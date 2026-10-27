@@ -1,0 +1,69 @@
+schema: strict-spec-driven/scene/v1
+schema_version: 1
+artifact_type: scene
+schema_file: templates/strict-spec-driven/schemas/scene.yaml
+scene:
+  id: operator-launches-milestone-goal
+  title: An operator launches a goal that completes the next roadmap milestone
+area: dsh-viewer
+status: draft
+actors:
+  - name: operator
+    role: A person using a dsh client who starts autonomous work on the roadmap from the strict documents viewer instead of typing a goal prompt.
+  - name: session-agent
+    role: The agent of the Session the viewer surface is bound to, which receives the goal and runs the strict skills in goal rounds.
+preconditions:
+  - The strict document viewer plugin is installed in a dsh client whose release is inside the plugin's compatibility range and offers the /goal command.
+  - The shown workspace uses the strict-spec-driven workflow and holds a roadmap index.
+  - 'The viewer surface is bound to a Session: the right-sidebar tab to the active Session, or the left-sidebar page to the Session chosen in its picker.'
+main_flow:
+  open-roadmap-index:
+    action: The operator opens the roadmap index document in a viewer surface bound to a Session, and the index view offers the milestone goal launch control.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: roadmap-index-milestone-goal-control
+  request-launch:
+    action: The operator activates the launch control, and the view shows an inline confirmation presenting the exact goal objective and the target Session.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: milestone-goal-confirmation
+  confirm-launch:
+    action: The operator confirms, and the viewer submits the objective as a /goal command to the bound Session while the control is unavailable until the submission settles.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: milestone-goal-submission
+      - spec_id: dsh-viewer-behavior
+        requirement_id: read-only-viewing
+  goal-rounds-run:
+    action: The session agent runs goal rounds, each running strict-roadmap-recommend on the milestone the first recommendation selected and carrying the created change through to archive, until it completes or blocks the goal.
+    no_coverage_reason: Round scheduling belongs to the host goal driver and the work in each round to the strict-roadmap-recommend and strict-spec-auto skills; the viewer neither observes nor controls the rounds after submission.
+  progress-visible:
+    action: The operator watches the roadmap and change documents in the viewer update as the agent writes them.
+    covered_by:
+      - spec_id: dsh-viewer-behavior
+        requirement_id: live-refresh
+exception_flows:
+  confirmation-cancelled:
+    trigger: The operator cancels the inline confirmation instead of confirming.
+    steps:
+      nothing-submitted:
+        action: The confirmation closes, nothing is submitted to the Session, and the launch control is offered again.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: milestone-goal-confirmation
+  submission-refused:
+    trigger: The Session refuses or fails the /goal submission, for example because an unfinished goal already exists or the goal command is unavailable.
+    steps:
+      refusal-shown:
+        action: The view shows the refusal inline with the reason the Session gave, any existing goal is left unchanged, and the launch control becomes usable again.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: milestone-goal-refusal-shown
+  no-session-bound:
+    trigger: The left-sidebar page shows the roadmap index with no Session chosen, so no Session can receive the goal.
+    steps:
+      control-absent:
+        action: The roadmap index view renders without the launch control.
+        covered_by:
+          - spec_id: dsh-viewer-behavior
+            requirement_id: roadmap-index-milestone-goal-control

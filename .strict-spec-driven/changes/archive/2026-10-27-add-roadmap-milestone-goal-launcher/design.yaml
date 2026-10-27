@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-roadmap-milestone-goal-launcher
+approach:
+  - Add a plugin-owned goal-launch port in the model layer that mirrors the pinned dsh 0.2.1-rc.2 commands/execute wire contract (agentId, command line, submitted attachments) and is adapted once in the client entry from ctx.remote.commands, so model and component code never touch the remote face.
+  - Build the objective text in a React-free model module as one fixed English string, and render the launch control, inline confirmation strip, pending state, and inline refusal in the roadmap index view, fed through the view context from the entry points; the right-sidebar tab passes its bound sessionId and the left page passes the picker's chosen Session, and with no bound Session the control is not rendered.
+  - Declare remote.commands in the client inject export and the commands package in package.json dsh.client.inject, add @deepseek-ai/dsh-commands as a pinned type-only devDependency, register every new string in the zh and en catalogs, and style with --dsw-alias tokens only.
+  - Keep the launcher state in a per-Session launcher cache created once in the client entry and shared by the tab surfaces and the page, rendering the control from a hook-free view whose button handlers suites fire directly.
+decisions:
+  submit-through-goal-command:
+    decision: Submit the objective as the line '/goal <objective>' through commands/execute rather than calling goals/create directly.
+    rationale: 'The command path is exactly what a typed /goal does: it creates and arms the goal, leaves the durable command-input bubble in the conversation for audit, and reports the host''s own refusal text, without the plugin depending on the goals remote namespace or reproducing arming semantics.'
+  refusal-from-host-not-precheck:
+    decision: Do not pre-read the Session's goal to disable the control; rely on the /goal command refusing a create while an unfinished goal exists, and show that refusal inline.
+    rationale: The host's compare-and-set goal service is the authority on whether a goal may be created, a pre-read would be stale by click time anyway, and skipping it avoids a second remote namespace and a derived value in the viewer.
+  milestone-chosen-by-first-recommendation:
+    decision: The objective does not name a milestone; it instructs the agent to lock onto the milestone owning the planned change the first strict-roadmap-recommend round selects and to pass that milestone selector on every later round.
+    rationale: The operator chose a single index-level button and the viewer must not derive roadmap status, so the scripted recommendation, which already accounts for ordering, blockers, and deferred milestones, decides which milestone is next.
+  inline-confirmation-strip:
+    decision: Confirmation is an inline strip inside the roadmap index view that shows the exact objective and target Session with confirm and cancel actions, not a modal dialog.
+    rationale: An inline strip needs no new shared dialog package and its dependency closure, stays within pane width in the right sidebar, and is statically renderable for component tests.
+  modify-read-only-viewing:
+    decision: Carry a MODIFIED read-only-viewing requirement that keeps the viewer writing no file itself and admits the confirmed goal launch control as the single control that hands work to the bound Session's agent.
+    rationale: The current MUST statement forbids any control that writes strict workflow files; the goal it launches does write them through the agent, so the requirement must state the exception explicitly instead of being silently contradicted.
+  scene-for-goal-launch:
+    decision: Record a new dsh-viewer scene operator-launches-milestone-goal whose host-driven goal rounds step is deliberately uncovered by viewer requirements and whose progress step reuses live-refresh.
+    rationale: The change is user-observable, so the flow is written down before requirements; the rounds themselves are owned by the host goal driver and the strict skills, not by the viewer.
+  objective-rendered-as-payload:
+    decision: The confirmation renders the objective verbatim from the model constant instead of through a locale entry, while every surrounding label, button, and notice renders through the zh and en catalogs.
+    rationale: The objective is the exact command payload the Session receives and was settled as English in every locale; rendering it from the same constant the command line is built from guarantees the confirmation shows what is submitted, whereas a translated copy could drift from the payload.
+  commands-type-closure-already-resolved:
+    decision: Add @deepseek-ai/dsh-commands alone as the pinned type-only devDependency, without separately declaring dsh-session, dsh-attachment, and dsh-typert-protocol that its declarations import, and list it among the bundle suite's type-only runtime-require prohibitions.
+    rationale: Those three packages are already installed at the pinned 0.2.1-rc.2 line through the declared dsh-api-session-controller type-only dependency, the plugin's tsc resolves and passes against them, and the existing session and workspace controller dependencies follow the same practice; the type-closure SHOULD rule targets a closure tsc cannot resolve, which does not occur here.
+alternatives:
+  - option: Call goals/create through a new remote.goals port.
+    reason: It bypasses the command-input bubble, requires reproducing whether a remote create arms continuation, and adds a second host namespace dependency.
+  - option: Put one launch control on each milestone row or in the milestone document view.
+    reason: The operator explicitly chose a single index-level control with the recommendation choosing the milestone.
+  - option: Post the objective as an ordinary chat prompt through session/prompt.
+    reason: A plain prompt runs one turn and does not create a goal, so nothing keeps re-running the recommendation until the milestone completes.
+risks:
+  - If a host preset omits the /goal command, the submission is refused; the inline refusal must name the host's reason so the operator knows the goal command is unavailable.
+  - Whether commands/execute invoked from a plugin client renders the same command-input bubble as a typed /goal is verified during implementation against an isolated dsh 0.2.1-rc.2 profile; if it does not, the goal still runs and only the bubble differs.
+  - Static rendering drops click handlers, so the launch, confirm, and cancel paths need explicit handler-invocation tests rather than relying on rendered markup.

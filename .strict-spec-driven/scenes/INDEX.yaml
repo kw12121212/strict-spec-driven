@@ -17,6 +17,10 @@ areas:
       title: An operator installs the strict document viewer plugin into dsh
       status: draft
       path: .strict-spec-driven/scenes/dsh-viewer/operator-installs-viewer-plugin.yaml
+    operator-launches-milestone-goal:
+      title: An operator launches a goal that completes the next roadmap milestone
+      status: draft
+      path: .strict-spec-driven/scenes/dsh-viewer/operator-launches-milestone-goal.yaml
   workflow:
     roadmap-backed-change-reaches-archive:
       title: A roadmap-backed change is carried from recommendation to archive

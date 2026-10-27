@@ -25,6 +25,12 @@
  * never shares viewer stores with another Session. Both registrations go
  * through ctx.slots.inject, and every user-visible string is registered in
  * both the zh and en catalogs of the `strictSpec` namespace.
+ *
+ * Both surfaces also carry the milestone goal launcher: the entry adapts
+ * the `remote.commands` face once into the plugin-owned command port and
+ * keeps one launcher per Session, which the tab surface takes for its bound
+ * Session and the page takes for the Session its picker shows, so the
+ * roadmap index launch control always submits `/goal` to that Session.
  */
 import type { Context as ClientContext } from "@deepseek-ai/cordis";
 // Type-only contract merges: the runtime halves belong to the host shell and
@@ -40,6 +46,9 @@ import type {} from "@deepseek-ai/dsh-api-workspace-controller/client";
 // onto ctx.remote; loading its types is what makes the remote port adapter
 // type-check against the real face.
 import type {} from "@deepseek-ai/dsh-api-workspace-files/remote";
+// The commands remote-client half composes the `commands` namespace the
+// milestone goal launcher submits its `/goal` line through.
+import type {} from "@deepseek-ai/dsh-commands/remote";
 import type {} from "@deepseek-ai/dsh-client-locale/client";
 import type {} from "@deepseek-ai/dsh-client-ui-layout/client";
 import type {} from "@deepseek-ai/dsh-client-ui-renderer/client";
@@ -55,6 +64,7 @@ import { en, zh } from "./client/locales.ts";
 import { createPageController, createPageSelectionStore, createSessionCatalogPort } from "./model/picker.ts";
 import { createTabSurfaces } from "./model/tab.ts";
 import { createRemotePort } from "./model/port.ts";
+import { createCommandPort, createGoalLaunchers } from "./model/goalLaunch.ts";
 import { createViewerStores } from "./model/store.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" {
@@ -65,7 +75,7 @@ declare module "@deepseek-ai/dsh-client-ui-slots" {
 }
 
 /** Services required before the panel registrations run. */
-export const inject = ["slots", "locale", "remote", "remote.workspaceFiles", "sessions", "workspaces", "sidebarRightTabs"];
+export const inject = ["slots", "locale", "remote", "remote.workspaceFiles", "remote.commands", "sessions", "workspaces", "sidebarRightTabs"];
 
 /** The shared identity of the sidebar row and its main panel. */
 const PANEL_ID = "strict-spec";
@@ -112,7 +122,11 @@ export function apply(ctx: ClientContext): void {
   const page = createPageSelectionStore();
   const controller = createPageController(viewer, page.store);
   const picker = createSessionCatalogPort(ctx.sessions, ctx.workspaces);
-  const tabSurfaces = createTabSurfaces(remotePort);
+  // The milestone goal launchers: one per Session over the one command
+  // port, shared by the page and the tab surfaces so both entry points
+  // show the same Session's launch state.
+  const goalLaunchers = createGoalLaunchers(createCommandPort({ commands: ctx.remote.commands }));
+  const tabSurfaces = createTabSurfaces(remotePort, goalLaunchers);
   // The main-slot occupant closes over the seams so the page component
   // itself stays a pure props consumer; building the element through the
   // shared jsx-runtime factory keeps the bundle off a bare react require
@@ -120,7 +134,7 @@ export function apply(ctx: ClientContext): void {
   // wrapper: the seat's per-Session inject factory supplies its surface
   // and the locale registration supplies its translate function.
   const PageWithSeams = (slotProps: PropsRuntime<"main"> & PropsLocale<"strictSpec">): ReactNode =>
-    jsx(StrictDocumentsPage, { ...slotProps, picker, pageSelection: page.store, pageActions: page.actions, controller, viewer });
+    jsx(StrictDocumentsPage, { ...slotProps, picker, pageSelection: page.store, pageActions: page.actions, controller, viewer, goalLaunchers });
   ctx.slots.inject("sidebar.panellist", () =>
     ctx.slots.register(
       {

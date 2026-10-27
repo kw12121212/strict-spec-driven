@@ -153,3 +153,56 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* The roadmap index milestone goal launch control: a launch row, an
+ * inline confirmation card with the verbatim objective, and the launched
+ * and refused notices. */
+
+.goalLaunch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.goalActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.goalHint,
+.goalConfirmSession,
+.goalNotice {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.goalConfirmTitle {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.goalObjective {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-mono-font-family);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.goalRefusal {
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  color: var(--dsw-alias-state-error-primary);
+  overflow-wrap: anywhere;
+}

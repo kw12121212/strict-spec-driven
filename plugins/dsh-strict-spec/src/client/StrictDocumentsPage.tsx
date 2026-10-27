@@ -23,6 +23,7 @@ import { revealAnchor } from "./anchorReveal.ts";
 import { resolveShownSession } from "../model/picker.ts";
 import type { PageController, PageSelection, PageSelectionActions, PickerCatalog, SessionCatalogPort } from "../model/picker.ts";
 import type { ViewerStores } from "../model/store.ts";
+import type { GoalLaunchers } from "../model/goalLaunch.ts";
 import type { StrictSpecKey } from "./locales.ts";
 import styles from "./StrictDocumentsPage.module.css";
 
@@ -44,6 +45,12 @@ export interface StrictDocumentsPageProps {
   readonly controller: PageController;
   /** The shared viewer stores both entry points drive. */
   readonly viewer: ViewerStores;
+  /**
+   * The per-Session milestone goal launchers; the shown Session's launcher
+   * reaches the document view, so the roadmap index launch control submits
+   * to the Session chosen in the picker.
+   */
+  readonly goalLaunchers?: GoalLaunchers;
   /** The strictSpec translate function; every visible string renders through it. */
   readonly t: Translate<StrictSpecKey>;
 }
@@ -189,7 +196,7 @@ export function StrictDocumentsPage(props: StrictDocumentsPageProps): ReactNode 
             <DocumentTree sessionId={shown.sessionId} tree={viewer.tree} actions={viewer.actions} open={viewer.open} t={t} />
           </div>
           <div className={styles.documentPane} role="region" aria-label={t("page.document-pane")}>
-            <DocumentView state={openState} t={t} context={{ sessionId: shown.sessionId, viewer }} />
+            <DocumentView state={openState} t={t} context={{ sessionId: shown.sessionId, viewer, goal: props.goalLaunchers?.get(shown.sessionId) }} />
           </div>
         </div>
       ) : shown.workspaceId !== undefined ? (
