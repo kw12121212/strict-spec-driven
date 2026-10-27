@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-strict-spec",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Strict workflow document viewer plugin for DeepSeek Harness",
   "type": "module",
   "main": "./dist/host.js",
