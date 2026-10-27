@@ -17,7 +17,7 @@
 #     publishing. No registry credential lives in repository secrets: the npm
 #     side trusts this repository and workflow filename, and npm generates the
 #     provenance statement for the publish.
-name: publish-plugin
+name: publish-npm
 
 on:
   push:
