@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: publish-plugin-on-main-merge
+approach:
+  - 'Publication moves to the merge boundary. The repository keeps dev as the branch where work lands and main as the release line, and the single publish-plugin workflow runs on every push to main (plus a manual dispatch for retries). A run first reads the committed plugin version and asks the registry whether that version already exists: an existing version ends the run green with a skip notice, because main legitimately receives merges that do not bump the version. A new version must then be named by an existing plugin-v tag pointing at the pushed commit, which keeps the version identity and the release-asset source that the tightest existing rule depends on. Both public channels publish in that one run: the packed tarball attaches to the tag release, and the same build goes to the registry over Trusted Publishing (OIDC) with provenance, so no repository secret exists to gate, leak, or rot.'
+decisions:
+  trigger-on-main-merge:
+    decision: The publication workflow triggers on pushes to main and on workflow_dispatch, not on tag pushes.
+    rationale: The requester release boundary is the merge; a tag push is a second manual act that can be forgotten and that leaves the registry version undated relative to the release line.
+  oidc-trusted-publishing:
+    decision: The registry publish authenticates over OIDC trusted publishing with id-token write and no repository secret.
+    rationale: The dormant NPM_TOKEN gate is the reason the npm channel has never shipped; OIDC removes the long-lived credential, generates provenance automatically, and needs the package to exist first, so only the first publish is manual.
+  tag-still-names-the-version:
+    decision: A run publishes a version only when plugin-v plus that version exists and points at the pushed commit.
+    rationale: Version identity and the release-asset channel keep the shape the existing rule established while the trigger moves, and an untagged or stale tag fails closed before anything reaches a public channel.
+  idempotent-skip:
+    decision: A version the registry already carries makes the run succeed with a skip notice instead of a failure.
+    rationale: Main receives merges that do not bump the version; a red run for every such merge would make the pipeline permanently broken and hide the runs that actually publish.
+  no-delta-spec:
+    decision: 'No main spec requirement changes: publication discipline lives in the dsh-plugin-host technical standard, and no spec in .strict-spec-driven/specs describes the public release channel, so this change carries a delta-tech only.'
+    rationale: The behavior every spec states is unchanged; the modified rule is a technical standard about how a release is produced and shipped, which the change records through the dsh-plugin-host delta.
+alternatives:
+  - option: Keep the tag-push trigger and only switch the npm job to OIDC.
+    reason: Publishing would still need a second manual act after the merge, which is the step the requester asked to remove.
+  - option: Keep the NPM_TOKEN secret gate and merely document enabling it.
+    reason: It requires a long-lived write credential in repository secrets and has kept the npm channel dormant since it was added, so the requested automation would not activate.
+risks:
+  - A trusted-publisher configuration expires when its first publish does not land within two days; the operator must publish one version manually and configure the trusted publisher immediately after.
+  - A merge to main that bumps the plugin version without pushing the matching tag fails the run by design, so the release line must keep the merge, the tag, and the version bump atomic.

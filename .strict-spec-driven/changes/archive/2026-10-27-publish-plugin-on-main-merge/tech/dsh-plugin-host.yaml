@@ -1,0 +1,16 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: dsh-plugin-host
+operations:
+  ADDED: {}
+  MODIFIED:
+    plugin-publishes-only-from-ci-tag:
+      strength: MUST
+      statement: A dsh plugin distributed publicly — through a package registry or as release assets — MUST ship only from a CI run triggered by a pushed commit on the repository release branch that is named by an existing plugin-v tag pointing at that same commit, with the tag naming exactly the committed plugin version, with registry authentication over OIDC trusted publishing where the registry supports it, with no long-lived registry credential stored in repository secrets, and with provenance enabled where the channel supports it, so no working tree, no version mismatch, and no local machine can produce a public release; a release-asset channel MUST attach exactly the packed tarball that run built, and a run whose version the registry already carries MUST end successfully without republishing.
+      rationale: 'The release boundary is now the merge into the release line: gating both public channels on one run at that boundary keeps the discipline uniform while removing the second manual tag-push act and the dormant secret gate that kept the registry channel unshipped; requiring the plugin-v tag to name the same version and commit preserves version identity and the release-asset source, OIDC removes a long-lived write credential, and skipping an already-published version keeps merges that do not bump the version green.'
+      enforcement:
+        method: ci
+        detail: The workflow refuses to run either channel shipping step unless a plugin-v tag exists that names exactly the version committed in plugins/dsh-strict-spec/package.json and points at the pushed commit on the release branch; a version the registry already carries ends the run green with a skip notice; the release job uploads the tarball the same run packed with contents write permission; the registry job holds id-token write, reads no repository secret, and keeps provenance; the release suite asserts the merge trigger, the id-token permission, the skip path, and additionally inspects every workflow file for job-level if conditions reading contexts GitHub does not offer there.
+  REMOVED: {}

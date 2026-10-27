@@ -1,0 +1,43 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: publish-plugin-on-main-merge
+sections:
+  Implementation:
+    update-publish-workflow:
+      text: 'Rewrite .github/workflows/publish-plugin.yml: trigger on push to main plus workflow_dispatch, read the committed plugin version, skip green when the registry already carries it, require the plugin-v tag to name that version and point at the pushed commit, publish the same build to the registry over OIDC with id-token write and no secret gate, and keep the release-asset job on the same run.'
+      status: complete
+    add-prepublish-build:
+      text: Add a prepublishOnly rebuild to plugins/dsh-strict-spec/package.json so a registry publish always carries the built bundle.
+      status: complete
+    apply-rule-delta:
+      text: Apply the dsh-plugin-host delta to .strict-spec-driven/tech/dsh-plugin-host.yaml and re-render ARCHITECTURE.md so the modified rule carries through the generated architecture document.
+      status: complete
+    document-branch-split:
+      text: Record the dev-as-development-branch and main-as-release-line conventions in AGENTS.md, including that a merge to main is the publication boundary.
+      status: complete
+    assert-workflow-shape:
+      text: Extend test/suites/dsh-plugin.ts to assert the merge trigger, the id-token write permission, the registry skip path, and the absence of a token gate, with negative probes for each.
+      status: complete
+  Testing:
+    plugin-suite:
+      text: Run the full repository suite against the rebuilt dist output.
+      status: complete
+      command: bun test/run.ts
+    workflow-shape-probes:
+      text: 'Prove each new workflow assertion fails when the guarded shape is mutated: trigger reverted to a tag push, id-token write removed, skip path removed, and a secret gate reintroduced.'
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-change-artifacts:
+      text: Validate the change artifacts and their cross-file consequences.
+      status: complete
+      command: strict-spec-cli verify publish-plugin-on-main-merge
+    architecture-render-clean:
+      text: Re-render the architecture document and confirm the working tree diff carries only the intended rule text.
+      status: complete
+      command: strict-spec-cli architecture-generate
+testing_gates:
+  validation_task: workflow-shape-probes
+  unit_test_task: plugin-suite

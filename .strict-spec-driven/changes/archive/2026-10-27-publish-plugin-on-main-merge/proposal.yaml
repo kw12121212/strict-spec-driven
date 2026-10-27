@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: publish-plugin-on-main-merge
+  status: proposed
+summary:
+  what:
+    - 'Move dsh-plugin-strict-spec public publication from a tag-push trigger to a merge-to-main trigger: the repository adopts dev as its development branch and main as its release line, and any commit landing on main publishes the plugin.'
+    - Replace the NPM_TOKEN secret gate with npm Trusted Publishing over OIDC so the npm channel activates with no long-lived credential, guarded by an idempotent skip for a version the registry already carries.
+    - MODIFY the plugin-publishes-only-from-ci-tag rule so a public release requires a CI run triggered by a pushed commit on main whose committed plugin version is named by an existing plugin-v tag pointing at that commit.
+  why:
+    - The requester wants any merge into main to publish without a separate manual tag step; today the npm job is gated on an NPM_TOKEN repository secret that does not exist, so the npm channel has never shipped a version.
+    - OIDC removes the long-lived registry credential the current rule mandates reading from repository secrets, which is the weaker supported auth path and the one that keeps the channel dormant.
+scope:
+  in:
+    - '.github/workflows/publish-plugin.yml: push-to-main and workflow_dispatch triggers, version-and-tag equality check, registry-presence skip, OIDC publish step, and the release-asset job kept on the same run.'
+    - 'plugins/dsh-strict-spec/package.json: prepublishOnly rebuild so a registry publish always carries the built bundle.'
+    - '.strict-spec-driven/tech/dsh-plugin-host.yaml: MODIFIED plugin-publishes-only-from-ci-tag, plus the ARCHITECTURE.md re-render that carries it.'
+    - 'test/suites/dsh-plugin.ts: assertions for the merge trigger, the id-token write permission, the idempotent skip, and the absence of a token gate.'
+    - 'AGENTS.md: the dev-as-development-branch and main-as-release-line conventions.'
+  out:
+    - No plugin runtime, bundle shape, built-in skill body, CLI bundle, dependency, or engines.dsh change; the plugin version stays 0.5.0 in this change.
+    - The strict-spec-driven root package is not published to any registry.
+    - The operator personal release skill under ~/.dsh/skills/strict-spec-release is updated outside this repository as an operator act.
+    - No npm-side trusted-publisher configuration is committed; it is a manual operator step that follows the first manual publish.
+unchanged_behavior:
+  - Every existing dsh-plugin-host, dsh-plugin-client, and dsh-plugin-tooling requirement keeps holding; the packed tarball keeps exactly the built bundle directory, the bundle patch, the per-locale READMEs, and the license file.
+  - The plugin-v tag remains the version identity and the release-asset source; no run publishes a version that no tag names.
+  - The release suite keeps inspecting every workflow file for job-level if conditions that read contexts GitHub does not offer there.
