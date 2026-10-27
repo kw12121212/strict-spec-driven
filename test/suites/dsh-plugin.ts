@@ -61,6 +61,59 @@ export function inspectWorkflowJobIfs(files: ReadonlyArray<{ path: string; text:
   return findings;
 }
 
+/** One publication-workflow defect, by stable category. */
+export type PublicationFinding = { category: string; detail: string };
+
+/**
+ * Inspect the publication workflow for the merge-triggered shape: the run is
+ * triggered by pushes to the release branch plus a manual dispatch, the
+ * registry step authenticates over OIDC instead of a repository secret, and a
+ * version the registry already carries ends the run through a skip path.
+ *
+ * Pure over the workflow text, so the suite runs it against the real file and
+ * then against mutated copies, proving each check catches its own mutation.
+ */
+export function inspectPublicationWorkflow(text: string): PublicationFinding[] {
+  const findings: PublicationFinding[] = [];
+  let doc: Record<string, unknown>;
+  try {
+    doc = yaml.load(text) as Record<string, unknown>;
+  } catch (error) {
+    return [{ category: "unparsable", detail: String(error) }];
+  }
+  const triggers = (doc.on ?? (doc as Record<string, unknown>)[String(true)]) as Record<string, unknown> | undefined;
+  const push = triggers?.push as { branches?: unknown; tags?: unknown } | undefined;
+  const branches = Array.isArray(push?.branches) ? push.branches : [];
+  if (!branches.includes("main")) {
+    findings.push({ category: "push-to-main", detail: JSON.stringify(branches) });
+  }
+  if (push?.tags !== undefined) {
+    findings.push({ category: "tag-trigger", detail: JSON.stringify(push.tags) });
+  }
+  if (triggers?.workflow_dispatch === undefined) {
+    findings.push({ category: "manual-dispatch", detail: "workflow_dispatch is not declared" });
+  }
+
+  const jobs = (doc.jobs ?? {}) as Record<string, Record<string, unknown>>;
+  const jobPermissions = (jobs["publish-npm"]?.permissions ?? {}) as Record<string, string>;
+  const topPermissions = (doc.permissions ?? {}) as Record<string, string>;
+  const idToken = jobPermissions["id-token"] ?? topPermissions["id-token"];
+  if (idToken !== "write") {
+    findings.push({ category: "id-token", detail: `id-token is ${String(idToken)}` });
+  }
+
+  if (/secrets\.\s*NPM_TOKEN|NODE_AUTH_TOKEN/.test(text) || /npm\s+config\s+set\s+.*_authToken/.test(text)) {
+    findings.push({ category: "token-gate", detail: "the registry credential comes from repository state" });
+  }
+  if (!/npm view\s+"?dsh-plugin-strict-spec@/.test(text) || !text.includes("skip=true")) {
+    findings.push({ category: "registry-skip", detail: "no already-published skip path" });
+  }
+  if (text.includes("--provenance")) {
+    findings.push({ category: "manual-provenance", detail: "provenance is automatic under trusted publishing" });
+  }
+  return findings;
+}
+
 /**
  * Checks a files allowlist against the entries a packed tarball requires:
  * source, build-script, test-support, and dependency paths must never ship,
@@ -640,6 +693,31 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     inspectWorkflowJobIfs(needsGate).length === 0,
     "the workflow if inspector passes the needs-outputs form job-level if may use",
   );
+
+  context.section("dsh plugin: publication workflow shape");
+
+  const publishWorkflow = workflowFiles.find((file) => file.path.endsWith("publish-plugin.yml"));
+  context.assert(publishWorkflow !== undefined, "the repository declares the publication workflow");
+  const publishText = publishWorkflow?.text ?? "";
+  context.assert(
+    inspectPublicationWorkflow(publishText).length === 0,
+    "the publication workflow publishes from a main merge over OIDC with an already-published skip",
+    JSON.stringify(inspectPublicationWorkflow(publishText)),
+  );
+  const publicationMutations: ReadonlyArray<readonly [string, string]> = [
+    ["push-to-main", publishText.replace("  push:\n    branches:\n      - main", "  push:\n    branches:\n      - trunk")],
+    ["tag-trigger", publishText.replace("  push:\n    branches:", '  push:\n    tags:\n      - "plugin-v*"\n    branches:')],
+    ["id-token", publishText.split("id-token: write").join("id-token: read")],
+    ["token-gate", `${publishText}\n# secrets.NPM_TOKEN supplies a registry credential\n`],
+    ["registry-skip", publishText.split("skip=true").join("skip=never")],
+    ["manual-provenance", `${publishText}\n# npm publish --provenance is not needed under trusted publishing\n`],
+  ];
+  for (const [category, mutated] of publicationMutations) {
+    context.assert(
+      inspectPublicationWorkflow(mutated).some((finding) => finding.category === category),
+      `the publication workflow check reports ${category} when that shape is mutated`,
+    );
+  }
 
   context.section("dsh plugin: locale catalogs");
 

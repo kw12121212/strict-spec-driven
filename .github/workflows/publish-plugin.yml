@@ -1,42 +1,92 @@
 # Distribute dsh-plugin-strict-spec publicly.
 #
 # Publication discipline (see the dsh-plugin-host standard, rule
-# plugin-publishes-only-from-ci-tag): a release exists only as a pushed
-# plugin-v<version> tag that names exactly the version committed in
-# plugins/dsh-strict-spec/package.json. The equality check runs first and
-# fails closed, so a stale or mistyped tag can never ship wrong bits.
+# plugin-publishes-only-from-ci-tag): a public release ships only from this
+# workflow run on a pushed commit of main, and only when an existing
+# plugin-v<version> tag names exactly the version committed in
+# plugins/dsh-strict-spec/package.json and points at that same commit. The
+# ancestry, tag, and version checks run first and fail closed, so a stale or
+# mistyped tag can never ship wrong bits, and a merge that carries no new
+# version ends green with a skip notice instead of a red run.
 #
-# Three jobs share that tag:
-#   - npm-token-gate: exports whether the NPM_TOKEN secret exists. A
-#     job-level `if` may read only github/needs/vars/inputs — not env or
-#     secrets — so the token decision travels through a needs output.
-#   - release (always): builds the plugin, packs the npm-shaped tarball,
-#     and attaches it to the tag's GitHub Release — the primary public
-#     channel, needing nothing but this repository.
-#   - publish-npm (only when the gate says the token exists): publishes
-#     the same build to the npm registry with provenance; dormant until
-#     the operator configures the secret, and skipped as a whole job on
-#     release-only tags so those runs stay green without a wasted build.
+# Both public channels publish from that one run:
+#   - release: builds the plugin, packs the npm-shaped tarball, and attaches it
+#     to the tag's GitHub Release — the release-asset channel, needing nothing
+#     but this repository.
+#   - publish-npm: publishes the same build to the registry over OIDC trusted
+#     publishing. No registry credential lives in repository secrets: the npm
+#     side trusts this repository and workflow filename, and npm generates the
+#     provenance statement for the publish.
 name: publish-plugin
 
 on:
   push:
-    tags:
-      - "plugin-v*"
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-plugin-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  npm-token-gate:
+  resolve:
     runs-on: ubuntu-latest
     outputs:
-      has_token: ${{ steps.gate.outputs.has_token }}
+      version: ${{ steps.gate.outputs.version }}
+      skip: ${{ steps.gate.outputs.skip }}
+      dist_tag: ${{ steps.gate.outputs.dist_tag }}
     steps:
-      - name: Export whether the NPM_TOKEN secret exists
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Decide whether this commit publishes
         id: gate
-        env:
-          HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
-        run: echo "has_token=$HAS_NPM_TOKEN" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./plugins/dsh-strict-spec/package.json').version")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          case "$version" in
+            *-*) echo "dist_tag=next" >> "$GITHUB_OUTPUT" ;;
+            *) echo "dist_tag=latest" >> "$GITHUB_OUTPUT" ;;
+          esac
+          if npm view "dsh-plugin-strict-spec@${version}" version >/dev/null 2>&1; then
+            echo "::notice::the registry already carries ${version}; nothing to publish"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          git fetch -q origin main --tags
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "the published commit $GITHUB_SHA is not on main" >&2
+            exit 1
+          fi
+          tag="plugin-v${version}"
+          if ! git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "no ${tag} tag names the committed plugin version ${version}" >&2
+            exit 1
+          fi
+          if [ "$(git rev-list -n 1 "refs/tags/${tag}")" != "$GITHUB_SHA" ]; then
+            echo "${tag} does not point at the published commit $GITHUB_SHA" >&2
+            exit 1
+          fi
+          echo "publishing dsh-plugin-strict-spec@${version} from ${GITHUB_SHA} on main"
 
   release:
+    needs: resolve
+    if: needs.resolve.outputs.skip == 'false'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -44,16 +94,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
-
-      - name: Check tag matches the committed plugin version
-        run: |
-          committed="$(node -p "require('./plugins/dsh-strict-spec/package.json').version")"
-          tagged="${GITHUB_REF_NAME#plugin-v}"
-          if [ "$committed" != "$tagged" ]; then
-            echo "tag $GITHUB_REF_NAME does not match the committed plugin version $committed" >&2
-            exit 1
-          fi
-          echo "releasing dsh-plugin-strict-spec@$committed"
 
       - name: Install repository dependencies
         run: bun install
@@ -69,19 +109,20 @@ jobs:
       - name: Attach the tarball to the tag's GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: |
-          tag="${GITHUB_REF_NAME}"
-          version="$(node -p "require('./plugins/dsh-strict-spec/package.json').version")"
-          file="plugins/dsh-strict-spec/dsh-plugin-strict-spec-${version}.tgz"
+          set -euo pipefail
+          tag="plugin-v${VERSION}"
+          file="plugins/dsh-strict-spec/dsh-plugin-strict-spec-${VERSION}.tgz"
           gh release view "$tag" >/dev/null 2>&1 \
-            || gh release create "$tag" --title "dsh-plugin-strict-spec ${version}" \
-                 --notes "Plugin release ${version}. Install paths are documented in plugins/dsh-strict-spec/README.md."
+            || gh release create "$tag" --title "dsh-plugin-strict-spec ${VERSION}" \
+                 --notes "Plugin release ${VERSION}. Install paths are documented in plugins/dsh-strict-spec/README.md."
           gh release upload "$tag" "$file" --clobber
 
   publish-npm:
+    needs: [resolve, release]
+    if: needs.resolve.outputs.skip == 'false'
     runs-on: ubuntu-latest
-    needs: [release, npm-token-gate]
-    if: needs.npm-token-gate.outputs.has_token == 'true'
     permissions:
       contents: read
       id-token: write
@@ -90,14 +131,10 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - name: Check tag matches the committed plugin version
-        run: |
-          committed="$(node -p "require('./plugins/dsh-strict-spec/package.json').version")"
-          tagged="${GITHUB_REF_NAME#plugin-v}"
-          if [ "$committed" != "$tagged" ]; then
-            echo "tag $GITHUB_REF_NAME does not match the committed plugin version $committed" >&2
-            exit 1
-          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
 
       - name: Install repository dependencies
         run: bun install
@@ -109,9 +146,21 @@ jobs:
           bun run lint
           bun run build
 
-      - name: Publish to npm
+      - name: Publish to the registry
+        working-directory: plugins/dsh-strict-spec
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ needs.resolve.outputs.dist_tag }}
+        run: npm publish --access public --tag "$DIST_TAG"
+
+      - name: Report the published version
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: |
-          npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
-          npm publish ./plugins/dsh-strict-spec --provenance --access public
+          set -euo pipefail
+          curl -s "https://registry.npmjs.org/dsh-plugin-strict-spec/${VERSION}" > published.json
+          node -e '
+            const d = require("./published.json");
+            const repo = (d.repository && d.repository.url) || "no repository";
+            const attest = (d.dist && d.dist.attestations && d.dist.attestations.url) || "no provenance";
+            console.log(`${d.name}@${d.version} | ${repo} | ${attest}`);
+          '

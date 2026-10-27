@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-strict-spec",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Strict workflow document viewer plugin for DeepSeek Harness",
   "type": "module",
   "main": "./dist/host.js",
@@ -46,7 +46,8 @@
   },
   "scripts": {
     "build": "bun scripts/build-client.ts",
-    "lint": "tsc --noEmit -p ."
+    "lint": "tsc --noEmit -p .",
+    "prepublishOnly": "bun run build"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-api-session-controller": "0.2.1-rc.2",
@@ -99,7 +100,8 @@
   },
   "license": "Apache-2.0",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "repository": {
     "type": "git",

@@ -120,3 +120,21 @@ never assume a source-repository `templates` or `examples` directory.
   exit below the declared threshold is a blocking archive gate.
 - Do not silently widen workflow scope. If the desired YAML contract changes,
   update the relevant spec-driven artifacts first.
+
+## Branches and Publication
+
+- `dev` is the development branch: work lands there, and change commits are made
+  on it.
+- `main` is the release line. It receives merges from `dev` and nothing else; a
+  push to `main` is the publication boundary.
+- A commit landing on `main` publishes `dsh-plugin-strict-spec` when it carries a
+  version the registry does not have yet, and ends green with a skip notice when
+  that version is already published.
+- A publishing commit must be named by a `plugin-v<version>` tag that points at
+  it. The workflow fails closed when the tag is missing, names a different
+  version, or points at another commit.
+- The registry channel authenticates over OIDC trusted publishing; no registry
+  credential belongs in repository secrets.
+
+  The binding rule is `plugin-publishes-only-from-ci-tag` in
+  `.strict-spec-driven/tech/dsh-plugin-host.yaml`.

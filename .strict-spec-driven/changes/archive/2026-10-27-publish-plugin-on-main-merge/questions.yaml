@@ -1,0 +1,56 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: publish-plugin-on-main-merge
+open: []
+resolved:
+  - id: trigger-model
+    question: Should publication trigger on a pushed plugin-v tag or on any merge into main?
+    context: The release boundary decides whether a second manual act stands between the merge and the registry publish, and the existing rule mandates a tag-triggered run.
+    answer: On any merge into main, with an existing plugin-v tag still naming the committed version and pointing at the merged commit.
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: registry-channel-activation
+    question: How does the registry channel activate for a package the registry does not carry yet?
+    context: Trusted publishing can only be configured on an existing package, and its configuration expires when no publish lands within two days.
+    answer: The operator publishes one version manually, then configures the npm trusted publisher for this workflow filename, and the next merge publishes with no secret.
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: The change is planned against a need that lives only with the requester; the answer becomes the proposal's why.
+    answer: A merge into main can carry a plugin version that never reaches the registry, because publication needs a separate plugin-v tag push and the registry job is gated on an NPM_TOKEN repository secret that does not exist, so the npm channel has never shipped a version.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: Without a success condition nobody can tell afterwards whether the change worked.
+    answer: A merge into main that carries an unpublished plugin version publishes that version to the registry and attaches the packed tarball to the tag release with no repository secret; a merge whose version the registry already carries ends green with a skip notice.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: Work that nothing forced is the work most often thrown away later.
+    answer: The requester asked on 2026-10-27 for merge-triggered publication while adding npm automation to a second repository, which showed that this repository's registry channel had stayed dormant behind a secret gate.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: The requester knows which nearby behavior other people depend on, and the agent does not.
+    answer: The plugin runtime, bundle shape, built-in skill bodies, CLI bundle, packed-tarball allowlist, engines.dsh pin, and the current plugin version must all stay untouched.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: A short request usually admits several readings, and building the wrong one is indistinguishable from building nothing.
+    answer: Publication means the registry publish plus the release asset in one run; the plugin-v tag still names the version but no longer triggers the run, and a merge that does not bump the version must not fail.
+    status: resolved
+    kind: requirement
+    answered_by: human
