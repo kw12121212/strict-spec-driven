@@ -696,7 +696,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
 
   context.section("dsh plugin: publication workflow shape");
 
-  const publishWorkflow = workflowFiles.find((file) => file.path.endsWith("publish-plugin.yml"));
+  const publishWorkflow = workflowFiles.find((file) => file.path.endsWith("publish-npm.yml"));
   context.assert(publishWorkflow !== undefined, "the repository declares the publication workflow");
   const publishText = publishWorkflow?.text ?? "";
   context.assert(

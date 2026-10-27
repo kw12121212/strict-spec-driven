@@ -26430,7 +26430,7 @@ exclusions:
       - .github/workflows/*.yml
       - .github/workflows/*.yaml
     evidence:
-      - .github/workflows/publish-plugin.yml
+      - .github/workflows/publish-npm.yml
 mutation_surfaces:
   shared-yaml-mutation-core:
     path_patterns:
