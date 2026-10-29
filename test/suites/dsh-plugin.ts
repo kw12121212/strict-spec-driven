@@ -7,6 +7,7 @@ import {
   SHARED_EXTERNALS,
   STYLE_ELEMENT_ID,
   buildClientBundle,
+  planBuildOutputs,
   wrapModuleLoaderHandoff,
 } from "../../plugins/dsh-strict-spec/scripts/build-client.ts";
 import { en, zh } from "../../plugins/dsh-strict-spec/src/client/locales.ts";
@@ -134,6 +135,91 @@ export function packlistFindings(files: readonly string[], required: readonly st
     }
   }
   return findings;
+}
+
+/** One built bundle file: its dist-relative path and the exact text the build writes there. */
+export type BundleFile = { path: string; text: string };
+
+/** The repository state the source-install check reads. */
+export type SourceInstallProbe = {
+  /** Every file the plugin build would write, by dist-relative path. */
+  planned: readonly BundleFile[];
+  /** The files the checkout carries under the bundle directory, by dist-relative path. */
+  tracked: ReadonlyMap<string, string>;
+  /** The repository root .gitignore text. */
+  gitignore: string;
+  /** The plugin manifest's prepare script, when it declares one. */
+  prepare: string | undefined;
+};
+
+/** The plugin's built bundle directory, repository-relative, as the root ignore rules spell it. */
+export const BUNDLE_DIRECTORY = "plugins/dsh-strict-spec/dist";
+
+/**
+ * Whether the repository root .gitignore hides the plugin bundle. The match
+ * is the exact directory rule rather than a general glob: the repository
+ * tracks the root dist/scripts bundles on purpose, so only a rule naming
+ * this directory defeats a source install.
+ */
+export function ignoresBundleDirectory(gitignore: string): boolean {
+  return gitignore
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .some((line) => line.replace(/\/+$/u, "") === BUNDLE_DIRECTORY);
+}
+
+/**
+ * Checks that a source install works without a build: every file the build
+ * writes is carried with byte-identical text, nothing else sits in the bundle
+ * directory, the root ignore file does not hide it, and prepare can rebuild a
+ * bundle that is missing. The plan is the build's own pure output list, so the
+ * carried bytes are compared against a fresh build rather than against a
+ * second copy of the expectation.
+ */
+export function sourceInstallFindings(probe: SourceInstallProbe): ReleaseFinding[] {
+  const findings: ReleaseFinding[] = [];
+  if (ignoresBundleDirectory(probe.gitignore)) {
+    findings.push({ category: "ignored-bundle", detail: BUNDLE_DIRECTORY });
+  }
+  if (!(probe.prepare ?? "").includes("bun run build")) {
+    findings.push({ category: "missing-prepare", detail: probe.prepare ?? "no prepare script" });
+  }
+  const plannedPaths = new Set(probe.planned.map((file) => file.path));
+  for (const file of probe.planned) {
+    const carried = probe.tracked.get(file.path);
+    if (carried === undefined) {
+      findings.push({ category: "untracked-bundle", detail: file.path });
+    } else if (carried !== file.text) {
+      findings.push({ category: "drifted-bundle", detail: file.path });
+    }
+  }
+  for (const carriedPath of probe.tracked.keys()) {
+    if (!plannedPaths.has(carriedPath)) {
+      findings.push({ category: "extra-bundle", detail: carriedPath });
+    }
+  }
+  return findings;
+}
+
+/** Every file materialized under one bundle directory, by dist-relative path. */
+export function readTrackedBundle(bundleRoot: string): Map<string, string> {
+  const files = new Map<string, string>();
+  if (!existsSync(bundleRoot)) {
+    return files;
+  }
+  const walk = (relative: string): void => {
+    for (const entry of readdirSync(path.join(bundleRoot, relative), { withFileTypes: true })) {
+      const child = relative.length === 0 ? entry.name : `${relative}/${entry.name}`;
+      if (entry.isDirectory()) {
+        walk(child);
+      } else {
+        files.set(child, readFileSync(path.join(bundleRoot, child), "utf8"));
+      }
+    }
+  };
+  walk("");
+  return files;
 }
 
 /**
@@ -492,6 +578,7 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     name?: string;
     private?: boolean;
     engines?: { dsh?: string };
+    scripts?: Record<string, string>;
     dsh?: { bundle?: { patch?: string }; client?: { platform?: string; inject?: string[] } };
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
@@ -579,11 +666,11 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
   const row = patch?.[0]?.insert?.[0];
   context.assert(row?.id === "ui-strict-spec" && row?.name === "dsh-plugin-strict-spec", "cordis patch inserts the package under id ui-strict-spec");
 
-  // The plugin's dist/ is gitignored and npm's default packlist would ship the
-  // sources, so the files allowlist alone decides what a packed tarball holds.
-  // The required entries derive from sources independent of the allowlist:
-  // the manifest's export targets, its declared bundle patch, one README per
-  // shipped locale catalog, and the license file.
+  // The files allowlist, not the default packlist, decides what a packed
+  // tarball holds: without it npm would ship the plugin's sources beside the
+  // tracked bundle. The required entries derive from sources independent of
+  // the allowlist: the manifest's export targets, its declared bundle patch,
+  // one README per shipped locale catalog, and the license file.
   const packed = (manifest as { files?: string[] }).files ?? [];
   const exportTargets = Object.values((manifest as { exports?: Record<string, string> }).exports ?? {});
   const languages = shippedLocaleLanguages();
@@ -615,6 +702,55 @@ export async function runDshPluginSuite(context: TestContext): Promise<void> {
     context.assert(
       packlistFindings([...probe], requiredPacked).some((finding) => finding.category === category),
       `the packlist check reports ${category} for ${label}`,
+    );
+  }
+
+  context.section("dsh plugin: source-install bundle");
+
+  // The build embeds each entry point's path relative to the working
+  // directory, so a byte-identical reproduction has to start from the plugin
+  // directory the package's own `bun run build` runs in; from the repository
+  // root the emitted comments read `plugins/dsh-strict-spec/src/...` and every
+  // bundle the plan compares would look drifted.
+  const previousWorkingDirectory = process.cwd();
+  process.chdir(PLUGIN_ROOT);
+  let plannedBundle: BundleFile[];
+  try {
+    plannedBundle = (await planBuildOutputs()).map((output) => ({ path: output.path.split(path.sep).join("/"), text: output.text }));
+  } finally {
+    process.chdir(previousWorkingDirectory);
+  }
+  const sourceInstallProbe: SourceInstallProbe = {
+    planned: plannedBundle,
+    tracked: readTrackedBundle(path.join(PLUGIN_ROOT, "dist")),
+    gitignore: readFileSync(path.join(ROOT, ".gitignore"), "utf8"),
+    prepare: manifest.scripts?.prepare,
+  };
+  context.assert(
+    sourceInstallFindings(sourceInstallProbe).length === 0,
+    "a checkout carries the built bundle the manifest entry points name, the root ignore file leaves it tracked, and prepare rebuilds a missing bundle",
+    `findings: ${JSON.stringify(sourceInstallFindings(sourceInstallProbe))}`,
+  );
+  // Each finding category fires through the same function on a realistic
+  // probe: the state this repository carried before the fix, and the ways a
+  // later change could reintroduce the defect.
+  const firstBundleFile = sourceInstallProbe.planned[0];
+  if (firstBundleFile === undefined) {
+    throw new Error("the plugin build plan writes no bundle file");
+  }
+  const carriedWithout = (entry: string): Map<string, string> =>
+    new Map([...sourceInstallProbe.tracked].filter(([file]) => file !== entry));
+  const sourceInstallProbes: ReadonlyArray<readonly [SourceInstallProbe, string, string]> = [
+    [{ ...sourceInstallProbe, gitignore: `${sourceInstallProbe.gitignore}\n${BUNDLE_DIRECTORY}/\n` }, "ignored-bundle", "the root ignore rule restored"],
+    [{ ...sourceInstallProbe, prepare: undefined }, "missing-prepare", "the prepare hook removed"],
+    [{ ...sourceInstallProbe, tracked: carriedWithout(firstBundleFile.path) }, "untracked-bundle", "a planned bundle file removed from the checkout"],
+    [{ ...sourceInstallProbe, tracked: new Map(sourceInstallProbe.tracked).set(firstBundleFile.path, `${firstBundleFile.text}\n`) }, "drifted-bundle", "a carried bundle file edited without a rebuild"],
+    [{ ...sourceInstallProbe, tracked: new Map(sourceInstallProbe.tracked).set("stale.js", "") }, "extra-bundle", "a file the build does not write left in the bundle directory"],
+  ];
+  for (const [probe, category, label] of sourceInstallProbes) {
+    context.assert(
+      sourceInstallFindings(probe).some((finding) => finding.category === category),
+      `the source-install check reports ${category} for ${label}`,
     );
   }
 

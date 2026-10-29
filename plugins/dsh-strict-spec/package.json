@@ -47,6 +47,7 @@
   "scripts": {
     "build": "bun scripts/build-client.ts",
     "lint": "tsc --noEmit -p .",
+    "prepare": "node -e \"const fs=require('node:fs');const files=['dist/host.js','dist/client.js','dist/cli/strict-spec-cli.js'];if(files.every((file)=>fs.existsSync(file)&&fs.statSync(file).size>0)){process.exit(0);}console.error('dsh-plugin-strict-spec: the tracked bundle is incomplete, rebuilding it');try{require('node:child_process').execSync('bun run build',{stdio:'inherit'});}catch(error){console.error('dsh-plugin-strict-spec: the rebuild failed; install bun, then run bun install && bun run build in plugins/dsh-strict-spec');process.exit(1);}\"",
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {

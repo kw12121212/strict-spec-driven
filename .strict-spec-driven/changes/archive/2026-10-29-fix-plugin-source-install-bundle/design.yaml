@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-plugin-source-install-bundle
+approach:
+  - Track the built bundle. The install contract is only as good as the channel that runs no build, and this repository already tracks its own compiled CLI bundles for git-dependency consumers. Rebuild dist once from the current source so the tracked bytes equal the 0.5.1 Release tarball, drop the ignore rule that hides it, and add a prepare hook that short-circuits on a complete bundle and builds only when a file is missing, so a source install repairs itself instead of failing with a missing entry. A new suite check compares the tracked bundle with planBuildOutputs(), rejects a reintroduced ignore rule, and requires the prepare hook, so drift fails the regression run instead of the next install.
+decisions:
+  track-the-built-bundle:
+    decision: Track plugins/dsh-strict-spec/dist/ and remove the ignore rule that hides it.
+    rationale: 'Every install channel that runs no build — a checkout, a link: spec, a directory spec, a git reference — only loads the manifest entries when the bundle travels with the source, and the repository already tracks dist/scripts bundles for git-dependency consumers, so this extends an established convention instead of inventing one.'
+  prepare-builds-only-when-missing:
+    decision: Add a prepare hook that exits when the tracked bundle is complete and runs bun run build only when a required bundle file is missing.
+    rationale: A directory install links the checkout and runs no lifecycle script, which the reproduction confirmed, so prepare cannot be the repair path and must not become a hard bun requirement for every consumer; it exists for pack-from-source and git installs and for a checkout whose bundle was deleted.
+  drift-guard-in-the-suite:
+    decision: Compare the tracked bundle with planBuildOutputs() in the dsh-plugin suite, and require both the prepare hook and the absence of an ignore rule over the bundle directory.
+    rationale: A committed build product rots silently the first time a source edit lands without a rebuild; the build script already exposes a pure output plan, so the suite can prove byte-identity without writing dist, which is the shape the host suite already uses for the bundled CLI.
+  no-delta-spec:
+    decision: 'Author no delta spec and no delta tech: no main spec requirement states an install channel, and no technical standard changes.'
+    rationale: 'The install scene already names the Release tarball, the link: spec, and the npm pack tarball, and its precondition that the package is built still holds because the build output now travels with the source; the dsh-plugin-client allowlist rule still describes the packed tarball unchanged.'
+  inventory-covers-bundled-copies:
+    decision: Cover the tracked bundled skill bodies with one glob pattern, plugins/dsh-strict-spec/dist/skills/*/SKILL.md, on the bundled-skill-guidance mutation surface instead of 25 literal paths.
+    rationale: The bundle mirrors the authored skills, so one pattern keeps the inventory honest about the new tracked location while a per-skill enumeration would restate the bundle's own contents; the inventory edit also regenerates the embedded bundle, so the root CLI bundles and the plugin CLI asset are rebuilt in the same change.
+alternatives:
+  - option: Point the listing entry at the existing Release tarball and leave the repository unbuildable from source.
+    reason: 'The tarball channel already works, but any consumer who adds the checkout or a link: spec still installs a package with no entry, which is the reported failure, so the defect would stay latent for every source install.'
+  - option: Keep dist untracked and make prepare build unconditionally.
+    reason: pnpm links a directory install without running a lifecycle script, so prepare never fires on the exact channel that failed, and an unconditional build would make bun a hard requirement for every consumer while adding a build to every install.
+risks:
+  - The tracked bundle adds about 2.1 MB to the repository, most of it the 1.55 MB bundled CLI, so every future plugin source change must rebuild and commit dist; the suite check turns a forgotten rebuild into a red regression run instead of a silent install failure.
+  - The plugin-v0.5.1 tag predates the tracked bundle, so a source install of that tag still lacks dist; source installs become complete only from the commit that lands this change.
+  - Editing the inventory regenerates src/embedded-templates.ts, so the tracked root dist/scripts bundles and the plugin's CLI asset must be rebuilt in the same commit; the suite's bundle comparisons catch a missed rebuild.

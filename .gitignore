@@ -8,8 +8,11 @@ dist/scripts/*
 !dist/scripts/strict-spec-driven.js
 !dist/scripts/strict-spec-driven-mcp.js
 
-# dsh plugin client build output (rebuilt by plugins/dsh-strict-spec before a link: install)
-plugins/dsh-strict-spec/dist/
+# The dsh plugin's built bundle is tracked beside its sources: the package's
+# main, exports, and bundle patch resolve into it, and every channel that runs
+# no build — a checkout, a link: spec, a directory spec, a git reference —
+# installs only what the repository carries. Rebuild it with `bun run build`
+# inside plugins/dsh-strict-spec; the plugin suite fails when it drifts.
 # Locally packed plugin tarballs (npm pack inside the plugin, per its README)
 plugins/dsh-strict-spec/*.tgz
 

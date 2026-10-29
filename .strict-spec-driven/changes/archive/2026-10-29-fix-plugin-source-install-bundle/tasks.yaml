@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-plugin-source-install-bundle
+sections:
+  Implementation:
+    record-source-install-reproduction:
+      text: 'Reproduce the missing-bundle install from a clean clone of main into an isolated DSH_HOME and record the installed file list and the missing dist directory in this task. OBSERVED EVIDENCE (2026-10-29): git clone --depth 1 --branch main into /tmp/repro-clone; DSH_HOME=/tmp/repro-home dsh plugin --profile web add /tmp/repro-clone/plugins/dsh-strict-spec exited 0 and installed LICENSE, README.md, README.zh.md, bun.lock, cordis.patch.yml, package.json, scripts, src, test-support, and tsconfig.json; the installed dist directory did not exist. The published channel was checked at the same time: the plugin-v0.5.1 asset dsh-plugin-strict-spec-0.5.1.tgz downloads to 439572 bytes listing 28 entries including dist/host.js, dist/client.js, dist/cli/strict-spec-cli.js, and 25 dist/skills SKILL.md files, and installing that URL into an isolated DSH_HOME yields the same dist tree, so only the source-install channel was broken.'
+      status: complete
+    add-source-install-check:
+      text: 'Add the source-install regression to test/suites/dsh-plugin.ts: compare the tracked bundle with planBuildOutputs(), reject a root ignore rule over plugins/dsh-strict-spec/dist, and require the prepare hook, each with a negative probe; run it against the unfixed tree and record the failing output. OBSERVED EVIDENCE (2026-10-29): with the check added and the tree unchanged, the dsh-plugin suite failed exactly once, reporting the categories ignored-bundle for plugins/dsh-strict-spec/dist and missing-prepare for no prepare script, while all five negative probes passed. The first draft also reported drifted-bundle for client.js and host.js: the build embeds each entry path relative to the working directory, so a plan computed from the repository root emits plugins/dsh-strict-spec/src/... comments while the tracked bundle carries src/... comments; building the plan from the plugin directory reproduces all 28 tracked files byte-identically, so the check now changes directory for the plan and restores it, matching the recorded lesson that a byte-identical reproduction must build from the original working directory.'
+      status: complete
+    track-the-built-bundle:
+      text: 'Drop the plugins/dsh-strict-spec/dist/ ignore rule from .gitignore and add the 28 rebuilt bundle files to the repository, byte-identical to the 0.5.1 Release tarball''s dist. OBSERVED EVIDENCE (2026-10-29): the replacement comment states why the bundle is tracked and how it is rebuilt; git add staged exactly 28 files, so the tracked set is dist/host.js, dist/client.js, dist/cli/strict-spec-cli.js, and 25 dist/skills SKILL.md bodies; a plan built from the plugin directory compared equal to every one of them, and the same 28 files are the ones the 0.5.1 Release tarball carries.'
+      status: complete
+    cover-bundled-copies-in-inventory:
+      text: 'Cover the tracked bundled skill bodies in inventory/yaml-mutation-surfaces.yaml and rebuild the generated bundles the inventory edit touches. OBSERVED EVIDENCE (2026-10-29): the first full-suite run reported one coverage failure listing 25 uncovered paths under plugins/dsh-strict-spec/dist/skills and one downstream inventory-contract failure; strict-spec-cli inventory-edit --append mutation_surfaces.bundled-skill-guidance.path_patterns appended plugins/dsh-strict-spec/dist/skills/*/SKILL.md, which also regenerated src/embedded-templates.ts; bun run check:yaml-inventory then reported 88 mutation paths, 17 families, 16 surfaces, and no diagnostics; bun run build at the repository root and in the plugin rebuilt the two tracked CLI bundles and the plugin CLI asset from the regenerated source.'
+      status: complete
+    add-prepare-hook:
+      text: 'Add a prepare hook to plugins/dsh-strict-spec/package.json that exits when the tracked bundle is complete and builds only when a required bundle file is missing. OBSERVED EVIDENCE (2026-10-29): npm run prepare exited 0 in 0.13s with the tracked bundle present and printed nothing; after removing dist entirely it printed the rebuild notice, ran bun run build, wrote the same 28 files, and the rebuilt tree hashed identical to the removed copy; the catch branch turns a failed rebuild into a non-zero exit with the bun install instruction.'
+      status: complete
+    document-tracked-bundle:
+      text: 'Update plugins/dsh-strict-spec/README.md and README.zh.md so the development install states that the build output is tracked, that a checkout installs without a build, and that a rebuild is only needed after source edits. OBSERVED EVIDENCE (2026-10-29): both READMEs now say the bundle is tracked, show the link: install running straight from the plugin directory, keep the npm pack tarball install, and state that a source edit requires bun install, bun run build, and committing the rebuilt dist; the readmeFindings checks for both locales still pass.'
+      status: complete
+  Testing:
+    run-plugin-suite:
+      text: 'Run the complete project regression suite with the new source-install check and confirm a green run. OBSERVED EVIDENCE (2026-10-29): bun test/run.ts passed all 5680 tests. The first run before the inventory coverage entry failed 2 of 5680 (the bundled-copy coverage path and its dependent inventory-contract assertion); after the inventory edit and the bundle rebuilds the same command was green.'
+      status: complete
+      command: bun test/run.ts
+    coverage-gate:
+      text: 'Run the recorded project regression coverage gate exactly as configured. OBSERVED EVIDENCE (2026-10-29): bun scripts/coverage-gate.ts --threshold 78 exited 0 after all 5680 tests passed, reporting measured src/** line coverage 87.93 percent (30829 of 35060 lines) against the required threshold 78.'
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-ready-check:
+      text: Run the ready gate and confirm no blocking diagnostics.
+      status: complete
+    strict-verify-check:
+      text: Run the verify gate and confirm every check passes.
+      status: complete
+testing_gates:
+  validation_task: coverage-gate
+  unit_test_task: run-plugin-suite

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-plugin-source-install-bundle
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today?
+    context: A listing review reported that the plugin cannot be installed because main and exports point at dist files the repository does not carry.
+    answer: 'Installing the plugin straight from a checkout, a link: spec, or a directory spec lands a package with no dist directory, so the manifest entry points and the bundle patch resolve to nothing and the host registers no viewer; the Release tarball and the registry package are unaffected.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves it is solved?
+    context: The same install command that failed on a clean clone must succeed, and the tracked bundle must stay truthful after later source edits.
+    answer: dsh plugin add against a fresh clone installs the 28 tracked bundle files and the host loads both entry points; the dsh-plugin suite proves the tracked bundle is byte-identical to a fresh build plan and fails when the bundle is re-ignored or the prepare hook disappears.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now?
+    context: The listing review arrived on 2026-10-29 and blocks the directory entry.
+    answer: The repository is being submitted to a community plugin directory whose rule requires a published tarball when a repository cannot be installed from source, and the source install is the one path that is broken.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: The published 0.5.1 artifacts are already correct and the viewer is not part of the defect.
+    answer: No version bump, tag move, or republish; no viewer, host, engines-pin, or files-allowlist change; no re-formatting of the plugin sources. The change adds repository state and one packaging hook only.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which of the two accepted fixes is being applied?
+    context: The review accepted either publishing a packed tarball to the Release (already true for 0.5.1) or committing the build output with a prepare hook.
+    answer: Commit the built bundle and add prepare. The tarball channel already exists, so the committed bundle is the only change that fixes the failing source-install path, and the requester chose it over pointing the listing entry at the existing tarball.
+    status: resolved
+    kind: requirement
+    answered_by: human

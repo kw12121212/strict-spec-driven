@@ -119,27 +119,25 @@ dsh plugin --profile web add dsh-plugin-strict-spec
 
 ### 开发安装
 
-构建产物不提交到仓库，从本仓库的全新 clone 开始，复制下面这一块即可一次完成
-构建与安装（在仓库根目录执行）：
+插件仓库同时提交了构建产物，所以本仓库的 checkout 可以直接安装——不需要先构建，
+也不需要 bun。在插件目录执行：
 
 ```sh
-cd plugins/dsh-strict-spec
-bun install
-bun run build
 dsh plugin --profile web add "link:$(pwd)"
 ```
 
-这会生成 `dist/client.js` 和 `dist/host.js`，并通过 npm 安装的 `dsh` 命令添加
-插件。也可以从构建好的 checkout 打包 tarball 安装：
+也可以从 checkout 打包 tarball 安装：
 
 ```sh
 dsh plugin --profile web add "$(pwd)/$(npm pack --silent)"
 ```
 
-`link:` 安装会跟随 checkout 之后的重新构建——拉取更新后在
-`plugins/dsh-strict-spec` 中再次执行 `bun run build` 即可；tarball 安装是固定
-副本，需要重新打包并再次 add 才能替换。然后在要查看的 workspace 中启动 Web
-客户端：
+修改插件源码后，在 `plugins/dsh-strict-spec` 中执行
+`bun install && bun run build`，并提交重建后的 `dist/`：回归套件会把仓库里的
+构建产物与一次全新构建逐字节比对，出现漂移即失败。包的 `prepare` 脚本只在构建
+产物缺少文件时才重建，因此不完整的 checkout 会自行修复。`link:` 安装会跟随之后
+的重新构建；tarball 安装是固定副本，需要重新打包并再次 add 才能替换。然后在要
+查看的 workspace 中启动 Web 客户端：
 
 ```sh
 cd /path/to/your/project
