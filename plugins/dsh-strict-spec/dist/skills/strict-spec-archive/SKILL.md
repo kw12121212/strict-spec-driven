@@ -1,0 +1,165 @@
+---
+name: strict-spec-archive
+description: Archive a completed strict YAML change. Uses the strict archive command to merge delta specs into main specs, regenerate the spec index, reconcile roadmap status when present, and move the change into archive.
+metadata:
+  skill_id: strict_spec_archive
+  author: strict-spec-driven
+  type: agent_skill
+  version: 1.0.0
+---
+
+You are helping the user archive a completed strict YAML change.
+
+## This Skill's Commands
+
+If you cannot remember the exact command used by this skill, look it up here
+before running anything. Do not guess.
+
+```yaml
+check-workflow-state: strict-spec-cli check-workflow-state
+modify: strict-spec-cli modify [change-name|archive-dir]
+verify: strict-spec-cli verify <change-name>
+generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
+archive: strict-spec-cli archive <change-name>
+lesson-status: strict-spec-cli lesson-status [--category <category>]
+```
+
+## Responsibility Split
+
+**Handled by CLI scripts**
+- merge strict YAML delta specs into main specs during archive
+- merge strict YAML delta scenes into `.strict-spec-driven/scenes/` and regenerate the scene index
+- regenerate `.strict-spec-driven/specs/INDEX.yaml`
+- reconcile `.strict-spec-driven/roadmap/` milestone and index status when archive changes roadmap-derived completion state
+- move the change directory into `.strict-spec-driven/changes/archive/`
+
+**Handled by the AI**
+- choose the change to archive
+- perform a final current-change-scoped technical-standard synchronization
+- decide and apply the recommendation when a possible reusable convention is not
+  covered by applicable standards or current delta tech
+- confirm verification and review readiness
+- interpret archive output and summarize the final result
+
+## CLI-Only YAML Authoring Protocol
+
+Every mutation of repository-owned YAML in this skill goes through the strict
+CLI. This skill writes `change-planning-state`, `change-delta-state`,
+`spec-state`, `tech-state`, `scene-state`. Before the first mutation run `strict-spec-cli
+yaml-authoring-protocol <artifact-kind>` for each of them: that command reports
+the ordered authoring steps, the owning command for each operation, and the
+bundled schema and example keys with their cache-resolved paths, bound to the
+artifact kind and current where a copy would go stale. Validate the result with
+`strict-spec-cli verify <change-name>`.
+
+**Stop rather than edit YAML directly.** When a required command, argument, or
+artifact kind is unavailable, stop and report the missing capability. Editing
+the YAML directly, writing a raw payload, or scripting around the CLI is never
+an available fallback, and an unavailable command is a reason to stop rather
+than a reason to improvise.
+
+## Preferred Human Language
+
+Comply with `preferred_human_language` from `.strict-spec-driven/config.yaml` —
+the user's common human language, not a programming language — for all
+user-facing and generated operator-facing text, unless that file is absent or
+the active user message asks otherwise.
+
+## Steps
+
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
+
+1. **Select the change** — run `modify` without an argument to list active
+   changes. If the change is already specified, use it.
+
+2. **Run the final current-change tech sync** — before final verification or
+   invoking the raw archive command, apply the active-change procedure from
+   `strict-tech-sync` to the selected change.
+   - bound the scan to the selected change's proposal, design, tasks, questions,
+     delta specs, delta tech, attributable tracked and untracked files, and
+     applicable technical standards
+   - exclude unrelated repository drift and surface ambiguous file ownership
+     instead of silently widening the archive scope
+   - continue immediately when applicable main standards and current delta tech
+     already cover the change and no reusable convention gap remains
+   - when a possible reusable convention is uncovered, state the target or
+     proposed standard, operation, stable rule id, strength, statement,
+     rationale, and enforcement, then apply the recommendation the bounded
+     evidence supports without pausing for operator confirmation: capture a
+     convention the evidence shows is reusable as current-change delta tech, or
+     record the classification that the pattern is not reusable together with the
+     reason it is specific to this change
+   - report the applied decision in the archive summary, because removing the
+     confirmation removes the operator's only view of what the checkpoint decided
+   - never defer a convention confirmed as reusable until after archive; use
+     `generate <change-name> delta-tech ...` so it remains part of the active
+     change rather than editing a live main standard directly
+   - after any delta-tech edit, review the final delta artifact and rerun strict
+     verification; a write the configured regression command neither compiles
+     nor reads — currently a change-local delta-tech artifact or a lesson — does
+     not invalidate passing complete project regression evidence, so rerun the
+     configured regression command here only when this step also changed a file
+     outside that carve-out
+
+3. **Confirm the lesson declaration** — confirm that review declared either a
+   recorded lesson or a justified "no lesson" for this change. Experience is
+   learned during implementation and is lost the moment the change is archived,
+   so this is the last point at which it can be captured cheaply. If the
+   declaration was never made, make it now against the objective criteria in
+   `strict-spec-review` — an overturned design decision, an unforeseen question,
+   a task added from a discovery, or a regression exposing a pre-existing trap —
+   and record the lesson before continuing. Do not invent one to fill the slot.
+   Recording it here costs no regression rerun: a lesson is inside the carve-out
+   named in the previous step.
+
+4. **Confirm readiness** — after the final tech-sync checkpoint and any required
+   evidence reruns, run:
+   ```bash
+   strict-spec-cli verify <change-name>
+   ```
+   Stop if the command reports blockers.
+
+5. **Check for observable spec impact** — inspect
+   `.strict-spec-driven/changes/<name>/specs/`.
+   - if it is empty, treat the change as having no delta specs to merge and
+     continue directly to archive
+   - otherwise proceed
+
+5b. **Check for scene impact** — inspect
+    `.strict-spec-driven/changes/<name>/scenes/`.
+    - if it is absent or empty, the change merges no scene and the recorded
+      scenes are left untouched
+    - otherwise the archive command merges those delta scenes into
+      `.strict-spec-driven/scenes/` and regenerates the scene index in the same
+      transaction. Step 4's verification already blocked an uncovered flow step,
+      so nothing is re-derived here; note which scenes will be merged so the
+      summary can report them.
+
+6. **Archive the change** — use the raw command only as the deterministic
+   verification, delta-merge, index-regeneration, roadmap-reconciliation, and
+   change-move mechanism:
+   ```bash
+   strict-spec-cli archive <change-name>
+   ```
+
+7. **Confirm the result** — summarize:
+    - the archive destination
+    - the strict main specs that were updated
+    - the recorded scenes the archive command merged, if any
+    - any roadmap files the archive command reconciled
+    - the tech-sync decision applied at step 2, or that the checkpoint found
+      nothing uncovered
+
+## Rules
+
+- Never archive a change with verification blockers
+- Never invoke archive before the final current-change tech-sync checkpoint is
+  resolved
+- Never defer a confirmed reusable convention until after archive; capture it as
+  current-change delta tech
+- Never put an archive-time tech-sync finding to the operator as a question;
+  decide it from the bounded evidence, apply it, and report what was applied
+- Use the strict archive command rather than manually moving change directories
+- Treat the current YAML artifacts and repository state as authoritative

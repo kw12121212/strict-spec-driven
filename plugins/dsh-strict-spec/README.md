@@ -157,28 +157,28 @@ Upgrades install the newer release's URL the same way and restart the host.
 
 ### Development installs
 
-The built bundle is not committed, so a fresh clone builds it and installs it
-in one block — run this from the repository root:
+The built bundle is tracked beside the plugin's sources, so a checkout of this
+repository installs as-is — no build step, no bun, nothing to regenerate first.
+Run this from the plugin directory:
 
 ```sh
-cd plugins/dsh-strict-spec
-bun install
-bun run build
 dsh plugin --profile web add "link:$(pwd)"
 ```
 
-This writes `dist/client.js` and `dist/host.js`, then adds the plugin with the
-npm-installed `dsh` command. Alternatively, install from a tarball packed from
-the built checkout:
+Alternatively, install from a tarball packed from the checkout:
 
 ```sh
 dsh plugin --profile web add "$(pwd)/$(npm pack --silent)"
 ```
 
-A `link:` install follows later rebuilds of the checkout — after pulling
-changes, run `bun run build` inside `plugins/dsh-strict-spec` again; a tarball
-install is a fixed copy that you replace by packing and adding again. Then boot
-the web client from the workspace you want to read:
+After changing the plugin's sources, run `bun install && bun run build` inside
+`plugins/dsh-strict-spec` and commit the rebuilt `dist/`: the regression suite
+compares the tracked bundle with a fresh build and fails when it drifts. The
+package's `prepare` script rebuilds the bundle only when one of its files is
+missing, so an interrupted checkout repairs itself. A `link:` install follows
+later rebuilds of the checkout; a tarball install is a fixed copy that you
+replace by packing and adding again. Then boot the web client from the
+workspace you want to read:
 
 ```sh
 cd /path/to/your/project

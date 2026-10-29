@@ -1,0 +1,128 @@
+---
+name: strict-spec-sync-specs
+description: Scan repository behavior and strict YAML specs for drift, then synchronize strict specs through the CLI after user confirmation.
+metadata:
+  skill_id: strict_spec_sync_specs
+  author: strict-spec-driven
+  type: agent_skill
+  version: 1.0.0
+---
+
+You are helping the user synchronize `.strict-spec-driven/specs/` with behavior
+that already exists in the repository.
+
+## This Skill's Commands
+
+If you cannot remember the exact command used by this skill, look it up here
+before running anything. Do not guess.
+
+```yaml
+check-workflow-state: strict-spec-cli check-workflow-state
+spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
+scene-status: strict-spec-cli scene-status [--area <area>] [--scene <scene-id>]
+```
+
+## CLI-Only YAML Authoring Protocol
+
+Every mutation of repository-owned YAML in this skill goes through the strict
+CLI. This skill writes `spec-state`. Before the first mutation run
+`strict-spec-cli yaml-authoring-protocol spec-state`: that command reports the
+ordered authoring steps, the owning command for each operation, and the bundled
+schema and example keys with their cache-resolved paths, bound to the artifact
+kind and current where a copy would go stale. Validate the result with
+`strict-spec-cli check-workflow-state`.
+
+**Stop rather than edit YAML directly.** When a required command, argument, or
+artifact kind is unavailable, stop and report the missing capability. Editing
+the YAML directly, writing a raw payload, or scripting around the CLI is never
+an available fallback, and an unavailable command is a reason to stop rather
+than a reason to improvise.
+
+## Preferred Human Language
+
+Comply with `preferred_human_language` from `.strict-spec-driven/config.yaml` —
+the user's common human language, not a programming language — for all
+user-facing and generated operator-facing text, unless that file is absent or
+the active user message asks otherwise.
+
+## Steps
+
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
+
+1. **Choose the scan scope** — determine whether the user wants:
+   - a repository-wide scan
+   - a scoped scan for a specific directory, module, or feature area
+
+   If the user already gave a scope, use it. If not, ask whether to scan the
+   whole repository or a narrower target.
+
+2. **Read strict spec context first** — before deciding that any drift exists,
+   read:
+   - `.strict-spec-driven/config.yaml`
+   - `.strict-spec-driven/specs/INDEX.yaml`
+   - every strict YAML main spec file that appears relevant to the chosen scope
+   - the recorded scenes covering that scope, through
+     `strict-spec-cli scene-status --area <area>`, when the project records any.
+     A step reported as covered names the requirement that is supposed to
+     describe it, which turns a drift question into a located comparison; a step
+     reported as a deliberate waiver is not a gap. A project recording no scene
+     produces nothing here and the scan proceeds unchanged.
+
+3. **Read repository evidence in the chosen scope** — inspect the code, tests,
+   and nearby docs that define current observable behavior in that area.
+   Prefer behavior-facing files, and do not treat internal implementation
+   details as requirements.
+
+4. **Classify drift findings** — compare repository evidence to the current
+   strict specs and sort findings into:
+   - confirmed behavior that exists in code but is missing from strict specs
+   - a recorded scene step whose covering requirement no longer describes what
+     the code does, which is drift the scene located rather than drift found by
+     reading code alone
+   - existing strict requirements that appear outdated or incomplete
+   - ambiguous findings that need human confirmation before they become specs
+   - areas with no meaningful drift in the scanned scope
+
+5. **Report the drift summary in chat** — present a concise summary covering:
+   - the scan scope that was analyzed
+   - confirmed gaps or outdated strict spec areas, with specific file references
+   - ambiguous findings that need human input
+   - areas in scope where no meaningful drift was found
+
+6. **Get user confirmation** — before editing any strict YAML spec file, ask the
+   user to confirm the proposed changes. List each strict spec file that will be
+   added, modified, or removed. Do not proceed until the user explicitly
+   approves.
+
+7. **Synchronize through `spec-edit`** — for each confirmed gap, invoke the CLI
+   with the stable spec id and only the named semantic fields that changed:
+   - create a new main spec with `--spec-path`, `--title`, and one complete
+     `--requirement` / `--scenario` group
+   - add or update requirements and scenarios by stable id
+   - remove obsolete keyed entries with `--remove-requirement` or
+     `--remove-scenario`
+   Describe observable behavior only. Never edit the main-spec YAML or spec
+   index text; `spec-edit` validates both and reconciles `INDEX.yaml`
+   transactionally.
+
+8. **Refresh supporting spec state** — after all strict spec edits are complete:
+   - confirm each mutation result reports the reconciled spec index
+
+9. **Report final changes** — summarize:
+   - which strict spec files were added, modified, or removed
+   - a brief description of the drift fixed in each file
+   - any ambiguous findings that were left unresolved and why
+
+## Rules
+
+- This is a documentation skill only — do not change product code
+- Read strict spec context before judging drift
+- Respect the user-selected scope
+- Use code, tests, and nearby docs as evidence, but write only observable
+  behavior into the strict specs
+- Do not create a strict change — author live specs through `spec-edit`
+- Do not write a standalone report file; the summary belongs in chat
+- Get explicit user confirmation before editing any strict YAML spec file
+- Never hand-edit main-spec or spec-index YAML

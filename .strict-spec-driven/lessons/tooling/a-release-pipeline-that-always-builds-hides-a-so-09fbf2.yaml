@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-release-pipeline-that-always-builds-hides-a-so-09fbf2
+  title: A release pipeline that always builds hides a source install that cannot
+category: tooling
+status: active
+created_at: '2026-10-29T10:03:30.078Z'
+updated_at: '2026-10-29T10:03:30.078Z'
+context: The dsh plugin release workflow runs bun install and bun run build before npm pack, so the published tarball always carried dist; the repository root .gitignore excluded that same dist, so a checkout carried none, and dsh plugin add against a directory links the checkout without running any lifecycle script.
+observation: The regression suite proved the packed tarball contents and the manifest entry points separately but never installed from a checkout, so both assertions stayed green while every source install produced a package whose main, exports, and bundle patch resolved to nothing.
+takeaway: 'When a package''s entry points are build output, assert the repository state each install channel consumes rather than only the state CI produces: carry the bundle or prove the channel builds it, and compare the carried bytes against a fresh build so drift fails the suite instead of an install.'
+applies_when: A repository publishes a package whose main or exports resolve into generated output, or adds a build step to CI that a local install path does not run.
+occurrences:
+  - origin: awesome-dsh-plugin pull request 10087 review comment on 2026-10-28 reporting that dsh plugin add installed no entry files
+    date: '2026-10-29'
+    evidence: 'change fix-plugin-source-install-bundle: a shallow clone of main installed LICENSE, both READMEs, cordis.patch.yml, package.json, bun.lock, src, scripts, test-support, and tsconfig.json with no dist, while the plugin-v0.5.1 Release asset carried all 28 bundle files.'

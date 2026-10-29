@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-plugin-source-install-bundle
+  status: proposed
+summary:
+  what:
+    - 'Track plugins/dsh-strict-spec/dist/ in git so a checkout, a link: spec, a directory spec, or a git reference installs the client bundle, host entry, bundled CLI, and skill bodies that the manifest''s main, exports, and bundle patch declare.'
+    - Add a prepare hook that verifies the tracked bundle and runs the plugin build only when a bundle file is missing, so a source install self-repairs instead of failing with a missing entry.
+    - Add a regression check that compares the tracked bundle with a fresh build plan, rejects an ignore rule that hides the bundle again, and requires the prepare hook.
+  why:
+    - A fresh clone has no dist because the repository root .gitignore ignores plugins/dsh-strict-spec/dist/, so dsh plugin add against the checkout installs a package whose main and exports point at files that are absent and the host registers no Strict documents UI; only the CI-built Release tarball and the registry package carry the bundle.
+    - 'Reproduced 2026-10-29 on a shallow clone of main: dsh plugin --profile web add on the plugin directory exited 0 and installed LICENSE, both READMEs, cordis.patch.yml, package.json, bun.lock, src, scripts, test-support, and tsconfig.json with no dist directory. A directory install also runs no lifecycle script, so a prepare hook alone cannot repair it.'
+scope:
+  in:
+    - '.gitignore: drop the plugins/dsh-strict-spec/dist/ build-output ignore rule and its comment so the built bundle is tracked.'
+    - 'plugins/dsh-strict-spec/dist/: the tracked client bundle, host entry, bundled strict-spec-cli asset, and 25 skill bodies rebuilt from the current source, byte-identical to the 0.5.1 Release tarball''s 28 dist files.'
+    - 'plugins/dsh-strict-spec/package.json: a prepare hook that exits when the tracked bundle is complete and builds only when a required bundle file is missing.'
+    - 'test/suites/dsh-plugin.ts: a source-install check over the tracked bundle, the build plan, the root ignore file, and the prepare hook, with a negative probe per finding category.'
+    - 'plugins/dsh-strict-spec/README.md and README.zh.md: state that the build output is tracked, so a checkout installs without a build step and a rebuild is only needed after source edits.'
+    - 'inventory/yaml-mutation-surfaces.yaml: cover the tracked bundled skill bodies with one pattern on the bundled-skill-guidance mutation surface, so the inventory check keeps passing once the copies are tracked.'
+  out:
+    - 'No version bump, tag move, or republish: the 0.5.1 Release tarball and the registry package already carry the same bundle.'
+    - No viewer behavior, host contract, engines pin, or files-allowlist change.
+    - 'No delta spec and no delta tech: no main spec requirement states an install channel, and the existing packed-tarball allowlist rule still holds.'
+unchanged_behavior:
+  - npm pack still ships exactly the built bundle directory, the bundle patch, one README per shipped locale, and the license file.
+  - The publication workflow still builds from source before packing and publishing, and still ships only from a main merge named by the matching plugin-v tag.
+  - The Release tarball and the registry package keep installing the same 28 bundle files, and the host keeps registering both entry points.
+  - 'A link: install still points at the checkout and still needs a rebuild after source edits; it now inherits the tracked bundle before the first rebuild.'
